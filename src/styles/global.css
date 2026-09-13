@@ -1,0 +1,182 @@
+/* Design tokens — identidad visual de TFL Client.
+   Paleta placeholder deliberada (naranja/ámbar) hasta que TFLives entregue
+   la paleta de marca final — ver spec §26. */
+
+@font-face {
+	font-family: 'Monocraft';
+	src: url('/fonts/Monocraft.ttf') format('truetype');
+	font-weight: 400;
+	font-display: swap;
+}
+
+:root {
+	--bg-main: #0a0a0a;
+	--bg-sidebar: #111113;
+	--bg-card: #131315;
+	--bg-item-active: #1a1a1c;
+	--bg-input: #0a0a0a;
+	--bg-overlay: rgba(0, 0, 0, 0.7);
+
+	--text-primary: #f4f4f5;
+	--text-secondary: #a1a1aa;
+	--text-muted: #71717a;
+
+	--accent: #ff7a2e;
+	--accent-rgb: 255, 122, 46;
+	--accent-hover: #ff9152;
+	--accent-text: #0c0c0c;
+
+	--border: rgba(255, 255, 255, 0.08);
+	--border-radius: 10px;
+	--border-radius-sm: 6px;
+	--border-radius-lg: 16px;
+
+	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+	--shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.6);
+
+	--color-success: #22c55e;
+	--color-error: #ef4444;
+	--color-error-rgb: 239, 68, 68;
+	--color-warning: #eab308;
+
+	--sidebar-width: 272px;
+	--titlebar-height: 36px;
+
+	--font-family: -apple-system, 'Segoe UI Variable', 'Segoe UI', Cantarell, sans-serif;
+	--font-brand: 'Monocraft', var(--font-family);
+	--font-size-base: 14px;
+
+	/* Colores de marca por loader — coinciden con el ecosistema real de cada uno. */
+	--loader-vanilla: #8a8f98;
+	--loader-fabric: #dbb69b;
+	--loader-forge: #6b5b95;
+	--loader-neoforge: #d7823b;
+	--loader-quilt: #b47ee5;
+
+	color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+	--bg-main: #f5f5f5;
+	--bg-sidebar: #ffffff;
+	--bg-card: #ffffff;
+	--bg-item-active: #eaeaea;
+	--bg-input: #eaeaea;
+	--bg-overlay: rgba(0, 0, 0, 0.4);
+
+	--text-primary: #1a1a1a;
+	--text-secondary: #666666;
+	--text-muted: #999999;
+
+	--accent: #e05a00;
+	--accent-rgb: 224, 90, 0;
+	--accent-hover: #c94e00;
+	--accent-text: #ffffff;
+
+	--border: #d4d4d4;
+
+	color-scheme: light;
+}
+
+/* Acentos alternativos — mismo esquema de tokens, otro color de marca.
+   Van después de los bloques de tema para ganarle a su --accent por defecto,
+   sin importar si estamos en dark o light. */
+:root[data-accent='violet'] {
+	--accent: #8b5cf6;
+	--accent-rgb: 139, 92, 246;
+	--accent-hover: #a78bfa;
+	--accent-text: #ffffff;
+}
+
+:root[data-accent='teal'] {
+	--accent: #14b8a6;
+	--accent-rgb: 20, 184, 166;
+	--accent-hover: #2dd4bf;
+	--accent-text: #ffffff;
+}
+
+* {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html {
+	font-size: var(--font-size-base);
+}
+
+body {
+	font-family: var(--font-family);
+	background-color: var(--bg-main);
+	color: var(--text-primary);
+	overflow: hidden;
+	height: 100vh;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+button,
+input,
+select,
+textarea {
+	font-family: inherit;
+	color: inherit;
+}
+
+input,
+textarea,
+[contenteditable] {
+	-webkit-user-select: text;
+	user-select: text;
+}
+
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--border);
+	border-radius: 10px;
+}
+
+/* Perfil de calidad — Lite/Balanced/Experience (ver settings). */
+html[data-reduce-motion] *,
+html[data-reduce-motion] *::before,
+html[data-reduce-motion] *::after {
+	animation-duration: 0.001ms !important;
+	transition-duration: 0.001ms !important;
+}
+
+html[data-no-blur] * {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
+/* Fondo ambient — capa fija de gradientes radiales con el acento activo,
+   para que la app no se sienta plana. Se desactiva/reduce con el perfil
+   Lite (--no-blur) para no pegarle al rendimiento en hardware modesto. */
+.ambient-bg {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	overflow: hidden;
+	background:
+		radial-gradient(
+			ellipse 900px 600px at 15% -10%,
+			rgba(var(--accent-rgb), 0.16),
+			transparent 60%
+		),
+		radial-gradient(
+			ellipse 700px 500px at 100% 20%,
+			rgba(var(--accent-rgb), 0.08),
+			transparent 55%
+		),
+		radial-gradient(ellipse 800px 700px at 50% 120%, rgba(var(--accent-rgb), 0.06), transparent 60%);
+}
+
+html[data-no-blur] .ambient-bg {
+	opacity: 0.5;
+}

@@ -1,0 +1,60 @@
+{
+	"$schema": "https://schema.tauri.app/config/2",
+	"productName": "tflclient",
+	"version": "0.1.0",
+	"identifier": "com.tflives.tflclient",
+	"build": {
+		"beforeDevCommand": "bun run dev",
+		"devUrl": "http://localhost:1420",
+		"beforeBuildCommand": "bun run build",
+		"frontendDist": "../build"
+	},
+	"app": {
+		"windows": [
+			{
+				"title": "TFL Client",
+				"width": 1100,
+				"height": 700,
+				"minWidth": 800,
+				"minHeight": 600,
+				"devtools": true,
+				"decorations": false
+			}
+		],
+		"security": {
+			"dangerousDisableAssetCspModification": true,
+			"csp": {
+				"default-src": "'self' tauri: http://localhost:* https://tauri.localhost",
+				"img-src": "'self' asset: http://asset.localhost https: http://textures.minecraft.net blob: data: http://localhost:*",
+				"style-src": "'self' 'unsafe-inline' blob: http://localhost:* https://tauri.localhost",
+				"font-src": "'self' asset: https: https://asset.localhost http://asset.localhost http://localhost:*",
+				"script-src": "'self' 'unsafe-inline' http://localhost:*",
+				"connect-src": "'self' tauri://localhost ipc://localhost http://ipc.localhost http://localhost:* https://tauri.localhost https://api.modrinth.com https://api.curseforge.com"
+			},
+			"devCsp": {
+				"default-src": "'self' tauri: http://localhost:* https://tauri.localhost",
+				"img-src": "'self' asset: http://asset.localhost https: http://textures.minecraft.net blob: data: http://localhost:*",
+				"style-src": "'self' 'unsafe-inline' blob: http://localhost:* https://tauri.localhost",
+				"font-src": "'self' asset: https: https://asset.localhost http://asset.localhost http://localhost:*",
+				"script-src": "'self' 'unsafe-inline' http://localhost:*",
+				"connect-src": "'self' tauri://localhost ipc://localhost http://ipc.localhost http://localhost:* https://tauri.localhost https://api.modrinth.com https://api.curseforge.com"
+			},
+			"assetProtocol": {
+				"enable": true,
+				"scope": ["$HOME/.tflclient/**"]
+			}
+		}
+	},
+	"bundle": {
+		"active": true,
+		"targets": ["nsis", "deb", "appimage", "app", "rpm", "dmg"],
+		"createUpdaterArtifacts": true,
+		"icon": [
+			"icons/32x32.png",
+			"icons/128x128.png",
+			"icons/128x128@2x.png",
+			"icons/icon.icns",
+			"icons/icon.ico"
+		]
+	}
+}
