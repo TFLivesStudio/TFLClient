@@ -45,22 +45,29 @@
 </script>
 
 <div class="onboarding">
+	<div class="ambient-bg"></div>
 	<div class="onboarding-card">
 		<div class="brand">
-			<Tfl width="40" height="40" />
+			<div class="brand-mark"><Tfl width="34" height="34" /></div>
 			<h1>TFL Client</h1>
 			<p>Iniciá sesión para empezar a jugar</p>
 		</div>
 
 		{#if mode === 'choose'}
 			<div class="options">
-				<button type="button" class="option-btn primary" onclick={handleMicrosoft}>
-					<Gamepad2 size={18} />
-					Iniciar con Microsoft
+				<button type="button" class="option-card primary" onclick={handleMicrosoft}>
+					<span class="option-icon"><Gamepad2 size={20} /></span>
+					<span class="option-text">
+						<span class="option-title">Cuenta Microsoft</span>
+						<span class="option-sub">Acceso completo, multijugador incluido</span>
+					</span>
 				</button>
-				<button type="button" class="option-btn" onclick={() => (mode = 'offline')}>
-					<User size={18} />
-					Cuenta offline
+				<button type="button" class="option-card" onclick={() => (mode = 'offline')}>
+					<span class="option-icon"><User size={20} /></span>
+					<span class="option-text">
+						<span class="option-title">Cuenta offline</span>
+						<span class="option-sub">Solo singleplayer</span>
+					</span>
 				</button>
 			</div>
 		{:else if mode === 'offline'}
@@ -124,19 +131,23 @@
 
 <style>
 	.onboarding {
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		height: 100%;
 		width: 100%;
+		overflow: hidden;
 	}
 
 	.onboarding-card {
-		width: 380px;
+		position: relative;
+		z-index: 1;
+		width: 400px;
 		background: var(--bg-card);
 		border: 1px solid var(--border);
 		border-radius: var(--border-radius-lg);
-		padding: 32px;
+		padding: 36px;
 		box-shadow: var(--shadow-lg);
 	}
 
@@ -144,19 +155,30 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 6px;
-		margin-bottom: 28px;
+		gap: 8px;
+		margin-bottom: 30px;
 		text-align: center;
 	}
 
-	.brand :global(svg) {
+	.brand-mark {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 64px;
+		height: 64px;
+		border-radius: var(--border-radius-lg);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+		margin-bottom: 4px;
+	}
+
+	.brand-mark :global(svg) {
 		color: var(--accent);
 	}
 
 	.brand h1 {
 		font-family: var(--font-brand);
-		font-size: 1.1rem;
-		margin-top: 8px;
+		font-size: var(--text-xl);
 	}
 
 	.brand p {
@@ -170,6 +192,60 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
+	}
+
+	.option-card {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		padding: 14px 16px;
+		border-radius: var(--border-radius);
+		border: 1px solid var(--border);
+		background: var(--bg-input);
+		color: var(--text-primary);
+		text-align: left;
+		cursor: pointer;
+		transition:
+			border-color 0.15s,
+			transform 0.12s;
+	}
+
+	.option-card:hover {
+		border-color: var(--accent);
+		transform: translateY(-1px);
+	}
+
+	.option-card.primary {
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+		background: color-mix(in srgb, var(--accent) 10%, var(--bg-input));
+	}
+
+	.option-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 38px;
+		height: 38px;
+		flex-shrink: 0;
+		border-radius: var(--border-radius-sm);
+		background: color-mix(in srgb, var(--accent) 16%, transparent);
+		color: var(--accent);
+	}
+
+	.option-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.option-title {
+		font-size: 0.88rem;
+		font-weight: 700;
+	}
+
+	.option-sub {
+		font-size: 0.72rem;
+		color: var(--text-muted);
 	}
 
 	.option-btn {

@@ -8,7 +8,7 @@ use serde::Deserialize;
 use super::batch::{DownloadBatch, DownloadItemSpec};
 use crate::AquaError;
 use crate::progress::DownloadStage;
-use crate::utilities::HTTP_CLIENT;
+use crate::utilities::{fetch_json_retrying, fetch_text_retrying};
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
@@ -35,6 +35,22 @@ struct FabricLibrary {
     url: String,
 }
 
+/// El fallo de conexión a fabricmc.net (no un 404/400 del servidor, sino
+/// que la conexión ni se establece) es, en la práctica, casi siempre una
+/// VPN o firewall/antivirus con filtro de contenido bloqueando ese host
+/// específico — visto y confirmado en uso real (ProtonVPN NetShield). El
+/// error crudo de reqwest no lo deja claro; esto lo hace explícito para
+/// que el usuario sepa qué mirar en vez de asumir que el launcher está
+/// roto.
+fn wrap_fabricmc_error(e: AquaError) -> AquaError {
+    AquaError::Other(format!(
+        "{e}\n\nNo se pudo conectar a fabricmc.net. Si tenés una VPN activa \
+         (ProtonVPN, NordVPN, Mullvad, etc.) o un antivirus/firewall con \
+         filtro de contenido, probá desactivarlo o agregar una excepción \
+         para fabricmc.net — es la causa más común de este error puntual."
+    ))
+}
+
 pub struct FabricBatch {
     fabric_version_id: String,
     game_version: String,
@@ -50,16 +66,9 @@ impl FabricBatch {
             "https://meta.fabricmc.net/v2/versions/loader/{}",
             game_version
         );
-        let response = HTTP_CLIENT
-            .get(&loader_url)
-            .send()
+        let loaders: Vec<FabricLoaderResponse> = fetch_json_retrying(&loader_url)
             .await
-            .map_err(|e| AquaError::Other(format!("Error fetching Fabric loaders: {}", e)))?;
-
-        let loaders: Vec<FabricLoaderResponse> = response
-            .json()
-            .await
-            .map_err(|e| AquaError::Other(format!("Error parsing Fabric loaders: {}", e)))?;
+            .map_err(wrap_fabricmc_error)?;
 
         // Prefer stable loaders; fallback to the first available one otherwise.
         loaders
@@ -82,14 +91,9 @@ impl FabricBatch {
             game_version, loader_version
         );
 
-        let profile_text = HTTP_CLIENT
-            .get(&profile_url)
-            .send()
+        let profile_text = fetch_text_retrying(&profile_url)
             .await
-            .map_err(|e| AquaError::Other(format!("Error fetching Fabric profile: {}", e)))?
-            .text()
-            .await
-            .map_err(|e| AquaError::Other(format!("Error reading Fabric profile: {}", e)))?;
+            .map_err(wrap_fabricmc_error)?;
 
         let profile: FabricProfile = serde_json::from_str(&profile_text)
             .map_err(|e| AquaError::Other(format!("Error parsing Fabric profile: {}", e)))?;

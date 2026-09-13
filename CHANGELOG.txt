@@ -1,0 +1,489 @@
+TFL CLIENT — CHANGELOG COMPLETO DEL CÓDIGO
+================================================================================
+Basado en `git log` + `git diff` real del repositorio, no en memoria de
+conversación. Estado del repo: un solo commit (95b9fb5). Todo lo posterior
+sigue sin commitear en el working tree — este documento cubre ambos: el
+commit inicial y el diff completo contra ese commit.
+
+
+PARTE 1 — COMMIT INICIAL (95b9fb5)
+================================================================================
+"TFL Client: proyecto nuevo desde cero, motor de CubicLauncher reusado"
+195 archivos, 19164 inserciones.
+
+Creado (no existía nada antes de este commit — es el primer commit del
+repo):
+- Scaffold completo Tauri v2 + SvelteKit (backend `src-tauri` y frontend
+  `src` escritos de cero para este proyecto).
+- 6 crates Rust copiadas de CubicLauncher, ya rebrandeadas ahí (no
+  reescritas acá): aqua (descarga/instalación), zellkern (manifests de
+  versión, resolución de comandos de lanzamiento), launchwerk (orquestador
+  de lanzamiento + auth), cubrinth (parser de .mrpack), communicator
+  (Discord RPC, sin uso todavía), ablage (KV cache local, sin uso todavía).
+- Comandos Tauri: auth (Microsoft device-code, Yggdrasil, offline),
+  settings, instancias (crear/listar/renombrar/eliminar/memoria/lanzar),
+  versiones, loaders, mods.
+- Frontend: TitleBar, Sidebar, Onboarding, CreateInstanceModal,
+  InstanceDetail, ModsPanel, SettingsPanel, DownloadProgressBar,
+  ConfirmDialog, sistema de tokens CSS (dark/light, 3 acentos, colores por
+  loader), fondo ambient.
+- Ícono y paleta propios (naranja/ámbar), sin assets de CubicLauncher.
+
+Explícitamente fuera de este commit (no implementado): CurseForge,
+progreso granular de Forge/NeoForge.
+
+
+PARTE 2 — CAMBIOS SIN COMMITEAR (git diff 95b9fb5, estado actual)
+================================================================================
+20 archivos, +636 / -174 líneas. Por archivo:
+
+
+crates/aqua/src/downloaders/forge.rs
+--------------------------------------------------------------------------------
+CORREGIDO — ForgeBatch::run(): agregada la llamada `self.prepare().await?;`
+al principio del método, antes de armar el batch de descarga.
+Antes: `run()` armaba un `GenericBatch` temporal solo con los items de
+librerías, los descargaba, y llamaba `self.finalize()` directamente —
+nunca llamaba a `prepare()`, que es el paso que crea el directorio
+`staging/versions/<id>/` y escribe `<id>.json` ahí.
+Efecto del bug: `finalize()` intentaba copiar el jar parchado de Forge a
+ese directorio, que nunca se había creado, y fallaba con
+`std::io::Error: No such file or directory (os error 2)` — reproducido
+en un caso real después de ~38 minutos de instalador de Forge corriendo
+"exitosamente".
+
+
+crates/aqua/src/downloaders/neoforge.rs
+--------------------------------------------------------------------------------
+CORREGIDO — NeoForgeBatch::run(): mismo bug y mismo fix que ForgeBatch
+(arriba). Agregada `self.prepare().await?;` al principio de `run()`.
+
+
+crates/aqua/src/downloaders/fabric.rs
+--------------------------------------------------------------------------------
+CORREGIDO — FabricBatch::resolve_latest_loader() y FabricBatch::new():
+las llamadas HTTP (`HTTP_CLIENT.get(url).send().await?.json()/.text()`)
+eran de un solo intento, sin reintento. Reemplazadas por
+`fetch_json_retrying()` / `fetch_text_retrying()` (ver
+crates/aqua/src/utilities/mod.rs abajo) — 3 intentos con backoff.
+Import de `HTTP_CLIENT` quitado (ya no se usa directo en este archivo,
+reemplazado por las funciones de utilities).
+
+
+crates/aqua/src/downloaders/quilt.rs
+--------------------------------------------------------------------------------
+CORREGIDO — QuiltBatch::resolve_latest_loader() y QuiltBatch::new(): mismo
+cambio que fabric.rs (arriba). Import de `HTTP_CLIENT` quitado.
+
+
+crates/aqua/src/utilities/mod.rs
+--------------------------------------------------------------------------------
+AGREGADO
+  + const MAX_METADATA_ATTEMPTS: u32 = 3
+  + fetch_text_retrying(url: &str) -> Result<String, AquaError>
+  + fetch_json_retrying<T: DeserializeOwned>(url: &str) -> Result<T, AquaError>
+    GET con reintento (backoff exponencial 200ms * 2^intento). Usado por
+    fabric.rs y quilt.rs (arriba) para las llamadas de metadata que antes
+    eran de un solo intento, a diferencia de `download_file()` (la
+    descarga de archivos reales), que ya tenía 3 reintentos desde antes.
+
+
+crates/zellkern/src/manifest.rs
+--------------------------------------------------------------------------------
+CORREGIDO — Library::is_correct_arch(): agregado el caso
+`has_generic_platform` (classifier "natives-macos" / "natives-linux" /
+"natives-windows" SIN sufijo de arquitectura).
+Antes: ese caso no estaba cubierto por ninguna de las ramas explícitas
+(que solo manejaban sufijos "-arm64", "-x86", "-arm32") y caía en el
+`true` final de la función — se incluía siempre, en cualquier
+arquitectura de host.
+Ahora: retorna `ARCH != "aarch64" && ARCH != "arm"` — se excluye en hosts
+ARM.
+Efecto del bug: en Mac Apple Silicon (y Linux/Windows ARM), se
+descargaban y extraían TANTO la build x86_64 genérica como la build
+arm64 de cada librería nativa de LWJGL. Ambas jars contienen un archivo
+interno con el mismo nombre (ej. `liblwjgl.dylib`), así que la extracción
+de una pisaba a la otra según orden de procesamiento — resultado: carpeta
+de natives con arquitectura mezclada al azar, JVM tira
+`UnsatisfiedLinkError: Failed to locate library` al arrancar Minecraft.
+Verificado con `cargo test -p zellkern` — 25/25 tests pasan, sin
+regresión.
+
+
+src-tauri/Cargo.toml
+--------------------------------------------------------------------------------
+AGREGADO — dependencia `tauri-plugin-opener = "2.5.5"`.
+
+
+src-tauri/src/lib.rs
+--------------------------------------------------------------------------------
+AGREGADO
+  - `.plugin(tauri_plugin_opener::init())` registrado en el builder.
+  - `commands::instance::open_instance_folder` agregado al
+    invoke_handler.
+
+
+src-tauri/src/commands/instance.rs
+--------------------------------------------------------------------------------
+AGREGADO
+  + open_instance_folder(app: AppHandle, name: String) -> Result<(), String>
+    Resuelve el directorio de la instancia, lo crea si no existe, y lo
+    abre en el explorador de archivos del sistema vía
+    `tauri_plugin_opener::OpenerExt::open_path`.
+
+
+src-tauri/src/core/http_client.rs
+--------------------------------------------------------------------------------
+AGREGADO
+  + const MAX_RETRY_ATTEMPTS: u32 = 3
+  + get_text_retrying(url: &str) -> Result<String, String>
+  + get_json_retrying<T: DeserializeOwned>(url: &str) -> Result<T, String>
+  + get_bytes_retrying(url: &str) -> Result<Vec<u8>, String>
+    Mismo patrón de reintento que aqua::utilities, para el cliente HTTP
+    del lado src-tauri (comandos Rust, no motor de descarga).
+
+
+src-tauri/src/core/mod.rs
+--------------------------------------------------------------------------------
+CAMBIADO — export actualizado a
+`pub use http_client::{HTTP, get_bytes_retrying, get_json_retrying, get_text_retrying};`
+(antes solo exportaba `HTTP`).
+
+
+src-tauri/src/commands/loaders.rs
+--------------------------------------------------------------------------------
+CORREGIDO
+  - get_forge_version(): `HTTP.get(...).send().await?.json().await?`
+    (sin reintento) reemplazado por `get_json_retrying(...)`.
+  - get_neoforge_version(): mismo reemplazo, con `get_text_retrying(...)`
+    (la respuesta es XML, no JSON).
+
+
+src-tauri/src/commands/versions.rs
+--------------------------------------------------------------------------------
+CORREGIDO — get_available_versions(): fetch del manifest de Mojang (usado
+para llenar el selector de versión al crear instancia) reemplazado por
+`get_json_retrying(aqua::MOJANG_MANIFEST_URL)`.
+
+
+src-tauri/src/commands/mods.rs
+--------------------------------------------------------------------------------
+CORREGIDO
+  - search_mods(), best_version(), version_by_id(): las tres llamadas a
+    la API de Modrinth (sin reintento) reemplazadas por
+    `get_json_retrying(...)`.
+  - download_mod_file(): antes escribía el archivo descargado a disco sin
+    ninguna verificación de integridad (`HTTP.get().send().await?.bytes()`
+    → `tokio::fs::write` directo). Ahora:
+      + ModrinthFile: agregado campo `hashes: Option<ModrinthFileHashes>`
+      + struct ModrinthFileHashes { sha1: Option<String> }
+    Se pide el hash SHA1 a Modrinth, se calcula el SHA1 real del archivo
+    descargado (`sha1::Sha1::digest` + formateo hex manual byte a byte,
+    porque el tipo `Array` que devuelve esa versión de la crate no
+    implementa `LowerHex` directo), y se comparan. Si no coinciden,
+    reintenta la descarga completa hasta 3 veces; si los 3 intentos
+    fallan, retorna error con el hash esperado y el obtenido.
+
+
+src-tauri/src/services/launcher.rs
+--------------------------------------------------------------------------------
+CORREGIDO
+  - Agregada `vanilla_fully_installed(shared_dir, version_id) -> bool`:
+    chequea que existan TANTO `<id>.json` COMO `<id>.jar` del cliente.
+  - ensure_downloaded(): la condición para decidir si hace falta descargar
+    la base Vanilla cambió de `!version_json_exists(...)` (solo miraba el
+    .json) a `!vanilla_fully_installed(...)` (mira .json y .jar).
+    Antes: el `.json` se escribe en `prepare()`, ANTES de que se bajen los
+    archivos de verdad. Si la descarga se cortaba a mitad de camino (corte
+    de red), el `.json` quedaba solo — y como el chequeo solo miraba ese
+    archivo, todo lanzamiento posterior asumía "ya está instalado" y
+    jamás reintentaba la descarga, fallando para siempre con
+    `Missing file: Version JAR not found` hasta que alguien borrara el
+    caché a mano.
+  - Agregado logging (`tracing::info!`/`error!`/`.inspect_err()`) en
+    ensure_downloaded() y launch() — antes los fallos de descarga por
+    loader (Fabric/Quilt/Forge/NeoForge) no dejaban rastro claro en el
+    log, solo el string de error final.
+
+
+src/lib/api/tflApi.ts
+--------------------------------------------------------------------------------
+AGREGADO — `openInstanceFolder(name: string)` wrapper del comando Tauri
+`open_instance_folder`.
+
+
+src/lib/components/layout/Sidebar/Sidebar.svelte
+--------------------------------------------------------------------------------
+CAMBIADO — el chip de usuario (abajo de la sidebar) mostraba un ícono
+genérico de lucide (`<UserIcon>`) solo. Ahora muestra:
+  <span class="user-head">
+    <UserIcon class="user-head-fallback" />  (absolute, detrás)
+    <img src="https://crafatar.com/avatars/{user.uuid}?size=32&overlay">
+  </span>
+La imagen tiene `onerror` que la oculta (`style.display = 'none'`) si no
+carga, dejando visible el ícono de fallback — sin red o con un UUID
+offline sin skin real, no rompe el layout.
+CSS: nuevas reglas `.user-head`, `.user-head :global(.user-head-fallback)`,
+`.user-head img` (image-rendering: pixelated).
+
+
+src/lib/components/library/CreateInstanceModal.svelte
+--------------------------------------------------------------------------------
+CAMBIADO
+  - LOADERS: cada entrada tiene ahora un campo `color` (var(--loader-*)).
+  - Botones de loader: agregado `<span class="loader-dot">` con
+    `background: var(--loader-color)`, `--loader-color` seteado inline
+    por botón. Antes eran botones de texto plano sin identidad de color.
+  - CSS: `.loader-btn` pasó de fila a columna (icon arriba, texto abajo);
+    nueva regla `.loader-dot` (8x8px circular, opacity 0.55 → 1 en
+    `.active`); `.loader-btn:hover` usa `border-color: var(--loader-color)`
+    (antes no tenía hover propio); `.loader-btn.active` pasó de
+    `background: var(--accent)` fijo a
+    `background: color-mix(in srgb, var(--loader-color) 16%, var(--bg-input))`
+    con `border-color: var(--loader-color)` — cada loader se resalta con
+    su propio color en vez del acento genérico de la app.
+
+
+src/lib/components/library/InstanceDetail.svelte
+--------------------------------------------------------------------------------
+CAMBIADO/AGREGADO (el archivo con más cambios: +220/-~60 líneas)
+  - Imports agregados: `openInstanceFolder`, `getInstanceMods` (API);
+    `Package`, `Blocks`, `Clock`, `FolderOpen`, `Puzzle`, `ChevronRight`
+    (íconos).
+  - State agregado: `modCount`.
+  - onMount: agregada llamada a `loadModCount()` (antes solo llamaba a
+    `loadRamHint()`).
+  + loadModCount(): cuenta mods instalados vía `getInstanceMods`, salvo en
+    Vanilla (no soporta mods).
+  + handleOpenFolder(): llama `openInstanceFolder(instance.name)`.
+  - `.meta-row` (texto plano: loader badge + versión + punto + "jugada
+    hace X días") RENOMBRADO y rediseñado a `.stat-chips`: cada dato es
+    ahora un chip individual con ícono (`Package` para versión de MC,
+    `Blocks` para versión del loader — nuevo, no existía antes, oculto en
+    Vanilla —, `Clock` para última vez jugada). Texto de "última vez
+    jugada" acortado ("Jugada hace X días" → "Hace X días", etc.)
+  + Sección `.quick-actions` (nueva, no existía): grid de 2 tarjetas.
+    - Tarjeta "Mods": ícono Puzzle, subtítulo con conteo real de mods
+      instalados (o "No soportado en Vanilla"), click cambia a la tab
+      "mods".
+    - Tarjeta "Carpeta": ícono FolderOpen, click llama
+      `handleOpenFolder()`.
+  - `.hero`: antes era un `<div>` flex sin fondo ni borde propio. Ahora:
+    `position: relative`, `padding: 22px 24px`, `border: 1px solid
+    var(--border)`, `border-radius: var(--border-radius-lg)`, `background`
+    con `radial-gradient(ellipse 500px 220px at 0% 0%, color-mix(...
+    var(--loader-color) 14%...), transparent 70%)` sobre `var(--bg-card)`,
+    `overflow: hidden`.
+  - `.hero-icon`: 64px → 72px, font-size 1.6rem → 1.8rem, opacidad de
+    fondo 16% → 20%, borde 35% → 45%, agregado `box-shadow` con anillo
+    `color-mix(var(--loader-color) 8%, transparent)`.
+  - `.play-btn`: `background: var(--accent)` (sólido) →
+    `linear-gradient(155deg, var(--accent-hover), var(--accent))`;
+    padding `12px 28px` → `15px 32px`; border-radius
+    `var(--border-radius-sm)` → `var(--border-radius)`; `box-shadow`
+    agregado glow `color-mix(var(--accent) 35%, transparent)`; agregada
+    transición de `box-shadow`.
+  - `.play-btn:hover:not(:disabled)`: `translateY(-1px)` →
+    `translateY(-2px)`, `box-shadow` pasa a `var(--shadow-lg)` + glow 45%.
+
+
+src/lib/components/settings/SettingsPanel.svelte
+--------------------------------------------------------------------------------
+AGREGADO (+102/-~7 líneas)
+  - Imports agregados: `getDeviceCode`, `authenticateWithDeviceCode`
+    (API); `Gamepad2`, `Loader2` (íconos).
+  - State agregado: `msCode`, `msVerificationUri`, `msBusy`, `msError`.
+  + handleAddMicrosoft(): pide device code, muestra link+código, llama
+    `authenticateWithDeviceCode`, actualiza `appState.currentUser`,
+    refresca la lista de cuentas.
+  - Tab "Cuentas": agregada sección "Agregar cuenta Microsoft" (arriba de
+    "Agregar cuenta offline") con botón "Iniciar con Microsoft" que
+    dispara `handleAddMicrosoft()`, o el bloque `.ms-pending` (link +
+    código) mientras espera confirmación.
+    Antes: el login con Microsoft SOLO existía en la pantalla de
+    onboarding (primer arranque de la app) — pasada esa pantalla, no
+    había forma de agregar una cuenta Microsoft sin borrar
+    `settings.tfl` a mano.
+  - CSS: nuevas reglas `.error`, `.ms-btn`, `.ms-pending`, `.ms-code`,
+    `:global(.spin)` + `@keyframes tfl-spin` (el panel no tenía spinner
+    propio hasta ahora, usaba el de otros componentes).
+
+
+================================================================================
+VERIFICACIÓN APLICADA A TODO LO DE ARRIBA
+================================================================================
+- `cargo check --workspace`: limpio (2 warnings preexistentes sin
+  relación con estos cambios: campo `id` sin leer en `ModrinthVersion`,
+  variantes de `AppError` sin construir).
+- `cargo test -p zellkern`: 25/25 tests pasan, sin regresión por el fix
+  de `is_correct_arch()`.
+- `bun run check` (svelte-check): 0 errores (1 warning preexistente sin
+  relación: `nameDraft` en InstanceDetail.svelte captura solo el valor
+  inicial de `instance.name`).
+- Recompilación y relanzamiento automático del proceso `bun run tauri
+  dev` confirmados por log en cada cambio de Rust; HMR confirmado por
+  log en cada cambio de Svelte.
+
+
+PARTE 3 — PULIDO VISUAL: ONBOARDING, AJUSTES, SIDEBAR
+================================================================================
+
+src/lib/components/onboarding/Onboarding.svelte
+--------------------------------------------------------------------------------
+CAMBIADO
+  - Agregado `<div class="ambient-bg">` dentro del componente (antes el
+    fondo ambient solo se veía en la app principal, la pantalla de login
+    era plana).
+  - `.brand`: el ícono suelto pasó a `.brand-mark`, un cuadrado
+    redondeado 64x64 con fondo/borde teñido de `--accent` (antes el ícono
+    flotaba solo sin contenedor).
+  - Botones de elegir cuenta ("Iniciar con Microsoft" / "Cuenta offline"):
+    de `<button class="option-btn">` de una sola línea con texto, pasaron
+    a `<button class="option-card">` de dos líneas (ícono en caja propia
+    + título + subtítulo: "Acceso completo, multijugador incluido" /
+    "Solo singleplayer"). Los botones de "Volver"/"Continuar"/"Cancelar"
+    de los formularios de offline/microsoft NO se tocaron, siguen usando
+    `.option-btn`.
+  - `.onboarding-card`: ancho 380px → 400px, padding 32px → 36px.
+  - CSS agregado: `.brand-mark`, `.option-card`, `.option-card.primary`,
+    `.option-icon`, `.option-text`, `.option-title`, `.option-sub`.
+
+
+src/lib/components/settings/SettingsPanel.svelte
+--------------------------------------------------------------------------------
+CAMBIADO
+  - Imports agregados: `SlidersHorizontal`, `Users` (lucide-svelte).
+  - Tabs del panel (General/Cuentas/Java): antes texto plano sin ícono.
+    Ahora cada tab tiene su ícono (`SlidersHorizontal`, `Users`, `Coffee`
+    — este último ya estaba importado, ahora también se usa en la tab).
+  - `.panel`: ancho 420px → 440px.
+  - `.ptab`: agregado `display: inline-flex` + `gap: 6px` para acomodar
+    ícono+texto; agregado estado `:hover` (color: var(--text-primary),
+    antes no tenía); `.ptab.active` pasó de `color: var(--text-primary)`
+    a `color: var(--accent)` (el texto de la tab activa ahora toma el
+    color de acento, no solo el borde inferior).
+  - Swatches de color de acento: antes solo un borde sólido 2px en el
+    activo (`border-color: var(--text-primary)`). Ahora anillo con
+    `box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px currentColor` (efecto
+    "ring" separado del swatch, como selectores de color de apps nativas)
+    — se agregó `color: {a.color}` inline a cada botón para que
+    `currentColor` resuelva al color real de cada acento.
+
+
+src/lib/components/layout/Sidebar/Sidebar.svelte
+--------------------------------------------------------------------------------
+CAMBIADO
+  - `--loader-color` (antes seteado solo en `<span class="instance-avatar">`)
+    se movió al `<button class="instance-item">` que lo contiene, para
+    que también esté disponible para el propio item, no solo el avatar.
+  - `.instance-item`: agregado `position: relative` + pseudo-elemento
+    `::before` — barra de acento de 3px de ancho a la izquierda, color
+    `var(--loader-color)`, `opacity: 0` en reposo → `1` en `.active`.
+    Antes el único indicador de selección era un borde completo genérico
+    `border-color: var(--accent)` (mismo color para cualquier loader).
+  - `.instance-item.active`: `border-color` pasó de `var(--accent)` fijo
+    a `color-mix(in srgb, var(--loader-color) 40%, var(--border))` — el
+    borde también refleja el color del loader de esa instancia.
+  - `.instance-item:hover`: agregado `transform: translateX(1px)` (antes
+    solo cambiaba el borde, sin movimiento).
+
+
+================================================================================
+VERIFICACIÓN — PARTE 3
+================================================================================
+`bun run check` (svelte-check) tras cada archivo: 0 errores en los tres
+(mismo único warning preexistente de InstanceDetail.svelte, sin relación).
+HMR confirmado por log del proceso `bun run tauri dev` sin errores de
+consola para los tres componentes.
+
+
+PARTE 4 — ESCALA TIPOGRÁFICA (títulos de modal/panel sin criterio compartido)
+================================================================================
+
+src/styles/global.css
+--------------------------------------------------------------------------------
+AGREGADO — nuevos tokens de escala tipográfica en :root:
+  --text-xs: 0.68rem
+  --text-sm: 0.78rem
+  --text-base: 0.85rem
+  --text-md: 0.95rem
+  --text-lg: 1.05rem
+  --text-xl: 1.2rem
+  --text-2xl: 1.3rem
+Antes: 5 headers con el mismo rol visual ("título de modal/panel") tenían
+5 valores de font-size distintos y arbitrarios, sin ninguna relación
+entre sí: CreateInstanceModal 1rem, SettingsPanel 1rem, Onboarding 1.2rem,
+InstanceDetail 1.3rem, empty-state 1.15rem.
+
+CAMBIADO (font-size hardcodeado → token de la escala):
+  - src/lib/components/library/CreateInstanceModal.svelte: `.modal h2`
+    1rem → var(--text-lg).
+  - src/lib/components/settings/SettingsPanel.svelte: `.panel-header h2`
+    1rem → var(--text-lg).
+  - src/lib/components/onboarding/Onboarding.svelte: `.brand h1` 1.2rem
+    → var(--text-xl).
+  - src/routes/+page.svelte: `.empty-state h2` 1.15rem → var(--text-xl).
+  - src/lib/components/library/InstanceDetail.svelte: `.name-row h2`
+    1.3rem → var(--text-2xl); `.name-edit input` (el input que reemplaza
+    al h2 en modo edición de nombre) 1.1rem → var(--text-xl) — antes no
+    coincidía ni con el h2 que reemplaza ni con ningún otro token.
+
+Resultado: 3 niveles de jerarquía intencionales en vez de 5 valores sueltos
+— modal/panel (--text-lg), pantalla completa tipo onboarding/bienvenida
+(--text-xl), título de contenido principal (--text-2xl, el nombre de la
+instancia, el texto más importante de esa pantalla).
+
+Verificado: `bun run check` — 0 errores (mismo warning preexistente sin
+relación).
+
+
+PARTE 5 — MENSAJE DE ERROR ACCIONABLE PARA EL BLOQUEO DE FABRICMC.NET
+================================================================================
+
+crates/aqua/src/downloaders/fabric.rs
+--------------------------------------------------------------------------------
+AGREGADO
+  + wrap_fabricmc_error(e: AquaError) -> AquaError
+    Envuelve cualquier error de `resolve_latest_loader()` o `new()` (las
+    dos llamadas que le pegan a meta.fabricmc.net) con un mensaje
+    explicando que un fallo de CONEXIÓN a ese host puntual (no un 404/400
+    del servidor) suele ser una VPN o un firewall/antivirus con filtro de
+    contenido bloqueándolo, y sugiere desactivarlo o agregar una excepción
+    para fabricmc.net.
+  - resolve_latest_loader(): `fetch_json_retrying(&loader_url).await?`
+    → `.await.map_err(wrap_fabricmc_error)?`.
+  - new(): `fetch_text_retrying(&profile_url).await?` →
+    `.await.map_err(wrap_fabricmc_error)?`.
+
+Nota honesta: esto NO arregla el bloqueo en sí (es de red/VPN, ajeno al
+launcher — confirmado con `curl` directo, ver diagnóstico previo). Es la
+mejora de código que sí es posible: que el error que ve el usuario
+explique la causa más probable en vez de ser un string de reqwest sin
+contexto.
+
+Verificado: `cargo check --workspace` limpio. App recompilada y
+relanzada por el watcher.
+
+
+================================================================================
+NO TOCADO / NO ARREGLADO (documentado, no hecho)
+================================================================================
+- Instancias con `instance.tfl.json` de formato viejo (campo `version_id`
+  en vez de `mc_version`/`loader`/`launch_version_id`) desaparecen en
+  silencio de `list_instances()` — no hay migración ni warning.
+- `launchwerk` llama, en cada lanzamiento, a
+  `zellkern::resolvers::natives::extract_natives()`, que busca los .jar
+  de natives en `libraries/` — pero `aqua` nunca los pone ahí (los baja a
+  una carpeta temporal y extrae los binarios directo). Esa llamada
+  siempre falla en encontrar nada y solo ensucia el log
+  ("Legacy native JAR not found: ..."); no afecta el lanzamiento porque
+  la extracción real ya la hizo `aqua` antes.
+- Escala tipográfica aplicada solo a headers de modal/panel/pantalla
+  (Parte 4). El resto de tamaños de fuente (labels, texto de cuerpo,
+  botones) sigue definido por componente — quedaría para una pasada
+  posterior migrar esos también a tokens (--text-xs/--text-sm/--text-base
+  ya existen, faltaría aplicarlos).
+
+================================================================================
+Fin.
+================================================================================

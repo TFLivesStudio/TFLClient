@@ -10,10 +10,22 @@
 		switchUser,
 		removeUser,
 		addOfflineAccount,
-		getCurrentUser
+		getCurrentUser,
+		getDeviceCode,
+		authenticateWithDeviceCode
 	} from '$lib/api/tflApi';
 	import type { QualityProfile, MinecraftUser, JavaStatus } from '$lib/types/types';
-	import { X, Check, Trash2, Plus, Coffee } from 'lucide-svelte';
+	import {
+		X,
+		Check,
+		Trash2,
+		Plus,
+		Coffee,
+		Gamepad2,
+		Loader2,
+		SlidersHorizontal,
+		Users
+	} from 'lucide-svelte';
 
 	let { onClose }: { onClose: () => void } = $props();
 
@@ -40,6 +52,10 @@
 	let users = $state<MinecraftUser[]>([]);
 	let newOfflineName = $state('');
 	let accountBusy = $state(false);
+	let msCode = $state<string | null>(null);
+	let msVerificationUri = $state<string | null>(null);
+	let msBusy = $state(false);
+	let msError = $state<string | null>(null);
 
 	let javaStatuses = $state<JavaStatus[]>([]);
 
@@ -124,6 +140,28 @@
 		}
 	}
 
+	async function handleAddMicrosoft() {
+		msBusy = true;
+		msError = null;
+		msCode = null;
+		try {
+			const dc = await getDeviceCode();
+			msCode = dc.user_code;
+			msVerificationUri = dc.verification_uri;
+			appState.currentUser = await authenticateWithDeviceCode(
+				dc.device_code,
+				dc.interval,
+				dc.expires_in
+			);
+			msCode = null;
+			await loadAccounts();
+		} catch (e) {
+			msError = String(e);
+		} finally {
+			msBusy = false;
+		}
+	}
+
 	async function loadJava() {
 		javaStatuses = await getJavaStatus();
 	}
@@ -162,20 +200,26 @@
 				type="button"
 				class="ptab"
 				class:active={tab === 'general'}
-				onclick={() => selectTab('general')}>General</button
+				onclick={() => selectTab('general')}
 			>
+				<SlidersHorizontal size={14} /> General
+			</button>
 			<button
 				type="button"
 				class="ptab"
 				class:active={tab === 'accounts'}
-				onclick={() => selectTab('accounts')}>Cuentas</button
+				onclick={() => selectTab('accounts')}
 			>
+				<Users size={14} /> Cuentas
+			</button>
 			<button
 				type="button"
 				class="ptab"
 				class:active={tab === 'java'}
-				onclick={() => selectTab('java')}>Java</button
+				onclick={() => selectTab('java')}
 			>
+				<Coffee size={14} /> Java
+			</button>
 		</div>
 
 		<div class="panel-body">
@@ -206,7 +250,7 @@
 								type="button"
 								class="swatch"
 								class:active={accent === a.id}
-								style="background: {a.color}"
+								style="background: {a.color}; color: {a.color}"
 								onclick={() => applyAccent(a.id)}
 								aria-label={a.label}
 							></button>
@@ -286,6 +330,23 @@
 				</section>
 
 				<section>
+					<span class="section-label">Agregar cuenta Microsoft</span>
+					{#if msCode}
+						<div class="ms-pending">
+							<p>Andá a <a href={msVerificationUri} target="_blank" rel="noreferrer">{msVerificationUri}</a> e ingresá:</p>
+							<div class="ms-code">{msCode}</div>
+							<p class="hint">Esperando confirmación…</p>
+						</div>
+					{:else}
+						<button type="button" class="mini-btn ms-btn" disabled={msBusy} onclick={handleAddMicrosoft}>
+							{#if msBusy}<Loader2 size={13} class="spin" />{:else}<Gamepad2 size={13} />{/if}
+							Iniciar con Microsoft
+						</button>
+					{/if}
+					{#if msError}<p class="error">{msError}</p>{/if}
+				</section>
+
+				<section>
 					<span class="section-label">Agregar cuenta offline</span>
 					<div class="add-account-row">
 						<input
@@ -343,7 +404,7 @@
 	}
 
 	.panel {
-		width: 420px;
+		width: 440px;
 		max-height: 80vh;
 		background: var(--bg-card);
 		border: 1px solid var(--border);
@@ -362,7 +423,7 @@
 	}
 
 	.panel-header h2 {
-		font-size: 1rem;
+		font-size: var(--text-lg);
 	}
 
 	.close-btn {
@@ -385,8 +446,11 @@
 	}
 
 	.ptab {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
 		padding: 6px 4px;
-		margin-right: 14px;
+		margin-right: 18px;
 		background: transparent;
 		border: none;
 		border-bottom: 2px solid transparent;
@@ -394,10 +458,15 @@
 		font-size: 0.8rem;
 		font-weight: 600;
 		cursor: pointer;
+		transition: color 0.15s;
+	}
+
+	.ptab:hover {
+		color: var(--text-primary);
 	}
 
 	.ptab.active {
-		color: var(--text-primary);
+		color: var(--accent);
 		border-bottom-color: var(--accent);
 	}
 
@@ -452,12 +521,14 @@
 		width: 32px;
 		height: 32px;
 		border-radius: 50%;
-		border: 2px solid transparent;
+		border: 2px solid var(--bg-card);
+		box-shadow: 0 0 0 1px var(--border);
 		cursor: pointer;
+		transition: box-shadow 0.15s;
 	}
 
 	.swatch.active {
-		border-color: var(--text-primary);
+		box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px currentColor;
 	}
 
 	.ram-row {
@@ -598,6 +669,59 @@
 		font-size: 0.7rem;
 		color: var(--text-muted);
 		margin-top: 6px;
+	}
+
+	.error {
+		font-size: 0.72rem;
+		color: var(--color-error);
+		margin-top: 6px;
+	}
+
+	.ms-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		width: 100%;
+		justify-content: center;
+		padding: 8px;
+	}
+
+	.ms-pending {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		font-size: 0.76rem;
+		color: var(--text-secondary);
+	}
+
+	.ms-pending a {
+		color: var(--accent);
+	}
+
+	.ms-code {
+		align-self: flex-start;
+		font-family: monospace;
+		font-size: 1rem;
+		font-weight: 700;
+		letter-spacing: 2px;
+		padding: 6px 12px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-input);
+		color: var(--text-primary);
+	}
+
+	:global(.spin) {
+		animation: tfl-spin 0.8s linear infinite;
+	}
+
+	@keyframes tfl-spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.java-list {

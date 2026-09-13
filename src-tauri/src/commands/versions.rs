@@ -1,4 +1,4 @@
-use crate::core::HTTP;
+use crate::core::get_json_retrying;
 use serde::{Deserialize, Serialize};
 use tauri::command;
 
@@ -26,14 +26,7 @@ pub struct MinecraftVersion {
 
 #[command]
 pub async fn get_available_versions() -> Result<Vec<MinecraftVersion>, String> {
-    let raw: RawManifest = HTTP
-        .get(aqua::MOJANG_MANIFEST_URL)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .json()
-        .await
-        .map_err(|e| e.to_string())?;
+    let raw: RawManifest = get_json_retrying(aqua::MOJANG_MANIFEST_URL).await?;
 
     Ok(raw
         .versions

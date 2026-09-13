@@ -177,6 +177,12 @@ impl Library {
             || name.contains("natives-linux-aarch_64")
             || name.contains("natives-linux-arm64");
         let has_arm32 = name.contains("natives-linux-arm32");
+        // Classifier de plataforma sin sufijo de arquitectura (ej.
+        // "natives-macos", "natives-linux", "natives-windows") — es la
+        // build x86_64 genérica.
+        let has_generic_platform = name.contains("natives-macos")
+            || name.contains("natives-linux")
+            || name.contains("natives-windows");
 
         if has_x86 {
             return ARCH == "x86";
@@ -186,6 +192,17 @@ impl Library {
         }
         if has_arm32 {
             return ARCH == "arm";
+        }
+        if has_generic_platform {
+            // Bug real: esto devolvía `true` siempre para este caso, así
+            // que en Mac/Linux ARM se descargaban Y extraían tanto la
+            // build x86_64 genérica como la arm64 — ambas jars traen un
+            // archivo interno con el MISMO nombre (ej. liblwjgl.dylib), y
+            // la extracción pisaba una con la otra según el orden de
+            // procesamiento. Resultado: natives de arquitectura mezclada
+            // y aleatoria, Minecraft no arrancaba
+            // (UnsatisfiedLinkError/"Failed to locate library").
+            return ARCH != "aarch64" && ARCH != "arm";
         }
         true
     }

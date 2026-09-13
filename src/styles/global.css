@@ -47,6 +47,20 @@
 	--font-brand: 'Monocraft', var(--font-family);
 	--font-size-base: 14px;
 
+	/* Escala tipográfica — antes cada componente definía su propio
+	   font-size de header (1rem/1.15rem/1.2rem/1.3rem sin ningún criterio
+	   compartido para el mismo rol visual). Una sola escala acá, 3
+	   niveles de jerarquía para títulos: modal/panel (--text-lg), pantalla
+	   completa como onboarding/empty-state (--text-xl), contenido
+	   principal como el nombre de instancia (--text-2xl). */
+	--text-xs: 0.68rem;
+	--text-sm: 0.78rem;
+	--text-base: 0.85rem;
+	--text-md: 0.95rem;
+	--text-lg: 1.05rem;
+	--text-xl: 1.2rem;
+	--text-2xl: 1.3rem;
+
 	/* Colores de marca por loader — coinciden con el ecosistema real de cada uno. */
 	--loader-vanilla: #8a8f98;
 	--loader-fabric: #dbb69b;

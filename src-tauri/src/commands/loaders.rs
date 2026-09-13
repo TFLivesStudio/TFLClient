@@ -1,7 +1,7 @@
 //! Resolución automática de la versión de loader "recomendada" para una
 //! versión de Minecraft — el usuario elige Fabric/Forge/NeoForge/Quilt en
 //! Crear Instancia, nunca una versión de loader a mano.
-use crate::core::HTTP;
+use crate::core::{get_json_retrying, get_text_retrying};
 use aqua::{FabricBatch, QuiltBatch};
 use serde::Deserialize;
 use tauri::command;
@@ -27,14 +27,10 @@ struct ForgePromotions {
 
 #[command]
 pub async fn get_forge_version(mc_version: String) -> Result<String, String> {
-    let promos: ForgePromotions = HTTP
-        .get("https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json")
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .json()
-        .await
-        .map_err(|e| e.to_string())?;
+    let promos: ForgePromotions = get_json_retrying(
+        "https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json",
+    )
+    .await?;
 
     promos
         .promos
@@ -52,14 +48,10 @@ pub async fn get_neoforge_version(mc_version: String) -> Result<String, String> 
     let prefix = neoforge_prefix(&mc_version)
         .ok_or_else(|| format!("Minecraft {mc_version} no es compatible con NeoForge"))?;
 
-    let xml = HTTP
-        .get("https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml")
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .text()
-        .await
-        .map_err(|e| e.to_string())?;
+    let xml = get_text_retrying(
+        "https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml",
+    )
+    .await?;
 
     let mut candidates: Vec<String> = xml
         .split("<version>")

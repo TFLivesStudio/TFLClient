@@ -12,12 +12,12 @@
 		onCreated: (instance: InstanceData) => void;
 	} = $props();
 
-	const LOADERS: { id: Loader; label: string }[] = [
-		{ id: 'vanilla', label: 'Vanilla' },
-		{ id: 'fabric', label: 'Fabric' },
-		{ id: 'forge', label: 'Forge' },
-		{ id: 'neoforge', label: 'NeoForge' },
-		{ id: 'quilt', label: 'Quilt' }
+	const LOADERS: { id: Loader; label: string; color: string }[] = [
+		{ id: 'vanilla', label: 'Vanilla', color: 'var(--loader-vanilla)' },
+		{ id: 'fabric', label: 'Fabric', color: 'var(--loader-fabric)' },
+		{ id: 'forge', label: 'Forge', color: 'var(--loader-forge)' },
+		{ id: 'neoforge', label: 'NeoForge', color: 'var(--loader-neoforge)' },
+		{ id: 'quilt', label: 'Quilt', color: 'var(--loader-quilt)' }
 	];
 
 	let name = $state('');
@@ -101,8 +101,10 @@
 					type="button"
 					class="loader-btn"
 					class:active={selectedLoader === l.id}
+					style="--loader-color: {l.color}"
 					onclick={() => (selectedLoader = l.id)}
 				>
+					<span class="loader-dot"></span>
 					{l.label}
 				</button>
 			{/each}
@@ -156,7 +158,7 @@
 	}
 
 	.modal h2 {
-		font-size: 1rem;
+		font-size: var(--text-lg);
 		margin-bottom: 8px;
 	}
 
@@ -183,7 +185,11 @@
 	}
 
 	.loader-btn {
-		padding: 8px 4px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 5px;
+		padding: 10px 4px;
 		border-radius: var(--border-radius-sm);
 		border: 1px solid var(--border);
 		background: var(--bg-input);
@@ -197,10 +203,27 @@
 			color 0.15s;
 	}
 
+	.loader-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--loader-color);
+		opacity: 0.55;
+		transition: opacity 0.15s;
+	}
+
+	.loader-btn:hover {
+		border-color: var(--loader-color);
+	}
+
 	.loader-btn.active {
-		background: var(--accent);
-		border-color: var(--accent);
-		color: var(--accent-text);
+		background: color-mix(in srgb, var(--loader-color) 16%, var(--bg-input));
+		border-color: var(--loader-color);
+		color: var(--text-primary);
+	}
+
+	.loader-btn.active .loader-dot {
+		opacity: 1;
 	}
 
 	.hint {

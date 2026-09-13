@@ -256,6 +256,11 @@ impl NeoForgeBatch {
     }
 
     async fn run(self, shared_dir: &Path) -> Result<VersionManifest, AquaError> {
+        // Mismo bug que en ForgeBatch::run — sin `prepare()`,
+        // `staging/versions/<id>/` nunca se crea y `finalize()` falla al
+        // copiar el jar parchado ahí.
+        self.prepare().await?;
+
         let handle = super::batch::GenericBatch::new(&self.version_id, self.items.clone());
         let manager = super::DownloadManager::new(shared_dir.to_path_buf());
         let dl_handle = manager.prepare_batch(Box::new(handle)).await?;

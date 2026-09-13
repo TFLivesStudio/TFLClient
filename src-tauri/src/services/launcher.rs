@@ -7,6 +7,7 @@ use launchwerk::auth::AccountType;
 use launchwerk::models::VersionManifest;
 use std::path::Path;
 use std::sync::LazyLock;
+use tracing::{error, info};
 
 static LAUNCHWERK: LazyLock<Launchwerk> =
     LazyLock::new(|| Launchwerk::new(PathManager::get().get_shared_dir().to_path_buf()));
@@ -19,6 +20,20 @@ fn version_json_exists(shared_dir: &Path, version_id: &str) -> bool {
         .exists()
 }
 
+/// El `.json` de versión se escribe temprano (en `prepare()`), antes de que
+/// se bajen los archivos de verdad — si la descarga se corta a mitad de
+/// camino (un corte de red, como el visto con "error decoding response
+/// body"), el `.json` queda ahí solo, y como `ensure_downloaded()` sólo
+/// miraba ese archivo, todo lanzamiento posterior asumía "ya está
+/// instalado" y jamás reintentaba: quedaba trabado para siempre con el jar
+/// faltante ("Version JAR not found") hasta borrar el caché a mano. Este
+/// chequeo verifica también el jar del cliente, así que una descarga
+/// incompleta se detecta y se reintenta sola en el próximo "Jugar".
+fn vanilla_fully_installed(shared_dir: &Path, version_id: &str) -> bool {
+    let dir = shared_dir.join("versions").join(version_id);
+    dir.join(format!("{version_id}.json")).exists() && dir.join(format!("{version_id}.jar")).exists()
+}
+
 /// Descarga lo que haga falta para poder lanzar `data`: siempre la base
 /// Vanilla, y además el loader elegido (Fabric/Forge/NeoForge/Quilt) si
 /// corresponde. Reporta progreso real vía `AppEvent::DownloadProgress`.
@@ -28,15 +43,19 @@ async fn ensure_downloaded(
 ) -> Result<(), String> {
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
 
-    if !version_json_exists(&shared_dir, &data.mc_version) {
+    if !vanilla_fully_installed(&shared_dir, &data.mc_version) {
+        info!("Descargando base Vanilla {}", data.mc_version);
         let manager = DownloadManager::new(shared_dir.clone());
-        let handle = manager
-            .prepare(&data.mc_version)
-            .await
-            .map_err(|e| e.to_string())?;
+        let handle = manager.prepare(&data.mc_version).await.map_err(|e| {
+            error!("No se pudo preparar la descarga de {}: {e}", data.mc_version);
+            e.to_string()
+        })?;
         let (tx, watcher) = progress::watch(&format!("minecraft:{}", data.mc_version));
         let result = handle.download_all(Some(tx)).await.map_err(|e| e.to_string());
-        watcher.finish(result).await?;
+        watcher.finish(result).await.inspect_err(|e| {
+            error!("Falló la descarga de Vanilla {}: {e}", data.mc_version);
+        })?;
+        info!("Vanilla {} listo", data.mc_version);
     }
 
     if version_json_exists(&shared_dir, &data.launch_version_id) {
@@ -48,12 +67,20 @@ async fn ensure_downloaded(
         .as_deref()
         .ok_or("Falta la versión del loader guardada en la instancia")?;
 
+    info!(
+        "Instalando {:?} {} para Minecraft {}",
+        data.loader, loader_version, data.mc_version
+    );
+
     match data.loader {
         LoaderKind::Vanilla => {}
         LoaderKind::Fabric => {
             let batch = FabricBatch::new(&shared_dir, &data.mc_version, loader_version)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| {
+                    error!("No se pudo resolver el perfil de Fabric: {e}");
+                    e.to_string()
+                })?;
             let manager = DownloadManager::new(shared_dir.clone());
             let handle = manager
                 .prepare_batch(Box::new(batch))
@@ -61,12 +88,18 @@ async fn ensure_downloaded(
                 .map_err(|e| e.to_string())?;
             let (tx, watcher) = progress::watch(&format!("fabric:{}", data.mc_version));
             let result = handle.download_all(Some(tx)).await.map_err(|e| e.to_string());
-            watcher.finish(result).await?;
+            watcher
+                .finish(result)
+                .await
+                .inspect_err(|e| error!("Falló la instalación de Fabric: {e}"))?;
         }
         LoaderKind::Quilt => {
             let batch = QuiltBatch::new(&shared_dir, &data.mc_version, loader_version)
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| {
+                    error!("No se pudo resolver el perfil de Quilt: {e}");
+                    e.to_string()
+                })?;
             let manager = DownloadManager::new(shared_dir.clone());
             let handle = manager
                 .prepare_batch(Box::new(batch))
@@ -74,7 +107,10 @@ async fn ensure_downloaded(
                 .map_err(|e| e.to_string())?;
             let (tx, watcher) = progress::watch(&format!("quilt:{}", data.mc_version));
             let result = handle.download_all(Some(tx)).await.map_err(|e| e.to_string());
-            watcher.finish(result).await?;
+            watcher
+                .finish(result)
+                .await
+                .inspect_err(|e| error!("Falló la instalación de Quilt: {e}"))?;
         }
         LoaderKind::Forge => {
             // ForgeBatch::install necesita Java (corre el instalador con
@@ -91,7 +127,10 @@ async fn ensure_downloaded(
             .await
             .map(|_manifest| ())
             .map_err(|e| e.to_string());
-            watcher.finish(result).await?;
+            watcher
+                .finish(result)
+                .await
+                .inspect_err(|e| error!("Falló la instalación de Forge: {e}"))?;
         }
         LoaderKind::NeoForge => {
             let java_path = java_path_hint.ok_or("NeoForge necesita Java resuelto de antemano")?;
@@ -102,31 +141,46 @@ async fn ensure_downloaded(
                     .await
                     .map(|_manifest| ())
                     .map_err(|e| e.to_string());
-            watcher.finish(result).await?;
+            watcher
+                .finish(result)
+                .await
+                .inspect_err(|e| error!("Falló la instalación de NeoForge: {e}"))?;
         }
     }
 
+    info!(
+        "{:?} {} instalado para Minecraft {}",
+        data.loader, loader_version, data.mc_version
+    );
     Ok(())
 }
 
 pub async fn launch(instance_name: String) -> Result<(), String> {
+    info!("Lanzando instancia \"{instance_name}\"");
     let data = instance_manager::get_instance(&instance_name).await?;
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
 
     // Java se resuelve una vez acá: lo necesitan tanto el lanzamiento final
     // como (para Forge/NeoForge) el propio instalador del loader.
     let java_major = aqua::infer_java_version(&data.mc_version);
-    let java_path = java_manager::ensure_java(java_major).await?;
+    let java_path = java_manager::ensure_java(java_major).await.inspect_err(|e| {
+        error!("No se pudo resolver Java {java_major} para \"{instance_name}\": {e}");
+    })?;
+    info!("Java {java_major}: {}", java_path.display());
 
     ensure_downloaded(&data, Some(java_path.clone())).await?;
 
-    let manifest = VersionManifest::from_file(
-        shared_dir
-            .join("versions")
-            .join(&data.launch_version_id)
-            .join(format!("{}.json", data.launch_version_id)),
-    )
-    .map_err(|e| format!("Manifest inválido: {e}"))?;
+    let manifest_path = shared_dir
+        .join("versions")
+        .join(&data.launch_version_id)
+        .join(format!("{}.json", data.launch_version_id));
+    let manifest = VersionManifest::from_file(&manifest_path).map_err(|e| {
+        error!(
+            "No se pudo leer el manifest en {}: {e}",
+            manifest_path.display()
+        );
+        format!("Manifest inválido: {e}")
+    })?;
 
     let mut user = { SettingsManager::read().get_user() };
     if let Err(e) = user.load_tokens() {
@@ -166,7 +220,11 @@ pub async fn launch(instance_name: String) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
 
     let handle = LAUNCHWERK.prepare(manifest, config, instance_dir);
-    handle.launch().await.map_err(|e| e.to_string())?;
+    handle.launch().await.map_err(|e| {
+        error!("No se pudo lanzar \"{instance_name}\": {e}");
+        e.to_string()
+    })?;
+    info!("\"{instance_name}\" lanzada correctamente");
     instance_manager::mark_last_played(&instance_name).await?;
     Ok(())
 }

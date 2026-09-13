@@ -194,7 +194,7 @@
 
 	.empty-state h2 {
 		color: var(--text-primary);
-		font-size: 1.15rem;
+		font-size: var(--text-xl);
 	}
 
 	.empty-state p {

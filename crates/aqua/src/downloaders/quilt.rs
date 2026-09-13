@@ -8,7 +8,7 @@ use serde::Deserialize;
 use super::batch::{DownloadBatch, DownloadItemSpec};
 use crate::AquaError;
 use crate::progress::DownloadStage;
-use crate::utilities::HTTP_CLIENT;
+use crate::utilities::{fetch_json_retrying, fetch_text_retrying};
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
@@ -49,16 +49,7 @@ impl QuiltBatch {
             "https://meta.quiltmc.org/v3/versions/loader/{}",
             game_version
         );
-        let response = HTTP_CLIENT
-            .get(&loader_url)
-            .send()
-            .await
-            .map_err(|e| AquaError::Other(format!("Error fetching Quilt loaders: {}", e)))?;
-
-        let loaders: Vec<QuiltLoaderResponse> = response
-            .json()
-            .await
-            .map_err(|e| AquaError::Other(format!("Error parsing Quilt loaders: {}", e)))?;
+        let loaders: Vec<QuiltLoaderResponse> = fetch_json_retrying(&loader_url).await?;
 
         // Prefer stable releases (no beta/alpha/rc suffix); fallback to latest otherwise.
         let stable = loaders
@@ -92,14 +83,7 @@ impl QuiltBatch {
             game_version, loader_version
         );
 
-        let profile_text = HTTP_CLIENT
-            .get(&profile_url)
-            .send()
-            .await
-            .map_err(|e| AquaError::Other(format!("Error fetching Quilt profile: {}", e)))?
-            .text()
-            .await
-            .map_err(|e| AquaError::Other(format!("Error reading Quilt profile: {}", e)))?;
+        let profile_text = fetch_text_retrying(&profile_url).await?;
 
         let profile: QuiltProfile = serde_json::from_str(&profile_text)
             .map_err(|e| AquaError::Other(format!("Error parsing Quilt profile: {}", e)))?;

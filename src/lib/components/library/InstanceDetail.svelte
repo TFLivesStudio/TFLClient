@@ -6,11 +6,26 @@
 		deleteInstance,
 		renameInstance,
 		updateInstanceMemory,
-		getRecommendedRam
+		getRecommendedRam,
+		openInstanceFolder,
+		getInstanceMods
 	} from '$lib/api/tflApi';
 	import ModsPanel from './ModsPanel.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
-	import { Play, Loader2, Pencil, Trash2, Check, X } from 'lucide-svelte';
+	import {
+		Play,
+		Loader2,
+		Pencil,
+		Trash2,
+		Check,
+		X,
+		Package,
+		Blocks,
+		Clock,
+		FolderOpen,
+		Puzzle,
+		ChevronRight
+	} from 'lucide-svelte';
 
 	let {
 		instance,
@@ -27,12 +42,16 @@
 	let editingName = $state(false);
 	let nameDraft = $state(instance.name);
 	let ramRecommended = $state<number | null>(null);
+	let modCount = $state<number | null>(null);
 
 	$effect(() => {
 		nameDraft = instance.name;
 	});
 
-	onMount(loadRamHint);
+	onMount(() => {
+		loadRamHint();
+		loadModCount();
+	});
 
 	const LOADER_META: Record<string, { label: string; color: string }> = {
 		vanilla: { label: 'Vanilla', color: 'var(--loader-vanilla)' },
@@ -47,9 +66,9 @@
 		if (!instance.last_played) return 'Nunca jugada';
 		const diffMs = Date.now() - instance.last_played * 1000;
 		const days = Math.floor(diffMs / 86_400_000);
-		if (days <= 0) return 'Jugada hoy';
-		if (days === 1) return 'Jugada ayer';
-		return `Jugada hace ${days} días`;
+		if (days <= 0) return 'Hoy';
+		if (days === 1) return 'Ayer';
+		return `Hace ${days} días`;
 	});
 
 	async function handlePlay() {
@@ -100,10 +119,27 @@
 		}
 	}
 
+	async function loadModCount() {
+		if (instance.loader === 'vanilla') return;
+		try {
+			modCount = (await getInstanceMods(instance.name)).length;
+		} catch {
+			modCount = 0;
+		}
+	}
+
 	async function setMemory(min: number | null, max: number | null) {
 		try {
 			const updated = await updateInstanceMemory(instance.name, min, max);
 			onChanged(updated);
+		} catch (e) {
+			error = String(e);
+		}
+	}
+
+	async function handleOpenFolder() {
+		try {
+			await openInstanceFolder(instance.name);
 		} catch (e) {
 			error = String(e);
 		}
@@ -168,13 +204,15 @@
 				</div>
 			{/if}
 
-			<div class="meta-row">
+			<div class="stat-chips">
 				<span class="loader-badge" style="--loader-color: {loaderMeta.color}"
 					>{loaderMeta.label}</span
 				>
-				<span class="meta-text">{instance.mc_version}</span>
-				<span class="meta-dot">·</span>
-				<span class="meta-text">{lastPlayedLabel}</span>
+				<span class="stat-chip"><Package size={12} /> {instance.mc_version}</span>
+				{#if instance.loader !== 'vanilla'}
+					<span class="stat-chip"><Blocks size={12} /> {instance.loader_version}</span>
+				{/if}
+				<span class="stat-chip"><Clock size={12} /> {lastPlayedLabel}</span>
 			</div>
 		</div>
 
@@ -192,6 +230,32 @@
 	{#if error}
 		<p class="error">{error}</p>
 	{/if}
+
+	<div class="quick-actions">
+		<button type="button" class="quick-card" onclick={() => (tab = 'mods')}>
+			<div class="quick-icon"><Puzzle size={16} /></div>
+			<div class="quick-text">
+				<span class="quick-title">Mods</span>
+				<span class="quick-sub">
+					{instance.loader === 'vanilla'
+						? 'No soportado en Vanilla'
+						: modCount === null
+							? 'Cargando…'
+							: `${modCount} instalados`}
+				</span>
+			</div>
+			<ChevronRight size={14} class="quick-arrow" />
+		</button>
+
+		<button type="button" class="quick-card" onclick={handleOpenFolder}>
+			<div class="quick-icon"><FolderOpen size={16} /></div>
+			<div class="quick-text">
+				<span class="quick-title">Carpeta</span>
+				<span class="quick-sub">Archivos de la instancia</span>
+			</div>
+			<ChevronRight size={14} class="quick-arrow" />
+		</button>
+	</div>
 
 	<div class="tabs">
 		<button
@@ -272,30 +336,43 @@
 		padding: 32px;
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: 18px;
 		height: 100%;
 		overflow-y: auto;
 	}
 
 	.hero {
+		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 18px;
+		gap: 20px;
+		padding: 22px 24px;
+		border-radius: var(--border-radius-lg);
+		border: 1px solid var(--border);
+		background:
+			radial-gradient(
+				ellipse 500px 220px at 0% 0%,
+				color-mix(in srgb, var(--loader-color) 14%, transparent),
+				transparent 70%
+			),
+			var(--bg-card);
+		overflow: hidden;
 	}
 
 	.hero-icon {
 		flex-shrink: 0;
-		width: 64px;
-		height: 64px;
+		width: 72px;
+		height: 72px;
 		border-radius: var(--border-radius-lg);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 1.6rem;
+		font-size: 1.8rem;
 		font-weight: 800;
 		color: var(--loader-color);
-		background: color-mix(in srgb, var(--loader-color) 16%, transparent);
-		border: 1px solid color-mix(in srgb, var(--loader-color) 35%, transparent);
+		background: color-mix(in srgb, var(--loader-color) 20%, transparent);
+		border: 1px solid color-mix(in srgb, var(--loader-color) 45%, transparent);
+		box-shadow: 0 0 0 4px color-mix(in srgb, var(--loader-color) 8%, transparent);
 	}
 
 	.hero-info {
@@ -303,7 +380,7 @@
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 8px;
 	}
 
 	.name-row {
@@ -313,7 +390,7 @@
 	}
 
 	.name-row h2 {
-		font-size: 1.3rem;
+		font-size: var(--text-2xl);
 	}
 
 	.name-edit {
@@ -323,7 +400,7 @@
 	}
 
 	.name-edit input {
-		font-size: 1.1rem;
+		font-size: var(--text-xl);
 		font-weight: 700;
 		padding: 4px 8px;
 		border-radius: var(--border-radius-sm);
@@ -354,10 +431,11 @@
 		color: var(--color-error);
 	}
 
-	.meta-row {
+	.stat-chips {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		flex-wrap: wrap;
+		gap: 6px;
 	}
 
 	.loader-badge {
@@ -371,36 +449,46 @@
 		background: color-mix(in srgb, var(--loader-color) 16%, transparent);
 	}
 
-	.meta-text {
-		font-size: 0.78rem;
+	.stat-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 0.74rem;
 		color: var(--text-secondary);
-	}
-
-	.meta-dot {
-		color: var(--text-muted);
+		background: var(--bg-card);
+		border: 1px solid var(--border);
+		padding: 3px 9px;
+		border-radius: 999px;
 	}
 
 	.play-btn {
 		flex-shrink: 0;
 		display: inline-flex;
 		align-items: center;
-		gap: 8px;
-		background: var(--accent);
+		gap: 9px;
+		background: linear-gradient(155deg, var(--accent-hover), var(--accent));
 		color: var(--accent-text);
 		border: none;
-		padding: 12px 28px;
-		border-radius: var(--border-radius-sm);
+		padding: 15px 32px;
+		border-radius: var(--border-radius);
 		font-weight: 800;
-		font-size: 0.85rem;
+		font-size: 0.9rem;
 		text-transform: uppercase;
 		letter-spacing: 0.5px;
 		cursor: pointer;
-		box-shadow: var(--shadow-md);
-		transition: transform 0.12s ease;
+		box-shadow:
+			var(--shadow-md),
+			0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
+		transition:
+			transform 0.12s ease,
+			box-shadow 0.12s ease;
 	}
 
 	.play-btn:hover:not(:disabled) {
-		transform: translateY(-1px);
+		transform: translateY(-2px);
+		box-shadow:
+			var(--shadow-lg),
+			0 0 32px color-mix(in srgb, var(--accent) 45%, transparent);
 	}
 
 	.play-btn:disabled {
@@ -411,6 +499,70 @@
 	.error {
 		color: var(--color-error);
 		font-size: 0.82rem;
+	}
+
+	.quick-actions {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 10px;
+	}
+
+	.quick-card {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 12px 14px;
+		border-radius: var(--border-radius);
+		border: 1px solid var(--border);
+		background: var(--bg-card);
+		color: var(--text-primary);
+		cursor: pointer;
+		text-align: left;
+		transition:
+			border-color 0.15s,
+			transform 0.12s;
+	}
+
+	.quick-card:hover {
+		border-color: var(--accent);
+		transform: translateY(-1px);
+	}
+
+	.quick-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		flex-shrink: 0;
+		border-radius: var(--border-radius-sm);
+		background: color-mix(in srgb, var(--accent) 16%, transparent);
+		color: var(--accent);
+	}
+
+	.quick-text {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.quick-title {
+		font-size: 0.82rem;
+		font-weight: 700;
+	}
+
+	.quick-sub {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.quick-card :global(.quick-arrow) {
+		color: var(--text-muted);
+		flex-shrink: 0;
 	}
 
 	.tabs {

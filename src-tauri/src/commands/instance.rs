@@ -1,7 +1,8 @@
 use crate::services::instance_manager::{InstanceData, LoaderKind};
 use crate::services::{instance_manager, launcher};
 use aqua::{FabricBatch, QuiltBatch};
-use tauri::command;
+use tauri::{AppHandle, command};
+use tauri_plugin_opener::OpenerExt;
 
 async fn resolve_loader(
     mc_version: &str,
@@ -77,4 +78,16 @@ pub async fn update_instance_memory(
 #[command]
 pub async fn launch(instance_name: String) -> Result<(), String> {
     launcher::launch(instance_name).await
+}
+
+#[command]
+pub async fn open_instance_folder(app: AppHandle, name: String) -> Result<(), String> {
+    let data = instance_manager::get_instance(&name).await?;
+    let dir = data.dir();
+    tokio::fs::create_dir_all(&dir)
+        .await
+        .map_err(|e| e.to_string())?;
+    app.opener()
+        .open_path(dir.to_string_lossy().to_string(), None::<&str>)
+        .map_err(|e| e.to_string())
 }

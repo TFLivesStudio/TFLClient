@@ -55,6 +55,7 @@ export const updateInstanceMemory = (
 	maxMemory: number | null
 ) => invoke<InstanceData>('update_instance_memory', { name, minMemory, maxMemory });
 export const launchInstance = (instanceName: string) => invoke<void>('launch', { instanceName });
+export const openInstanceFolder = (name: string) => invoke<void>('open_instance_folder', { name });
 
 // ── Versions / loaders ─────────────────────────────────────────────────
 export const getAvailableVersions = () => invoke<MinecraftVersion[]>('get_available_versions');

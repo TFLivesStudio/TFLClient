@@ -2,7 +2,7 @@
 //! automática de dependencias requeridas (el usuario nunca instala una
 //! dependencia a mano). CurseForge queda para una próxima iteración —
 //! necesita una API key propia que todavía no existe (spec §26).
-use crate::core::{AppEvent, HTTP, emit};
+use crate::core::{AppEvent, emit, get_bytes_retrying, get_json_retrying};
 use crate::services::instance_manager;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -52,14 +52,7 @@ pub async fn search_mods(
         urlencoding::encode(&query),
         urlencoding::encode(&facets)
     );
-    let resp: SearchResponse = HTTP
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .json()
-        .await
-        .map_err(|e| e.to_string())?;
+    let resp: SearchResponse = get_json_retrying(&url).await?;
 
     Ok(resp
         .hits
@@ -89,6 +82,12 @@ struct ModrinthFile {
     url: String,
     filename: String,
     primary: bool,
+    hashes: Option<ModrinthFileHashes>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct ModrinthFileHashes {
+    sha1: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -110,26 +109,13 @@ async fn best_version(
         urlencoding::encode(&loaders),
         urlencoding::encode(&game_versions)
     );
-    let versions: Vec<ModrinthVersion> = HTTP
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .json()
-        .await
-        .map_err(|e| e.to_string())?;
+    let versions: Vec<ModrinthVersion> = get_json_retrying(&url).await?;
 
     Ok(versions.into_iter().next())
 }
 
 async fn version_by_id(version_id: &str) -> Result<ModrinthVersion, String> {
-    HTTP.get(format!("{MODRINTH_API}/version/{version_id}"))
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .json()
-        .await
-        .map_err(|e| e.to_string())
+    get_json_retrying(&format!("{MODRINTH_API}/version/{version_id}")).await
 }
 
 async fn download_mod_file(instance_name: &str, version: &ModrinthVersion) -> Result<(), String> {
@@ -158,22 +144,41 @@ async fn download_mod_file(instance_name: &str, version: &ModrinthVersion) -> Re
         return Ok(());
     }
 
-    let bytes = HTTP
-        .get(&file.url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .bytes()
-        .await
-        .map_err(|e| e.to_string())?;
-    tokio::fs::write(&dest, &bytes)
-        .await
-        .map_err(|e| e.to_string())?;
+    let expected_sha1 = file.hashes.as_ref().and_then(|h| h.sha1.clone());
 
-    emit(AppEvent::DownloadFinished {
-        task: format!("mod:{}", file.filename),
-    });
-    Ok(())
+    // El motor `aqua` reintenta y valida hash para todo lo demás (Vanilla,
+    // Fabric, Forge…) — acá era una escritura ciega sin checksum, así que
+    // un mod truncado por un corte de red quedaba instalado como si nada.
+    let mut last_err = String::new();
+    for attempt in 1..=3u8 {
+        let bytes = get_bytes_retrying(&file.url).await?;
+        if let Some(expected) = &expected_sha1 {
+            use sha1::{Digest, Sha1};
+            let actual = Sha1::digest(&bytes)
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect::<String>();
+            if &actual != expected {
+                last_err = format!("hash SHA1 no coincide (esperado {expected}, obtenido {actual})");
+                tracing::warn!(
+                    "Descarga de {} corrupta en intento {attempt}/3: {last_err}",
+                    file.filename
+                );
+                continue;
+            }
+        }
+        tokio::fs::write(&dest, &bytes)
+            .await
+            .map_err(|e| e.to_string())?;
+        emit(AppEvent::DownloadFinished {
+            task: format!("mod:{}", file.filename),
+        });
+        return Ok(());
+    }
+    Err(format!(
+        "No se pudo descargar {} de forma íntegra: {last_err}",
+        file.filename
+    ))
 }
 
 /// Instala un mod y, recursivamente, sus dependencias *requeridas* — el

@@ -79,9 +79,10 @@
 						type="button"
 						class="instance-item"
 						class:active={selected?.uuid === instance.uuid}
+						style="--loader-color: {LOADER_COLOR[instance.loader]}"
 						onclick={() => onSelect(instance)}
 					>
-						<span class="instance-avatar" style="--loader-color: {LOADER_COLOR[instance.loader]}">
+						<span class="instance-avatar">
 							{instance.name.charAt(0).toUpperCase()}
 						</span>
 						<span class="instance-text">
@@ -96,7 +97,16 @@
 
 	{#if user}
 		<div class="user-chip">
-			<UserIcon size={16} />
+			<span class="user-head">
+				<UserIcon size={16} class="user-head-fallback" />
+				<img
+					src="https://crafatar.com/avatars/{user.uuid}?size=32&overlay"
+					alt=""
+					onerror={(e) => {
+						(e.currentTarget as HTMLImageElement).style.display = 'none';
+					}}
+				/>
+			</span>
 			<div class="user-info">
 				<span class="user-name">{user.username}</span>
 				<span class="user-type"
@@ -244,10 +254,11 @@
 	}
 
 	.instance-item {
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		padding: 8px 10px;
+		padding: 8px 10px 8px 12px;
 		border-radius: var(--border-radius);
 		border: 1px solid transparent;
 		background: var(--bg-card);
@@ -256,16 +267,35 @@
 		text-align: left;
 		transition:
 			background 0.15s,
-			border-color 0.15s;
+			border-color 0.15s,
+			transform 0.12s;
+	}
+
+	.instance-item::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 8px;
+		bottom: 8px;
+		width: 3px;
+		border-radius: 3px;
+		background: var(--loader-color);
+		opacity: 0;
+		transition: opacity 0.15s;
 	}
 
 	.instance-item:hover {
 		border-color: var(--border);
+		transform: translateX(1px);
 	}
 
 	.instance-item.active {
 		background: var(--bg-item-active);
-		border-color: var(--accent);
+		border-color: color-mix(in srgb, var(--loader-color) 40%, var(--border));
+	}
+
+	.instance-item.active::before {
+		opacity: 1;
 	}
 
 	.instance-avatar {
@@ -308,11 +338,36 @@
 	.user-chip {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 10px;
 		padding: 8px 10px;
 		border-radius: var(--border-radius);
 		border: 1px solid var(--border);
 		background: var(--bg-card);
+	}
+
+	.user-head {
+		position: relative;
+		flex-shrink: 0;
+		width: 32px;
+		height: 32px;
+		border-radius: var(--border-radius-sm);
+		overflow: hidden;
+		background: var(--bg-input);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--text-muted);
+	}
+
+	.user-head :global(.user-head-fallback) {
+		position: absolute;
+	}
+
+	.user-head img {
+		position: relative;
+		width: 32px;
+		height: 32px;
+		image-rendering: pixelated;
 	}
 
 	.user-info {

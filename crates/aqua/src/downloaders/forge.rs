@@ -268,6 +268,11 @@ impl ForgeBatch {
     }
 
     async fn run(self, shared_dir: &Path) -> Result<VersionManifest, AquaError> {
+        // `prepare()` crea `staging/versions/<id>/<id>.json` — sin esto,
+        // `finalize()` falla más adelante al copiar el jar parchado a un
+        // directorio que nunca se creó (bug real, encontrado en uso).
+        self.prepare().await?;
+
         let handle = super::batch::GenericBatch::new(&self.version_id, self.items.clone());
         let manager = super::DownloadManager::new(shared_dir.to_path_buf());
         let dl_handle = manager.prepare_batch(Box::new(handle)).await?;

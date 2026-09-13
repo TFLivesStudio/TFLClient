@@ -21,6 +21,43 @@ pub static HTTP_CLIENT: LazyLock<Client> = LazyLock::new(|| {
 });
 
 const MAX_DOWNLOAD_ATTEMPTS: usize = 3;
+const MAX_METADATA_ATTEMPTS: u32 = 3;
+
+/// GET con reintento (backoff exponencial corto) para llamadas a APIs de
+/// metadata (perfiles de loader, listados de versión) que hasta ahora eran
+/// de un solo intento — a diferencia de `download_file`, que sí reintenta.
+/// Un hipo de red/TLS transitorio bastaba para tirar abajo toda la
+/// instalación de Fabric/Quilt sin motivo real.
+pub async fn fetch_text_retrying(url: &str) -> Result<String, AquaError> {
+    let mut last_err = String::new();
+    for attempt in 1..=MAX_METADATA_ATTEMPTS {
+        match HTTP_CLIENT.get(url).send().await {
+            Ok(resp) => match resp.error_for_status() {
+                Ok(resp) => match resp.text().await {
+                    Ok(text) => return Ok(text),
+                    Err(e) => last_err = format!("error leyendo respuesta: {e}"),
+                },
+                Err(e) => return Err(AquaError::Other(format!("{url}: {e}"))),
+            },
+            Err(e) => last_err = format!("error de red: {e}"),
+        }
+        warn!("Fallo intento {attempt}/{MAX_METADATA_ATTEMPTS} pidiendo {url}: {last_err}");
+        if attempt < MAX_METADATA_ATTEMPTS {
+            tokio::time::sleep(std::time::Duration::from_millis(200 * (1 << (attempt - 1))))
+                .await;
+        }
+    }
+    Err(AquaError::Other(format!(
+        "No se pudo obtener {url} tras {MAX_METADATA_ATTEMPTS} intentos: {last_err}"
+    )))
+}
+
+pub async fn fetch_json_retrying<T: serde::de::DeserializeOwned>(
+    url: &str,
+) -> Result<T, AquaError> {
+    let text = fetch_text_retrying(url).await?;
+    serde_json::from_str(&text).map_err(|e| AquaError::Other(format!("{url}: parseo JSON: {e}")))
+}
 
 /// Abstraction over any progress reporter that can track bytes for a single
 /// download item. Allows the shared download loop to be reused by callers
