@@ -53,23 +53,22 @@ jobs:
       - name: Instalar dependencias del frontend
         run: bun install
 
-      - name: Resolver nombre de tag (manual vs. push de tag)
-        id: tag
-        shell: bash
-        run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "name=tflclient-dev-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Build + bundle (Tauri)
+        id: tauri
         uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ steps.tag.outputs.name }}
-          releaseName: 'TFL Client — ${{ steps.tag.outputs.name }}'
-          releaseDraft: true
-          prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Subir instaladores como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tflclient-${{ matrix.platform }}
+          path: |
+            src-tauri/target/release/bundle/**/*.dmg
+            src-tauri/target/release/bundle/**/*.app.tar.gz
+            src-tauri/target/release/bundle/**/*.deb
+            src-tauri/target/release/bundle/**/*.rpm
+            src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.msi
+            src-tauri/target/release/bundle/**/*.exe
+          if-no-files-found: warn
