@@ -1,6 +1,14 @@
 /* Design tokens — identidad visual de TFL Client.
    Paleta placeholder deliberada (naranja/ámbar) hasta que TFLives entregue
-   la paleta de marca final — ver spec §26. */
+   la paleta de marca final — ver spec §26.
+
+   Sistema de "vidrio teñido": cada superficie (obsidiana/medianoche/
+   pizarra) define colores CRUDOS (--raw-*) por tema, sin acento. Los
+   tokens que se usan en toda la app (--bg-main, --bg-card, etc.) se
+   declaran UNA sola vez acá arriba como color-mix(acento, crudo) — así
+   cualquier combinación tema × superficie × acento sale sola: cambiar
+   data-accent recalcula el tinte de vidrio en todos lados sin tocar cada
+   celda de esa matriz a mano. */
 
 @font-face {
 	font-family: 'Monocraft';
@@ -10,12 +18,13 @@
 }
 
 :root {
-	--bg-main: #0a0a0a;
-	--bg-sidebar: #111113;
-	--bg-card: #131315;
-	--bg-item-active: #1a1a1c;
-	--bg-input: #0a0a0a;
-	--bg-overlay: rgba(0, 0, 0, 0.7);
+	/* Crudos — obsidiana/oscuro (default). */
+	--raw-main: #0a0a0a;
+	--raw-sidebar: #111113;
+	--raw-card: rgba(19, 19, 21, 0.86);
+	--raw-item-active: #1a1a1c;
+	--raw-input: #0a0a0a;
+	--raw-border: rgba(255, 255, 255, 0.08);
 
 	--text-primary: #f4f4f5;
 	--text-secondary: #a1a1aa;
@@ -26,7 +35,7 @@
 	--accent-hover: #ff9152;
 	--accent-text: #0c0c0c;
 
-	--border: rgba(255, 255, 255, 0.08);
+	--bg-overlay: rgba(0, 0, 0, 0.7);
 	--border-radius: 10px;
 	--border-radius-sm: 6px;
 	--border-radius-lg: 16px;
@@ -47,12 +56,10 @@
 	--font-brand: 'Monocraft', var(--font-family);
 	--font-size-base: 14px;
 
-	/* Escala tipográfica — antes cada componente definía su propio
-	   font-size de header (1rem/1.15rem/1.2rem/1.3rem sin ningún criterio
-	   compartido para el mismo rol visual). Una sola escala acá, 3
-	   niveles de jerarquía para títulos: modal/panel (--text-lg), pantalla
-	   completa como onboarding/empty-state (--text-xl), contenido
-	   principal como el nombre de instancia (--text-2xl). */
+	/* Escala tipográfica — 3 niveles de jerarquía para títulos: modal/panel
+	   (--text-lg), pantalla completa como onboarding/empty-state
+	   (--text-xl), contenido principal como el nombre de instancia
+	   (--text-2xl). */
 	--text-xs: 0.68rem;
 	--text-sm: 0.78rem;
 	--text-base: 0.85rem;
@@ -68,34 +75,52 @@
 	--loader-neoforge: #d7823b;
 	--loader-quilt: #b47ee5;
 
+	/* Cuánto acento se mezcla en cada capa — más fuerte en superficies
+	   "activas"/hover que en el fondo base, para que se note sin comerse
+	   el contraste. */
+	--glass-tint: 7%;
+	--glass-tint-strong: 15%;
+
+	--bg-main: color-mix(in srgb, var(--accent) var(--glass-tint), var(--raw-main));
+	--bg-sidebar: color-mix(in srgb, var(--accent) var(--glass-tint), var(--raw-sidebar));
+	--bg-card: color-mix(in srgb, var(--accent) var(--glass-tint), var(--raw-card));
+	--bg-item-active: color-mix(
+		in srgb,
+		var(--accent) var(--glass-tint-strong),
+		var(--raw-item-active)
+	);
+	--bg-input: color-mix(in srgb, var(--accent) var(--glass-tint), var(--raw-input));
+	--border: color-mix(in srgb, var(--accent) 18%, var(--raw-border));
+
 	color-scheme: dark;
 }
 
 :root[data-theme='light'] {
-	--bg-main: #f5f5f5;
-	--bg-sidebar: #ffffff;
-	--bg-card: #ffffff;
-	--bg-item-active: #eaeaea;
-	--bg-input: #eaeaea;
-	--bg-overlay: rgba(0, 0, 0, 0.4);
+	/* Crudos de modo claro — deliberadamente NO blanco puro: un claro
+	   demasiado luminoso aplana el tinte de vidrio y las superficies dejan
+	   de notarse entre sí. */
+	--raw-main: #e6e6e8;
+	--raw-sidebar: #f0f0f2;
+	--raw-card: rgba(255, 255, 255, 0.82);
+	--raw-item-active: #dadadd;
+	--raw-input: #e0e0e3;
+	--raw-border: rgba(0, 0, 0, 0.1);
 
 	--text-primary: #1a1a1a;
-	--text-secondary: #666666;
-	--text-muted: #999999;
+	--text-secondary: #5b5b5e;
+	--text-muted: #86868a;
 
 	--accent: #e05a00;
 	--accent-rgb: 224, 90, 0;
 	--accent-hover: #c94e00;
 	--accent-text: #ffffff;
 
-	--border: #d4d4d4;
+	--bg-overlay: rgba(0, 0, 0, 0.4);
 
 	color-scheme: light;
 }
 
-/* Acentos alternativos — mismo esquema de tokens, otro color de marca.
-   Van después de los bloques de tema para ganarle a su --accent por defecto,
-   sin importar si estamos en dark o light. */
+/* Acentos alternativos — mismo esquema de tokens, otro color de marca. */
 :root[data-accent='violet'] {
 	--accent: #8b5cf6;
 	--accent-rgb: 139, 92, 246;
@@ -131,23 +156,44 @@
 	--accent-text: #17220a;
 }
 
-/* Superficies: cambia profundidad y contraste sin tocar contenido ni rendimiento. */
-:root[data-surface='midnight'] {
-	--bg-main: #07111f;
-	--bg-sidebar: #0a1728;
-	--bg-card: #0e1e33;
-	--bg-item-active: #172a42;
-	--bg-input: #091827;
-	--border: rgba(156, 190, 231, 0.13);
+/* Superficies: cambian la profundidad/tono de base antes de mezclar con
+   el acento. Cada una define su propio par oscuro+claro — a propósito,
+   para que Medianoche y Pizarra funcionen en los dos temas en vez de
+   reusar valores oscuros que rompían el contraste en modo claro. */
+:root:not([data-theme='light'])[data-surface='midnight'] {
+	--raw-main: #07111f;
+	--raw-sidebar: #0a1728;
+	--raw-card: rgba(14, 30, 51, 0.86);
+	--raw-item-active: #172a42;
+	--raw-input: #091827;
+	--raw-border: rgba(156, 190, 231, 0.13);
 }
 
-:root[data-surface='slate'] {
-	--bg-main: #151719;
-	--bg-sidebar: #1c2025;
-	--bg-card: #24282e;
-	--bg-item-active: #30353d;
-	--bg-input: #171b20;
-	--border: rgba(255, 255, 255, 0.12);
+:root[data-theme='light'][data-surface='midnight'] {
+	--raw-main: #d7e1eb;
+	--raw-sidebar: #e3ebf3;
+	--raw-card: rgba(238, 244, 249, 0.85);
+	--raw-item-active: #c7d6e4;
+	--raw-input: #dbe5ee;
+	--raw-border: rgba(45, 84, 128, 0.16);
+}
+
+:root:not([data-theme='light'])[data-surface='slate'] {
+	--raw-main: #151719;
+	--raw-sidebar: #1c2025;
+	--raw-card: rgba(36, 40, 46, 0.86);
+	--raw-item-active: #30353d;
+	--raw-input: #171b20;
+	--raw-border: rgba(255, 255, 255, 0.12);
+}
+
+:root[data-theme='light'][data-surface='slate'] {
+	--raw-main: #e2dfdc;
+	--raw-sidebar: #ece9e6;
+	--raw-card: rgba(245, 243, 241, 0.85);
+	--raw-item-active: #d4d0cc;
+	--raw-input: #dedad6;
+	--raw-border: rgba(0, 0, 0, 0.14);
 }
 
 * {
@@ -195,10 +241,50 @@ textarea,
 	border-radius: 10px;
 }
 
-/* Perfil de calidad — Lite/Balanced/Experience (ver settings). */
-html[data-reduce-motion] *,
-html[data-reduce-motion] *::before,
-html[data-reduce-motion] *::after {
+/* Vidrio: blur detrás de las superficies más grandes/visibles, para que
+   el tinte de --bg-card/--bg-sidebar (ya translúcido, ver --raw-* arriba)
+   lea como vidrio esmerilado en vez de solo "semi-transparente plano".
+   Lista de clases conocidas del propio proyecto — no hay forma de
+   apuntar por color de fondo en CSS puro. Respeta data-no-blur (perfil
+   Lite) vía la regla de más abajo, que ya pisa backdrop-filter a none. */
+.sidebar,
+.panel,
+.hero,
+.mod-card,
+.instance-item,
+.quick-card,
+.entry-card,
+.ram-section {
+	backdrop-filter: blur(18px);
+	-webkit-backdrop-filter: blur(18px);
+}
+
+/* Transición suave al cambiar tema/acento/superficie — las superficies
+   grandes (que no declaran su propia `transition` para otra cosa) pasan
+   de un tinte a otro en vez de saltar de golpe. Los componentes que ya
+   tienen su propia transition (botones con hover, etc.) la conservan sin
+   que esto la pise. */
+body,
+.sidebar,
+.panel,
+.hero,
+.instance-item,
+.mod-card {
+	transition:
+		background-color 0.28s ease,
+		border-color 0.28s ease,
+		color 0.28s ease;
+}
+
+/* Perfil de calidad — Lite/Balanced/Experience (ver settings). El
+   guard :not([data-quality='experience']) es a propósito redundante con
+   la lógica de JS que limpia data-reduce-motion fuera de Lite: así
+   Experience siempre tiene la experiencia visual completa (mismo motion
+   en todos los clientes/entornos) pase lo que pase con ese atributo,
+   nunca depende únicamente de que el JS lo haya limpiado a tiempo. */
+html[data-reduce-motion]:not([data-quality='experience']) *,
+html[data-reduce-motion]:not([data-quality='experience']) *::before,
+html[data-reduce-motion]:not([data-quality='experience']) *::after {
 	animation-duration: 0.001ms !important;
 	transition-duration: 0.001ms !important;
 }
@@ -229,6 +315,7 @@ html[data-no-blur] * {
 			transparent 55%
 		),
 		radial-gradient(ellipse 800px 700px at 50% 120%, rgba(var(--accent-rgb), 0.06), transparent 60%);
+	transition: background 0.28s ease;
 }
 
 html[data-no-blur] .ambient-bg {

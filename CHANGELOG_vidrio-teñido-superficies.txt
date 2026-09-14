@@ -1,0 +1,70 @@
+TFL CLIENT — CHANGELOG: rediseño de tokens (vidrio teñido + superficies en ambos temas)
+================================================================================
+
+src/lib/components/layout/Sidebar/Sidebar.svelte
+  - Revertido el cambio anterior: el <h1>TFL Client</h1> del brand-mark
+    vuelve (con su regla CSS .sidebar-header h1). Sacarlo dejó la app sin
+    ningún texto de marca visible mientras se usa (la ventana no tiene
+    barra de título nativa, decorations:false — "TFL Client" solo
+    aparece en el Dock/Cmd+Tab, fuera de la ventana). No había
+    redundancia real dentro de la app; sacarlo fue un error de esta
+    sesión.
+
+src/styles/global.css (reescrito)
+  - Sistema de tokens nuevo: --raw-main/--raw-sidebar/--raw-card/
+    --raw-item-active/--raw-input/--raw-border por tema y superficie
+    (crudos, sin acento). Los tokens reales que usa toda la app
+    (--bg-main, --bg-card, etc.) se declaran UNA sola vez en :root como
+    color-mix(acento, crudo) — "vidrio teñido": el fondo toma un tinte
+    del color de acento activo, y cambiar de acento recalcula el tinte
+    en todos lados solo (no hay que redeclarar nada por combinación).
+  - Modo claro: crudos bajados de brillo (--raw-main #e6e6e8 en vez de
+    #f5f5f5, etc.) — un claro demasiado blanco aplanaba el tinte de
+    vidrio y no dejaba notar diferencia entre superficies.
+  - Medianoche y Pizarra: ahora cada una define su PROPIO par crudo claro
+    + oscuro (antes solo tenían valores oscuros, bloqueadas en modo claro
+    porque no había versión clara). Sacado el guard
+    `:not([data-theme='light'])` de la pasada anterior — ya no hace
+    falta, las 3 superficies funcionan en los 2 temas.
+  - --raw-card ahora lleva alpha (rgba con ~0.82-0.86 de opacidad) en vez
+    de color sólido, en las 4 combinaciones tema×base.
+  + Nueva regla: .sidebar, .panel, .hero, .mod-card, .instance-item,
+    .quick-card, .entry-card, .ram-section reciben backdrop-filter:
+    blur(18px) — vidrio esmerilado real sobre el --bg-card/--bg-sidebar
+    ya translúcido. Respeta data-no-blur (perfil Lite) vía la regla ya
+    existente que pisa backdrop-filter a none.
+  + Nueva regla: body, .sidebar, .panel, .hero, .instance-item, .mod-card
+    con `transition: background-color/border-color/color 0.28s ease` —
+    cambiar tema/acento/superficie ahora es una transición suave, no un
+    salto. Los componentes que ya declaran su propia `transition` (la
+    mayoría de los botones) la conservan sin que esto la pise.
+  + .ambient-bg también con `transition: background 0.28s ease`.
+
+src/lib/components/settings/SettingsPanel.svelte
+  - applySurface(): sacado el guard que bloqueaba Medianoche/Pizarra en
+    modo claro (ya no corresponde, cada superficie tiene variante clara).
+  - setTheme(): sacada la lógica que reseteaba data-surface a 'obsidian'
+    al pasar a claro — la superficie elegida se mantiene entre temas.
+  - Botones de Superficie: sacado `disabled` y el hint "Medianoche y
+    Pizarra solo están disponibles en modo oscuro" — ya no aplica.
+
+src/routes/+page.svelte
+  - restoreAppearance(): sacado el caso especial que forzaba limpiar
+    data-surface al arrancar en modo claro — ya no corresponde. Firma
+    vuelta a sin parámetro (no necesita saber el tema).
+
+Verificación aplicada
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings
+    preexistentes sin relación.
+  - App relanzada desde cero para probar en vivo (ver siguiente mensaje
+    con el resultado).
+
+Pendiente / no cubierto en esta pasada
+  - "Añadir animaciones": se agregó la transición de tema/acento/
+    superficie en las superficies grandes. No se tocaron microinteracciones
+    puntuales (hover de botones, etc.) — ya tenían las suyas.
+  - El blur nuevo apunta a nombres de clase conocidos del proyecto (no
+    hay forma de seleccionar por color de fondo en CSS puro) — si se
+    agrega un panel/card nuevo con otro nombre de clase, no hereda el
+    blur automáticamente a menos que se agregue a esa lista.
+================================================================================

@@ -10,6 +10,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_window_state::Builder::new().build())
@@ -39,6 +40,9 @@ pub fn run() {
             commands::instance::update_instance_memory,
             commands::instance::launch,
             commands::instance::open_instance_folder,
+            commands::instance::pick_image_file,
+            commands::instance::set_instance_icon,
+            commands::instance::get_instance_icon_path,
             commands::versions::get_available_versions,
             commands::loaders::get_fabric_loader,
             commands::loaders::get_quilt_loader,

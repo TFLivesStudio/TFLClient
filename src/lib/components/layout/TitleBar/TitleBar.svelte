@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
-	import Tfl from '$lib/icons/Tfl.svelte';
 	import { Minus, Square, Copy, X } from 'lucide-svelte';
 
 	const win = getCurrentWindow();
@@ -21,10 +20,7 @@
 </script>
 
 <div class="titlebar" data-tauri-drag-region>
-	<div class="titlebar-brand" data-tauri-drag-region>
-		<Tfl width="16" height="16" />
-		<span data-tauri-drag-region>TFL Client</span>
-	</div>
+	<div class="titlebar-drag" data-tauri-drag-region></div>
 
 	<div class="titlebar-controls">
 		<button
@@ -70,20 +66,7 @@
 		user-select: none;
 	}
 
-	.titlebar-brand {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding-left: 12px;
-		color: var(--text-secondary);
-		font-family: var(--font-brand);
-		font-size: 0.68rem;
-		letter-spacing: 0.5px;
-	}
-
-	.titlebar-brand :global(svg) {
-		color: var(--accent);
-	}
+	.titlebar-drag { flex: 1; height: 100%; }
 
 	.titlebar-controls {
 		display: flex;

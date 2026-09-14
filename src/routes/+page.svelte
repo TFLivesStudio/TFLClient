@@ -33,10 +33,19 @@
 			['tfl-density', 'data-density', 'comfortable']
 		] as const;
 		for (const [storageKey, attribute, defaultValue] of preferences) {
+			// Cada superficie (data-surface) trae su propia variante clara y
+			// oscura (ver global.css) — ya no depende del tema para ser válida.
 			const value = localStorage.getItem(storageKey) ?? defaultValue;
 			if (value === defaultValue) root.removeAttribute(attribute);
 			else root.setAttribute(attribute, value);
 		}
+	}
+
+	function applyQualityVisuals(settings: NonNullable<typeof appState.settings>) {
+		const root = document.documentElement;
+		root.setAttribute('data-quality', settings.quality_profile.toLowerCase());
+		root.toggleAttribute('data-reduce-motion', settings.quality_profile === 'Lite');
+		root.toggleAttribute('data-no-blur', settings.disable_blur_effects);
 	}
 
 	onMount(async () => {
@@ -49,6 +58,7 @@
 				document.documentElement.setAttribute('data-theme', settings.theme);
 			}
 			restoreAppearance();
+			applyQualityVisuals(settings);
 			await refreshInstances();
 		} finally {
 			loading = false;
@@ -58,6 +68,7 @@
 	async function handleOnboardingDone(user: MinecraftUser) {
 		appState.currentUser = user;
 		appState.settings = await getSettings();
+		if (appState.settings) applyQualityVisuals(appState.settings);
 	}
 
 	async function handleLogout() {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { convertFileSrc } from '@tauri-apps/api/core';
 	import type { InstanceData } from '$lib/types/types';
 	import {
 		launchInstance,
@@ -8,7 +9,10 @@
 		updateInstanceMemory,
 		getRecommendedRam,
 		openInstanceFolder,
-		getInstanceMods
+		getInstanceMods,
+		pickImageFile,
+		setInstanceIcon,
+		getInstanceIconPath
 	} from '$lib/api/tflApi';
 	import ModsPanel from './ModsPanel.svelte';
 	import ShadersPanel from './ShadersPanel.svelte';
@@ -26,6 +30,7 @@
 		Clock,
 		FolderOpen,
 		Puzzle,
+		ImagePlus,
 		ChevronRight
 	} from 'lucide-svelte';
 
@@ -45,14 +50,36 @@
 	let nameDraft = $state(instance.name);
 	let ramRecommended = $state<number | null>(null);
 	let modCount = $state<number | null>(null);
+	let iconUrl = $state<string | null>(null);
+	let iconBusy = $state(false);
 
 	$effect(() => {
 		nameDraft = instance.name;
 	});
 
+	async function loadIcon() {
+		const path = await getInstanceIconPath(instance.name);
+		iconUrl = path ? convertFileSrc(path) : null;
+	}
+
+	async function handleChangeIcon() {
+		const source = await pickImageFile();
+		if (!source) return;
+		iconBusy = true;
+		try {
+			await setInstanceIcon(instance.name, source);
+			await loadIcon();
+		} catch (e) {
+			error = String(e);
+		} finally {
+			iconBusy = false;
+		}
+	}
+
 	onMount(() => {
 		loadRamHint();
 		loadModCount();
+		loadIcon();
 	});
 
 	const LOADER_META: Record<string, { label: string; color: string }> = {
@@ -150,9 +177,23 @@
 
 <div class="instance-detail">
 	<div class="hero">
-		<div class="hero-icon" style="--loader-color: {loaderMeta.color}">
-			{instance.name.charAt(0).toUpperCase()}
-		</div>
+		<button
+			type="button"
+			class="hero-icon"
+			style="--loader-color: {loaderMeta.color}"
+			onclick={handleChangeIcon}
+			disabled={iconBusy}
+			aria-label="Cambiar ícono de la instancia"
+		>
+			{#if iconUrl}
+				<img src={iconUrl} alt="" class="hero-icon-img" />
+			{:else}
+				{instance.name.charAt(0).toUpperCase()}
+			{/if}
+			<span class="hero-icon-edit">
+				{#if iconBusy}<Loader2 size={14} class="spin" />{:else}<ImagePlus size={14} />{/if}
+			</span>
+		</button>
 
 		<div class="hero-info">
 			{#if editingName}
@@ -382,19 +423,53 @@
 	}
 
 	.hero-icon {
+		position: relative;
 		flex-shrink: 0;
 		width: 72px;
 		height: 72px;
+		padding: 0;
 		border-radius: var(--border-radius-lg);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		font-size: 1.8rem;
 		font-weight: 800;
+		font-family: inherit;
 		color: var(--loader-color);
 		background: color-mix(in srgb, var(--loader-color) 20%, transparent);
 		border: 1px solid color-mix(in srgb, var(--loader-color) 45%, transparent);
 		box-shadow: 0 0 0 4px color-mix(in srgb, var(--loader-color) 8%, transparent);
+		cursor: pointer;
+		overflow: hidden;
+	}
+
+	.hero-icon:disabled {
+		cursor: not-allowed;
+	}
+
+	.hero-icon-img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.hero-icon-edit {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(0, 0, 0, 0.55);
+		color: #ffffff;
+		opacity: 0;
+		transition: opacity 0.12s;
+	}
+
+	.hero-icon:hover .hero-icon-edit,
+	.hero-icon:focus-visible .hero-icon-edit {
+		opacity: 1;
 	}
 
 	.hero-info {

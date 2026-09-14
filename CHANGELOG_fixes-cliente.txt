@@ -1,0 +1,83 @@
+TFL CLIENT — CHANGELOG: fixes reportados por el cliente
+================================================================================
+
+src/styles/global.css
+  - `:root[data-surface='midnight']` y `:root[data-surface='slate']`:
+    selector cambiado a `:root:not([data-theme='light'])[data-surface='…']`.
+    Antes, si el atributo data-surface quedaba puesto mientras
+    data-theme='light' (localStorage con un valor viejo, o un cambio de
+    tema que no lo limpiaba), la superficie pisaba el fondo a oscuro pero
+    el texto seguía siendo el oscuro del tema claro — contraste roto,
+    letras casi invisibles. Ahora la superficie es inerte en modo claro
+    a nivel CSS, no depende de que JS limpie el atributo a tiempo.
+  - `html[data-reduce-motion] *` (perfil de calidad): agregado guard
+    `:not([data-quality='experience'])`. Antes solo dependía de que el JS
+    hubiera limpiado data-reduce-motion al cambiar a Experience; ahora
+    Experience es CSS-inmune a esa regla pase lo que pase con el
+    atributo.
+
+src/routes/+page.svelte
+  - restoreAppearance(): firma cambiada a recibir `theme` como parámetro;
+    si theme === 'light', el atributo data-surface se limpia siempre en
+    vez de restaurar lo que haya en localStorage (mismo bug de fondo que
+    el fix de CSS, atacado también del lado de JS).
+  - applyQualityVisuals(): ahora también setea `data-quality` (valor:
+    lite/balanced/experience) en <html>, usado por el guard nuevo de
+    global.css.
+  - Call site: `restoreAppearance()` → `restoreAppearance(settings.theme)`.
+
+src/lib/components/settings/SettingsPanel.svelte
+  - setTheme('light'): además de sacar el atributo data-surface, ahora
+    también resetea la variable `surface` en memoria y localStorage a
+    'obsidian' — antes el atributo se limpiaba pero localStorage seguía
+    con el valor viejo (medianoche/pizarra), así que el bug volvía solo
+    con reabrir la app.
+  - handleQuality(): ahora también setea `data-quality` en <html> al
+    cambiar de perfil en vivo (mismo mecanismo que applyQualityVisuals).
+  - Import agregado: `writeText` de `@tauri-apps/plugin-clipboard-manager`.
+  - copyMicrosoftCode(): `navigator.clipboard.writeText(msCode)` →
+    `writeText(msCode)` (plugin oficial de Tauri en vez de la Web API
+    cruda, que falla en silencio en el WebView de Tauri sin el plugin).
+
+src/lib/components/onboarding/Onboarding.svelte
+  - Mismo cambio: import de `writeText` del plugin, reemplaza
+    `navigator.clipboard.writeText` en el botón de copiar código MS del
+    onboarding.
+
+src/lib/components/layout/Sidebar/Sidebar.svelte
+  - Sacado el `<h1>TFL Client</h1>` del brand-mark (y su regla CSS
+    `.sidebar-header h1`) — quedaba duplicado con el título nativo de la
+    ventana ("TFL Client" en el Dock/Cmd+Tab), justo debajo. Queda solo
+    el ícono, agrandado de 18px a 22px ya que ahora es el único elemento.
+
+src-tauri/capabilities/default.json
+  + Permiso `clipboard-manager:allow-write-text`.
+
+src-tauri/src/lib.rs
+  + `.plugin(tauri_plugin_clipboard_manager::init())`.
+
+src-tauri/Cargo.toml / package.json
+  + Dependencia `tauri-plugin-clipboard-manager` (Rust) y
+    `@tauri-apps/plugin-clipboard-manager` (JS) — plugin oficial de
+    Tauri para portapapeles, reemplaza el uso de la Web Clipboard API
+    cruda que no es confiable dentro del WebView de Tauri sin él.
+
+Nota sobre selección manual del código MS
+  - La selección manual (arrastrar con el mouse) del código ya tenía
+    `user-select: text` en ambos lugares (Settings y Onboarding) antes de
+    esta pasada — no hacía falta tocarla. El problema real reportado era
+    el botón "Copiar", que usaba la API cruda y fallaba en silencio; ese
+    es el que se arregló acá.
+
+Verificación aplicada
+  - cargo check --workspace: limpio (mismo warning preexistente sin
+    relación).
+  - bun run check (svelte-check): 0 errores. 2 warnings de accesibilidad
+    preexistentes (tabindex en <code>, no relacionados a este cambio) +
+    el ya conocido de InstanceDetail.svelte.
+  - App relanzada desde cero (bun run tauri dev) para probar en vivo.
+
+Pendiente / no tocado en esta pasada
+  - Investigación de repos de GitHub para más opciones de personalización
+    — todavía no hecha, sigue en punto 2 de este mensaje.
+================================================================================

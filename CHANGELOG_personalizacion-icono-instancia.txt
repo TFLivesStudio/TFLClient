@@ -1,0 +1,66 @@
+TFL CLIENT — CHANGELOG: investigación de personalización + ícono por instancia
+================================================================================
+
+Investigación (GitHub)
+--------------------------------------------------------------------------------
+Repo: Voxelum/x-minecraft-launcher (xmcl-keystone-ui/src/components) — launcher
+open source, +1500 estrellas, referencia ya usada antes en el proyecto.
+
+Componentes de personalización que tiene y TFL Client no:
+- AppChangeInstanceIconCard — ícono propio por instancia (imagen, no solo
+  color+letra). Implementado acá esta pasada (ver abajo).
+- AppMoodBackground / AppMoodSurface — fondo/superficie custom. TFL Client
+  ya tiene un sistema equivalente (ambience + surface, con 3+3 presets
+  cada uno) — no se tocó, ya cubierto.
+- CustomCssEditor — editor de CSS custom completo. Evaluado y descartado
+  para esta pasada: superficie de ataque real (CSS arbitrario corriendo
+  en el WebView) sin beneficio claro sobre los presets que ya existen;
+  si se quiere en el futuro, mejor como una lista curada de "temas"
+  (JSON de tokens), no CSS libre.
+
+De lo encontrado, se implementó el que tenía mejor relación valor/costo y
+cubría un hueco ya documentado en changelogs anteriores (sidebar/hero con
+avatares de letra, sin imagen propia).
+
+src-tauri/src/commands/instance.rs
+  + pick_image_file(app) -> Option<String> — diálogo nativo de "elegir
+    archivo" filtrado a imágenes (png/jpg/jpeg/webp), comando síncrono
+    separado del de guardado para no bloquear nada async mientras el
+    usuario elige.
+  + set_instance_icon(name, source_path) -> Result<String, String> —
+    copia el archivo elegido a instance_dir/icon.<ext>, limpiando
+    cualquier ícono previo con otra extensión.
+  + get_instance_icon_path(name) -> Option<String> — busca icon.{png,
+    jpg,jpeg,webp} en la carpeta de la instancia.
+
+src-tauri/src/lib.rs
+  + Registrados: pick_image_file, set_instance_icon, get_instance_icon_path.
+
+src/lib/api/tflApi.ts
+  + pickImageFile, setInstanceIcon, getInstanceIconPath.
+
+src/lib/components/library/InstanceDetail.svelte
+  - hero-icon: de <div> a <button>, click abre el selector de imagen.
+    Si la instancia tiene ícono propio, se muestra como <img> (via
+    convertFileSrc) en vez de la letra/color por loader; overlay con
+    ícono de "cambiar imagen" al hover/focus.
+  - Import agregado: convertFileSrc, pickImageFile, setInstanceIcon,
+    getInstanceIconPath; ImagePlus de lucide-svelte.
+  + loadIcon(), handleChangeIcon() — cargan/cambian el ícono, llamado en
+    onMount (se remonta por instancia via {#key} en +page.svelte, así
+    que no hace falta re-sincronizar en un $effect aparte).
+
+Alcance explícitamente no cubierto en esta pasada
+  - Sidebar: la lista de instancias sigue mostrando avatar de letra+color,
+    no el ícono custom — mostrarlo ahí requeriría una llamada IPC extra
+    por instancia en la lista (N llamadas), se dejó afuera a propósito
+    para no meter ese costo sin que lo hayan pedido.
+  - No se tocó assetProtocol/CSP — el scope $HOME/.tflclient/** y el
+    img-src con asset:/http://asset.localhost ya cubrían esto de antes.
+
+Verificación aplicada
+  - cargo check --workspace: limpio (mismo warning preexistente).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings
+    preexistentes sin relación.
+  - App relanzada desde cero para probar en vivo.
+================================================================================

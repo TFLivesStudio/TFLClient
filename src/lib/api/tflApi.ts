@@ -58,6 +58,11 @@ export const updateInstanceMemory = (
 ) => invoke<InstanceData>('update_instance_memory', { name, minMemory, maxMemory });
 export const launchInstance = (instanceName: string) => invoke<void>('launch', { instanceName });
 export const openInstanceFolder = (name: string) => invoke<void>('open_instance_folder', { name });
+export const pickImageFile = () => invoke<string | null>('pick_image_file');
+export const setInstanceIcon = (name: string, sourcePath: string) =>
+	invoke<string>('set_instance_icon', { name, sourcePath });
+export const getInstanceIconPath = (name: string) =>
+	invoke<string | null>('get_instance_icon_path', { name });
 
 // ── Versions / loaders ─────────────────────────────────────────────────
 export const getAvailableVersions = () => invoke<MinecraftVersion[]>('get_available_versions');

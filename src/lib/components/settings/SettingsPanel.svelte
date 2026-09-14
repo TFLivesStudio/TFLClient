@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 	import { appState } from '$lib/state/state.svelte';
 	import {
 		updateSettings,
@@ -27,7 +28,9 @@
 		Users,
 		Palette,
 		PanelLeft,
-		WandSparkles
+		WandSparkles,
+		Copy,
+		CheckCircle2
 	} from 'lucide-svelte';
 
 	let { onClose }: { onClose: () => void } = $props();
@@ -75,6 +78,7 @@
 	let msVerificationUri = $state<string | null>(null);
 	let msBusy = $state(false);
 	let msError = $state<string | null>(null);
+	let codeCopied = $state(false);
 
 	let javaStatuses = $state<JavaStatus[]>([]);
 
@@ -119,6 +123,9 @@
 	async function setTheme(theme: 'dark' | 'light') {
 		if (!appState.settings) return;
 		document.documentElement.setAttribute('data-theme', theme);
+		// Cada superficie define su propia variante clara y oscura (ver
+		// global.css) — cambiar de tema ya no tiene que tocar ni resetear
+		// data-surface, la elección del usuario se mantiene en los dos.
 		appState.settings.theme = theme;
 		await updateSettings(appState.settings);
 	}
@@ -127,6 +134,20 @@
 		if (!appState.settings) return;
 		const updated = await setQualityProfile(profile);
 		appState.settings = updated;
+		document.documentElement.setAttribute('data-quality', profile.toLowerCase());
+		document.documentElement.toggleAttribute('data-reduce-motion', profile === 'Lite');
+		document.documentElement.toggleAttribute('data-no-blur', updated.disable_blur_effects);
+	}
+
+	async function copyMicrosoftCode() {
+		if (!msCode) return;
+		try {
+			await writeText(msCode);
+			codeCopied = true;
+			window.setTimeout(() => (codeCopied = false), 1800);
+		} catch {
+			msError = 'No se pudo copiar. Seleccioná el código y copialo manualmente.';
+		}
 	}
 
 	async function saveRam() {
@@ -385,7 +406,12 @@
 					{#if msCode}
 						<div class="ms-pending">
 							<p>Andá a <a href={msVerificationUri} target="_blank" rel="noreferrer">{msVerificationUri}</a> e ingresá:</p>
-							<div class="ms-code">{msCode}</div>
+						<div class="ms-code-row">
+							<code class="ms-code" tabindex="0">{msCode}</code>
+							<button type="button" class="copy-code-btn" onclick={copyMicrosoftCode} aria-label="Copiar código">
+								{#if codeCopied}<CheckCircle2 size={14} /> Copiado{:else}<Copy size={14} /> Copiar{/if}
+							</button>
+						</div>
 							<p class="hint">Esperando confirmación…</p>
 						</div>
 					{:else}
@@ -580,6 +606,11 @@
 		color: var(--accent-text);
 	}
 
+	.choice:disabled {
+		opacity: .42;
+		cursor: not-allowed;
+	}
+
 	.swatch {
 		width: 32px;
 		height: 32px;
@@ -761,8 +792,13 @@
 		color: var(--accent);
 	}
 
+	.ms-code-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
 	.ms-code {
-		align-self: flex-start;
 		font-family: monospace;
 		font-size: 1rem;
 		font-weight: 700;
@@ -772,6 +808,28 @@
 		border: 1px solid var(--border);
 		background: var(--bg-input);
 		color: var(--text-primary);
+		-webkit-user-select: text;
+		user-select: text;
+		cursor: text;
+	}
+
+	.copy-code-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 7px 9px;
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius-sm);
+		background: var(--bg-input);
+		color: var(--text-secondary);
+		font-size: .7rem;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.copy-code-btn:hover {
+		color: var(--accent);
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 	}
 
 	:global(.spin) {

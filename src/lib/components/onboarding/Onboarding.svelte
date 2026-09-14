@@ -1,8 +1,9 @@
 <script lang="ts">
 	import Tfl from '$lib/icons/Tfl.svelte';
+	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 	import { getDeviceCode, authenticateWithDeviceCode, addOfflineAccount } from '$lib/api/tflApi';
 	import type { MinecraftUser } from '$lib/types/types';
-	import { User, Gamepad2, Loader2 } from 'lucide-svelte';
+	import { User, Gamepad2, Loader2, Copy, CheckCircle2 } from 'lucide-svelte';
 
 	let { onDone }: { onDone: (user: MinecraftUser) => void } = $props();
 
@@ -11,6 +12,7 @@
 	let msCode = $state<string | null>(null);
 	let msVerificationUri = $state<string | null>(null);
 	let msError = $state<string | null>(null);
+	let codeCopied = $state(false);
 	let busy = $state(false);
 
 	async function handleOffline() {
@@ -40,6 +42,17 @@
 			msError = String(e);
 		} finally {
 			busy = false;
+		}
+	}
+
+	async function copyMicrosoftCode() {
+		if (!msCode) return;
+		try {
+			await writeText(msCode);
+			codeCopied = true;
+			window.setTimeout(() => (codeCopied = false), 1800);
+		} catch {
+			msError = 'No se pudo copiar. Seleccioná el código y copialo manualmente.';
 		}
 	}
 </script>
@@ -107,7 +120,12 @@
 					<p>Andá a</p>
 					<a href={msVerificationUri} target="_blank" rel="noreferrer">{msVerificationUri}</a>
 					<p>e ingresá el código:</p>
-					<div class="code">{msCode}</div>
+					<div class="code-row">
+						<code class="code" tabindex="0">{msCode}</code>
+						<button type="button" class="copy-code" onclick={copyMicrosoftCode}>
+							{#if codeCopied}<CheckCircle2 size={15} /> Copiado{:else}<Copy size={15} /> Copiar{/if}
+						</button>
+					</div>
 					<p class="hint">Esperando confirmación...</p>
 				{/if}
 				{#if msError}
@@ -331,6 +349,34 @@
 		border: 1px solid var(--border);
 		border-radius: var(--border-radius-sm);
 		padding: 10px 18px;
+		-webkit-user-select: text;
+		user-select: text;
+		cursor: text;
+	}
+
+	.code-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.copy-code {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 10px 12px;
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius-sm);
+		background: var(--bg-input);
+		color: var(--text-secondary);
+		font-size: .75rem;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.copy-code:hover {
+		color: var(--accent);
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 	}
 
 	:global(.spin) {
