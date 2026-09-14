@@ -34,6 +34,12 @@ pub struct MrpackMetadata {
     pub summary: Option<String>,
     pub game_version: Option<GameVersion>,
     pub file_count: usize,
+    /// Rutas relativas a `instance_dir` de cada archivo que
+    /// `install_mrpack` escribió (mods declarados + overrides) — vacío
+    /// para `parse_mrpack`, que solo lee metadata sin instalar nada.
+    /// Permite desinstalar el modpack más tarde borrando exactamente lo
+    /// que puso, sin adivinar.
+    pub installed_paths: Vec<String>,
 }
 
 impl PackFormat {
@@ -74,6 +80,7 @@ impl PackFormat {
             summary: self.summary.clone(),
             game_version,
             file_count: self.files.len(),
+            installed_paths: Vec::new(),
         }
     }
 }

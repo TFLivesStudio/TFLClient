@@ -76,10 +76,9 @@ pub async fn install_mrpack(
         )));
     }
 
-    let metadata = pack.extract_metadata();
+    let mut metadata = pack.extract_metadata();
 
-    // Build DownloadItemSpecs for files that need downloading
-    let items: Vec<aqua::DownloadItemSpec> = pack
+    let applicable_files: Vec<&super::pack_format::PackFile> = pack
         .files
         .iter()
         .filter(|f| {
@@ -88,6 +87,11 @@ pub async fn install_mrpack(
                 .and_then(|env| env.get("client"))
                 .is_none_or(|v| v != "unsupported")
         })
+        .collect();
+
+    // Build DownloadItemSpecs for files that need downloading
+    let items: Vec<aqua::DownloadItemSpec> = applicable_files
+        .iter()
         .filter_map(|f| {
             let url = f.downloads.first()?;
             let dest = safe_join(instance_dir, &f.path).ok()?;
@@ -115,7 +119,10 @@ pub async fn install_mrpack(
             .map_err(|e| MrpackError::Download(e.to_string()))?;
     }
 
-    extract_overrides(&mut archive, instance_dir).await?;
+    metadata.installed_paths = applicable_files.iter().map(|f| f.path.clone()).collect();
+    metadata
+        .installed_paths
+        .extend(extract_overrides(&mut archive, instance_dir).await?);
     extract_icon(&mut archive, instance_dir).await?;
 
     Ok(metadata)
@@ -124,7 +131,8 @@ pub async fn install_mrpack(
 async fn extract_overrides(
     archive: &mut zip::ZipArchive<std::fs::File>,
     instance_dir: &Path,
-) -> Result<(), MrpackError> {
+) -> Result<Vec<String>, MrpackError> {
+    let mut written = Vec::new();
     for i in 0..archive.len() {
         let entry = archive.by_index(i)?;
         let entry_name = entry.name().to_string();
@@ -172,8 +180,9 @@ async fn extract_overrides(
         let mut buffer = Vec::new();
         archive.by_index(i)?.read_to_end(&mut buffer)?;
         tokio::fs::write(&dest, &buffer).await?;
+        written.push(relative_path.to_string_lossy().replace('\\', "/"));
     }
-    Ok(())
+    Ok(written)
 }
 
 async fn extract_icon(

@@ -9,7 +9,9 @@ import type {
 	Loader,
 	ModSearchHit,
 	RecommendedRam,
-	JavaStatus
+	JavaStatus,
+	InstalledModpack,
+	TflSelectionEntry
 } from '$lib/types/types';
 
 // ── Auth ─────────────────────────────────────────────────────────────
@@ -81,3 +83,31 @@ export const getInstanceMods = (instanceName: string) =>
 	invoke<string[]>('get_instance_mods', { instanceName });
 export const removeMod = (instanceName: string, filename: string) =>
 	invoke<void>('remove_mod', { instanceName, filename });
+
+// ── Shaders ──────────────────────────────────────────────────────────
+export const searchShaders = (query: string, mcVersion: string) =>
+	invoke<ModSearchHit[]>('search_shaders', { query, mcVersion });
+export const installShader = (instanceName: string, projectId: string, mcVersion: string) =>
+	invoke<void>('install_shader', { instanceName, projectId, mcVersion });
+export const getInstanceShaders = (instanceName: string) =>
+	invoke<string[]>('get_instance_shaders', { instanceName });
+export const removeShader = (instanceName: string, filename: string) =>
+	invoke<void>('remove_shader', { instanceName, filename });
+
+// ── Modpacks ─────────────────────────────────────────────────────────
+export const searchModpacks = (query: string, mcVersion: string, loader: Loader) =>
+	invoke<ModSearchHit[]>('search_modpacks', { query, mcVersion, loader });
+export const installModpack = (
+	instanceName: string,
+	projectId: string,
+	mcVersion: string,
+	loader: Loader
+) =>
+	invoke<InstalledModpack>('install_modpack', { instanceName, projectId, mcVersion, loader });
+export const getInstanceModpacks = (instanceName: string) =>
+	invoke<InstalledModpack[]>('get_instance_modpacks', { instanceName });
+export const removeModpack = (instanceName: string, versionId: string) =>
+	invoke<void>('remove_modpack', { instanceName, versionId });
+
+// ── TFL Selection ────────────────────────────────────────────────────
+export const getTflSelection = () => invoke<TflSelectionEntry[]>('get_tfl_selection');

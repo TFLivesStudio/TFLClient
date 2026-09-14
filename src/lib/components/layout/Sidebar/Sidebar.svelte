@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Tfl from '$lib/icons/Tfl.svelte';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
-	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes } from 'lucide-svelte';
+	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes, Sparkles } from 'lucide-svelte';
 
 	let {
 		instances,
@@ -10,7 +10,8 @@
 		onSelect,
 		onCreate,
 		onLogout,
-		onOpenSettings
+		onOpenSettings,
+		onOpenTflSelection
 	}: {
 		instances: InstanceData[];
 		selected: InstanceData | null;
@@ -19,6 +20,7 @@
 		onCreate: () => void;
 		onLogout: () => void;
 		onOpenSettings: () => void;
+		onOpenTflSelection: () => void;
 	} = $props();
 
 	const LOADER_COLOR: Record<string, string> = {
@@ -46,6 +48,11 @@
 			<h1>TFL Client</h1>
 		</div>
 	</div>
+
+	<button type="button" class="tfl-selection-btn" onclick={onOpenTflSelection}>
+		<Sparkles size={15} />
+		TFL Selection
+	</button>
 
 	<div class="instances">
 		<div class="section-label">
@@ -140,6 +147,28 @@
 	.sidebar-header {
 		padding-bottom: 10px;
 		border-bottom: 1px solid var(--border);
+	}
+
+	.tfl-selection-btn {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 10px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+		background: color-mix(in srgb, var(--accent) 12%, var(--bg-card));
+		color: var(--accent);
+		font-size: 0.8rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition:
+			background 0.15s,
+			border-color 0.15s;
+	}
+
+	.tfl-selection-btn:hover {
+		background: color-mix(in srgb, var(--accent) 20%, var(--bg-card));
+		border-color: var(--accent);
 	}
 
 	.brand-mark {

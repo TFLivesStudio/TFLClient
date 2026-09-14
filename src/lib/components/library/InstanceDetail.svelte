@@ -11,6 +11,8 @@
 		getInstanceMods
 	} from '$lib/api/tflApi';
 	import ModsPanel from './ModsPanel.svelte';
+	import ShadersPanel from './ShadersPanel.svelte';
+	import ModpacksPanel from './ModpacksPanel.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import {
 		Play,
@@ -37,7 +39,7 @@
 
 	let launching = $state(false);
 	let error = $state<string | null>(null);
-	let tab = $state<'details' | 'mods'>('details');
+	let tab = $state<'details' | 'mods' | 'shaders' | 'modpacks'>('details');
 	let showDeleteConfirm = $state(false);
 	let editingName = $state(false);
 	let nameDraft = $state(instance.name);
@@ -274,6 +276,22 @@
 		>
 			Mods
 		</button>
+		<button
+			type="button"
+			class="tab-btn"
+			class:active={tab === 'shaders'}
+			onclick={() => (tab = 'shaders')}
+		>
+			Shaders
+		</button>
+		<button
+			type="button"
+			class="tab-btn"
+			class:active={tab === 'modpacks'}
+			onclick={() => (tab = 'modpacks')}
+		>
+			Modpacks
+		</button>
 	</div>
 
 	{#if tab === 'details'}
@@ -315,8 +333,12 @@
 				</label>
 			</div>
 		</section>
-	{:else}
+	{:else if tab === 'mods'}
 		<ModsPanel {instance} />
+	{:else if tab === 'shaders'}
+		<ShadersPanel {instance} />
+	{:else}
+		<ModpacksPanel {instance} />
 	{/if}
 </div>
 

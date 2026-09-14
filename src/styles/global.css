@@ -110,6 +110,46 @@
 	--accent-text: #ffffff;
 }
 
+:root[data-accent='blue'] {
+	--accent: #3b82f6;
+	--accent-rgb: 59, 130, 246;
+	--accent-hover: #60a5fa;
+	--accent-text: #ffffff;
+}
+
+:root[data-accent='rose'] {
+	--accent: #f43f5e;
+	--accent-rgb: 244, 63, 94;
+	--accent-hover: #fb7185;
+	--accent-text: #ffffff;
+}
+
+:root[data-accent='lime'] {
+	--accent: #84cc16;
+	--accent-rgb: 132, 204, 22;
+	--accent-hover: #a3e635;
+	--accent-text: #17220a;
+}
+
+/* Superficies: cambia profundidad y contraste sin tocar contenido ni rendimiento. */
+:root[data-surface='midnight'] {
+	--bg-main: #07111f;
+	--bg-sidebar: #0a1728;
+	--bg-card: #0e1e33;
+	--bg-item-active: #172a42;
+	--bg-input: #091827;
+	--border: rgba(156, 190, 231, 0.13);
+}
+
+:root[data-surface='slate'] {
+	--bg-main: #151719;
+	--bg-sidebar: #1c2025;
+	--bg-card: #24282e;
+	--bg-item-active: #30353d;
+	--bg-input: #171b20;
+	--border: rgba(255, 255, 255, 0.12);
+}
+
 * {
 	box-sizing: border-box;
 	margin: 0;
@@ -193,4 +233,19 @@ html[data-no-blur] * {
 
 html[data-no-blur] .ambient-bg {
 	opacity: 0.5;
+}
+
+:root[data-ambience='cosmic'] .ambient-bg {
+	background:
+		radial-gradient(ellipse 760px 560px at 78% -8%, rgba(var(--accent-rgb), .2), transparent 64%),
+		radial-gradient(ellipse 570px 470px at 4% 88%, rgba(84, 74, 190, .17), transparent 66%),
+		radial-gradient(ellipse 680px 420px at 52% 48%, rgba(var(--accent-rgb), .045), transparent 70%);
+}
+
+:root[data-ambience='minimal'] .ambient-bg { opacity: 0; }
+
+:root[data-density='compact'] {
+	--sidebar-width: 244px;
+	--border-radius: 8px;
+	--border-radius-lg: 12px;
 }

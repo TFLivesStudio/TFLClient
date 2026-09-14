@@ -1,20 +1,26 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { InstanceData, ModSearchHit } from '$lib/types/types';
-	import { searchMods, installMod, getInstanceMods, removeMod } from '$lib/api/tflApi';
-	import { Search, Download, Trash2, Loader2 } from 'lucide-svelte';
+	import type { InstanceData, ModSearchHit, InstalledModpack } from '$lib/types/types';
+	import {
+		searchModpacks,
+		installModpack,
+		getInstanceModpacks,
+		removeModpack
+	} from '$lib/api/tflApi';
+	import { Search, Download, Trash2, Loader2, Package } from 'lucide-svelte';
 
 	let { instance }: { instance: InstanceData } = $props();
 
 	let query = $state('');
 	let results = $state<ModSearchHit[]>([]);
-	let installed = $state<string[]>([]);
+	let installed = $state<InstalledModpack[]>([]);
 	let searching = $state(false);
 	let installingId = $state<string | null>(null);
+	let removingId = $state<string | null>(null);
 	let error = $state<string | null>(null);
 
 	async function refreshInstalled() {
-		installed = await getInstanceMods(instance.name);
+		installed = await getInstanceModpacks(instance.name);
 	}
 
 	onMount(refreshInstalled);
@@ -25,7 +31,7 @@
 		searching = true;
 		error = null;
 		try {
-			const hits = await searchMods(q, instance.mc_version, instance.loader);
+			const hits = await searchModpacks(q, instance.mc_version, instance.loader);
 			if (token === searchToken) results = hits;
 		} catch (e) {
 			if (token === searchToken) error = String(e);
@@ -34,8 +40,6 @@
 		}
 	}
 
-	// Búsqueda en vivo mientras se tipea — sin botón "Buscar" — con debounce
-	// corto para no golpear la API en cada tecla.
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 	$effect(() => {
 		const q = query;
@@ -53,7 +57,7 @@
 		installingId = projectId;
 		error = null;
 		try {
-			await installMod(instance.name, projectId, instance.mc_version, instance.loader);
+			await installModpack(instance.name, projectId, instance.mc_version, instance.loader);
 			await refreshInstalled();
 		} catch (e) {
 			error = String(e);
@@ -62,29 +66,37 @@
 		}
 	}
 
-	async function handleRemove(filename: string) {
+	async function handleRemove(versionId: string) {
+		removingId = versionId;
 		try {
-			await removeMod(instance.name, filename);
+			await removeModpack(instance.name, versionId);
 			await refreshInstalled();
 		} catch (e) {
 			error = String(e);
+		} finally {
+			removingId = null;
 		}
 	}
 </script>
 
-<div class="mods-panel">
+<div class="modpacks-panel">
 	{#if instance.loader === 'vanilla'}
 		<p class="hint">
-			Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.
+			Vanilla no soporta modpacks — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.
 		</p>
 	{:else}
+		<p class="hint">
+			Instalar un modpack agrega sus mods y configuración a esta instancia — no reemplaza lo que
+			ya tenías. Quitarlo borra exactamente lo que trajo, nada más.
+		</p>
+
 		<div class="search-row">
 			{#if searching}
 				<Loader2 size={14} class="spin search-icon" />
 			{:else}
 				<Search size={14} class="search-icon" />
 			{/if}
-			<input type="text" bind:value={query} placeholder="Buscar mods en Modrinth…" />
+			<input type="text" bind:value={query} placeholder="Buscar modpacks en Modrinth…" />
 		</div>
 
 		{#if error}
@@ -94,16 +106,22 @@
 		{#if installed.length > 0}
 			<div class="installed">
 				<span class="section-label">Instalados ({installed.length})</span>
-				{#each installed as filename (filename)}
+				{#each installed as pack (pack.version_id)}
 					<div class="installed-row">
-						<span class="filename">{filename}</span>
+						<Package size={13} class="pack-icon" />
+						<span class="filename">{pack.title} · {pack.file_count} archivos</span>
 						<button
 							type="button"
 							class="icon-btn"
-							onclick={() => handleRemove(filename)}
+							disabled={removingId === pack.version_id}
+							onclick={() => handleRemove(pack.version_id)}
 							aria-label="Quitar"
 						>
-							<Trash2 size={13} />
+							{#if removingId === pack.version_id}
+								<Loader2 size={13} class="spin" />
+							{:else}
+								<Trash2 size={13} />
+							{/if}
 						</button>
 					</div>
 				{/each}
@@ -113,24 +131,24 @@
 		{#if results.length > 0}
 			<div class="results">
 				<span class="section-label">Resultados</span>
-				{#each results as mod (mod.project_id)}
+				{#each results as pack (pack.project_id)}
 					<div class="mod-card">
-						{#if mod.icon_url}
-							<img src={mod.icon_url} alt={mod.title} />
+						{#if pack.icon_url}
+							<img src={pack.icon_url} alt={pack.title} />
 						{:else}
 							<div class="mod-icon-fallback"></div>
 						{/if}
 						<div class="mod-info">
-							<span class="mod-title">{mod.title}</span>
-							<p class="mod-desc">{mod.description}</p>
+							<span class="mod-title">{pack.title}</span>
+							<p class="mod-desc">{pack.description}</p>
 						</div>
 						<button
 							type="button"
 							class="install-btn"
-							disabled={installingId === mod.project_id}
-							onclick={() => handleInstall(mod.project_id)}
+							disabled={installingId === pack.project_id}
+							onclick={() => handleInstall(pack.project_id)}
 						>
-							{#if installingId === mod.project_id}
+							{#if installingId === pack.project_id}
 								<Loader2 size={14} class="spin" />
 							{:else}
 								<Download size={14} />
@@ -144,7 +162,7 @@
 </div>
 
 <style>
-	.mods-panel {
+	.modpacks-panel {
 		display: flex;
 		flex-direction: column;
 		gap: 14px;
@@ -152,7 +170,7 @@
 
 	.hint {
 		color: var(--text-secondary);
-		font-size: 0.82rem;
+		font-size: 0.78rem;
 	}
 
 	.search-row {
@@ -196,14 +214,21 @@
 	.installed-row {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		gap: 8px;
 		padding: 6px 10px;
 		border-radius: var(--border-radius-sm);
 		background: var(--bg-input);
 		margin-bottom: 4px;
 	}
 
+	.installed-row :global(.pack-icon) {
+		color: var(--text-muted);
+		flex-shrink: 0;
+	}
+
 	.filename {
+		flex: 1;
+		min-width: 0;
 		font-size: 0.76rem;
 		color: var(--text-secondary);
 		white-space: nowrap;
@@ -222,6 +247,7 @@
 		background: transparent;
 		color: var(--text-muted);
 		cursor: pointer;
+		flex-shrink: 0;
 	}
 
 	.icon-btn:hover {

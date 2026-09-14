@@ -1,0 +1,36 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="base" x1="170" y1="110" x2="846" y2="921" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#253C6F"/>
+      <stop offset=".47" stop-color="#17223E"/>
+      <stop offset="1" stop-color="#0B1020"/>
+    </linearGradient>
+    <linearGradient id="face" x1="321" y1="298" x2="721" y2="737" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB75F"/>
+      <stop offset=".42" stop-color="#FF7A2E"/>
+      <stop offset="1" stop-color="#D94A16"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="356" y1="304" x2="599" y2="700" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity=".55"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="80" y="100" width="864" height="862" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="28" stdDeviation="32" flood-color="#050814" flood-opacity=".65"/>
+    </filter>
+  </defs>
+  <rect x="72" y="72" width="880" height="880" rx="240" fill="url(#base)"/>
+  <rect x="94" y="94" width="836" height="836" rx="218" stroke="#B5C9FF" stroke-opacity=".18" stroke-width="12"/>
+  <g filter="url(#shadow)">
+    <path d="M512 192 794 355v314L512 832 230 669V355l282-163Z" fill="#080D19" stroke="#F8BE77" stroke-opacity=".42" stroke-width="20" stroke-linejoin="round"/>
+    <path d="m512 227 251 145-251 145-251-145 251-145Z" fill="url(#face)"/>
+    <path d="m261 372 251 145v280L261 652V372Z" fill="#C84414"/>
+    <path d="m763 372-251 145v280l251-145V372Z" fill="#E9581D"/>
+    <path d="m512 517 251-145v280L512 797V517Z" fill="#D64813"/>
+    <path d="M512 227 261 372l251 145 251-145-251-145Z" fill="url(#shine)"/>
+    <path d="M388 403 512 475l124-72-124-72-124 72Z" fill="#0A1223" fill-opacity=".9"/>
+    <path d="m421 422 91 52 91-52-91-52-91 52Z" fill="#FFD58C"/>
+    <path d="M454 441h116v42H454z" fill="#141D33"/>
+  </g>
+  <circle cx="822" cy="207" r="38" fill="#FFB75F"/>
+  <circle cx="822" cy="207" r="19" fill="#FFF4D7"/>
+</svg>

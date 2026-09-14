@@ -1,0 +1,57 @@
+TFL Client — Cambios de código — 2026-09-14
+
+Alcance: mejora visual, personalización e icono nativo. Este archivo describe
+solo cambios de código y assets del proyecto.
+
+src-tauri/icons/tfl-client-icon.svg
+- Nuevo icono vectorial original de TFL Client.
+- Diseño: contenedor oscuro redondeado, cubo/layers naranja y punto de estado.
+- No reutiliza logo, iconos ni assets de CubicLauncher, LabyMod u otros launchers.
+
+src-tauri/icons/*
+- Regenerados icon.icns, icon.ico, PNG, AppX, Android e iOS desde el SVG nuevo.
+- macOS, Windows y Linux usan ahora mismo icono nativo actualizado en próximos builds.
+
+src/routes/+page.svelte
+- Pantalla de biblioteca vacía rediseñada como dashboard de bienvenida.
+- Añade llamada principal para crear instancia y secundaria para abrir TFL Selection.
+- Añade tarjetas de capacidad: contenido por instancia y Java automático.
+- Añade restauración centralizada de preferencias visuales guardadas en localStorage:
+  color de acento, superficie, fondo ambiental y densidad.
+
+src/lib/components/settings/SettingsPanel.svelte
+- Nueva pestaña "Estilo".
+- Amplía paleta de acento: naranja, violeta, verde azulado, azul, rosa y lima.
+- Añade selector de superficie: Obsidiana, Medianoche y Pizarra.
+- Añade selector de fondo: Aurora, Cósmico y Minimal.
+- Añade selector de densidad: Cómoda y Compacta.
+- Preferencias se guardan localmente y se aplican sin reiniciar aplicación.
+
+src/styles/global.css
+- Añade tokens para tres acentos nuevos.
+- Añade superficies Midnight y Slate mediante variables CSS, sin duplicar componentes.
+- Añade variantes de fondo Cosmic y Minimal.
+- Añade modo compacto que reduce ancho de sidebar y radios de interfaz.
+- Conserva perfil Lite: desactiva efectos costosos cuando usuario lo solicita.
+
+src/lib/components/library/TflSelection.svelte
+- Modal rediseñado con cabecera editorial, marca TFL, superficie graduada y tarjetas elevadas.
+- Botón de instalación ahora comunica estado con texto: Añadir, Añadido o spinner.
+- Selector de instancia tiene ancho suficiente para nombres largos.
+- Conserva instalación sobre instancia compatible y estado de error por entrada.
+
+Verificación ejecutada
+- bun run check: 0 errores. Queda 1 warning previo en InstanceDetail.svelte sobre inicialización de nameDraft.
+- cargo check --workspace: correcto. Queda 1 warning previo de variantes AppError sin uso.
+- git diff --check: correcto, sin errores de espacios.
+
+Investigación usada como referencia visual/técnica
+- RefractMC/Refract_MC: dashboard por instancia, personalización y biblioteca contextual.
+- PrismLauncher/Themes: temas por tokens y superficies configurables.
+- MinLOL12/Amethyst: dashboard ligero y feedback visible.
+- Referencias anteriores del proyecto: HMCL, x-minecraft-launcher, lucide, Tabler, shadcn-ui,
+  GSAP, Monocraft y repos entregados por cliente.
+
+Nota de contenido
+- TFL Selection mantiene catálogo técnico existente. Para declarar modpacks como oficiales
+  de TFLives hacen falta sus project_id/URL finales; no se inventaron títulos oficiales.

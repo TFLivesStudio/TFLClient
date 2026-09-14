@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { InstanceData, ModSearchHit } from '$lib/types/types';
-	import { searchMods, installMod, getInstanceMods, removeMod } from '$lib/api/tflApi';
+	import { searchShaders, installShader, getInstanceShaders, removeShader } from '$lib/api/tflApi';
 	import { Search, Download, Trash2, Loader2 } from 'lucide-svelte';
 
 	let { instance }: { instance: InstanceData } = $props();
@@ -14,7 +14,7 @@
 	let error = $state<string | null>(null);
 
 	async function refreshInstalled() {
-		installed = await getInstanceMods(instance.name);
+		installed = await getInstanceShaders(instance.name);
 	}
 
 	onMount(refreshInstalled);
@@ -25,7 +25,7 @@
 		searching = true;
 		error = null;
 		try {
-			const hits = await searchMods(q, instance.mc_version, instance.loader);
+			const hits = await searchShaders(q, instance.mc_version);
 			if (token === searchToken) results = hits;
 		} catch (e) {
 			if (token === searchToken) error = String(e);
@@ -34,8 +34,6 @@
 		}
 	}
 
-	// Búsqueda en vivo mientras se tipea — sin botón "Buscar" — con debounce
-	// corto para no golpear la API en cada tecla.
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 	$effect(() => {
 		const q = query;
@@ -53,7 +51,7 @@
 		installingId = projectId;
 		error = null;
 		try {
-			await installMod(instance.name, projectId, instance.mc_version, instance.loader);
+			await installShader(instance.name, projectId, instance.mc_version);
 			await refreshInstalled();
 		} catch (e) {
 			error = String(e);
@@ -64,7 +62,7 @@
 
 	async function handleRemove(filename: string) {
 		try {
-			await removeMod(instance.name, filename);
+			await removeShader(instance.name, filename);
 			await refreshInstalled();
 		} catch (e) {
 			error = String(e);
@@ -72,19 +70,25 @@
 	}
 </script>
 
-<div class="mods-panel">
+<div class="shaders-panel">
 	{#if instance.loader === 'vanilla'}
 		<p class="hint">
-			Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.
+			Vanilla no soporta shaders — necesitás un mod tipo Iris u OptiFine, que a su vez requiere
+			Fabric, Forge, NeoForge o Quilt.
 		</p>
 	{:else}
+		<p class="hint">
+			Instalar un shader acá solo lo copia a la instancia — todavía necesitás un mod compatible
+			(Iris, Oculus, OptiFine…) instalado en la pestaña Mods para que Minecraft lo use.
+		</p>
+
 		<div class="search-row">
 			{#if searching}
 				<Loader2 size={14} class="spin search-icon" />
 			{:else}
 				<Search size={14} class="search-icon" />
 			{/if}
-			<input type="text" bind:value={query} placeholder="Buscar mods en Modrinth…" />
+			<input type="text" bind:value={query} placeholder="Buscar shaders en Modrinth…" />
 		</div>
 
 		{#if error}
@@ -113,24 +117,24 @@
 		{#if results.length > 0}
 			<div class="results">
 				<span class="section-label">Resultados</span>
-				{#each results as mod (mod.project_id)}
+				{#each results as shader (shader.project_id)}
 					<div class="mod-card">
-						{#if mod.icon_url}
-							<img src={mod.icon_url} alt={mod.title} />
+						{#if shader.icon_url}
+							<img src={shader.icon_url} alt={shader.title} />
 						{:else}
 							<div class="mod-icon-fallback"></div>
 						{/if}
 						<div class="mod-info">
-							<span class="mod-title">{mod.title}</span>
-							<p class="mod-desc">{mod.description}</p>
+							<span class="mod-title">{shader.title}</span>
+							<p class="mod-desc">{shader.description}</p>
 						</div>
 						<button
 							type="button"
 							class="install-btn"
-							disabled={installingId === mod.project_id}
-							onclick={() => handleInstall(mod.project_id)}
+							disabled={installingId === shader.project_id}
+							onclick={() => handleInstall(shader.project_id)}
 						>
-							{#if installingId === mod.project_id}
+							{#if installingId === shader.project_id}
 								<Loader2 size={14} class="spin" />
 							{:else}
 								<Download size={14} />
@@ -144,7 +148,7 @@
 </div>
 
 <style>
-	.mods-panel {
+	.shaders-panel {
 		display: flex;
 		flex-direction: column;
 		gap: 14px;
@@ -152,7 +156,7 @@
 
 	.hint {
 		color: var(--text-secondary);
-		font-size: 0.82rem;
+		font-size: 0.78rem;
 	}
 
 	.search-row {

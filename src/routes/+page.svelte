@@ -7,19 +7,36 @@
 	import InstanceDetail from '$lib/components/library/InstanceDetail.svelte';
 	import DownloadProgressBar from '$lib/components/library/DownloadProgressBar.svelte';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
+	import TflSelection from '$lib/components/library/TflSelection.svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import { initDownloadListener } from '$lib/state/downloadState.svelte';
 	import { getCurrentUser, getInstances, getSettings, logout as apiLogout } from '$lib/api/tflApi';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
-	import { Plus } from 'lucide-svelte';
+	import { Plus, Sparkles, PackageOpen, Zap } from 'lucide-svelte';
 
 	let loading = $state(true);
 	let showCreateModal = $state(false);
 	let showSettings = $state(false);
+	let showTflSelection = $state(false);
 
 	async function refreshInstances() {
 		appState.instances = await getInstances();
+	}
+
+	function restoreAppearance() {
+		const root = document.documentElement;
+		const preferences = [
+			['tfl-accent', 'data-accent', 'orange'],
+			['tfl-surface', 'data-surface', 'obsidian'],
+			['tfl-ambience', 'data-ambience', 'aurora'],
+			['tfl-density', 'data-density', 'comfortable']
+		] as const;
+		for (const [storageKey, attribute, defaultValue] of preferences) {
+			const value = localStorage.getItem(storageKey) ?? defaultValue;
+			if (value === defaultValue) root.removeAttribute(attribute);
+			else root.setAttribute(attribute, value);
+		}
 	}
 
 	onMount(async () => {
@@ -31,10 +48,7 @@
 			if (settings.theme === 'light' || settings.theme === 'dark') {
 				document.documentElement.setAttribute('data-theme', settings.theme);
 			}
-			const accent = localStorage.getItem('tfl-accent');
-			if (accent && accent !== 'orange') {
-				document.documentElement.setAttribute('data-accent', accent);
-			}
+			restoreAppearance();
 			await refreshInstances();
 		} finally {
 			loading = false;
@@ -90,6 +104,7 @@
 				onCreate={() => (showCreateModal = true)}
 				onLogout={handleLogout}
 				onOpenSettings={() => (showSettings = true)}
+				onOpenTflSelection={() => (showTflSelection = true)}
 			/>
 			<main class="main-content">
 				{#if appState.selectedInstance}
@@ -101,13 +116,24 @@
 					{/key}
 				{:else}
 					<div class="empty-state">
-						<div class="empty-mark"><Tfl width="46" height="46" /></div>
-						<h2>Bienvenido a TFL Client</h2>
-						<p>Elegí una instancia de la barra lateral o creá una nueva</p>
-						<button type="button" class="empty-cta" onclick={() => (showCreateModal = true)}>
-							<Plus size={16} strokeWidth={2.5} />
-							Crear instancia
-						</button>
+						<div class="welcome-orb"><Tfl width="42" height="42" /></div>
+						<div class="welcome-copy">
+							<span class="eyebrow">TFL Client</span>
+							<h2>Tu biblioteca Minecraft,<br />bien organizada.</h2>
+							<p>Creá una instancia para jugar, instalar contenido y ajustar cada perfil.</p>
+						</div>
+						<div class="welcome-actions">
+							<button type="button" class="empty-cta" onclick={() => (showCreateModal = true)}>
+								<Plus size={16} strokeWidth={2.5} /> Crear instancia
+							</button>
+							<button type="button" class="secondary-cta" onclick={() => (showTflSelection = true)}>
+								<Sparkles size={15} /> Explorar TFL Selection
+							</button>
+						</div>
+						<div class="welcome-grid">
+							<div class="welcome-card"><PackageOpen size={16} /><span>Mods y modpacks</span><small>Por instancia</small></div>
+							<div class="welcome-card"><Zap size={16} /><span>Java automático</span><small>Sin configuración manual</small></div>
+						</div>
 					</div>
 				{/if}
 			</main>
@@ -121,6 +147,10 @@
 
 {#if showSettings}
 	<SettingsPanel onClose={() => (showSettings = false)} />
+{/if}
+
+{#if showTflSelection}
+	<TflSelection instances={appState.instances} onClose={() => (showTflSelection = false)} />
 {/if}
 
 <DownloadProgressBar />
@@ -180,27 +210,51 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
+		gap: 14px;
 		height: 100%;
-		color: var(--text-secondary);
+		max-width: 620px;
+		margin: auto;
+		padding: 48px 28px;
 		text-align: center;
 	}
 
-	.empty-mark {
-		color: var(--text-muted);
-		opacity: 0.5;
-		margin-bottom: 10px;
+	.welcome-orb {
+		display: grid;
+		place-items: center;
+		width: 76px;
+		height: 76px;
+		border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--border));
+		border-radius: 26px;
+		color: var(--accent);
+		background:
+			linear-gradient(145deg, color-mix(in srgb, var(--accent) 25%, transparent), transparent),
+			var(--bg-card);
+		box-shadow: 0 20px 55px rgba(var(--accent-rgb), 0.18), var(--shadow-md);
 	}
 
+	.welcome-copy { display: grid; gap: 8px; }
+	.eyebrow {
+		color: var(--accent);
+		font-size: var(--text-xs);
+		font-weight: 800;
+		letter-spacing: 0.13em;
+		text-transform: uppercase;
+	}
 	.empty-state h2 {
 		color: var(--text-primary);
-		font-size: var(--text-xl);
+		font-size: clamp(1.7rem, 4vw, 2.5rem);
+		line-height: 1.08;
+		letter-spacing: -0.045em;
 	}
 
 	.empty-state p {
+		max-width: 410px;
 		font-size: 0.85rem;
-		margin-bottom: 18px;
+		line-height: 1.55;
+		color: var(--text-secondary);
 	}
+
+	.welcome-actions { display: flex; gap: 10px; margin-top: 6px; }
 
 	.empty-cta {
 		display: inline-flex;
@@ -220,5 +274,30 @@
 
 	.empty-cta:hover {
 		transform: translateY(-1px);
+		box-shadow: 0 10px 26px rgba(var(--accent-rgb), 0.26);
 	}
+
+	.secondary-cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		padding: 10px 14px;
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius-sm);
+		background: color-mix(in srgb, var(--bg-card) 84%, transparent);
+		color: var(--text-secondary);
+		font-size: 0.82rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition: border-color .16s, color .16s, transform .16s;
+	}
+	.secondary-cta:hover { color: var(--text-primary); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); transform: translateY(-1px); }
+
+	.welcome-grid { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: 10px; width: min(100%, 430px); margin-top: 10px; }
+	.welcome-card { display: grid; grid-template-columns: auto 1fr; column-gap: 9px; align-items: center; padding: 13px; text-align: left; border: 1px solid var(--border); border-radius: var(--border-radius); background: color-mix(in srgb, var(--bg-card) 88%, transparent); }
+	.welcome-card :global(svg) { grid-row: span 2; color: var(--accent); }
+	.welcome-card span { font-size: var(--text-sm); font-weight: 750; }
+	.welcome-card small { color: var(--text-muted); font-size: var(--text-xs); margin-top: 2px; }
+
+	@media (max-width: 640px) { .welcome-actions, .welcome-grid { grid-template-columns: 1fr; width: 100%; } .welcome-actions { flex-direction: column; } .empty-cta, .secondary-cta { justify-content: center; } }
 </style>

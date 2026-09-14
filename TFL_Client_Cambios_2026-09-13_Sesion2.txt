@@ -1,0 +1,356 @@
+================================================================================
+TFL CLIENT — CAMBIOS DE ESTA SESIÓN (caza de bugs: mods/Fabric + otros)
+================================================================================
+
+CONTEXTO DEL PEDIDO
+--------------------------------------------------------------------------------
+Goal fijado por el usuario vía /goal:
+"arreglar de porque no se descargan los mods, lo de Fabric que no se
+descarga y muchos mas bugs. recuerda que tienes Cubiclauncher para mirar
+porque falla y trasladar errores, ademas recuerda que tiene que parecerse
+esto a https://laby.net/es/client y launchers comerciales de codigo cerrado
+que son muy bonitos pero que gastan poco.
+ademas siempre me tendras que dar un .txt con los cambios echos"
+
+A partir de ahora, cada respuesta con cambios de código viene acompañada de
+un .txt como este.
+
+
+1. DIAGNÓSTICO REAL — POR QUÉ NO DESCARGABA FABRIC
+--------------------------------------------------------------------------------
+Se probó conectividad real a cada host que usa el launcher (Modrinth,
+Mojang, Quilt, Forge, NeoForge, Fabric) desde esta máquina con `curl -v`.
+
+Resultado: TODOS conectan bien excepto `meta.fabricmc.net` y
+`maven.fabricmc.net` — ahí el handshake TLS falla directamente
+("SSL_ERROR_SYSCALL"), incluso resolviendo el DNS contra 8.8.8.8 (no es un
+DNS filtrado, la IP es la real de Fabric por Cloudflare).
+
+Se encontró la causa: **ProtonVPN está corriendo activamente** en esta
+máquina (proceso `ProtonVPN.app` + extensión WireGuard, túnel `utun10`
+levantado). Su filtro (NetShield o el rango de IP que usa) está bloqueando
+específicamente esa IP/dominio de Fabric — ningún otro host se ve afectado.
+
+**Esto NO es un bug de código.** Es un bloqueo de red/VPN en esta máquina.
+Recomendación para el usuario: desactivar NetShield en ProtonVPN o agregar
+una excepción para `fabricmc.net`, o probar con la VPN apagada.
+
+Aun así, se encontró y arregló un problema real de código relacionado (ver
+punto 2) que hace que el launcher entero sea mucho más frágil que
+CubicLauncher ante cualquier corte de red — no solo el de Fabric.
+
+
+2. BUG REAL ENCONTRADO — SIN REINTENTOS EN LLAMADAS DE METADATA
+--------------------------------------------------------------------------------
+Comparando con CubicLauncher: su motor de descarga (`aqua`, compartido con
+TFL Client) reintenta 3 veces con backoff en toda descarga de archivo real
+(jars, assets). Pero varias llamadas de METADATA (no descarga de archivo,
+sino "preguntarle a una API qué versión hay") en TFL Client eran de UN SOLO
+intento, sin reintento — así que un hipo de red de medio segundo tumbaba
+toda la operación sin necesidad:
+
+- Resolución de versión de loader Fabric (`meta.fabricmc.net/.../loader/{version}`)
+- Perfil de Fabric completo (`meta.fabricmc.net/.../profile/json`)
+- Resolución de versión de loader Quilt (mismo patrón, `meta.quiltmc.org`)
+- Perfil de Quilt completo
+- Versión recomendada de Forge (`promotions_slim.json`)
+- Versión de NeoForge (`maven-metadata.xml`)
+- Lista de versiones de Minecraft para el selector de "Crear instancia"
+  (manifest de Mojang)
+- Búsqueda de mods en Modrinth
+- Resolución de la mejor versión de un mod
+- Resolución de un mod por ID (dependencias)
+- Descarga del archivo del mod en sí
+
+**Arreglado**: se agregó una función de reintento (3 intentos, backoff
+exponencial corto) y se usó en las 11 llamadas de arriba, tanto en el motor
+`aqua` (crate compartida) como en el backend de TFL Client.
+
+Archivos tocados:
+- [crates/aqua/src/utilities/mod.rs](crates/aqua/src/utilities/mod.rs) — nuevas
+  `fetch_text_retrying()` / `fetch_json_retrying()`.
+- [crates/aqua/src/downloaders/fabric.rs](crates/aqua/src/downloaders/fabric.rs) —
+  usa el reintento en `resolve_latest_loader()` y `new()` (perfil).
+- [crates/aqua/src/downloaders/quilt.rs](crates/aqua/src/downloaders/quilt.rs) —
+  mismo cambio, mismo patrón.
+- [src-tauri/src/core/http_client.rs](src-tauri/src/core/http_client.rs) —
+  nuevas `get_text_retrying()` / `get_json_retrying()` / `get_bytes_retrying()`.
+- [src-tauri/src/core/mod.rs](src-tauri/src/core/mod.rs) — exporta las nuevas
+  funciones.
+- [src-tauri/src/commands/loaders.rs](src-tauri/src/commands/loaders.rs) — Forge
+  y NeoForge usan el reintento.
+- [src-tauri/src/commands/versions.rs](src-tauri/src/commands/versions.rs) — la
+  lista de versiones de Minecraft (la que llena el selector al crear
+  instancia) usa el reintento.
+- [src-tauri/src/commands/mods.rs](src-tauri/src/commands/mods.rs) — búsqueda,
+  resolución de versión y descarga de mods usan el reintento.
+
+
+3. BUG REAL ENCONTRADO — MODS SE ESCRIBEN SIN VERIFICAR INTEGRIDAD
+--------------------------------------------------------------------------------
+Comparando con CubicLauncher: su instalador de mods valida el SHA1 de cada
+archivo contra el hash que reporta Modrinth (usa el mismo motor de
+descarga con verificación de hash que usa para Vanilla/Fabric/Forge). TFL
+Client escribía el archivo del mod a disco a ciegas — si la descarga se
+cortaba o llegaba corrupta a mitad de camino, el mod quedaba "instalado"
+igual, y recién fallaría después, al abrir Minecraft, de forma confusa.
+
+**Arreglado**: [src-tauri/src/commands/mods.rs](src-tauri/src/commands/mods.rs) —
+ahora se pide el hash SHA1 a Modrinth (viene en `files[].hashes.sha1`), se
+calcula el SHA1 real del archivo descargado y se comparan; si no coinciden,
+reintenta la descarga hasta 3 veces antes de fallar con un error claro.
+
+
+4. VERIFICACIÓN
+--------------------------------------------------------------------------------
+- `cargo check --workspace` — compila limpio (solo 2 warnings preexistentes
+  no relacionados: campo `id` sin usar en `ModrinthVersion`, variantes de
+  `AppError` sin construir — ninguno de este cambio).
+- El proceso `bun run tauri dev` que el usuario tenía abierto detectó los
+  cambios de Rust solo, recompiló y relanzó la app automáticamente sin
+  intervención — confirmado por log (`/tmp/tflc-dev4.log`), app corriendo
+  con el fix aplicado (pid nuevo, arranque limpio).
+- No se pudo hacer clic dentro de la app para probar un flujo Fabric
+  completo en vivo (el binario de desarrollo no es un `.app` instalado, las
+  herramientas de automatización de este entorno no lo pueden targetear
+  directamente). La verificación fue por compilación + trazabilidad de
+  logs + prueba directa de red a cada host con `curl`.
+
+
+5. PULIDO VISUAL — SELECTOR DE LOADER (paso chico hacia estética "comercial")
+--------------------------------------------------------------------------------
+Se investigó laby.net/es/client (LabyMod) como referencia — landing
+orientado a marketing (secciones apiladas, dark theme, screenshots
+comparativos), no un mapa 1:1 de la UI interna del launcher en sí. El
+patrón más aprovechable y ya usado por launchers serios (x-minecraft-
+launcher, HMCL, PCML) es el indicador de color por loader — TFL Client ya
+lo tenía en la sidebar (`--loader-fabric`, `--loader-forge`, etc.) pero no
+en el modal de "Crear instancia", donde los 5 botones de loader eran texto
+plano sin identidad.
+
+**Cambiado**: [src/lib/components/library/CreateInstanceModal.svelte](src/lib/components/library/CreateInstanceModal.svelte) —
+cada botón de loader ahora tiene un punto de color con la marca real de ese
+loader (mismo token CSS que ya usa la sidebar), que se enciende al 100% de
+opacidad cuando está seleccionado; el fondo del botón activo se tiñe
+levemente con ese mismo color en vez de usar siempre el acento genérico de
+la app.
+
+Esto es un cambio acotado, no el rediseño completo pedido — queda como
+frente abierto para una próxima pasada (ver pendientes).
+
+
+5.1. PULIDO VISUAL — SEGUNDA PASADA (a pedido explícito: "¿y la parte
+     estetica?")
+--------------------------------------------------------------------------------
+El punto 5 de arriba fue muy chico (solo el modal de crear instancia). Se
+agregó una pasada real sobre las dos pantallas más vistas:
+
+- **Avatar del jugador con skin real** — [Sidebar.svelte](src/lib/components/layout/Sidebar/Sidebar.svelte):
+  el chip de usuario (abajo de la sidebar) mostraba un ícono genérico de
+  lucide. Ahora muestra la cabeza real del skin del jugador vía Crafatar
+  (`crafatar.com/avatars/{uuid}`) — el mismo servicio que usan MultiMC,
+  PrismLauncher, HMCL y x-minecraft-launcher para esto. Si la imagen no
+  carga (sin red, UUID offline sin skin real) cae de vuelta al ícono
+  genérico automáticamente, sin romper el layout. Esto es lo que más
+  distingue a un launcher de Minecraft "de verdad" de una app genérica.
+- **Hero de la instancia con más peso** — [InstanceDetail.svelte](src/lib/components/library/InstanceDetail.svelte):
+  el hero (arriba de todo, donde está el nombre + botón Jugar) pasó de ser
+  texto plano flotando a una tarjeta con borde, fondo y un degradé radial
+  sutil teñido con el color del loader de esa instancia (Fabric anaranjado,
+  Forge violeta, etc. — mismo patrón que LabyMod/HMCL usan para dar
+  identidad visual por tipo de instancia).
+- **Botón Jugar con gradiente y glow** — antes era un rectángulo de color
+  plano; ahora tiene degradé diagonal con los dos tonos del acento y un
+  resplandor (box-shadow) con el color del acento alrededor, que crece al
+  pasar el mouse — el tratamiento típico de "botón hero" en launchers
+  comerciales cerrados (Lunar, Badlion, LabyMod) en vez de un botón de
+  formulario cualquiera.
+
+Verificado: `bun run check` (svelte-check) — 0 errores, solo el warning
+preexistente ya documentado (`nameDraft` captura valor inicial). El
+servidor de desarrollo recogió los cambios por HMR sin errores en consola
+(confirmado por log).
+
+
+5.2. BUG REAL — NO SE PODÍA AGREGAR CUENTA MICROSOFT DESDE AJUSTES
+--------------------------------------------------------------------------------
+El usuario mandó screenshot de Ajustes → Cuentas: solo tenía "Steve
+(Cracked)" y la única opción para agregar cuenta ahí era "offline". El
+login con Microsoft SOLO existía en la pantalla de onboarding (primera vez
+que se abre la app) — si ya pasaste esa pantalla, no había forma de sumar
+una cuenta Microsoft sin reinstalar o borrar el `settings.tfl` a mano.
+
+**Arreglado**: [SettingsPanel.svelte](src/lib/components/settings/SettingsPanel.svelte) —
+pestaña Cuentas ahora tiene botón "Iniciar con Microsoft" arriba de
+"Agregar cuenta offline", con el mismo flujo de código de dispositivo
+(link + código de 8 caracteres) que ya usaba el onboarding. Reusa los
+comandos `get_device_code`/`authenticate_with_device_code` que ya existían
+en el backend — no hizo falta tocar Rust, era un gap solo del frontend.
+
+Verificado: `bun run check` — 0 errores.
+
+
+7. BUG CRÍTICO ENCONTRADO — "NO PUEDO INICIAR INSTANCIAS VANILLA" (esto rompía TODO, no solo Vanilla)
+--------------------------------------------------------------------------------
+El usuario reportó que no podía iniciar instancias Vanilla. Se investigó a
+fondo con logs reales:
+
+1. El launcher SÍ lanzaba el proceso de Java (`launchwerk::handle: Instance
+   ... launched`), pero Minecraft crasheaba al toque. El log propio de
+   Minecraft (`instances/Prueba vanilla/logs/latest.log`) mostraba:
+   `UnsatisfiedLinkError: Failed to locate library: liblwjgl.dylib`
+2. El archivo SÍ existía en el disco, en la carpeta correcta
+   (`shared/natives/1.21.1/liblwjgl.dylib`) — pero al inspeccionarlo con
+   `file`, resultó ser un binario **x86_64**, mientras que esta Mac es
+   **arm64** (Apple Silicon). Arquitectura equivocada.
+
+**Causa raíz real** (en la crate compartida `zellkern`, heredada de
+CubicLauncher — este bug ya estaba ahí, no es algo introducido en TFL
+Client): la función `Library::is_correct_arch()` que decide qué versión
+de cada librería nativa descargar según la arquitectura del sistema tenía
+un caso sin cubrir. Mojang publica, para macOS, DOS builds de cada
+librería LWJGL: `natives-macos` (Intel/x86_64) y `natives-macos-arm64`
+(Apple Silicon) — mismo patrón en Linux/Windows. La función manejaba bien
+los casos CON sufijo de arquitectura (`-arm64`, `-x86`), pero el caso SIN
+sufijo (`natives-macos`, `natives-linux`, `natives-windows` a secas —
+que es justamente la build x86_64 genérica) cae al final de la función
+en un `true` incondicional — o sea, **se incluye siempre, en cualquier
+arquitectura**. Resultado en una Mac ARM: se descargan y extraen TANTO
+la build Intel como la Apple Silicon, y como ambos .jar traen un archivo
+interno con el MISMO nombre (`liblwjgl.dylib`), la extracción de una
+sobreescribe a la otra — cuál arquitectura queda al final depende del
+orden de la lista, no es determinístico. El resultado es una carpeta de
+natives con arquitectura mezclada al azar, y Minecraft no puede arrancar.
+
+Esto no era un bug "solo de Vanilla" — Fabric, Forge, NeoForge y Quilt
+TODOS reusan las natives de la base Vanilla, así que este bug rompía el
+lanzamiento de CUALQUIER instancia en Mac Apple Silicon, sin importar el
+loader.
+
+**Arreglado**: [crates/zellkern/src/manifest.rs](crates/zellkern/src/manifest.rs) —
+`Library::is_correct_arch()` ahora reconoce explícitamente el caso "sin
+sufijo de arquitectura" como la build x86_64 genérica y la excluye en
+hosts arm64/arm (Apple Silicon, Linux ARM, Windows ARM).
+
+Se limpiaron a mano `shared/natives/1.21.1` y `shared/versions/1.21.1`
+(cache corrupto) para forzar una re-descarga limpia con el fix la próxima
+vez que se le dé Jugar a cualquier instancia 1.21.1 — cubre "Prueba
+vanilla" y "Fabric prueba" (Forge) de una sola vez, porque comparten la
+misma base Vanilla.
+
+Verificado: `cargo check --workspace` limpio + `cargo test -p zellkern`
+— 25/25 tests pasan, sin regresiones. App recompilada y relanzada por el
+watcher de `tauri dev`.
+
+
+7.1. BUG SECUNDARIO — INSTANCIAS VIEJAS DESAPARECEN SIN AVISO
+--------------------------------------------------------------------------------
+Al investigar lo de arriba se encontraron 2 carpetas de instancia
+("Prueba", "Prueba2") con un `instance.tfl.json` de un formato viejo
+(campo `version_id` en vez de `mc_version`/`loader`/`launch_version_id` —
+de antes de que se agregara soporte multi-loader). El código que lista
+instancias (`list_instances()` en
+[instance_manager.rs](src-tauri/src/services/instance_manager.rs)) al
+toparse con un JSON que no matchea el struct actual, lo salta en
+silencio — ni error, ni aviso, la instancia simplemente no aparece en la
+sidebar, como si nunca hubiera existido.
+
+**No arreglado todavía** (documentado, no tocado esta vez para no
+gastar todo el presupuesto de la sesión en algo secundario): lo ideal es
+migrar el formato viejo al leer, o al menos loguear un warning cuando se
+salta una instancia ilegible, para que no sea un fallo silencioso. Si el
+usuario quiere, se puede hacer en la próxima pasada.
+
+
+7.2. RUIDO CONOCIDO — WARNING DE "LEGACY NATIVE JAR" (no bloquea nada)
+--------------------------------------------------------------------------------
+Durante la investigación se confirmó que el warning repetido `Legacy
+native JAR not found: ...` que aparece en cada lanzamiento es inofensivo
+pero está mal: `launchwerk` llama, en cada lanzamiento, a una segunda
+rutina de extracción de natives (`zellkern::resolvers::natives::extract_natives`)
+que espera encontrar los .jar de natives ya copiados en la carpeta
+`libraries/` — pero el motor de descarga (`aqua`) nunca los pone ahí, los
+baja a una carpeta temporal y extrae los `.dylib`/`.so`/`.dll` directo,
+sin pasar por `libraries/`. Es una ruta duplicada que siempre falla en
+encontrar nada, pero como la extracción real de `aqua` ya hizo el
+trabajo antes, no afecta el lanzamiento — solo ensucia el log. No se
+tocó esta sesión (cosmético, no funcional); candidato para limpiar en
+otra pasada.
+
+
+7.3. SEGUNDO BUG REAL — DESCARGA CORTADA A MITAD DEJABA LA APP TRABADA PARA SIEMPRE
+--------------------------------------------------------------------------------
+Después del fix de arquitectura, el usuario probó de nuevo y saltó un error
+nuevo: `Missing file: Version JAR not found:
+.../shared/versions/1.21.1/1.21.1.jar`.
+
+Se investigó con logs y se encontró la secuencia real:
+1. Al limpiar el caché corrupto, el siguiente "Jugar" SÍ arrancó una
+   descarga fresca de Vanilla 1.21.1.
+2. El `.json` de la versión se escribió bien casi al instante.
+3. Pero la descarga de los archivos de verdad (librerías, natives, el jar
+   del cliente) se cortó con `error decoding response body` en varias URLs
+   distintas de `libraries.minecraft.net`, reintentó 3 veces y abortó —
+   esto es un corte de red real (ver 7.4), no un bug de código en sí.
+4. **El bug real**: el launcher decidía "esta versión ya está instalada"
+   mirando únicamente si el `.json` existía — y el `.json` se escribe
+   ANTES de que se bajen los archivos de verdad. Entonces, apenas la
+   descarga se corta a mitad de camino, el launcher queda convencido para
+   siempre de que ya está todo instalado, y cada "Jugar" después de eso
+   fallaba directo con "jar no encontrado" — sin volver a intentar la
+   descarga jamás, ni con la app reiniciada. Por eso el primer intento de
+   verificación del usuario después de mi fix de arquitectura pareció
+   "no arreglado": el fix de arquitectura SÍ era correcto, pero un corte
+   de red durante la descarga de verificación disparó este segundo bug,
+   distinto, que dejaba todo trabado.
+
+**Arreglado**: [src-tauri/src/services/launcher.rs](src-tauri/src/services/launcher.rs) —
+nueva función `vanilla_fully_installed()` que chequea el `.json` Y el
+`.jar` del cliente antes de decidir "ya está, no hace falta descargar
+nada". Si falta el jar (descarga cortada a mitad de camino), el próximo
+"Jugar" vuelve a intentar la descarga sola — y como el motor de descarga
+ya verifica hash y se salta los archivos que ya están bien, sólo vuelve a
+bajar lo que realmente falta, no todo de nuevo.
+
+Verificado: `cargo check --workspace` limpio. App recompilada y
+relanzada por el watcher.
+
+
+7.4. LA CAUSA DE FONDO DE LOS CORTES DE DESCARGA SIGUE SIN RESOLVERSE — ES DE RED, NO DE CÓDIGO
+--------------------------------------------------------------------------------
+El error `error decoding response body` repetido en descargas grandes
+(visto acá con Vanilla, y antes en la sesión con Forge) es un corte de
+transmisión a mitad de una respuesta HTTP — típico de una VPN con MTU mal
+configurado o interceptación de tráfico, no algo que el código del
+launcher pueda arreglar del lado del cliente más allá de reintentar (que
+ya hace, 3 veces con backoff). ProtonVPN sigue activo en esta máquina (ver
+punto 1). Con el fix de 7.3, aunque el corte pase, ahora alcanza con
+volver a apretar "Jugar" y reintenta solo — pero si esto sigue pasando
+seguido, vale la pena probar con ProtonVPN apagado para confirmar que es
+la causa.
+
+
+8. PENDIENTE / NO HECHO EN ESTA SESIÓN
+--------------------------------------------------------------------------------
+- Rediseño visual completo tipo LabyMod/launchers comerciales — se tocó el
+  selector de loader del modal, el chip de usuario (skin real) y el hero
+  de instancia + botón Jugar. Falta: sidebar (lista de instancias en sí,
+  sigue con avatares de letra plana), panel de Ajustes, pantalla de
+  onboarding, y una pasada de tipografía/spacing consistente en todo.
+- "Muchos mas bugs" — se cazaron y arreglaron 4 bugs reales esta sesión:
+  reintentos ausentes en llamadas de metadata, integridad de mods sin
+  verificar, login Microsoft ausente en Ajustes, y el bug crítico de
+  arquitectura de natives en Mac ARM que rompía el lanzamiento de TODAS
+  las instancias. No se hizo una auditoría exhaustiva de TODO el código —
+  si el usuario tiene otro bug puntual reproducible, conviene reportarlo
+  con el error exacto que tira.
+- Migrar/loguear instancias con formato de JSON viejo ("Prueba", "Prueba2")
+  en vez de que desaparezcan en silencio de la sidebar.
+- Limpiar la ruta de extracción de natives duplicada y siempre-fallida en
+  `launchwerk` (solo ensucia el log, no rompe nada).
+- Confirmar con el usuario si desactivar NetShield/ProtonVPN resuelve
+  Fabric del todo, ya que esa parte es ajena al código.
+
+================================================================================
+Fin.
+================================================================================

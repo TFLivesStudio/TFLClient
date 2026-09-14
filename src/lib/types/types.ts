@@ -79,6 +79,20 @@ export interface ModSearchHit {
 	author: string;
 }
 
+export interface InstalledModpack {
+	project_id: string;
+	version_id: string;
+	title: string;
+	file_count: number;
+}
+
+export interface TflSelectionEntry {
+	project_id: string;
+	title: string;
+	description: string;
+	icon_url: string | null;
+}
+
 export interface DownloadProgressEvent {
 	type: 'DownloadProgress';
 	data: {

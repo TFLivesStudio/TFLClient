@@ -1,0 +1,137 @@
+TFL CLIENT — CHANGELOG: TFL Selection + shaders/modpacks por instancia
+================================================================================
+
+crates/cubrinth/src/mrpack/pack_format.rs
+  - MrpackMetadata: nuevo campo `installed_paths: Vec<String>` (rutas
+    relativas a instance_dir de cada archivo escrito). Vacío en
+    parse_mrpack, poblado en install_mrpack.
+
+crates/cubrinth/src/mrpack/installer.rs
+  - install_mrpack(): ahora colecciona las rutas de los archivos
+    declarados (mods) + las de los overrides extraídos, y las guarda en
+    metadata.installed_paths.
+  - extract_overrides(): firma cambiada de `Result<(), MrpackError>` a
+    `Result<Vec<String>, MrpackError>` — devuelve la lista de rutas
+    relativas que escribió.
+
+src-tauri/src/commands/mods.rs (generalizado, antes solo mods)
+  + enum ContentKind { Mod, Shader } — project_type de Modrinth, subdir
+    de destino (mods/ vs shaderpacks/), y si filtra por loader (shaders
+    no).
+  - search_content(), best_version(), download_content_file(),
+    install_recursive(): generalizadas con parámetro `ContentKind`.
+    ModrinthVersion/ModrinthFile/ModrinthFileHashes/ModrinthDependency,
+    best_version() y version_by_id() pasan a pub(crate) (los usa
+    modpacks.rs).
+  + search_shaders(query, mc_version) -> Vec<ModSearchHit>
+  + install_shader(instance_name, project_id, mc_version)
+  + get_instance_shaders(instance_name) -> Vec<String>
+  + remove_shader(instance_name, filename)
+  - search_mods/install_mod/get_instance_mods/remove_mod: firma sin
+    cambios, ahora wrappers de las funciones genéricas.
+
+src-tauri/src/commands/modpacks.rs (nuevo)
+  + search_modpacks(query, mc_version, loader) -> Vec<ModSearchHit>
+    (facets project_type:modpack + categories:<loader> + versions).
+  + struct InstalledModpack { project_id, version_id, title, file_count }
+  + install_modpack(instance_name, project_id, mc_version, loader):
+    resuelve la mejor versión del modpack, baja el .mrpack a
+    shared_dir/temp/, llama cubrinth::mrpack::install_mrpack(), guarda un
+    manifest en instance_dir/.tfl_modpacks/<version_id>.json con
+    installed_paths para poder desinstalar después.
+  + get_instance_modpacks(instance_name) -> Vec<InstalledModpack> (lee
+    .tfl_modpacks/*.json).
+  + remove_modpack(instance_name, version_id): lee el manifest, borra
+    cada archivo listado (path-traversal guardado con
+    cubrinth::utils::path::safe_join) + el manifest.
+
+src-tauri/src/commands/tfl_selection.rs (nuevo)
+  + struct TflSelectionEntry { project_id, title, description, icon_url }
+  + get_tfl_selection() -> Vec<TflSelectionEntry> — lista hardcodeada.
+    Placeholder real (1 entrada: "Fabulously Optimized", modpack público
+    de Modrinth) hasta que TFLives entregue su lista curada — marcado con
+    TODO(TFL) en el código.
+
+src-tauri/src/commands/mod.rs
+  + pub mod modpacks; pub mod tfl_selection;
+
+src-tauri/src/lib.rs
+  + Registrados en invoke_handler: search_shaders, install_shader,
+    get_instance_shaders, remove_shader, search_modpacks,
+    install_modpack, get_instance_modpacks, remove_modpack,
+    get_tfl_selection.
+
+src/lib/types/types.ts
+  + interface InstalledModpack { project_id, version_id, title, file_count }
+  + interface TflSelectionEntry { project_id, title, description, icon_url }
+
+src/lib/api/tflApi.ts
+  + searchShaders, installShader, getInstanceShaders, removeShader
+  + searchModpacks, installModpack, getInstanceModpacks, removeModpack
+  + getTflSelection
+
+src/lib/components/library/ModsPanel.svelte
+  - Búsqueda: de formulario con botón "Buscar" a búsqueda en vivo —
+    $effect con debounce de 300ms sobre `query`, cancela búsquedas
+    obsoletas con un token incremental para que una respuesta lenta no
+    pise el resultado de una búsqueda más nueva.
+  - Ícono de búsqueda ahora vive DENTRO del input (izquierda), sin botón
+    separado.
+
+src/lib/components/library/ShadersPanel.svelte (nuevo)
+  - Mismo patrón que ModsPanel (búsqueda en vivo, instalar, listar,
+    quitar) pero sin filtro de loader y apuntando a
+    searchShaders/installShader/getInstanceShaders/removeShader. Incluye
+    hint explicando que además del shader hace falta un mod tipo
+    Iris/OptiFine para que Minecraft lo use.
+
+src/lib/components/library/ModpacksPanel.svelte (nuevo)
+  - Mismo patrón, pero "instalados" es una lista de InstalledModpack
+    (título + cantidad de archivos) en vez de nombres de archivo sueltos,
+    y "quitar" borra por version_id (dispara remove_modpack, que borra
+    todos los archivos que trajo ese modpack).
+
+src/lib/components/library/InstanceDetail.svelte
+  - tab: tipo ampliado de 'details' | 'mods' a también incluir 'shaders'
+    | 'modpacks'.
+  - Agregados botones de tab "Shaders" y "Modpacks" + renderizado
+    condicional de ShadersPanel/ModpacksPanel.
+  - Imports: agregados ShadersPanel, ModpacksPanel.
+
+src/lib/components/library/TflSelection.svelte (nuevo)
+  - Modal: lista las entradas de get_tfl_selection(), cada una con
+    selector de instancia compatible (filtra instancias Vanilla, que no
+    soportan mods) + botón instalar, que llama installModpack() con la
+    instancia elegida. Muestra error inline si el modpack no tiene
+    versión compatible con esa instancia.
+
+src/lib/components/layout/Sidebar/Sidebar.svelte
+  + Prop `onOpenTflSelection: () => void`.
+  + Botón "TFL Selection" (ícono Sparkles) arriba de la lista de
+    instancias, con estilo de acento destacado (color-mix sobre
+    --accent).
+
+src/routes/+page.svelte
+  + State `showTflSelection`, import y render condicional de
+    TflSelection, prop onOpenTflSelection pasada a Sidebar.
+
+Verificación aplicada
+  - cargo check --workspace: limpio (mismo warning preexistente de
+    AppError sin relación).
+  - bun run check (svelte-check): 0 errores, mismo warning preexistente
+    de InstanceDetail.svelte (nameDraft) sin relación.
+  - `bun run tauri dev` relanzado desde cero para probar en vivo (ver
+    mensaje de seguimiento con el resultado real).
+
+Limitaciones documentadas, no resueltas en esta pasada
+  - TFL Selection: lista hardcodeada de 1 entrada real (no hay backend/
+    API propia de TFLives que la sirva — spec §26, insumo pendiente del
+    cliente). Reemplazar `get_tfl_selection()` cuando TFLives entregue su
+    lista curada.
+  - Shaders: Modrinth no vincula shaders a un mod loader — la app no
+    verifica ni instala automáticamente Iris/OptiFine, se documenta como
+    requisito manual en la UI.
+  - Progreso de descarga de modpacks: install_modpack no reporta progreso
+    granular al event bus todavía (pasa `None` como progress channel) —
+    la barra de descargas no muestra el avance de un modpack grande.
+================================================================================

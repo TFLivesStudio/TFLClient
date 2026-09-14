@@ -48,6 +48,15 @@ pub fn run() {
             commands::mods::install_mod,
             commands::mods::get_instance_mods,
             commands::mods::remove_mod,
+            commands::mods::search_shaders,
+            commands::mods::install_shader,
+            commands::mods::get_instance_shaders,
+            commands::mods::remove_shader,
+            commands::modpacks::search_modpacks,
+            commands::modpacks::install_modpack,
+            commands::modpacks::get_instance_modpacks,
+            commands::modpacks::remove_modpack,
+            commands::tfl_selection::get_tfl_selection,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -24,7 +24,10 @@
 		Gamepad2,
 		Loader2,
 		SlidersHorizontal,
-		Users
+		Users,
+		Palette,
+		PanelLeft,
+		WandSparkles
 	} from 'lucide-svelte';
 
 	let { onClose }: { onClose: () => void } = $props();
@@ -33,16 +36,32 @@
 	const ACCENTS = [
 		{ id: 'orange', label: 'Naranja', color: '#ff7a2e' },
 		{ id: 'violet', label: 'Violeta', color: '#8b5cf6' },
-		{ id: 'teal', label: 'Verde azulado', color: '#14b8a6' }
+		{ id: 'teal', label: 'Verde azulado', color: '#14b8a6' },
+		{ id: 'blue', label: 'Azul eléctrico', color: '#3b82f6' },
+		{ id: 'rose', label: 'Rosa plasma', color: '#f43f5e' },
+		{ id: 'lime', label: 'Lima', color: '#84cc16' }
+	];
+	const SURFACES = [
+		{ id: 'obsidian', label: 'Obsidiana' },
+		{ id: 'midnight', label: 'Medianoche' },
+		{ id: 'slate', label: 'Pizarra' }
+	];
+	const AMBIENCES = [
+		{ id: 'aurora', label: 'Aurora' },
+		{ id: 'cosmic', label: 'Cósmico' },
+		{ id: 'minimal', label: 'Minimal' }
 	];
 
-	let tab = $state<'general' | 'accounts' | 'java'>('general');
+	let tab = $state<'general' | 'appearance' | 'accounts' | 'java'>('general');
 
 	let accent = $state(
 		typeof localStorage !== 'undefined'
 			? (localStorage.getItem('tfl-accent') ?? 'orange')
 			: 'orange'
 	);
+	let surface = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-surface') ?? 'obsidian') : 'obsidian');
+	let ambience = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-ambience') ?? 'aurora') : 'aurora');
+	let density = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-density') ?? 'comfortable') : 'comfortable');
 
 	let ramTotal = $state<number | null>(null);
 	let minRam = $state(appState.settings?.min_memory ?? 1024);
@@ -76,6 +95,25 @@
 		} else {
 			document.documentElement.setAttribute('data-accent', id);
 		}
+	}
+
+	function applyPreference(key: string, attribute: string, value: string, defaultValue: string) {
+		localStorage.setItem(key, value);
+		if (value === defaultValue) document.documentElement.removeAttribute(attribute);
+		else document.documentElement.setAttribute(attribute, value);
+	}
+
+	function applySurface(id: string) {
+		surface = id;
+		applyPreference('tfl-surface', 'data-surface', id, 'obsidian');
+	}
+	function applyAmbience(id: string) {
+		ambience = id;
+		applyPreference('tfl-ambience', 'data-ambience', id, 'aurora');
+	}
+	function applyDensity(id: string) {
+		density = id;
+		applyPreference('tfl-density', 'data-density', id, 'comfortable');
 	}
 
 	async function setTheme(theme: 'dark' | 'light') {
@@ -166,7 +204,7 @@
 		javaStatuses = await getJavaStatus();
 	}
 
-	function selectTab(t: 'general' | 'accounts' | 'java') {
+	function selectTab(t: 'general' | 'appearance' | 'accounts' | 'java') {
 		tab = t;
 		if (t === 'accounts') loadAccounts();
 		if (t === 'java') loadJava();
@@ -196,6 +234,14 @@
 		</div>
 
 		<div class="panel-tabs">
+			<button
+				type="button"
+				class="ptab"
+				class:active={tab === 'appearance'}
+				onclick={() => selectTab('appearance')}
+			>
+				<Palette size={14} /> Estilo
+			</button>
 			<button
 				type="button"
 				class="ptab"
@@ -243,22 +289,6 @@
 				</section>
 
 				<section>
-					<span class="section-label">Color de acento</span>
-					<div class="row">
-						{#each ACCENTS as a (a.id)}
-							<button
-								type="button"
-								class="swatch"
-								class:active={accent === a.id}
-								style="background: {a.color}; color: {a.color}"
-								onclick={() => applyAccent(a.id)}
-								aria-label={a.label}
-							></button>
-						{/each}
-					</div>
-				</section>
-
-				<section>
 					<span class="section-label">Perfil de calidad</span>
 					<div class="row">
 						{#each QUALITY as q (q)}
@@ -292,6 +322,27 @@
 					<button type="button" class="save-btn" disabled={savingRam} onclick={saveRam}>
 						<Check size={13} /> Guardar
 					</button>
+				</section>
+			{:else if tab === 'appearance'}
+				<section>
+					<span class="section-label">Color de acento</span>
+					<div class="swatches">
+						{#each ACCENTS as a (a.id)}
+							<button type="button" class="swatch" class:active={accent === a.id} style="background: {a.color}; color: {a.color}" onclick={() => applyAccent(a.id)} aria-label={a.label}></button>
+						{/each}
+					</div>
+				</section>
+				<section>
+					<span class="section-label"><PanelLeft size={13} /> Superficie</span>
+					<div class="row">{#each SURFACES as item (item.id)}<button type="button" class="choice" class:active={surface === item.id} onclick={() => applySurface(item.id)}>{item.label}</button>{/each}</div>
+				</section>
+				<section>
+					<span class="section-label"><WandSparkles size={13} /> Fondo</span>
+					<div class="row">{#each AMBIENCES as item (item.id)}<button type="button" class="choice" class:active={ambience === item.id} onclick={() => applyAmbience(item.id)}>{item.label}</button>{/each}</div>
+				</section>
+				<section>
+					<span class="section-label">Densidad de interfaz</span>
+					<div class="row"><button type="button" class="choice" class:active={density === 'comfortable'} onclick={() => applyDensity('comfortable')}>Cómoda</button><button type="button" class="choice" class:active={density === 'compact'} onclick={() => applyDensity('compact')}>Compacta</button></div>
 				</section>
 			{:else if tab === 'accounts'}
 				<section>
@@ -487,6 +538,12 @@
 		margin-bottom: 8px;
 	}
 
+	.section-label :global(svg) {
+		vertical-align: -2px;
+		margin-right: 4px;
+		color: var(--accent);
+	}
+
 	.ram-total {
 		text-transform: none;
 		font-weight: 400;
@@ -497,6 +554,12 @@
 	.row {
 		display: flex;
 		gap: 8px;
+	}
+
+	.swatches {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
 	}
 
 	.choice {

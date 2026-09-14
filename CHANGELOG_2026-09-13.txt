@@ -1,0 +1,148 @@
+TFL CLIENT — CHANGELOG 2026-09-13
+================================================================================
+
+crates/aqua/src/utilities/mod.rs
+  + fetch_text_retrying(url) -> Result<String, AquaError>
+  + fetch_json_retrying<T>(url) -> Result<T, AquaError>
+    GET con 3 reintentos, backoff exponencial (200ms * 2^n).
+
+crates/aqua/src/downloaders/fabric.rs
+  - resolve_latest_loader(): reemplazado HTTP_CLIENT.get(...).send()/.json()
+    sin reintento por fetch_json_retrying().
+  - new(): reemplazado fetch de perfil sin reintento por fetch_text_retrying().
+
+crates/aqua/src/downloaders/quilt.rs
+  - resolve_latest_loader() y new(): mismo cambio que fabric.rs.
+
+crates/zellkern/src/manifest.rs
+  - Library::is_correct_arch(): agregado caso has_generic_platform
+    (classifier "natives-macos"/"natives-linux"/"natives-windows" sin
+    sufijo de arquitectura). Antes caía en `true` incondicional para ese
+    caso (se incluía siempre sin importar arquitectura del host). Ahora
+    retorna `ARCH != "aarch64" && ARCH != "arm"`.
+    Efecto: en hosts arm64 (Apple Silicon, Linux ARM, Windows ARM), ya no
+    se descargan/extraen simultáneamente la build x86_64 genérica y la
+    build arm64 de cada librería nativa de LWJGL (antes ambas jars
+    escribían un archivo interno con el mismo nombre en natives_dir,
+    pisándose entre sí de forma no determinística).
+  - Tests existentes (25) verificados sin regresión: cargo test -p zellkern.
+
+src-tauri/src/core/http_client.rs
+  + get_text_retrying(url) -> Result<String, String>
+  + get_json_retrying<T>(url) -> Result<T, String>
+  + get_bytes_retrying(url) -> Result<Vec<u8>, String>
+    Mismo patrón de reintento que aqua::utilities, para el cliente HTTP
+    del lado src-tauri (const MAX_RETRY_ATTEMPTS: u32 = 3).
+
+src-tauri/src/core/mod.rs
+  - Export actualizado: pub use http_client::{HTTP, get_bytes_retrying,
+    get_json_retrying, get_text_retrying}.
+
+src-tauri/src/commands/loaders.rs
+  - get_forge_version(): HTTP.get(...).send()/.json() reemplazado por
+    get_json_retrying().
+  - get_neoforge_version(): HTTP.get(...).send()/.text() reemplazado por
+    get_text_retrying().
+
+src-tauri/src/commands/versions.rs
+  - get_available_versions(): fetch del manifest de Mojang reemplazado
+    por get_json_retrying().
+
+src-tauri/src/commands/mods.rs
+  - search_mods(): reemplazado por get_json_retrying().
+  - best_version(): reemplazado por get_json_retrying().
+  - version_by_id(): reemplazado por get_json_retrying().
+  - ModrinthFile: agregado campo `hashes: Option<ModrinthFileHashes>`.
+  + struct ModrinthFileHashes { sha1: Option<String> }
+  - download_mod_file(): reemplazado fetch de bytes sin reintento
+    (HTTP.get().send()/.bytes()) por loop de hasta 3 intentos usando
+    get_bytes_retrying(), con verificación SHA1 contra
+    file.hashes.sha1 (cálculo vía sha1::Sha1::digest + formateo hex
+    manual). Si el hash no coincide, reintenta la descarga completa;
+    si los 3 intentos fallan, retorna error con detalle.
+
+src-tauri/src/services/launcher.rs
+  - version_json_exists(shared_dir, version_id): sin cambios de firma,
+    sigue existiendo (usada para el chequeo de loader).
+  + vanilla_fully_installed(shared_dir, version_id) -> bool
+    Chequea .json Y .jar del cliente (antes solo se chequeaba el .json).
+  - ensure_downloaded(): la condición de "¿hace falta descargar la base
+    Vanilla?" pasó de `!version_json_exists(...)` a
+    `!vanilla_fully_installed(...)`.
+
+src/lib/components/library/CreateInstanceModal.svelte
+  - LOADERS: agregado campo `color` por entrada (var(--loader-vanilla),
+    --loader-fabric, --loader-forge, --loader-neoforge, --loader-quilt).
+  - Botones de loader: agregado `<span class="loader-dot">` con
+    background: var(--loader-color); estilo `--loader-color` seteado
+    inline por botón.
+  - CSS: .loader-btn ahora flex-column con gap; nueva regla .loader-dot
+    (8x8px, border-radius 50%, opacity 0.55 → 1 en .active); .loader-btn
+    hover usa border-color: var(--loader-color); .loader-btn.active usa
+    background: color-mix(in srgb, var(--loader-color) 16%, var(--bg-input))
+    y border-color: var(--loader-color) en vez del --accent genérico.
+
+src/lib/components/layout/Sidebar/Sidebar.svelte
+  - Import agregado: UserIcon ahora usado como fallback, no como ícono
+    principal.
+  - user-chip: reemplazado <UserIcon> suelto por <span class="user-head">
+    conteniendo <UserIcon class="user-head-fallback"> (absolute, detrás)
+    + <img src="https://crafatar.com/avatars/{user.uuid}?size=32&overlay">
+    con onerror={(e) => (e.currentTarget as HTMLImageElement).style.display
+    = 'none'}.
+  - CSS: nueva regla .user-head (32x32, border-radius-sm, overflow hidden),
+    .user-head :global(.user-head-fallback) { position: absolute },
+    .user-head img { image-rendering: pixelated }.
+
+src/lib/components/library/InstanceDetail.svelte
+  - .hero: agregado position: relative, padding: 22px 24px, border:
+    1px solid var(--border), border-radius: var(--border-radius-lg),
+    background con radial-gradient(ellipse 500px 220px at 0% 0%,
+    color-mix(var(--loader-color) 14%, transparent), transparent 70%)
+    + var(--bg-card), overflow: hidden. Antes era flex sin fondo/borde.
+  - .hero-icon: tamaño 64px → 72px, font-size 1.6rem → 1.8rem, opacidad
+    de fondo 16% → 20%, borde 35% → 45%, agregado box-shadow con anillo
+    color-mix(var(--loader-color) 8%, transparent).
+  - .play-btn: background sólido var(--accent) → linear-gradient(155deg,
+    var(--accent-hover), var(--accent)); padding 12px 28px → 15px 32px;
+    border-radius var(--border-radius-sm) → var(--border-radius);
+    box-shadow agregado glow color-mix(var(--accent) 35%, transparent);
+    transition agregado box-shadow.
+  - .play-btn:hover:not(:disabled): translateY(-1px) → translateY(-2px),
+    box-shadow var(--shadow-lg) + glow 45%.
+
+src/lib/components/settings/SettingsPanel.svelte
+  - Imports agregados: getDeviceCode, authenticateWithDeviceCode desde
+    $lib/api/tflApi; Gamepad2, Loader2 desde lucide-svelte.
+  - State agregado: msCode, msVerificationUri (string | null), msBusy
+    (boolean), msError (string | null).
+  + handleAddMicrosoft(): llama getDeviceCode(), setea msCode/
+    msVerificationUri, llama authenticateWithDeviceCode(device_code,
+    interval, expires_in), setea appState.currentUser, refresca
+    loadAccounts() al terminar.
+  - Tab "accounts": agregada sección "Agregar cuenta Microsoft" arriba
+    de "Agregar cuenta offline" — botón "Iniciar con Microsoft" que
+    dispara handleAddMicrosoft(), o bloque .ms-pending con link
+    msVerificationUri + código msCode mientras espera confirmación.
+  - CSS: nuevas reglas .error, .ms-btn, .ms-pending, .ms-code,
+    :global(.spin) + @keyframes tfl-spin (el panel no tenía spinner
+    animation propia hasta ahora).
+
+Operaciones de filesystem (no versionadas en git, estado local del usuario)
+  - Eliminado ~/.tflclient/shared/natives/1.21.1 (natives con arquitectura
+    mezclada x86_64/arm64).
+  - Eliminado ~/.tflclient/shared/natives/temp.
+  - Eliminado ~/.tflclient/shared/versions/1.21.1 (version.json de una
+    descarga incompleta, sin el .jar correspondiente).
+
+Verificación aplicada
+  - cargo check --workspace: limpio (2 warnings preexistentes sin relación:
+    campo `id` sin leer en ModrinthVersion, variantes AppError sin
+    construir).
+  - cargo test -p zellkern: 25/25 tests pasan.
+  - bun run check (svelte-check): 0 errores (1 warning preexistente sin
+    relación: nameDraft en InstanceDetail.svelte captura valor inicial).
+  - Recompilación y relanzamiento automático confirmados vía log del
+    proceso `bun run tauri dev` en corrida.
+
+================================================================================
