@@ -114,7 +114,7 @@
 			<div class="results">
 				<span class="section-label">Resultados</span>
 				{#each results as mod (mod.project_id)}
-					<div class="mod-card">
+					<div class="mod-card anim-fade-in">
 						{#if mod.icon_url}
 							<img src={mod.icon_url} alt={mod.title} />
 						{:else}

@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 	import { appState } from '$lib/state/state.svelte';
+	import Mascot from '$lib/components/ui/Mascot.svelte';
+	import { MASCOTS, getMascotFor, setMascotFor, type MascotId } from '$lib/mascots';
 	import {
 		updateSettings,
 		setQualityProfile,
@@ -54,6 +56,33 @@
 		{ id: 'cosmic', label: 'Cósmico' },
 		{ id: 'minimal', label: 'Minimal' }
 	];
+	const WALLPAPERS = [
+		{ id: 'none', label: 'Ninguno', preview: 'transparent' },
+		{ id: 'void-night', label: 'Noche vacía', preview: 'linear-gradient(135deg, #02040a, #050d1a, #030810)' },
+		{ id: 'nether', label: 'Nether', preview: 'linear-gradient(135deg, #140202, #250808, #0e0101)' },
+		{ id: 'end', label: 'El End', preview: 'linear-gradient(135deg, #070212, #0e0520, #040110)' },
+		{ id: 'deep-ocean', label: 'Océano', preview: 'linear-gradient(135deg, #010f1a, #021a2e, #010c14)' },
+		{
+			id: 'aurora-gradient',
+			label: 'Aurora',
+			preview: 'linear-gradient(135deg, #040d10, #041410 40%, #0a0420 80%, #04100d)'
+		},
+		{ id: 'obsidian-solid', label: 'Obsidiana', preview: '#08090c' },
+		{ id: 'charcoal', label: 'Carbón', preview: '#0f1115' },
+		{ id: 'savanna', label: 'Sabana', preview: 'url(/wallpapers/mc-wallpaper-1.jpg)' },
+		{ id: 'golden-sunset', label: 'Atardecer dorado', preview: 'url(/wallpapers/mc-wallpaper-2.jpg)' },
+		{ id: 'lake-night', label: 'Noche en el lago', preview: 'url(/wallpapers/mc-wallpaper-3.jpg)' },
+		{ id: 'neon-arcade', label: 'Arcade nocturno', preview: 'url(/wallpapers/mc-wallpaper-4.jpg)' },
+		{ id: 'red-canyon', label: 'Cañón rojo', preview: 'url(/wallpapers/mc-wallpaper-5.jpg)' },
+		{ id: 'enchanted-valley', label: 'Valle encantado', preview: 'url(/wallpapers/mc-wallpaper-6.jpg)' },
+		{ id: 'snowy-peak', label: 'Cumbre nevada', preview: 'url(/wallpapers/mc-wallpaper-7.jpg)' },
+		{ id: 'stone-bridge', label: 'Puente de piedra', preview: 'url(/wallpapers/mc-wallpaper-8.jpg)' },
+		{ id: 'misty-fortress', label: 'Fortaleza en la niebla', preview: 'url(/wallpapers/mc-wallpaper-9.jpg)' },
+		{ id: 'village-tower', label: 'Torre del pueblo', preview: 'url(/wallpapers/mc-wallpaper-10.jpg)' },
+		{ id: 'deep-cave', label: 'Cueva profunda', preview: 'url(/wallpapers/mc-wallpaper-11.jpg)' },
+		{ id: 'sunset-coast', label: 'Costa al atardecer', preview: 'url(/wallpapers/mc-wallpaper-12.jpg)' },
+		{ id: 'abstract-blocks', label: 'Cubos abstractos', preview: 'url(/wallpapers/mc-wallpaper-13.jpg)' }
+	];
 
 	let tab = $state<'general' | 'appearance' | 'accounts' | 'java'>('general');
 
@@ -65,6 +94,7 @@
 	let surface = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-surface') ?? 'obsidian') : 'obsidian');
 	let ambience = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-ambience') ?? 'aurora') : 'aurora');
 	let density = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-density') ?? 'comfortable') : 'comfortable');
+	let wallpaper = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-wallpaper') ?? 'none') : 'none');
 
 	let ramTotal = $state<number | null>(null);
 	let minRam = $state(appState.settings?.min_memory ?? 1024);
@@ -79,6 +109,7 @@
 	let msBusy = $state(false);
 	let msError = $state<string | null>(null);
 	let codeCopied = $state(false);
+	let mascotTick = $state(0);
 
 	let javaStatuses = $state<JavaStatus[]>([]);
 
@@ -115,6 +146,10 @@
 		ambience = id;
 		applyPreference('tfl-ambience', 'data-ambience', id, 'aurora');
 	}
+	function applyWallpaper(id: string) {
+		wallpaper = id;
+		applyPreference('tfl-wallpaper', 'data-wallpaper', id, 'none');
+	}
 	function applyDensity(id: string) {
 		density = id;
 		applyPreference('tfl-density', 'data-density', id, 'comfortable');
@@ -137,6 +172,11 @@
 		document.documentElement.setAttribute('data-quality', profile.toLowerCase());
 		document.documentElement.toggleAttribute('data-reduce-motion', profile === 'Lite');
 		document.documentElement.toggleAttribute('data-no-blur', updated.disable_blur_effects);
+	}
+
+	function changeMascot(uuid: string, id: MascotId) {
+		setMascotFor(uuid, id);
+		mascotTick++;
 	}
 
 	async function copyMicrosoftCode() {
@@ -358,8 +398,26 @@
 					<div class="row">{#each SURFACES as item (item.id)}<button type="button" class="choice" class:active={surface === item.id} onclick={() => applySurface(item.id)}>{item.label}</button>{/each}</div>
 				</section>
 				<section>
-					<span class="section-label"><WandSparkles size={13} /> Fondo</span>
+					<span class="section-label"><WandSparkles size={13} /> Efecto ambiental</span>
 					<div class="row">{#each AMBIENCES as item (item.id)}<button type="button" class="choice" class:active={ambience === item.id} onclick={() => applyAmbience(item.id)}>{item.label}</button>{/each}</div>
+				</section>
+				<section>
+					<span class="section-label"><WandSparkles size={13} /> Fondo de pantalla</span>
+					<div class="wallpaper-grid">
+						{#each WALLPAPERS as item (item.id)}
+							<button
+								type="button"
+								class="wallpaper-swatch"
+								class:active={wallpaper === item.id}
+								style="background: {item.preview}; background-size: cover; background-position: center;"
+								onclick={() => applyWallpaper(item.id)}
+								aria-label={item.label}
+								title={item.label}
+							>
+								{#if wallpaper === item.id}<Check size={12} />{/if}
+							</button>
+						{/each}
+					</div>
 				</section>
 				<section>
 					<span class="section-label">Densidad de interfaz</span>
@@ -371,6 +429,13 @@
 					<div class="accounts-list">
 						{#each users as u (u.uuid)}
 							<div class="account-row" class:active={appState.currentUser?.uuid === u.uuid}>
+								{#if u.user_type === 'Cracked'}
+									<span class="account-avatar">
+										{#key mascotTick}
+											<Mascot id={getMascotFor(u.uuid)} size={24} />
+										{/key}
+									</span>
+								{/if}
 								<div class="account-info">
 									<span class="account-name">{u.username}</span>
 									<span class="account-type">{u.user_type}</span>
@@ -397,6 +462,24 @@
 									<Trash2 size={13} />
 								</button>
 							</div>
+							{#if u.user_type === 'Cracked' && appState.currentUser?.uuid === u.uuid}
+								<div class="mascot-picker">
+									{#key mascotTick}
+										{#each MASCOTS as m (m.id)}
+											<button
+												type="button"
+												class="mascot-swatch"
+												class:active={getMascotFor(u.uuid) === m.id}
+												onclick={() => changeMascot(u.uuid, m.id)}
+												aria-label={m.label}
+												title={m.label}
+											>
+												<Mascot id={m.id} size={26} />
+											</button>
+										{/each}
+									{/key}
+								</div>
+							{/if}
 						{/each}
 					</div>
 				</section>
@@ -625,6 +708,39 @@
 		box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px currentColor;
 	}
 
+	.wallpaper-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 8px;
+	}
+
+	.wallpaper-swatch {
+		aspect-ratio: 16 / 10;
+		border-radius: var(--border-radius-sm);
+		border: 2px solid var(--border);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #ffffff;
+		opacity: 0.75;
+		transition:
+			opacity 0.15s,
+			border-color 0.15s,
+			transform 0.15s;
+	}
+
+	.wallpaper-swatch:hover {
+		opacity: 1;
+		transform: translateY(-1px);
+	}
+
+	.wallpaper-swatch.active {
+		opacity: 1;
+		border-color: var(--accent);
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+	}
+
 	.ram-row {
 		display: flex;
 		gap: 10px;
@@ -685,6 +801,41 @@
 	}
 
 	.account-row.active {
+		border-color: var(--accent);
+	}
+
+	.account-avatar {
+		flex-shrink: 0;
+		display: flex;
+		border-radius: var(--border-radius-sm);
+		overflow: hidden;
+	}
+
+	.mascot-picker {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		padding: 8px 10px 2px;
+	}
+
+	.mascot-swatch {
+		display: flex;
+		border-radius: var(--border-radius-sm);
+		border: 2px solid transparent;
+		cursor: pointer;
+		overflow: hidden;
+		opacity: 0.7;
+		transition:
+			opacity 0.15s,
+			border-color 0.15s;
+	}
+
+	.mascot-swatch:hover {
+		opacity: 1;
+	}
+
+	.mascot-swatch.active {
+		opacity: 1;
 		border-color: var(--accent);
 	}
 

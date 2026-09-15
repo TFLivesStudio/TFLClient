@@ -1,11 +1,43 @@
 use crate::services::instance_manager::{InstanceData, LoaderKind};
 use crate::services::{instance_manager, launcher};
 use aqua::{FabricBatch, QuiltBatch};
-use tauri::{AppHandle, command};
+use base64::Engine;
+use tauri::{AppHandle, Manager, command};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 
 const ICON_EXTENSIONS: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
+
+/// Carpeta empaquetada con `bundle.resources` en tauri.conf.json — íconos
+/// de instancia CC0 (Simplexity-Development/Entity-Icons +
+/// hube12/mc_icons) para elegir al azar al crear una instancia y después
+/// poder cambiar por otro del mismo set, sin depender de red.
+///
+/// `resource_dir()` resuelve a `${exe_dir}/../Resources` en macOS — válido
+/// dentro de un .app real, pero en `tauri dev` el binario corre suelto
+/// desde `target/debug/` sin ningún bundle alrededor, así que esa carpeta
+/// nunca existe ahí. Sin este fallback, el feature completo aparenta
+/// estar roto en cualquier sesión de desarrollo aunque funcione bien en
+/// un build real — se verificó justamente así (compilaba, pero
+/// `resource_dir()` apuntaba a una carpeta inexistente en dev).
+fn icon_presets_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    if let Ok(d) = app.path().resource_dir() {
+        let candidate = d.join("instance-icons");
+        if candidate.is_dir() {
+            return Ok(candidate);
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        let dev_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/instance-icons");
+        if dev_path.is_dir() {
+            return Ok(dev_path);
+        }
+    }
+
+    Err("No se encontró la carpeta de íconos empaquetados".into())
+}
 
 async fn resolve_loader(
     mc_version: &str,
@@ -43,6 +75,7 @@ async fn resolve_loader(
 
 #[command]
 pub async fn create_instance(
+    app: AppHandle,
     name: String,
     mc_version: String,
     loader: String,
@@ -50,8 +83,44 @@ pub async fn create_instance(
     let loader_kind =
         LoaderKind::parse(&loader).ok_or_else(|| format!("Loader desconocido: {loader}"))?;
     let (loader_version, launch_version_id) = resolve_loader(&mc_version, loader_kind).await?;
-    instance_manager::create_instance(name, mc_version, loader_kind, loader_version, launch_version_id)
-        .await
+    let data = instance_manager::create_instance(
+        name,
+        mc_version,
+        loader_kind,
+        loader_version,
+        launch_version_id,
+    )
+    .await?;
+
+    // Ícono al azar del set vendoreado — el usuario lo puede cambiar
+    // después por otro del mismo set o subir el suyo (ver
+    // set_instance_icon_from_preset / set_instance_icon). Si falla (SO
+    // sin el recurso bundleado, por ejemplo en un dev build roto), no
+    // bloquea la creación de la instancia — se queda con el avatar de
+    // letra por defecto.
+    if let Ok(dir) = icon_presets_dir(&app) {
+        if let Ok(mut entries) = tokio::fs::read_dir(&dir).await {
+            let mut files = Vec::new();
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                if entry.path().extension().and_then(|e| e.to_str()) == Some("png") {
+                    files.push(entry.path());
+                }
+            }
+            if !files.is_empty() {
+                let idx = (std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_nanos())
+                    .unwrap_or(0)
+                    % files.len() as u128) as usize;
+                let chosen = &files[idx];
+                let dest = data.dir().join("icon.png");
+                let _ = tokio::fs::create_dir_all(data.dir()).await;
+                let _ = tokio::fs::copy(chosen, &dest).await;
+            }
+        }
+    }
+
+    Ok(data)
 }
 
 #[command]
@@ -131,6 +200,74 @@ pub async fn set_instance_icon(name: String, source_path: String) -> Result<Stri
     }
 
     let dest = dir.join(format!("icon.{ext}"));
+    tokio::fs::copy(&source, &dest)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(dest.to_string_lossy().to_string())
+}
+
+#[derive(serde::Serialize)]
+pub struct IconPreset {
+    pub id: String,
+    pub data_url: String,
+}
+
+/// Devuelve TODO el set de íconos vendoreados de una — 67 archivos, ~1MB
+/// en base64, un único viaje de IPC en vez de uno por ícono. El picker
+/// del frontend los renderiza directo como <img src="data:...">, sin
+/// necesitar que el scope del asset-protocol cubra la carpeta de recursos
+/// empaquetados (que además varía de ubicación real según plataforma).
+#[command]
+pub async fn list_instance_icon_presets(app: AppHandle) -> Result<Vec<IconPreset>, String> {
+    let dir = icon_presets_dir(&app)?;
+    let mut entries = tokio::fs::read_dir(&dir)
+        .await
+        .map_err(|e| format!("No se encontraron los íconos empaquetados: {e}"))?;
+    let mut out = Vec::new();
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("png") {
+            continue;
+        }
+        let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
+            continue;
+        };
+        let Ok(bytes) = tokio::fs::read(&path).await else {
+            continue;
+        };
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+        out.push(IconPreset {
+            id: stem.to_string(),
+            data_url: format!("data:image/png;base64,{b64}"),
+        });
+    }
+    out.sort_by(|a, b| a.id.cmp(&b.id));
+    Ok(out)
+}
+
+#[command]
+pub async fn set_instance_icon_from_preset(
+    app: AppHandle,
+    name: String,
+    preset_id: String,
+) -> Result<String, String> {
+    if preset_id.contains('/') || preset_id.contains('\\') || preset_id.contains("..") {
+        return Err("Id de ícono inválido".into());
+    }
+    let source = icon_presets_dir(&app)?.join(format!("{preset_id}.png"));
+    if !source.exists() {
+        return Err("Ese ícono no existe en el set".into());
+    }
+
+    let instance = instance_manager::get_instance(&name).await?;
+    let dir = instance.dir();
+    tokio::fs::create_dir_all(&dir)
+        .await
+        .map_err(|e| e.to_string())?;
+    for old_ext in ICON_EXTENSIONS {
+        let _ = tokio::fs::remove_file(dir.join(format!("icon.{old_ext}"))).await;
+    }
+    let dest = dir.join("icon.png");
     tokio::fs::copy(&source, &dest)
         .await
         .map_err(|e| e.to_string())?;

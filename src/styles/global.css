@@ -294,9 +294,134 @@ html[data-no-blur] * {
 	-webkit-backdrop-filter: none !important;
 }
 
-/* Fondo ambient — capa fija de gradientes radiales con el acento activo,
-   para que la app no se sienta plana. Se desactiva/reduce con el perfil
-   Lite (--no-blur) para no pegarle al rendimiento en hardware modesto. */
+/* Fondo de pantalla elegible — capa de abajo de todo (gradiente/foto/color
+   sólido), por defecto vacía (--wallpaper-bg: none). El acento y el resto
+   del "vidrio teñido" siguen funcionando igual arriba de cualquier fondo
+   que se elija — están tinendo el vidrio, no el fondo en sí.
+
+   --wallpaper-scrim: una foto real (nubes claras, bosque oscuro) puede
+   tener cualquier luminosidad, y --text-primary/--bg-card están fijados
+   para el contraste del TEMA, no de la foto — sin esto, según la foto,
+   el texto queda casi invisible (letras negras sobre bosque negro, chips
+   claros sobre nubes blancas). Este scrim mezcla --bg-main sobre la foto
+   ANTES de que actúe el vidrio, empujando cualquier fondo hacia el tono
+   del tema activo — así el contraste calculado para --text-primary sigue
+   siendo válido sea cual sea el fondo elegido. Transparente cuando no hay
+   wallpaper (no cambia nada del comportamiento anterior). */
+:root {
+	--wallpaper-bg: none;
+	--wallpaper-scrim: transparent;
+}
+
+:root[data-wallpaper]:not([data-wallpaper='none']) {
+	--wallpaper-scrim: color-mix(in srgb, var(--bg-main) 65%, transparent);
+}
+
+:root[data-wallpaper='void-night'] {
+	--wallpaper-bg: linear-gradient(135deg, #02040a 0%, #050d1a 50%, #030810 100%);
+}
+:root[data-wallpaper='nether'] {
+	--wallpaper-bg: linear-gradient(135deg, #140202 0%, #250808 50%, #0e0101 100%);
+}
+:root[data-wallpaper='end'] {
+	--wallpaper-bg: linear-gradient(135deg, #070212 0%, #0e0520 50%, #040110 100%);
+}
+:root[data-wallpaper='deep-ocean'] {
+	--wallpaper-bg: linear-gradient(135deg, #010f1a 0%, #021a2e 50%, #010c14 100%);
+}
+:root[data-wallpaper='aurora-gradient'] {
+	--wallpaper-bg: linear-gradient(135deg, #040d10 0%, #041410 40%, #0a0420 80%, #04100d 100%);
+}
+:root[data-wallpaper='obsidian-solid'] {
+	--wallpaper-bg: #08090c;
+}
+:root[data-wallpaper='charcoal'] {
+	--wallpaper-bg: #0f1115;
+}
+/* Fotos reales de Minecraft (capturas in-game con shaders), locales en
+   static/wallpapers/ — reemplazan las fotos genéricas de Unsplash
+   hotlinkeadas de la pasada anterior: no dependen de red, cargan al
+   instante, y son del juego de verdad en vez de paisajes de stock. */
+:root[data-wallpaper='savanna'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-1.jpg');
+}
+:root[data-wallpaper='golden-sunset'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-2.jpg');
+}
+:root[data-wallpaper='lake-night'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-3.jpg');
+}
+:root[data-wallpaper='neon-arcade'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-4.jpg');
+}
+:root[data-wallpaper='red-canyon'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-5.jpg');
+}
+:root[data-wallpaper='enchanted-valley'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-6.jpg');
+}
+:root[data-wallpaper='snowy-peak'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-7.jpg');
+}
+:root[data-wallpaper='stone-bridge'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-8.jpg');
+}
+:root[data-wallpaper='misty-fortress'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-9.jpg');
+}
+:root[data-wallpaper='village-tower'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-10.jpg');
+}
+:root[data-wallpaper='deep-cave'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-11.jpg');
+}
+:root[data-wallpaper='sunset-coast'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-12.jpg');
+}
+:root[data-wallpaper='abstract-blocks'] {
+	--wallpaper-bg: url('/wallpapers/mc-wallpaper-13.jpg');
+}
+
+/* Fondo ambient — dos capas separadas, apiladas en el MISMO elemento:
+   el resplandor de acento (--ambient-glow-*, varía con data-ambience) y
+   el fondo de pantalla elegido (--wallpaper-bg + --wallpaper-scrim,
+   siempre presente sin importar el ambience). Antes estaban mezcladas en
+   un solo `background`, así que Cósmico (que REEMPLAZA todo el
+   `background`) y Minimal (que ponía opacity:0 al elemento ENTERO) se
+   llevaban puesto el wallpaper también — bug real reportado: solo Aurora
+   mostraba el fondo elegido. Separar los gradientes de acento en sus
+   propias variables, siempre concatenadas con wallpaper+scrim al final,
+   arregla los tres modos sin volver a pisar el fondo de pantalla. */
+:root {
+	--ambient-glow-1: radial-gradient(
+		ellipse 900px 600px at 15% -10%,
+		rgba(var(--accent-rgb), 0.16),
+		transparent 60%
+	);
+	--ambient-glow-2: radial-gradient(
+		ellipse 700px 500px at 100% 20%,
+		rgba(var(--accent-rgb), 0.08),
+		transparent 55%
+	);
+	--ambient-glow-3: radial-gradient(
+		ellipse 800px 700px at 50% 120%,
+		rgba(var(--accent-rgb), 0.06),
+		transparent 60%
+	);
+}
+
+:root[data-ambience='cosmic'] {
+	--ambient-glow-1: radial-gradient(ellipse 760px 560px at 78% -8%, rgba(var(--accent-rgb), .2), transparent 64%);
+	--ambient-glow-2: radial-gradient(ellipse 570px 470px at 4% 88%, rgba(84, 74, 190, .17), transparent 66%);
+	--ambient-glow-3: radial-gradient(ellipse 680px 420px at 52% 48%, rgba(var(--accent-rgb), .045), transparent 70%);
+}
+
+:root[data-ambience='minimal'] {
+	--ambient-glow-1: none;
+	--ambient-glow-2: none;
+	--ambient-glow-3: none;
+}
+
 .ambient-bg {
 	position: fixed;
 	inset: 0;
@@ -304,17 +429,13 @@ html[data-no-blur] * {
 	pointer-events: none;
 	overflow: hidden;
 	background:
-		radial-gradient(
-			ellipse 900px 600px at 15% -10%,
-			rgba(var(--accent-rgb), 0.16),
-			transparent 60%
-		),
-		radial-gradient(
-			ellipse 700px 500px at 100% 20%,
-			rgba(var(--accent-rgb), 0.08),
-			transparent 55%
-		),
-		radial-gradient(ellipse 800px 700px at 50% 120%, rgba(var(--accent-rgb), 0.06), transparent 60%);
+		var(--ambient-glow-1),
+		var(--ambient-glow-2),
+		var(--ambient-glow-3),
+		linear-gradient(var(--wallpaper-scrim), var(--wallpaper-scrim)),
+		var(--wallpaper-bg);
+	background-size: cover;
+	background-position: center;
 	transition: background 0.28s ease;
 }
 
@@ -322,17 +443,29 @@ html[data-no-blur] .ambient-bg {
 	opacity: 0.5;
 }
 
-:root[data-ambience='cosmic'] .ambient-bg {
-	background:
-		radial-gradient(ellipse 760px 560px at 78% -8%, rgba(var(--accent-rgb), .2), transparent 64%),
-		radial-gradient(ellipse 570px 470px at 4% 88%, rgba(84, 74, 190, .17), transparent 66%),
-		radial-gradient(ellipse 680px 420px at 52% 48%, rgba(var(--accent-rgb), .045), transparent 70%);
-}
-
-:root[data-ambience='minimal'] .ambient-bg { opacity: 0; }
-
 :root[data-density='compact'] {
 	--sidebar-width: 244px;
 	--border-radius: 8px;
 	--border-radius-lg: 12px;
+}
+
+/* Animaciones de entrada — para listas que aparecen de golpe (resultados
+   de búsqueda de mods/shaders/modpacks, entradas de TFL Selection) en vez
+   de simplemente "poppear" sin transición. Se aplican a mano en el
+   `{#each}` de cada lista (`class="anim-fade-in"` en el item). Se anulan
+   solas con el guard de perfil Lite (html[data-reduce-motion] ya pisa
+   animation-duration a ~0 más arriba). */
+@keyframes tfl-fade-in {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.anim-fade-in {
+	animation: tfl-fade-in 0.22s ease both;
 }

@@ -1,0 +1,195 @@
+TFL CLIENT — CHANGELOG: logo, fondos de pantalla, íconos de instancia, mascotas cracked
+================================================================================
+Fusiona el changelog anterior (logo nuevo + fondos de pantalla + scrim de
+contraste) con esta tanda: fix del bug de Cósmico/Minimal, fondos locales
+reales de Minecraft, íconos de instancia elegidos de un set CC0, y
+avatares mascota para cuentas offline/cracked.
+
+Fuentes usadas esta tanda:
+  - "/Users/rotumerorontum/Documents/TFL Studio/Imagenes a añadir" — 13
+    capturas reales de Minecraft (con shaders), locales.
+  - github.com/Simplexity-Development/Entity-Icons (CC0) — pixel art de
+    criaturas, 16x16.
+  - github.com/hube12/mc_icons (CC0) — íconos de estructuras/lugares,
+    768x768.
+  - github.com/s1dashu/ip-as-logo-skill (MIT) — NO es un set de imágenes,
+    es un Agent Skill que necesita un modelo de generación de imágenes
+    (GPT Image, Nano Banana, etc.) para producir mascotas — esta sesión no
+    tiene esa herramienta disponible. Se aplicó a mano la FILOSOFÍA de
+    diseño que describe (silueta redondeada dominante, 4-7 formas
+    grandes, 2-3 colores, nada de detalles finos/frágiles) para dibujar
+    8 mascotas simples en SVG, en vez de generarlas con IA de imagen.
+
+
+ARCHIVOS CAMBIADOS — logo + fondos + contraste (pasada anterior, sin cambios)
+================================================================================
+src/lib/icons/Tfl.svelte — marca T/F/L (ver changelog previo, sin cambios).
+src/routes/+page.svelte — text-shadow del empty-state (sin cambios).
+src/lib/components/library/{ModsPanel,ShadersPanel,ModpacksPanel,TflSelection}.svelte
+  — anim-fade-in en tarjetas de resultado (sin cambios).
+
+
+ARCHIVOS CAMBIADOS — esta tanda
+================================================================================
+
+src/styles/global.css
+  - BUG REAL arreglado: los botones "Cósmico" y "Minimal" (efecto
+    ambiental) sacaban el fondo de pantalla elegido — solo "Aurora" lo
+    mostraba. Causa: .ambient-bg tenía UN SOLO `background` con todo
+    mezclado (glow de acento + scrim + wallpaper); Cósmico REEMPLAZABA
+    ese `background` entero (perdía wallpaper) y Minimal ponía
+    opacity:0 al elemento COMPLETO (tapaba wallpaper también). Fix:
+    separados los 3 gradientes de acento en variables propias
+    (--ambient-glow-1/2/3, redefinidas por data-ambience), wallpaper +
+    scrim quedan SIEMPRE como capas finales fijas del `background` de
+    .ambient-bg sin importar el modo — ahora los 3 ambientes muestran el
+    fondo elegido.
+  - Los 5 fondos de foto (antes hotlinkeados de Unsplash) reemplazados
+    por 13 fondos LOCALES reales de Minecraft: :root[data-wallpaper='…']
+    para savanna, golden-sunset, lake-night, neon-arcade, red-canyon,
+    enchanted-valley, snowy-peak, stone-bridge, misty-fortress,
+    village-tower, deep-cave, sunset-coast, abstract-blocks — todos
+    apuntando a /wallpapers/mc-wallpaper-N.jpg (servidos desde
+    static/wallpapers/, sin depender de red). Los 5 gradientes temáticos
+    y 2 sólidos de la pasada anterior quedan igual.
+
+static/wallpapers/mc-wallpaper-1.jpg … mc-wallpaper-13.jpg (nuevos)
+  - Las 13 imágenes de "Imagenes a añadir", convertidas de PNG/JPG
+    pesados (20MB+ combinados) a JPG comprimido (calidad 78, ancho
+    1600px) — quedaron en ~3.7MB combinados para no inflar el
+    instalador. Capturas reales in-game: sabana con caballo, atardecer,
+    noche en el lago, arcade neón nocturno, cañón rojo, valle con
+    aldea, cumbre nevada, puente de piedra, fortaleza en la niebla,
+    torre de pueblo, cueva profunda, costa al atardecer, cubos
+    abstractos.
+
+src/lib/components/settings/SettingsPanel.svelte
+  - Array WALLPAPERS: los 5 entries de Unsplash reemplazados por los 13
+    fondos locales nuevos, con label en español para cada uno.
+  + Import Mascot, MASCOTS, getMascotFor, setMascotFor.
+  + State `mascotTick` (fuerza re-render del picker de mascota al
+    cambiarla — localStorage no es reactivo por sí solo en Svelte).
+  + Función changeMascot(uuid, id).
+  + Tab Cuentas: cada cuenta Cracked en la lista muestra su mascota
+    (24px) al lado del nombre; la cuenta Cracked ACTIVA además muestra
+    una fila de 8 mascotas para elegir otra.
+
+src-tauri/src/commands/instance.rs
+  + icon_presets_dir(app): resuelve la carpeta de íconos empaquetados.
+    Con fallback de desarrollo — resource_dir() de Tauri resuelve a
+    `${exe_dir}/../Resources`, válido dentro de un .app/.exe real, pero
+    en `tauri dev` el binario corre suelto desde target/debug/ sin
+    ningún bundle alrededor, esa carpeta no existe ahí. Sin el fallback
+    (a `CARGO_MANIFEST_DIR/resources/instance-icons`, solo en
+    debug_assertions), el feature completo aparentaba estar roto en
+    cualquier sesión de desarrollo aunque funcionara en un build real.
+  - create_instance: ahora también recibe AppHandle. Después de crear la
+    instancia, copia un ícono al azar (de los 67 vendoreados) como
+    icon.png en la carpeta de la instancia — si algo falla (recurso
+    faltante, etc.) no bloquea la creación, se queda con el avatar de
+    letra de siempre.
+  + struct IconPreset { id, data_url }
+  + list_instance_icon_presets(app): lee TODO el set vendoreado (67
+    archivos, ~1MB en base64) y lo devuelve en un solo viaje de IPC como
+    pares id + data URI — el picker del frontend los renderiza directo
+    con <img src="data:...">, sin necesitar que el asset-protocol cubra
+    la carpeta de recursos empaquetados (que además cambia de ubicación
+    real según plataforma/instalador).
+  + set_instance_icon_from_preset(app, name, preset_id): copia el
+    archivo elegido del set a instance_dir/icon.png (con guard de
+    path-traversal en preset_id).
+
+src-tauri/resources/instance-icons/ (nuevo, 67 archivos, ~740KB)
+  + 42 íconos de criaturas (mob-*.png, 16x16 pixel art) de Entity-Icons:
+    allay, armadillo, bat, bee, blaze, breeze, camel, creaking, creeper,
+    dolphin, elder_guardian, enderman, endermite, fox, ghast, goat,
+    guardian, hoglin, horse, iron_golem, panda, phantom, piglin,
+    shulker, skeleton, slime, sniffer, spider, squid, tadpole, turtle,
+    villager, wandering_trader, warden, witch, wither, zombie,
+    zombie_villager, y algunos objetos (armorstand, bell, chest,
+    end_crystal).
+  + 26 íconos de lugares/estructuras (place-*.png, 768x768) de mc_icons
+    rich_set: village, stronghold, fortress, end_city, mansion,
+    monument, spawn, pillager_outpost, buried_treasure, shipwreck,
+    igloo, swamp_hut, ruined_portal, bastion_remnant, ocean_ruin,
+    jungle_pyramid, desert_pyramid, treasure_chest, slime (feature),
+    end_gateway, mineshaft, nether_fossil, igloo_basement,
+    abandoned_village, end_ship.
+
+src-tauri/tauri.conf.json
+  + bundle.resources: { "resources/instance-icons": "instance-icons" }
+    — declara la carpeta para que se empaquete de verdad en un build
+    real (dmg/exe/deb/etc), no solo en el repo.
+
+src-tauri/src/lib.rs
+  + Registrados: list_instance_icon_presets, set_instance_icon_from_preset.
+
+src/lib/components/library/InstanceIconPicker.svelte (nuevo)
+  - Modal: botón "Subir mi propia imagen" (mismo diálogo nativo de
+    siempre) + grid de 7 columnas con los 67 íconos vendoreados como
+    miniatura clickeable — elegir uno llama
+    set_instance_icon_from_preset y listo.
+
+src/lib/components/library/InstanceDetail.svelte
+  - El click en el hero-icon ya NO abre directo el diálogo nativo de
+    archivo — abre InstanceIconPicker (subir propia sigue siendo una
+    opción ahí adentro, más el set de 67 para elegir).
+  - Sacadas pickImageFile/setInstanceIcon/iconBusy de acá (se movieron
+    adentro de InstanceIconPicker.svelte).
+
+src/lib/mascots/index.ts (nuevo)
+  + 8 mascotas (fox/bear/cat/owl/panda/frog/bee/penguin) con paleta de 3
+    colores cada una (fondo + 2 colores de "IP", filosofía del skill de
+    referencia).
+  + pickMascotForSeed(uuid): hash determinístico del UUID de la cuenta →
+    misma cuenta cracked siempre arranca con la misma mascota entre
+    reinicios, sin persistir nada hasta que el usuario la cambie.
+  + getMascotFor/setMascotFor(uuid): override explícito en localStorage
+    ('tfl-mascot-{uuid}'), gana sobre el determinístico una vez que el
+    usuario elige.
+
+src/lib/components/ui/Mascot.svelte (nuevo)
+  - Renderiza una de las 8 mascotas como SVG simple (silueta redondeada,
+    4-7 formas grandes por mascota, sin detalles finos) sobre un fondo
+    sólido — mismo espíritu que pide el skill de referencia, dibujado a
+    mano en vez de generado por IA de imagen (no hay esa herramienta acá).
+
+src/lib/components/layout/Sidebar/Sidebar.svelte
+  - Avatar del chip de usuario: cuentas Cracked ahora muestran su
+    mascota (Mascot.svelte) en vez de dejar que Crafatar caiga al Steve
+    genérico por defecto. Cuentas Microsoft/Yggdrasil (premium) siguen
+    mostrando su cabeza de skin real vía Crafatar — sin cambios, ya
+    andaba así desde antes.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin
+    relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings
+    preexistentes sin relación.
+  - App relanzada desde cero, corriendo sin errores.
+  - No se pudo probar por click el flujo completo (crear instancia →
+    ver ícono al azar asignado, abrir el picker de 67 íconos, cambiar
+    mascota de una cuenta cracked) — el entorno no permite automatizar
+    clics sobre este binario de desarrollo. Se verificó por compilación,
+    lectura de código y comprobación directa de que
+    src-tauri/resources/instance-icons/ tiene los 67 archivos esperados.
+
+
+PENDIENTE — de la pasada anterior, sigue sin tocarse
+================================================================================
+  - Acentos extendidos (12 en vez de 6) + input de color custom (hex a mano).
+  - Estilo de esquina (afilado/suave/redondo).
+  - Densidad "espaciosa" (hoy solo cómoda/compacta).
+  - Ancho de sidebar seleccionable.
+  - Partículas de fondo + línea de escaneo CRT + cuadrícula de fondo.
+  - Opacidad de ventana + "siempre encima".
+  - Campo de argumentos JVM / ruta de Java manual.
+  - Slider real de "oscurecimiento de fondo" (hoy 65% fijo).
+  - Ícono nativo de la app (.icns/.ico de Dock/taskbar).
+  - Componente de toggle/switch real (se sigue usando grupos de botones).
+
+  Ninguno de estos se tocó para no seguir asumiendo alcance sin
+  confirmarlo — avisame cuáles querés que meta.
+================================================================================

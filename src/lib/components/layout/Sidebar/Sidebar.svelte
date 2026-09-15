@@ -1,5 +1,7 @@
 <script lang="ts">
 	import Tfl from '$lib/icons/Tfl.svelte';
+	import Mascot from '$lib/components/ui/Mascot.svelte';
+	import { getMascotFor } from '$lib/mascots';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
 	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes, Sparkles } from 'lucide-svelte';
 
@@ -105,14 +107,22 @@
 	{#if user}
 		<div class="user-chip">
 			<span class="user-head">
-				<UserIcon size={16} class="user-head-fallback" />
-				<img
-					src="https://crafatar.com/avatars/{user.uuid}?size=32&overlay"
-					alt=""
-					onerror={(e) => {
-						(e.currentTarget as HTMLImageElement).style.display = 'none';
-					}}
-				/>
+				{#if user.user_type === 'Cracked'}
+					<!-- Cuentas offline no tienen skin real — mascota simple en
+						 vez del Steve genérico que devolvería Crafatar por
+						 defecto. Elegida al azar (determinística por UUID) al
+						 crear la cuenta, cambiable desde Ajustes. -->
+					<Mascot id={getMascotFor(user.uuid)} size={32} />
+				{:else}
+					<UserIcon size={16} class="user-head-fallback" />
+					<img
+						src="https://crafatar.com/avatars/{user.uuid}?size=32&overlay"
+						alt=""
+						onerror={(e) => {
+							(e.currentTarget as HTMLImageElement).style.display = 'none';
+						}}
+					/>
+				{/if}
 			</span>
 			<div class="user-info">
 				<span class="user-name">{user.username}</span>

@@ -86,7 +86,7 @@
 		{:else}
 			<div class="entries">
 				{#each entries as entry (entry.project_id)}
-					<div class="entry-card">
+					<div class="entry-card anim-fade-in">
 						<div class="entry-glow"></div>
 						{#if entry.icon_url}
 							<img src={entry.icon_url} alt={entry.title} />

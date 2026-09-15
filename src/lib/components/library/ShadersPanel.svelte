@@ -118,7 +118,7 @@
 			<div class="results">
 				<span class="section-label">Resultados</span>
 				{#each results as shader (shader.project_id)}
-					<div class="mod-card">
+					<div class="mod-card anim-fade-in">
 						{#if shader.icon_url}
 							<img src={shader.icon_url} alt={shader.title} />
 						{:else}

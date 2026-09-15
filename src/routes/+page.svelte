@@ -30,7 +30,8 @@
 			['tfl-accent', 'data-accent', 'orange'],
 			['tfl-surface', 'data-surface', 'obsidian'],
 			['tfl-ambience', 'data-ambience', 'aurora'],
-			['tfl-density', 'data-density', 'comfortable']
+			['tfl-density', 'data-density', 'comfortable'],
+			['tfl-wallpaper', 'data-wallpaper', 'none']
 		] as const;
 		for (const [storageKey, attribute, defaultValue] of preferences) {
 			// Cada superficie (data-surface) trae su propia variante clara y
@@ -250,12 +251,18 @@
 		font-weight: 800;
 		letter-spacing: 0.13em;
 		text-transform: uppercase;
+		text-shadow: 0 1px 12px var(--bg-main);
 	}
 	.empty-state h2 {
 		color: var(--text-primary);
 		font-size: clamp(1.7rem, 4vw, 2.5rem);
 		line-height: 1.08;
 		letter-spacing: -0.045em;
+		/* El scrim de --wallpaper-scrim ya normaliza el fondo hacia el tono
+		   del tema, pero acá el texto flota sin ningún panel/--bg-card
+		   detrás — una sombra extra ata el contraste al fondo real de
+		   pantalla (--bg-main) en vez de depender solo de eso. */
+		text-shadow: 0 2px 24px var(--bg-main);
 	}
 
 	.empty-state p {
@@ -263,6 +270,7 @@
 		font-size: 0.85rem;
 		line-height: 1.55;
 		color: var(--text-secondary);
+		text-shadow: 0 1px 16px var(--bg-main);
 	}
 
 	.welcome-actions { display: flex; gap: 10px; margin-top: 6px; }

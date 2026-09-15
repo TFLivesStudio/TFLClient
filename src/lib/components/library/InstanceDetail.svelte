@@ -10,14 +10,13 @@
 		getRecommendedRam,
 		openInstanceFolder,
 		getInstanceMods,
-		pickImageFile,
-		setInstanceIcon,
 		getInstanceIconPath
 	} from '$lib/api/tflApi';
 	import ModsPanel from './ModsPanel.svelte';
 	import ShadersPanel from './ShadersPanel.svelte';
 	import ModpacksPanel from './ModpacksPanel.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
+	import InstanceIconPicker from './InstanceIconPicker.svelte';
 	import {
 		Play,
 		Loader2,
@@ -51,7 +50,7 @@
 	let ramRecommended = $state<number | null>(null);
 	let modCount = $state<number | null>(null);
 	let iconUrl = $state<string | null>(null);
-	let iconBusy = $state(false);
+	let showIconPicker = $state(false);
 
 	$effect(() => {
 		nameDraft = instance.name;
@@ -60,20 +59,6 @@
 	async function loadIcon() {
 		const path = await getInstanceIconPath(instance.name);
 		iconUrl = path ? convertFileSrc(path) : null;
-	}
-
-	async function handleChangeIcon() {
-		const source = await pickImageFile();
-		if (!source) return;
-		iconBusy = true;
-		try {
-			await setInstanceIcon(instance.name, source);
-			await loadIcon();
-		} catch (e) {
-			error = String(e);
-		} finally {
-			iconBusy = false;
-		}
 	}
 
 	onMount(() => {
@@ -181,8 +166,7 @@
 			type="button"
 			class="hero-icon"
 			style="--loader-color: {loaderMeta.color}"
-			onclick={handleChangeIcon}
-			disabled={iconBusy}
+			onclick={() => (showIconPicker = true)}
 			aria-label="Cambiar ícono de la instancia"
 		>
 			{#if iconUrl}
@@ -191,7 +175,7 @@
 				{instance.name.charAt(0).toUpperCase()}
 			{/if}
 			<span class="hero-icon-edit">
-				{#if iconBusy}<Loader2 size={14} class="spin" />{:else}<ImagePlus size={14} />{/if}
+				<ImagePlus size={14} />
 			</span>
 		</button>
 
@@ -391,6 +375,14 @@
 		danger
 		onConfirm={handleDelete}
 		onCancel={() => (showDeleteConfirm = false)}
+	/>
+{/if}
+
+{#if showIconPicker}
+	<InstanceIconPicker
+		instanceName={instance.name}
+		onClose={() => (showIconPicker = false)}
+		onChanged={loadIcon}
 	/>
 {/if}
 

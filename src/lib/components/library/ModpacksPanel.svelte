@@ -132,7 +132,7 @@
 			<div class="results">
 				<span class="section-label">Resultados</span>
 				{#each results as pack (pack.project_id)}
-					<div class="mod-card">
+					<div class="mod-card anim-fade-in">
 						{#if pack.icon_url}
 							<img src={pack.icon_url} alt={pack.title} />
 						{:else}
