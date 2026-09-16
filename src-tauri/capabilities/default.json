@@ -18,6 +18,7 @@
 		"dialog:default",
 		"dialog:allow-open",
 		"dialog:allow-save",
-		"clipboard-manager:allow-write-text"
+		"clipboard-manager:allow-write-text",
+		"updater:default"
 	]
 }

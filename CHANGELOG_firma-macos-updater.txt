@@ -1,0 +1,93 @@
+TFL CLIENT — CHANGELOG: firma ad-hoc macOS + sistema de auto-actualización (preparado, sin activar)
+================================================================================
+
+src-tauri/tauri.conf.json
+  + bundle.macOS.signingIdentity: "-" — firma ad-hoc automática en cada
+    build (gratis, sin cuenta Apple Developer). Arregla el falso "tflclient
+    está dañado y no se puede abrir" que tira Gatekeeper en macOS Sequoia
+    cuando el .app no tiene NINGUNA firma y además tiene el atributo de
+    cuarentena (que pone el navegador al descargar). No es firma real de
+    Developer ID: sigue apareciendo el aviso normal de "desarrollador no
+    identificado" la primera vez (clic derecho → Abrir lo resuelve) — eso
+    solo desaparece con una cuenta Apple Developer paga ($99/año) +
+    notarización, que queda pendiente de infraestructura.
+  + plugins.updater: pubkey real (clave pública del par generado para
+    firmar actualizaciones) + endpoints con placeholder
+    (https://updates.tflclient.invalid/latest.json, dominio reservado
+    RFC 2606 que nunca resuelve a propósito) + installMode "passive" en
+    Windows. El endpoint real se define cuando se decida dónde hostear
+    latest.json — ver sección PENDIENTE.
+
+src-tauri/src/lib.rs
+  + Registrado tauri_plugin_updater dentro de .setup(), gateado a
+    #[cfg(desktop)] (el updater no aplica a mobile).
+
+src-tauri/capabilities/default.json
+  + Permiso "updater:default" agregado.
+
+src-tauri/Cargo.toml
+  - tauri-plugin-updater estaba declarado DOS VECES: una vez sin
+    condición en [dependencies] y otra vez correctamente gateada a
+    desktop en el bloque target cfg(not(android/ios)). Se saca la
+    entrada sin condición (redundante, y semánticamente incorrecta
+    para un plugin que no debería enlazarse en mobile).
+
+package.json
+  + Dependencias nuevas: @tauri-apps/plugin-updater, @tauri-apps/plugin-process
+    (la parte JS de los plugins Rust ya presentes).
+
+src/lib/components/settings/SettingsPanel.svelte
+  + Import check() (aliasado checkForUpdate) de @tauri-apps/plugin-updater,
+    relaunch() de @tauri-apps/plugin-process.
+  + Nueva sección "Actualizaciones" en la pestaña General: botón "Buscar
+    actualizaciones" → si hay una nueva versión muestra "Actualización
+    disponible: vX.X.X" + botón "Descargar e instalar" (descarga, instala,
+    reinicia la app sola — sin que el usuario tenga que ir a bajar nada a
+    mano ni reinstalar). Si el endpoint no responde (hoy, porque es un
+    placeholder) se muestra el error tal cual, no se oculta.
+
+Par de claves de firma del updater (generado esta tanda, fuera del repo)
+  Privada: ~/.tauri/tflclient-updater.key (en la máquina de esta sesión,
+    SIN password — recomendado ponerle una antes de usarla en CI de
+    verdad). NUNCA se commiteó al repo.
+  Pública: ya está en tauri.conf.json (plugins.updater.pubkey) — esta sí
+    va en el repo, es la que valida la firma de cada update, no sirve
+    para firmar nada.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - No se probó el flujo real de "buscar actualización" end-to-end porque
+    el endpoint es un placeholder a propósito (dominio .invalid) — el botón
+    va a fallar con error de red hasta que se conecte un endpoint real,
+    eso es el comportamiento esperado en este estado.
+
+
+PENDIENTE — para que el sistema de auto-update funcione de verdad
+================================================================================
+  1. Decidir DÓNDE se hostea latest.json + los instaladores firmados.
+     El token default de GitHub Actions de este repo NO puede crear
+     Releases (permiso deshabilitado a nivel de la org) — opciones:
+       a) Generar un Personal Access Token con scope "repo", agregarlo
+          como secret del repo, y usarlo en el workflow para crear
+          Releases reales (tauri-action ya soporta esto con
+          includeUpdaterJson: true).
+       b) Hostear el manifest en otro lado (Cloudflare Pages, S3, etc.)
+          con sus propias credenciales como secrets.
+  2. Poner la clave PRIVADA (contenido de
+     ~/.tauri/tflclient-updater.key) como secret de CI
+     (TAURI_SIGNING_PRIVATE_KEY), idealmente regenerada con password
+     (TAURI_SIGNING_PRIVATE_KEY_PASSWORD) antes de usarla en producción.
+  3. bundle.createUpdaterArtifacts: true en tauri.conf.json (hoy en
+     false a propósito, para no romper el build actual sin la clave
+     privada en CI).
+  4. Reemplazar el endpoint placeholder por la URL real del latest.json.
+  5. Actualizar .github/workflows/build.yml para publicar el latest.json
+     + los artifacts firmados en el destino elegido en el punto 1.
+
+  Nada de esto se tocó todavía porque necesita una decisión externa
+  (dónde hostear, y crear el secret correspondiente) que no puedo tomar
+  ni ejecutar solo.
+================================================================================

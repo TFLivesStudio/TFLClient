@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+	import { check as checkForUpdate, type Update } from '@tauri-apps/plugin-updater';
+	import { relaunch } from '@tauri-apps/plugin-process';
 	import { appState } from '$lib/state/state.svelte';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { MASCOTS, getMascotFor, setMascotFor, type MascotId } from '$lib/mascots';
@@ -32,7 +34,9 @@
 		PanelLeft,
 		WandSparkles,
 		Copy,
-		CheckCircle2
+		CheckCircle2,
+		Download,
+		RefreshCw
 	} from 'lucide-svelte';
 
 	let { onClose }: { onClose: () => void } = $props();
@@ -112,6 +116,40 @@
 	let mascotTick = $state(0);
 
 	let javaStatuses = $state<JavaStatus[]>([]);
+
+	let updateChecking = $state(false);
+	let updateInstalling = $state(false);
+	let updateInfo = $state<Update | null>(null);
+	let updateError = $state<string | null>(null);
+	let updateChecked = $state(false);
+
+	async function handleCheckForUpdate() {
+		updateChecking = true;
+		updateError = null;
+		try {
+			updateInfo = await checkForUpdate();
+			updateChecked = true;
+		} catch (e) {
+			// Endpoint todavía no configurado (host de updates pendiente) — no es un
+			// error del usuario, solo significa que la infra de updates no está lista.
+			updateError = String(e);
+		} finally {
+			updateChecking = false;
+		}
+	}
+
+	async function handleInstallUpdate() {
+		if (!updateInfo) return;
+		updateInstalling = true;
+		updateError = null;
+		try {
+			await updateInfo.downloadAndInstall();
+			await relaunch();
+		} catch (e) {
+			updateError = String(e);
+			updateInstalling = false;
+		}
+	}
 
 	onMount(async () => {
 		try {
@@ -383,6 +421,46 @@
 					<button type="button" class="save-btn" disabled={savingRam} onclick={saveRam}>
 						<Check size={13} /> Guardar
 					</button>
+				</section>
+
+				<section>
+					<span class="section-label">Actualizaciones</span>
+					<button
+						type="button"
+						class="save-btn"
+						disabled={updateChecking || updateInstalling}
+						onclick={handleCheckForUpdate}
+					>
+						{#if updateChecking}
+							<Loader2 size={13} class="spin" />
+						{:else}
+							<RefreshCw size={13} />
+						{/if}
+						Buscar actualizaciones
+					</button>
+
+					{#if updateChecked && !updateInfo && !updateError}
+						<p class="hint">Ya tenés la última versión.</p>
+					{/if}
+
+					{#if updateInfo}
+						<p class="hint">Actualización disponible: v{updateInfo.version}</p>
+						<button
+							type="button"
+							class="save-btn"
+							disabled={updateInstalling}
+							onclick={handleInstallUpdate}
+						>
+							{#if updateInstalling}
+								<Loader2 size={13} class="spin" />
+							{:else}
+								<Download size={13} />
+							{/if}
+							Descargar e instalar
+						</button>
+					{/if}
+
+					{#if updateError}<p class="error">{updateError}</p>{/if}
 				</section>
 			{:else if tab === 'appearance'}
 				<section>
