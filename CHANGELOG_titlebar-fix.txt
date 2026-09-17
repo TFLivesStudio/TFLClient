@@ -1,0 +1,26 @@
+TFL CLIENT — CHANGELOG: fix botones de la TitleBar invisibles
+================================================================================
+
+src/lib/components/layout/TitleBar/TitleBar.svelte
+  - BUG REAL: los botones de minimizar/maximizar/cerrar no se veían
+    (reportado en Windows, pero el bug no es específico de esa
+    plataforma). Causa: .ambient-bg (el fondo/wallpaper detrás de toda
+    la app) es `position: fixed; inset: 0`, cubre TODO el viewport
+    incluida la franja de la TitleBar — y .titlebar no tenía z-index
+    propio, así que quedaba pintada DEBAJO del wallpaper en el stacking
+    order (.sidebar y .main-content ya tenían `position: relative;
+    z-index: 1` justamente para evitar este mismo problema, la TitleBar
+    se había quedado afuera de ese tratamiento).
+  + .titlebar: agregado `position: relative; z-index: 1` (mismo patrón
+    que sidebar/main-content).
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings
+    preexistentes sin relación.
+  - No se pudo re-verificar por click en esta sesión (solo macOS, sin
+    forma de automatizar el binario de dev) — el fix es una corrección
+    de stacking-context CSS estándar, consistente 1:1 con el patrón que
+    ya funciona para sidebar y main-content en la misma pantalla.
+================================================================================
