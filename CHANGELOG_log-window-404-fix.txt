@@ -1,0 +1,37 @@
+TFL CLIENT — CHANGELOG: fix 404 al abrir la ventana de log
+================================================================================
+
+src-tauri/src/commands/instance.rs
+  - BUG REAL: la ventana emergente de log tiraba "404 Not Found" al
+    abrirse (visto en Windows). Causa: open_log_window armaba la URL
+    como "index.html?window=log&instance=X" y se la pasaba a
+    WebviewUrl::App() — pero esa variante toma el string ENTERO como un
+    path de archivo dentro de frontendDist, no lo parsea como URL con
+    query string. Tauri buscaba, literal, un archivo llamado
+    "index.html?window=log&instance=Vanilla prueba" en el bundle — no
+    existe, 404.
+  - Fix: la URL vuelve a ser simplemente "index.html" (la misma que ya
+    usa la ventana principal, funciona seguro). El nombre de instancia
+    se pasa ahora con `.initialization_script()` — inyecta
+    `window.__TFL_LOG_INSTANCE__ = "..."` ANTES de que cargue cualquier
+    script de la página, así el frontend lo lee de ahí en vez de la URL.
+
+src/routes/+page.svelte
+  - isLogWindow ahora se detecta chequeando si existe
+    window.__TFL_LOG_INSTANCE__, no parseando query string (que nunca
+    iba a estar ahí con el fix de arriba).
+
+src/lib/components/library/InstanceLogWindow.svelte
+  - instanceName ahora se lee de window.__TFL_LOG_INSTANCE__ en vez de
+    URLSearchParams.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - No se pudo reabrir la ventana de log por click en esta sesión (solo
+    macOS, sin forma de automatizar Windows) — el fix elimina la causa
+    exacta del 404 (URL con query string pasada a WebviewUrl::App, que
+    la trata como path literal) reportada en el screenshot del usuario.
+================================================================================

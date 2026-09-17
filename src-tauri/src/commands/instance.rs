@@ -163,21 +163,29 @@ pub async fn launch(app: AppHandle, instance_name: String) -> Result<(), String>
 /// Abre (o enfoca, si ya está abierta) la ventana emergente con el log en
 /// vivo del proceso de Minecraft. Ventana con chrome nativo del SO (a
 /// diferencia de la principal) — no necesita TitleBar propia.
+///
+/// El nombre de instancia se pasa por `initialization_script` (una
+/// variable global inyectada ANTES de que cargue cualquier script de la
+/// página), no por query string en la URL — `WebviewUrl::App` toma el
+/// string entero como un path de archivo literal, no lo parsea como
+/// URL+query, así que "index.html?window=log&instance=X" buscaba un
+/// archivo con ese nombre exacto y tiraba 404 (visto en Windows, pero el
+/// bug no es específico de esa plataforma).
 fn open_log_window(app: &AppHandle, instance_name: &str) -> Result<(), String> {
     if let Some(existing) = app.get_webview_window(LOG_WINDOW_LABEL) {
         let _ = existing.set_focus();
         return Ok(());
     }
 
-    let url = format!(
-        "index.html?window=log&instance={}",
-        urlencoding::encode(instance_name)
-    );
-    WebviewWindowBuilder::new(app, LOG_WINDOW_LABEL, WebviewUrl::App(url.into()))
+    let instance_json = serde_json::to_string(instance_name).map_err(|e| e.to_string())?;
+    let init_script = format!("window.__TFL_LOG_INSTANCE__ = {instance_json};");
+
+    WebviewWindowBuilder::new(app, LOG_WINDOW_LABEL, WebviewUrl::App("index.html".into()))
         .title(format!("Log — {instance_name}"))
         .inner_size(760.0, 480.0)
         .min_inner_size(480.0, 320.0)
         .decorations(true)
+        .initialization_script(&init_script)
         .build()
         .map_err(|e| e.to_string())?;
     Ok(())

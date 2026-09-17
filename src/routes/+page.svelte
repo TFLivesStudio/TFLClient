@@ -18,11 +18,15 @@
 	import { Plus, Sparkles, PackageOpen, Zap } from 'lucide-svelte';
 
 	// Esta misma index.html también se usa para la ventana emergente del log
-	// en vivo (Tauri abre "index.html?window=log&instance=X" como una
-	// ventana nueva) — se detecta acá para renderizar solo eso, sin cargar
-	// para nada el resto del launcher (cuentas, instancias, ajustes…).
+	// en vivo — Tauri la abre con un initialization_script que setea esta
+	// variable global ANTES de que cargue cualquier script de la página
+	// (no por query string: WebviewUrl::App toma el string entero como
+	// path de archivo literal, no lo parsea como URL+query). Si está
+	// presente, esta ventana es la de log — se salta toda la carga normal
+	// del launcher (cuentas, instancias, ajustes…).
 	const isLogWindow =
-		typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('window') === 'log';
+		typeof window !== 'undefined' &&
+		typeof (window as unknown as { __TFL_LOG_INSTANCE__?: string }).__TFL_LOG_INSTANCE__ === 'string';
 
 	let loading = $state(true);
 	let showCreateModal = $state(false);

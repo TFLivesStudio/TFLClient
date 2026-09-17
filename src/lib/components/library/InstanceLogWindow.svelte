@@ -5,8 +5,8 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { Square, X, Loader2 } from 'lucide-svelte';
 
-	const params = new URLSearchParams(window.location.search);
-	const instanceName = params.get('instance') ?? '';
+	const instanceName =
+		(window as unknown as { __TFL_LOG_INSTANCE__?: string }).__TFL_LOG_INSTANCE__ ?? '';
 
 	interface LogLine {
 		stream: 'stdout' | 'stderr';
