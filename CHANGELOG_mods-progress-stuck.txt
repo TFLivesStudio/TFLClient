@@ -1,0 +1,36 @@
+TFL CLIENT — CHANGELOG: fix descargas de mods que quedaban pegadas en "0 / 1"
+================================================================================
+
+src-tauri/src/commands/mods.rs
+  - BUG REAL: al instalar mods/shaders (y sus dependencias), las tarjetas
+    de progreso quedaban para siempre en "Descargando — 0 / 1" aunque el
+    archivo ya se hubiera bajado e instalado bien. Causa: el evento
+    `DownloadProgress` se emitía con task = "{subdir}:{version.name}"
+    (el NOMBRE de la versión de Modrinth, ej. "Inventory Profiles Next
+    2.2.6 for fabric 1.21.1"), pero `DownloadFinished` se emitía con
+    task = "{subdir}:{file.filename}" (el nombre del ARCHIVO .jar, ej.
+    "inventory-profiles-next-2.2.6.jar") — dos claves distintas para el
+    mismo download. El frontend (downloadState.svelte.ts) borra la
+    tarjeta con `delete downloadTasks[task]` al recibir DownloadFinished,
+    pero como la clave nunca coincidía con la que había en el mapa, nunca
+    se borraba nada — la tarjeta quedaba huérfana en pantalla.
+  - Fix: download_content_file ahora emite DownloadFinished con la MISMA
+    clave que usó install_recursive al emitir el DownloadProgress
+    correspondiente (version.name en vez de file.filename).
+  - Bug hermano encontrado de paso: cuando el archivo YA existía en disco
+    (dest.exists(), ej. una dependencia compartida entre dos mods, o una
+    reinstalación), la función retornaba Ok(()) sin emitir NINGÚN evento
+    — ni Progress ni Finished — dejando también tarjetas huérfanas si
+    esa dependencia ya había sido anunciada con DownloadProgress antes.
+    Ahora también emite DownloadFinished en ese camino.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - No se pudo reproducir instalando mods de verdad en esta sesión (solo
+    macOS, sin forma de automatizar clicks en el binario de dev) — el fix
+    es una corrección directa de comparación de strings, verificable por
+    lectura: las dos emisiones (Progress y Finished) para el mismo
+    download ahora usan literalmente la misma expresión de formato.
+================================================================================

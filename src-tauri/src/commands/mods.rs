@@ -214,6 +214,9 @@ async fn download_content_file(
         .map_err(|e| e.to_string())?;
     let dest = dest_dir.join(&file.filename);
     if dest.exists() {
+        emit(AppEvent::DownloadFinished {
+            task: format!("{}:{}", kind.subdir(), version.name),
+        });
         return Ok(());
     }
 
@@ -245,7 +248,7 @@ async fn download_content_file(
             .await
             .map_err(|e| e.to_string())?;
         emit(AppEvent::DownloadFinished {
-            task: format!("{}:{}", kind.subdir(), file.filename),
+            task: format!("{}:{}", kind.subdir(), version.name),
         });
         return Ok(());
     }
