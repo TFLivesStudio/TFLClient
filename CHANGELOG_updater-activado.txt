@@ -1,0 +1,64 @@
+TFL CLIENT — CHANGELOG: auto-actualización ACTIVADA (GitHub Releases)
+================================================================================
+
+Secrets del repo agregados (fuera del código, no aparecen en ningún
+archivo del repo)
+  + RELEASE_TOKEN: PAT fine-grained del usuario (scope Contents:RW, solo
+    TFLivesStudio/TFLClient) — el token default de Actions es
+    solo-lectura acá por política de la org, no puede crear Releases.
+  + TAURI_SIGNING_PRIVATE_KEY: la clave privada del par generado la tanda
+    anterior (nunca estuvo en el repo, vivía en ~/.tauri/ local).
+
+src-tauri/tauri.conf.json
+  ~ bundle.createUpdaterArtifacts: false → true — ahora cada build genera
+    también los .sig firmados que necesita el updater.
+  ~ plugins.updater.endpoints: el placeholder (dominio .invalid) se
+    reemplaza por el endpoint real:
+    https://github.com/TFLivesStudio/TFLClient/releases/latest/download/latest.json
+    (URL estable de GitHub: siempre resuelve al asset "latest.json" del
+    Release no-draft más reciente, sin necesidad de hardcodear versión).
+
+.github/workflows/build.yml
+  + El step de Tauri ahora corre con env GITHUB_TOKEN=RELEASE_TOKEN (en
+    vez del default de solo-lectura) + TAURI_SIGNING_PRIVATE_KEY(_PASSWORD).
+  + tagName/releaseName solo se completan cuando el disparador es un push
+    de tag "vX.Y.Z" (expresión con startsWith(github.ref, 'refs/tags/v'))
+    — un workflow_dispatch manual (como los que uso para pasar builds de
+    prueba durante el desarrollo) sigue sin tocar Releases, solo sube los
+    artifacts de siempre, exactamente como venía funcionando.
+  + includeUpdaterJson: true — genera latest.json con la firma de cada
+    plataforma y lo sube como asset del Release.
+
+
+CÓMO PUBLICAR UNA VERSIÓN REAL (la que el auto-update va a detectar)
+================================================================================
+El auto-update SOLO revisa Releases reales, no los artifacts de
+workflow_dispatch. Para publicar una versión que los usuarios reciban
+como actualización:
+
+  1. Subir "version" en src-tauri/tauri.conf.json (ej. "0.1.0" → "0.2.0").
+  2. Commitear ese cambio.
+  3. git tag v0.2.0 && git push origin v0.2.0
+
+Eso dispara el workflow con el tag, que esta vez SÍ crea el Release en
+GitHub con los instaladores firmados + latest.json. Los launchers ya
+instalados (con el botón "Buscar actualizaciones" en Ajustes → General)
+van a detectar esa versión y podrán bajarla e instalarse solos, sin que
+nadie tenga que ir a descargar nada a mano.
+
+Los builds de prueba (workflow_dispatch, lo que uso normalmente para
+pasarte links durante el desarrollo) NO quedan visibles para el
+auto-update — siguen siendo solo artifacts privados de 90 días, como
+hasta ahora.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - tauri.conf.json validado como JSON válido.
+  - No se pudo disparar un tag real de prueba en esta sesión (cambiaría
+    la versión "oficial" del proyecto sin que el usuario lo haya pedido
+    todavía) — la config y el workflow están listos, falta el primer
+    `git tag vX.Y.Z && git push origin vX.Y.Z` cuando el usuario quiera
+    cortar la primera versión "real".
+================================================================================

@@ -48,7 +48,7 @@
 	"bundle": {
 		"active": true,
 		"targets": ["nsis", "deb", "appimage", "app", "rpm", "dmg"],
-		"createUpdaterArtifacts": false,
+		"createUpdaterArtifacts": true,
 		"icon": [
 			"icons/32x32.png",
 			"icons/128x128.png",
@@ -67,7 +67,7 @@
 		"updater": {
 			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDRGRjZGMzQwNjcwQTQ5MDcKUldRSFNRcG5RUFAyVDE4SW9SZXF4WDY1d1h6RG5KVkxqNS9LMTM4NnhMN0dlSGliazhKUXdEM1EK",
 			"endpoints": [
-				"https://updates.tflclient.invalid/latest.json"
+				"https://github.com/TFLivesStudio/TFLClient/releases/latest/download/latest.json"
 			],
 			"windows": {
 				"installMode": "passive"

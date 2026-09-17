@@ -56,7 +56,25 @@ jobs:
       - name: Build + bundle (Tauri)
         id: tauri
         uses: tauri-apps/tauri-action@v0
+        env:
+          # El GITHUB_TOKEN default de Actions es solo-lectura acá (política
+          # de la org) — no puede crear Releases. RELEASE_TOKEN es un PAT
+          # propio (scope Contents:RW, solo este repo) guardado como secret
+          # justo para esto.
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
+          # Solo crea/actualiza un Release real cuando el disparador es un
+          # tag "vX.Y.Z" — un workflow_dispatch manual (lo que uso para
+          # pasarte builds de prueba) sigue sin tocar Releases, solo sube
+          # los artifacts de siempre.
+          tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/v') && format('TFL Client {0}', github.ref_name) || '' }}
+          releaseBody: 'Ver el changelog del repo para el detalle de esta versión.'
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true
           args: ${{ matrix.args }}
 
       - name: Subir instaladores como artifact
