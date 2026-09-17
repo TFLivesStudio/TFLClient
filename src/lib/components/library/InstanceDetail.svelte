@@ -12,6 +12,7 @@
 		getInstanceMods,
 		getInstanceIconPath
 	} from '$lib/api/tflApi';
+	import { gameSession } from '$lib/state/gameSession.svelte';
 	import ModsPanel from './ModsPanel.svelte';
 	import ShadersPanel from './ShadersPanel.svelte';
 	import ModpacksPanel from './ModpacksPanel.svelte';
@@ -42,6 +43,7 @@
 	} = $props();
 
 	let launching = $state(false);
+	const blockedByOther = $derived(!!gameSession.running && gameSession.running !== instance.name);
 	let error = $state<string | null>(null);
 	let tab = $state<'details' | 'mods' | 'shaders' | 'modpacks'>('details');
 	let showDeleteConfirm = $state(false);
@@ -243,10 +245,13 @@
 			</div>
 		</div>
 
-		<button type="button" class="play-btn" disabled={launching} onclick={handlePlay}>
+		<button type="button" class="play-btn" disabled={launching || blockedByOther} onclick={handlePlay}>
 			{#if launching}
 				<Loader2 size={16} class="spin" />
 				Preparando…
+			{:else if blockedByOther}
+				<Play size={16} fill="currentColor" />
+				"{gameSession.running}" está corriendo
 			{:else}
 				<Play size={16} fill="currentColor" />
 				Jugar

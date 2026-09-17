@@ -1,0 +1,117 @@
+TFL CLIENT — CHANGELOG: ventana de log en vivo + bloqueo de 2+ instancias a la vez
+================================================================================
+
+crates/launchwerk/src/handle.rs y launchwerk.rs (sin cambios de código,
+solo contexto)
+  - La infraestructura de stdout/stderr en vivo (canales broadcast por
+    instancia) y el registro de instancias corriendo (DashMap por uuid en
+    Launchwerk) ya existían en este crate desde antes, pero nunca se
+    conectaban con nada del lado de tflclient — el InstanceHandle se
+    tiraba apenas terminaba launch(), sin nadie suscripto a sus canales
+    ni ningún código que llamara Launchwerk::remove() al cerrar. Esta
+    tanda es puramente cablear eso, no tocar el crate.
+
+src-tauri/src/core/event_bus.rs
+  + Nuevos eventos: InstanceLogLine { instance, stream, line } (cada
+    línea de stdout/stderr del proceso de Minecraft) e InstanceExited
+    { instance, code } (cuando el proceso termina, solo o porque se le
+    pidió Detener).
+
+src-tauri/src/services/launcher.rs
+  + Guard de instancia única: static RUNNING (Mutex<Option<RunningGame>>)
+    — launch() ahora rechaza de entrada con
+    "Ya hay una instancia corriendo: X..." si ya hay una activa, antes de
+    tocar Java/descargas/nada. Se libera automáticamente cuando el
+    proceso de esa instancia termina (no cuando launch() retorna — eso
+    pasa apenas arranca el proceso, mucho antes de que el jugador cierre
+    el juego).
+  + running_instance_name() / stop_running(): expuestos para los
+    comandos nuevos (ver abajo). stop_running() mata el proceso vía
+    handle.kill() de launchwerk; la limpieza real (RUNNING,
+    Launchwerk::remove, evento InstanceExited) la hace la misma tarea de
+    fondo que espera la salida normal — mismo camino para salida normal
+    y forzada.
+  + launch_inner(): después de que el proceso arranca, se suscribe a
+    handle.subscribe_stdout()/subscribe_stderr() y reenvía cada línea
+    como AppEvent::InstanceLogLine (Tauri lo manda a TODAS las ventanas
+    abiertas). Una tercera tarea de fondo espera handle.wait() (el
+    proceso termina), y recién ahí: Launchwerk.remove(id), libera
+    RUNNING, y emite InstanceExited + InstanceStatusChanged{status:
+    "stopped"}.
+  + Emite InstanceStatusChanged{status: "running"} apenas el proceso
+    arranca (para que el resto de la UI sepa en tiempo real que hay una
+    instancia corriendo, sin esperar a que alguien intente lanzar otra).
+
+src-tauri/src/commands/instance.rs
+  + launch() ahora recibe AppHandle. Si launcher::launch() tiene éxito,
+    abre (o enfoca, si ya está abierta) una ventana nueva con label fijo
+    "log-instance" — fijo porque solo puede haber UNA instancia corriendo
+    a la vez, no hace falta un label por instancia. Ventana con chrome
+    nativo del SO (decorations: true, a diferencia de la principal) — no
+    necesita una TitleBar propia. Si launcher::launch() falla (ej. "ya
+    hay una instancia corriendo"), nunca se abre ventana — no queda una
+    ventana de log huérfana por un lanzamiento que ni arrancó.
+  + Nuevos comandos: stop_running_instance() (mata la instancia activa) y
+    get_running_instance() -> Option<String> (para que el frontend
+    consulte el estado al cargar, sin depender solo de eventos).
+
+src-tauri/src/lib.rs
+  + Registrados stop_running_instance y get_running_instance.
+
+src/routes/+page.svelte
+  + index.html ahora sirve DOS roles: el launcher normal, o (cuando se
+    abre como "index.html?window=log&instance=X", que es como Tauri abre
+    la ventana nueva) la ventana de log — se detecta por query param al
+    boot y se salta TODA la carga normal (cuentas, instancias, ajustes),
+    renderiza solo InstanceLogWindow.
+  + initGameSessionListener() sumado junto al de descargas, en el mismo
+    onMount (salteado también en modo ventana de log).
+
+src/lib/state/gameSession.svelte.ts (nuevo)
+  + Store global $state({ running: string | null }) — se inicializa
+    preguntando get_running_instance() al boot, y se mantiene al día
+    escuchando InstanceStatusChanged. Cualquier componente puede saber
+    en tiempo real si hay una instancia corriendo y cuál, sin tener que
+    esperar a que el usuario intente lanzar otra y le rebote el error.
+
+src/lib/components/library/InstanceDetail.svelte
+  + Botón "Jugar" ahora también se deshabilita (no solo mientras
+    "Preparando…") cuando gameSession.running apunta a OTRA instancia —
+    muestra "«nombre» está corriendo" en vez de "Jugar". El rechazo duro
+    sigue existiendo del lado del backend (por si alguien lanza desde
+    otro lugar de la UI); esto es la capa proactiva para que ni siquiera
+    haga falta clickear y recibir el error.
+
+src/lib/components/library/InstanceLogWindow.svelte (nuevo)
+  - Contenido de la ventana emergente: header con nombre de instancia +
+    estado ("Corriendo…" / "Proceso finalizado (código N)"), botón
+    Detener (invoke stop_running_instance, se deshabilita solo cuando ya
+    terminó) y Cerrar (cierra la ventana, el juego sigue corriendo igual
+    si seguía activo). Cuerpo con cada línea de log (stdout normal,
+    stderr en rojo), autoscroll mientras el usuario no haya scrolleado
+    para arriba, tope de 5000 líneas en memoria para no crecer sin
+    límite en una sesión de juego larga.
+
+src/lib/api/tflApi.ts
+  + stopRunningInstance() / getRunningInstance() — wrappers, mismo
+    patrón que el resto del archivo (por ahora InstanceLogWindow llama
+    invoke() directo para no importar todo tflApi.ts en una ventana que
+    no necesita el resto).
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - App relanzada desde cero (nohup bun run tauri dev), boot limpio sin
+    panics, settings cargados bien.
+  - No se pudo probar por click el flujo completo (lanzar una instancia,
+    ver la ventana de log recibir líneas reales, intentar lanzar una
+    segunda y ver el bloqueo, Detener desde la ventana) — el entorno de
+    esta sesión no permite automatizar clicks sobre el binario de
+    desarrollo (solo macOS, sin forma de manejar múltiples ventanas de
+    Tauri desde acá). Verificado por lectura de código y por el hecho de
+    que la infraestructura de canales que se está reusando
+    (subscribe_stdout/stderr, wait(), kill()) ya existía y compilaba en
+    el crate launchwerk desde antes de esta tanda.
+================================================================================

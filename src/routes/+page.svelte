@@ -5,15 +5,24 @@
 	import Onboarding from '$lib/components/onboarding/Onboarding.svelte';
 	import CreateInstanceModal from '$lib/components/library/CreateInstanceModal.svelte';
 	import InstanceDetail from '$lib/components/library/InstanceDetail.svelte';
+	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
 	import DownloadProgressBar from '$lib/components/library/DownloadProgressBar.svelte';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 	import TflSelection from '$lib/components/library/TflSelection.svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import { initDownloadListener } from '$lib/state/downloadState.svelte';
+	import { initGameSessionListener } from '$lib/state/gameSession.svelte';
 	import { getCurrentUser, getInstances, getSettings, logout as apiLogout } from '$lib/api/tflApi';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
 	import { Plus, Sparkles, PackageOpen, Zap } from 'lucide-svelte';
+
+	// Esta misma index.html también se usa para la ventana emergente del log
+	// en vivo (Tauri abre "index.html?window=log&instance=X" como una
+	// ventana nueva) — se detecta acá para renderizar solo eso, sin cargar
+	// para nada el resto del launcher (cuentas, instancias, ajustes…).
+	const isLogWindow =
+		typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('window') === 'log';
 
 	let loading = $state(true);
 	let showCreateModal = $state(false);
@@ -50,7 +59,12 @@
 	}
 
 	onMount(async () => {
+		if (isLogWindow) {
+			loading = false;
+			return;
+		}
 		initDownloadListener();
+		initGameSessionListener();
 		try {
 			const [user, settings] = await Promise.all([getCurrentUser(), getSettings()]);
 			appState.currentUser = user;
@@ -96,6 +110,9 @@
 	const needsOnboarding = $derived(appState.settings?.onboarded !== true);
 </script>
 
+{#if isLogWindow}
+	<InstanceLogWindow />
+{:else}
 <div class="app-shell">
 	<TitleBar />
 
@@ -152,6 +169,7 @@
 		</div>
 	{/if}
 </div>
+{/if}
 
 {#if showCreateModal}
 	<CreateInstanceModal onClose={() => (showCreateModal = false)} onCreated={handleCreated} />

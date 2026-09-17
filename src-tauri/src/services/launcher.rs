@@ -1,4 +1,5 @@
 use crate::core::PathManager;
+use crate::core::event_bus::{AppEvent, emit};
 use crate::services::instance_manager::LoaderKind;
 use crate::services::{SettingsManager, instance_manager, java_manager, progress};
 use aqua::{DownloadManager, FabricBatch, ForgeBatch, NeoForgeBatch, QuiltBatch};
@@ -6,11 +7,43 @@ use launchwerk::Launchwerk;
 use launchwerk::auth::AccountType;
 use launchwerk::models::VersionManifest;
 use std::path::Path;
-use std::sync::LazyLock;
+use std::sync::{LazyLock, Mutex};
 use tracing::{error, info};
 
 static LAUNCHWERK: LazyLock<Launchwerk> =
     LazyLock::new(|| Launchwerk::new(PathManager::get().get_shared_dir().to_path_buf()));
+
+/// Instancia de Minecraft actualmente en ejecución (a lo sumo una — el
+/// launcher no permite abrir dos al mismo tiempo). `id` queda en `None`
+/// mientras se reserva el lugar (justo antes de empezar a lanzar) y se
+/// completa una vez que el proceso realmente arrancó, para poder matarlo
+/// después por su uuid en `launchwerk`.
+struct RunningGame {
+    name: String,
+    id: Option<uuid::Uuid>,
+}
+
+static RUNNING: LazyLock<Mutex<Option<RunningGame>>> = LazyLock::new(|| Mutex::new(None));
+
+/// Nombre de la instancia corriendo ahora mismo, si hay alguna.
+pub fn running_instance_name() -> Option<String> {
+    RUNNING.lock().unwrap().as_ref().map(|r| r.name.clone())
+}
+
+/// Mata el proceso de la instancia en ejecución (si hay alguna). La
+/// limpieza real del estado (`RUNNING`, `LAUNCHWERK.remove`, evento
+/// `InstanceExited`) la hace la misma tarea de fondo que espera la salida
+/// normal del proceso — matar solo dispara esa salida.
+pub async fn stop_running() -> Result<(), String> {
+    let id = RUNNING.lock().unwrap().as_ref().and_then(|r| r.id);
+    let Some(id) = id else {
+        return Err("No hay ninguna instancia corriendo".into());
+    };
+    let Some(handle) = LAUNCHWERK.get(id) else {
+        return Err("La instancia ya no está activa".into());
+    };
+    handle.kill().await.map_err(|e| e.to_string())
+}
 
 fn version_json_exists(shared_dir: &Path, version_id: &str) -> bool {
     shared_dir
@@ -155,7 +188,35 @@ async fn ensure_downloaded(
     Ok(())
 }
 
+/// Punto de entrada público: reserva el "lugar" de instancia corriendo
+/// (evita que se lancen dos al mismo tiempo) y delega en `launch_inner`.
+/// Si algo falla antes de que el proceso llegue a arrancar, libera el
+/// lugar reservado — si el lanzamiento tiene éxito, lo libera la tarea de
+/// fondo que espera a que el proceso termine (ver el final de
+/// `launch_inner`).
 pub async fn launch(instance_name: String) -> Result<(), String> {
+    {
+        let mut guard = RUNNING.lock().unwrap();
+        if let Some(running) = guard.as_ref() {
+            return Err(format!(
+                "Ya hay una instancia corriendo: \"{}\". Cerrala antes de iniciar otra.",
+                running.name
+            ));
+        }
+        *guard = Some(RunningGame {
+            name: instance_name.clone(),
+            id: None,
+        });
+    }
+
+    let result = launch_inner(instance_name).await;
+    if result.is_err() {
+        *RUNNING.lock().unwrap() = None;
+    }
+    result
+}
+
+async fn launch_inner(instance_name: String) -> Result<(), String> {
     info!("Lanzando instancia \"{instance_name}\"");
     let data = instance_manager::get_instance(&instance_name).await?;
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
@@ -226,5 +287,61 @@ pub async fn launch(instance_name: String) -> Result<(), String> {
     })?;
     info!("\"{instance_name}\" lanzada correctamente");
     instance_manager::mark_last_played(&instance_name).await?;
+
+    let id = handle.id();
+    if let Some(running) = RUNNING.lock().unwrap().as_mut() {
+        running.id = Some(id);
+    }
+    emit(AppEvent::InstanceStatusChanged {
+        name: instance_name.clone(),
+        status: "running".into(),
+    });
+
+    // Reenvía stdout/stderr del proceso al frontend en tiempo real (para la
+    // ventana emergente de log) — cada línea que ya viene de `launchwerk`
+    // por sus canales broadcast se re-emite como AppEvent, que Tauri manda
+    // a TODAS las ventanas abiertas (incluida la de log).
+    let mut out_rx = handle.subscribe_stdout();
+    let name_out = instance_name.clone();
+    tokio::spawn(async move {
+        while let Ok(line) = out_rx.recv().await {
+            emit(AppEvent::InstanceLogLine {
+                instance: name_out.clone(),
+                stream: "stdout".into(),
+                line,
+            });
+        }
+    });
+
+    let mut err_rx = handle.subscribe_stderr();
+    let name_err = instance_name.clone();
+    tokio::spawn(async move {
+        while let Ok(line) = err_rx.recv().await {
+            emit(AppEvent::InstanceLogLine {
+                instance: name_err.clone(),
+                stream: "stderr".into(),
+                line,
+            });
+        }
+    });
+
+    // Dueña final del handle: espera a que el proceso termine (solo o por
+    // stop_running()) y recién ahí libera el "lugar" de instancia corriendo
+    // — así una segunda instancia solo puede lanzarse una vez que esta de
+    // verdad cerró, no apenas se disparó el proceso.
+    tokio::spawn(async move {
+        let code = handle.wait().await;
+        LAUNCHWERK.remove(id);
+        *RUNNING.lock().unwrap() = None;
+        emit(AppEvent::InstanceExited {
+            instance: instance_name.clone(),
+            code,
+        });
+        emit(AppEvent::InstanceStatusChanged {
+            name: instance_name,
+            status: "stopped".into(),
+        });
+    });
+
     Ok(())
 }

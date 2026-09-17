@@ -2,9 +2,13 @@ use crate::services::instance_manager::{InstanceData, LoaderKind};
 use crate::services::{instance_manager, launcher};
 use aqua::{FabricBatch, QuiltBatch};
 use base64::Engine;
-use tauri::{AppHandle, Manager, command};
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, command};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
+
+/// Label fijo: el launcher solo permite una instancia corriendo a la vez
+/// (ver `launcher::launch`), así que alcanza con una sola ventana de log.
+const LOG_WINDOW_LABEL: &str = "log-instance";
 
 const ICON_EXTENSIONS: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
 
@@ -148,8 +152,45 @@ pub async fn update_instance_memory(
 }
 
 #[command]
-pub async fn launch(instance_name: String) -> Result<(), String> {
-    launcher::launch(instance_name).await
+pub async fn launch(app: AppHandle, instance_name: String) -> Result<(), String> {
+    // launcher::launch() rechaza si ya hay otra instancia corriendo — se
+    // valida ahí antes, así que acá nunca se abre una ventana de log
+    // huérfana por un lanzamiento que ni siquiera arrancó.
+    launcher::launch(instance_name.clone()).await?;
+    open_log_window(&app, &instance_name)
+}
+
+/// Abre (o enfoca, si ya está abierta) la ventana emergente con el log en
+/// vivo del proceso de Minecraft. Ventana con chrome nativo del SO (a
+/// diferencia de la principal) — no necesita TitleBar propia.
+fn open_log_window(app: &AppHandle, instance_name: &str) -> Result<(), String> {
+    if let Some(existing) = app.get_webview_window(LOG_WINDOW_LABEL) {
+        let _ = existing.set_focus();
+        return Ok(());
+    }
+
+    let url = format!(
+        "index.html?window=log&instance={}",
+        urlencoding::encode(instance_name)
+    );
+    WebviewWindowBuilder::new(app, LOG_WINDOW_LABEL, WebviewUrl::App(url.into()))
+        .title(format!("Log — {instance_name}"))
+        .inner_size(760.0, 480.0)
+        .min_inner_size(480.0, 320.0)
+        .decorations(true)
+        .build()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[command]
+pub async fn stop_running_instance() -> Result<(), String> {
+    launcher::stop_running().await
+}
+
+#[command]
+pub fn get_running_instance() -> Option<String> {
+    launcher::running_instance_name()
 }
 
 #[command]

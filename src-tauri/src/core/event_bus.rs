@@ -31,6 +31,15 @@ pub enum AppEvent {
         task: String,
         error: String,
     },
+    InstanceLogLine {
+        instance: String,
+        stream: String,
+        line: String,
+    },
+    InstanceExited {
+        instance: String,
+        code: Option<i32>,
+    },
 }
 
 static APP_HANDLE: std::sync::OnceLock<AppHandle> = std::sync::OnceLock::new();
