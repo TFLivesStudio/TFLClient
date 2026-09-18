@@ -1,4 +1,6 @@
+use crate::core::http_client::get_json_retrying;
 use crate::services::SettingsManager;
+use base64::Engine;
 use launchwerk::auth::MinecraftUser;
 use launchwerk::auth::microsoft::MicrosoftAuth;
 use serde::Serialize;
@@ -75,6 +77,36 @@ pub async fn add_offline_account(username: String) -> Result<MinecraftUser, Stri
 #[command]
 pub fn get_current_user() -> MinecraftUser {
     SettingsManager::read().get_user()
+}
+
+/// URL de la textura de skin real de una cuenta premium (Microsoft o
+/// Yggdrasil), directo del session server oficial de Mojang — sin pasar
+/// por Crafatar/mc-heads.net/etc. Esos servicios de terceros gratuitos
+/// son poco confiables (los dos que se probaron esta semana estuvieron
+/// caídos en momentos distintos); esto es la fuente autoritativa, la
+/// misma que usa el cliente oficial de Minecraft.
+#[command]
+pub async fn get_skin_texture_url(uuid: String) -> Option<String> {
+    let clean_uuid: String = uuid.chars().filter(|c| *c != '-').collect();
+    let url = format!("https://sessionserver.mojang.com/session/minecraft/profile/{clean_uuid}");
+    let profile: serde_json::Value = get_json_retrying(&url).await.ok()?;
+    let textures_b64 = profile
+        .get("properties")?
+        .as_array()?
+        .iter()
+        .find(|p| p.get("name").and_then(|n| n.as_str()) == Some("textures"))?
+        .get("value")?
+        .as_str()?;
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(textures_b64)
+        .ok()?;
+    let parsed: serde_json::Value = serde_json::from_slice(&decoded).ok()?;
+    parsed
+        .get("textures")?
+        .get("SKIN")?
+        .get("url")?
+        .as_str()
+        .map(String::from)
 }
 
 /// Cuentas offline/cracked solo pueden jugar en singleplayer (regla de

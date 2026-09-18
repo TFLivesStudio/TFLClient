@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { invoke } from '@tauri-apps/api/core';
 	import Tfl from '$lib/icons/Tfl.svelte';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { getMascotFor } from '$lib/mascots';
@@ -34,6 +35,25 @@
 	};
 
 	let query = $state('');
+
+	// Cabeza real de cuentas premium — se pide a Mojang directo (session
+	// server oficial), no a un CDN de terceros de renderizado de avatares
+	// (Crafatar/mc-heads.net/etc probaron estar caídos en distintos
+	// momentos de la misma semana). Se renderiza con CSS (recorte del PNG
+	// de la skin real vía background-position), no hace falta canvas.
+	let skinUrl = $state<string | null>(null);
+	$effect(() => {
+		skinUrl = null;
+		if (user && user.user_type !== 'Cracked') {
+			invoke<string | null>('get_skin_texture_url', { uuid: user.uuid })
+				.then((url) => {
+					skinUrl = url;
+				})
+				.catch(() => {
+					skinUrl = null;
+				});
+		}
+	});
 
 	const sorted = $derived([...instances].sort((a, b) => b.last_played - a.last_played));
 	const filtered = $derived(
@@ -115,13 +135,12 @@
 					<Mascot id={getMascotFor(user.uuid)} size={32} />
 				{:else}
 					<UserIcon size={16} class="user-head-fallback" />
-					<img
-						src="https://mc-heads.net/avatar/{user.uuid}/32"
-						alt=""
-						onerror={(e) => {
-							(e.currentTarget as HTMLImageElement).style.display = 'none';
-						}}
-					/>
+					{#if skinUrl}
+						<span class="skin-head">
+							<span class="skin-layer base" style="background-image: url({skinUrl})"></span>
+							<span class="skin-layer overlay" style="background-image: url({skinUrl})"></span>
+						</span>
+					{/if}
 				{/if}
 			</span>
 			<div class="user-info">
@@ -402,11 +421,29 @@
 		position: absolute;
 	}
 
-	.user-head img {
+	.skin-head {
 		position: relative;
+		display: block;
 		width: 32px;
 		height: 32px;
+	}
+
+	/* Recorte de la textura de skin real (64x64) a la cara, escalada 4x
+	   (256/64) — base primero, capa "hat" overlay encima. Sin canvas. */
+	.skin-layer {
+		position: absolute;
+		inset: 0;
+		background-repeat: no-repeat;
+		background-size: 256px 256px;
 		image-rendering: pixelated;
+	}
+
+	.skin-layer.base {
+		background-position: -32px -32px;
+	}
+
+	.skin-layer.overlay {
+		background-position: -160px -32px;
 	}
 
 	.user-info {

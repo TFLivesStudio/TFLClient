@@ -28,6 +28,7 @@ pub fn run() {
             commands::auth::authenticate_with_device_code,
             commands::auth::add_offline_account,
             commands::auth::get_current_user,
+            commands::auth::get_skin_texture_url,
             commands::auth::account_allows_multiplayer,
             commands::auth::logout,
             commands::auth::get_user_list,

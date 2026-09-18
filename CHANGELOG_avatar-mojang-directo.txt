@@ -1,0 +1,59 @@
+TFL CLIENT — CHANGELOG: cabeza de cuenta premium ahora viene directo de Mojang
+================================================================================
+
+Contexto: el fix anterior (Crafatar → mc-heads.net) seguía dependiendo de
+un servicio de terceros gratuito para renderizar avatares — la misma
+categoría de problema, solo con otro proveedor. Reportado que mc-heads.net
+TAMBIÉN mostraba la cabeza genérica (fallback), no la skin real. Esta
+tanda saca la dependencia de terceros del todo.
+
+src-tauri/src/commands/auth.rs
+  + get_skin_texture_url(uuid) -> Option<String>: pide el perfil
+    directo al session server OFICIAL de Mojang
+    (sessionserver.mojang.com/session/minecraft/profile/{uuid}) — el
+    mismo endpoint que usa el cliente real de Minecraft para
+    autenticar. Decodifica la propiedad "textures" (viene en base64,
+    formato estándar de Mojang) y devuelve la URL de la textura de skin
+    real (textures.minecraft.net/texture/<hash>). Reusa
+    get_json_retrying (con reintento) que ya existía para Modrinth/etc,
+    no un cliente HTTP nuevo.
+  - Si la cuenta no tiene "properties" (perfil sin skin subida, o algo
+    falla en el camino), devuelve None sin romper nada — el frontend ya
+    tiene su fallback (ícono genérico).
+
+src-tauri/src/lib.rs
+  + Registrado get_skin_texture_url.
+
+src/lib/components/layout/Sidebar/Sidebar.svelte
+  - Sacado el <img src="https://mc-heads.net/..."> — reemplazado por dos
+    <span> con background-image apuntando a la textura real de Mojang,
+    recortados a la cara vía background-position (el clásico truco de
+    "spritesheet" con CSS: la textura de skin es 64x64, la cara está en
+    (8,8)-(16,16), el overlay "hat" en (40,8)-(48,16); escalado 4x =
+    256x256 con background-size, posiciones también ×4). Dos capas
+    (base + overlay) para que el segundo layer de la skin (pelo,
+    accesorios) se vea encima como corresponde. Sin canvas, sin
+    problemas de CORS (drawImage no hace falta, background-image nunca
+    tiene tainting).
+  + $effect que pide get_skin_texture_url cada vez que cambia la cuenta
+    activa (solo para Microsoft/Yggdrasil, cuentas Cracked siguen con
+    su mascota de siempre).
+  - CSS ".user-head img" eliminado (ya no queda ningún <img> ahí).
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - NO se pudo probar conectividad real a sessionserver.mojang.com,
+    crafatar.com ni mc-heads.net desde esta sesión — los tres devuelven
+    "Connection reset by peer" en el TLS handshake al hacer curl, pero
+    api.github.com responde 200 sin problema. Esto apunta a que ESTE
+    sandbox tiene el egress de red filtrado específicamente para dominios
+    tipo Minecraft, no a que los tres servicios estén caídos a la vez.
+    No es representativo de la red de un usuario real. El fix se
+    verificó por lectura de código (el formato del endpoint y el
+    decodificado de la propiedad "textures" en base64 es el documentado
+    oficialmente por Mojang, y es el mismo que usa el cliente real del
+    juego) — falta confirmación visual en una máquina con red normal.
+================================================================================
