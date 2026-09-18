@@ -116,7 +116,7 @@
 				{:else}
 					<UserIcon size={16} class="user-head-fallback" />
 					<img
-						src="https://crafatar.com/avatars/{user.uuid}?size=32&overlay"
+						src="https://mc-heads.net/avatar/{user.uuid}/32"
 						alt=""
 						onerror={(e) => {
 							(e.currentTarget as HTMLImageElement).style.display = 'none';

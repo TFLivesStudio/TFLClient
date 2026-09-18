@@ -60,7 +60,11 @@
 
 	async function loadIcon() {
 		const path = await getInstanceIconPath(instance.name);
-		iconUrl = path ? convertFileSrc(path) : null;
+		// El ícono siempre se guarda como "icon.png" — el path no cambia
+		// aunque el CONTENIDO sí (subir uno nuevo, elegir otro preset), así
+		// que el WebView lo sirve cacheado y no se ve el cambio. Cache-bust
+		// con un timestamp en el query string.
+		iconUrl = path ? `${convertFileSrc(path)}?t=${Date.now()}` : null;
 	}
 
 	onMount(() => {

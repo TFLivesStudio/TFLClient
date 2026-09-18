@@ -1,0 +1,68 @@
+TFL CLIENT — CHANGELOG: fix ícono de instancia que no cambiaba + cabeza premium incorrecta
+================================================================================
+
+src/lib/components/library/InstanceDetail.svelte
+  - BUG REAL: elegir otro ícono del picker (o subir uno propio) no
+    cambiaba nada visualmente — seguía el mismo (ej. el cofre por
+    defecto). Causa: el ícono siempre se guarda como "icon.png" dentro
+    de la carpeta de la instancia — el PATH nunca cambia aunque el
+    contenido del archivo sí, así que convertFileSrc(path) devolvía
+    exactamente la misma URL de siempre y el WebView servía la imagen
+    cacheada en vez de pedirla de nuevo.
+  - Fix: loadIcon() ahora agrega un timestamp al final de la URL
+    (?t=Date.now()) cada vez que se llama — fuerza al WebView a tratarla
+    como un recurso distinto y pedirla de nuevo. Cubre los tres casos
+    que llaman a loadIcon(): elegir un preset, subir imagen propia, y
+    el ícono al azar que ya trae cada instancia nueva.
+
+src/lib/components/layout/Sidebar/Sidebar.svelte
+  - BUG REAL: la cabeza de cuentas Microsoft/Yggdrasil (premium) no
+    mostraba la skin real. Causa NO es del código de acá — Crafatar (el
+    servicio externo de avatares que se usaba) está devolviendo
+    respuestas degradadas ahora mismo: header "x-storage-type: server
+    error" + "Warning: Response is Stale" confirmado con curl directo a
+    su API, para cualquier UUID, incluso uno de prueba conocido (Notch).
+    No hay nada que arreglar de nuestro lado en cómo se arma/guarda el
+    UUID — se confirmó que sale bien desde
+    crates/launchwerk/src/auth/microsoft.rs (viene directo de
+    api.minecraftservices.com/minecraft/profile, sin reformatear).
+  - Fix: cambiado de Crafatar a mc-heads.net (mismo tipo de servicio,
+    mismo formato simple, responde sano ahora mismo — comparado en vivo
+    con curl contra ambos). Sigue siendo un servicio de terceros (no hay
+    forma de auto-hostear el render de skins sin mucho más trabajo), así
+    que si ESE cae en el futuro habría que repetir este mismo swap o
+    mover el render a un servicio propio.
+
+
+BÚSQUEDA DE OTROS ERRORES (esta tanda)
+================================================================================
+Revisado y confirmado SIN el mismo tipo de bug:
+  - Único otro uso de convertFileSrc() en toda la app era este mismo
+    (ícono de instancia) — no hay otro lugar con el mismo problema de
+    caché de WebView.
+  - rename_instance(): mueve el directorio COMPLETO de la instancia
+    (tokio::fs::rename), el icon.png viaja con la carpeta — no queda
+    huérfano.
+  - Los otros dos emisores de DownloadFinished (mods.rs, arreglados la
+    tanda anterior) son los ÚNICOS en todo el backend — shaders y
+    modpacks reusan esas mismas funciones, no hay una copia separada con
+    el mismo bug de antes.
+  - install_modpack() no emite ningún progreso (mods sí) — no es un bug,
+    es una limitación de UX existente (sin barra de progreso durante la
+    instalación de un modpack), no tocado esta tanda para no meter una
+    feature nueva sin que se pida explícitamente.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - Crafatar vs mc-heads.net comparado en vivo con curl (mismo UUID de
+    prueba): Crafatar devuelve x-storage-type "server error" + Warning
+    "Response is Stale"; mc-heads.net devuelve 200 limpio vía Cloudflare.
+  - No se pudo probar por click el picker de íconos ni el avatar real en
+    esta sesión (solo macOS, sin cuenta Microsoft real ni forma de
+    automatizar clicks sobre el binario de desarrollo) — verificado por
+    lectura de código + comparación directa de red contra los dos
+    servicios de avatares.
+================================================================================
