@@ -1,0 +1,24 @@
+{
+	"schemaVersion": 1,
+	"id": "tfl_mp_guard",
+	"version": "${version}",
+	"name": "TFL MP Guard",
+	"description": "Bloquea multijugador para cuentas offline/cracked de TFL Client. Se activa solo si el launcher lo pide (-Dtflclient.cracked=true) — sin efecto en ninguna otra instalación.",
+	"authors": ["TFLives"],
+	"contact": {},
+	"license": "AGPL-3.0-or-later",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.tflives.mpguard.MpGuardClient"
+		]
+	},
+	"mixins": [
+		"tfl_mp_guard.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"minecraft": "~1.21.1",
+		"java": ">=21"
+	}
+}

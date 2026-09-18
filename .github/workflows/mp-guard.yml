@@ -1,0 +1,36 @@
+name: Build TFL MP Guard (mod)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'mp-guard/**'
+      - '.github/workflows/mp-guard.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Build con Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-root-directory: mp-guard
+
+      - name: Compilar el mod
+        working-directory: mp-guard
+        run: gradle build --stacktrace
+
+      - name: Subir jar como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfl-mp-guard-1.21.1
+          path: mp-guard/build/libs/*.jar
+          if-no-files-found: error
