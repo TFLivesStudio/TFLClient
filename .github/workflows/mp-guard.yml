@@ -19,9 +19,10 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Build con Gradle
+      - name: Instalar Gradle (versión compatible con fabric-loom 1.7.x)
         uses: gradle/actions/setup-gradle@v4
         with:
+          gradle-version: '8.10.2'
           build-root-directory: mp-guard
 
       - name: Compilar el mod
