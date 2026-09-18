@@ -1,0 +1,48 @@
+TFL CLIENT — CHANGELOG: logo oficial aplicado en toda la app
+================================================================================
+
+Contexto: el cliente pasó el logo real (4 diamantes formando una cruz,
+PNG blanco sobre transparente). Reemplaza dos marcas placeholder
+distintas e inconsistentes entre sí que había hasta ahora: la marca "F"
+(Tfl.svelte, usada en Sidebar/loading/bienvenida) y, por separado, un
+ícono de app con un diamante naranja estilo bloque de Minecraft
+(src-tauri/icons/tfl-client-icon.svg) — ninguna de las dos era el logo
+real, y encima no coincidían entre sí.
+
+src/lib/icons/Tfl.svelte
+  - Reemplazado el SVG de la marca "F" (barras T/F/L) por el logo real:
+    4 cuadrados rotados 45° (diamantes) alrededor de un centro
+    compartido, con un espacio chico entre ellos. Vectorizado a mano
+    midiendo el canal alfa del PNG que pasó el cliente (no a ojo) para
+    que las proporciones coincidan. Sigue usando currentColor — hereda
+    el acento activo (de los 12 disponibles) igual que antes, así el
+    logo cambia de color junto con el resto de la interfaz.
+  - Esto cubre los TRES lugares donde se usa este componente en un solo
+    cambio: la marca chica del Sidebar, el ícono de la pantalla de
+    carga, y el círculo grande de la pantalla de bienvenida (welcome-orb)
+    — los tres importan el mismo Tfl.svelte, no eran archivos separados.
+
+src-tauri/icons/
+  + tfl-client-icon-source.png (nuevo, 1024x1024): el logo real
+    compuesto sobre un fondo cuadrado redondeado con degradé oscuro
+    (mismos tonos navy que ya se usaban antes) + un borde interior
+    sutil — mismo tratamiento visual que ya existía, solo con la marca
+    correcta adentro en vez del diamante naranja.
+  ~ Todo el set de íconos regenerado desde ese source con `tauri icon`:
+    icon.icns, icon.ico, icon.png, 32x32.png, 64x64.png, 128x128.png,
+    128x128@2x.png, más los sets de iOS y Android (mipmaps/AppIcon-*).
+    Esto es lo que se ve en el Dock/taskbar y en el instalador — antes
+    mostraba el diamante naranja, ahora muestra el logo real.
+  - tfl-client-icon.svg (el source viejo, diamante naranja) eliminado —
+    ya no se usa nada de ahí.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - Ícono regenerado visualmente inspeccionado (128x128@2x.png) — coincide
+    con la forma del PNG original del cliente.
+  - No se pudo ver el ícono puesto de verdad en el Dock/taskbar/instalador
+    en esta sesión (necesita una build real, no el binario de dev) — se
+    confirma en la próxima build que se pase.
+================================================================================
