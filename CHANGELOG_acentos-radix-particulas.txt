@@ -1,0 +1,75 @@
+TFL CLIENT — CHANGELOG: acentos extendidos (Radix UI Colors) + fondo de partículas
+================================================================================
+
+Repos que pasó el usuario como referencia: react-bits, tsparticles,
+@radix-ui/colors (x2), vanta. De esos:
+  - @radix-ui/colors: usado — valores reales de su escala (paso 9/10),
+    no como dependencia npm (no hace falta el paquete completo en
+    runtime para copiar 6 tripletes hex, verificados en vivo contra
+    unpkg.com/@radix-ui/colors).
+  - tsparticles: usado — @tsparticles/svelte + @tsparticles/slim como
+    dependencias reales.
+  - vanta: NO se metió. Hace básicamente el mismo trabajo que
+    tsparticles (fondo animado) pero arrastra three.js completo
+    (cientos de KB más) — meter los dos hubiera sido redundante y
+    infló el bundle sin sumar nada visualmente distinto.
+  - react-bits: NO se metió — es React, este stack es Svelte. Los
+    componentes no se pueden instalar tal cual, solo sirven como
+    referencia visual para reimplementar algo puntual a mano si se
+    pide algo específico de ahí.
+
+src/styles/global.css
+  + 6 acentos nuevos (Iris, Jade, Crimson, Cyan, Grass, Plum) — mismo
+    patrón que los 6 que ya había (:root[data-accent='x']), valores
+    reales del paso 9 (color principal) y 10 (hover) de cada escala de
+    @radix-ui/colors. Llega a los 12 acentos que habían quedado
+    pendientes de la pasada de diseño anterior.
+
+src/lib/components/settings/SettingsPanel.svelte
+  + Los 6 acentos nuevos agregados al array ACCENTS (mismo grid de
+    swatches de siempre, ya tenía flex-wrap — no hizo falta tocar CSS
+    del grid).
+  + Ambience nuevo "Partículas" agregado a AMBIENCES.
+
+package.json
+  + @tsparticles/svelte, @tsparticles/slim (paquete "slim" = shapes/
+    interacciones básicas, no el motor completo con todos los
+    plugins — más liviano, alcanza para el efecto simple que se pidió).
+
+src/lib/components/layout/ParticlesBackground.svelte (nuevo)
+  - Motas de luz/polvo flotando despacio (36 partículas, sin líneas
+    conectoras tipo "red", sin interacción de mouse) — decoración
+    sutil, no protagonismo. Color = el acento activo (leído del CSS una
+    vez al montar). Movimiento lento hacia arriba con dispersión
+    aleatoria, tamaño y opacidad variables para que no se vea como una
+    grilla uniforme.
+
+src/routes/+page.svelte
+  + Nuevo efecto ambiental "particles": .ambient-bg ahora puede montar
+    <ParticlesBackground /> adentro (mismo contenedor ya usado para el
+    fondo/wallpaper — hereda su stacking correcto, no repite el bug de
+    z-index de la titlebar de la tanda anterior porque queda DENTRO del
+    mismo elemento que ya estaba bien posicionado).
+  + MutationObserver sobre data-ambience/data-reduce-motion en <html> —
+    SettingsPanel cambia esos atributos directo en el DOM (no hay store
+    compartido), esta es la forma de que +page.svelte se entere en vivo
+    sin tener que refactorizar cómo se guardan las preferencias de
+    apariencia.
+  - Partículas se saltean por completo si data-reduce-motion está
+    activo (perfil de calidad Lite) — respeta el sistema de perfiles de
+    calidad que ya existía, no agrega una carga nueva ignorando esa
+    configuración.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - bun run build (build de producción real, no solo type-check):
+    compiló limpio, tsparticles se bundleó sin errores de resolución.
+  - Colores de Radix verificados contra los valores reales publicados
+    (unpkg.com/@radix-ui/colors@3.0.0), no de memoria.
+  - No se pudo ver visualmente el efecto de partículas ni los acentos
+    nuevos corriendo en esta sesión (sin forma de automatizar clicks
+    sobre el binario de desarrollo) — verificado por compilación y
+    lectura de código.
+================================================================================

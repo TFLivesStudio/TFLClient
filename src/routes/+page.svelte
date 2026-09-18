@@ -6,6 +6,7 @@
 	import CreateInstanceModal from '$lib/components/library/CreateInstanceModal.svelte';
 	import InstanceDetail from '$lib/components/library/InstanceDetail.svelte';
 	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
+	import ParticlesBackground from '$lib/components/layout/ParticlesBackground.svelte';
 	import DownloadProgressBar from '$lib/components/library/DownloadProgressBar.svelte';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 	import TflSelection from '$lib/components/library/TflSelection.svelte';
@@ -32,6 +33,14 @@
 	let showCreateModal = $state(false);
 	let showSettings = $state(false);
 	let showTflSelection = $state(false);
+
+	// SettingsPanel cambia data-ambience directo en <html> (localStorage +
+	// setAttribute), no hay ningún store — para saber acá cuándo mostrar
+	// las partículas hace falta observar el atributo.
+	let ambience = $state(
+		typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-ambience') ?? 'aurora') : 'aurora'
+	);
+	let reduceMotion = $state(false);
 
 	async function refreshInstances() {
 		appState.instances = await getInstances();
@@ -67,6 +76,19 @@
 			loading = false;
 			return;
 		}
+
+		const root = document.documentElement;
+		const syncAppearanceState = () => {
+			ambience = root.getAttribute('data-ambience') ?? 'aurora';
+			reduceMotion = root.hasAttribute('data-reduce-motion');
+		};
+		syncAppearanceState();
+		const appearanceObserver = new MutationObserver(syncAppearanceState);
+		appearanceObserver.observe(root, {
+			attributes: true,
+			attributeFilter: ['data-ambience', 'data-reduce-motion']
+		});
+
 		initDownloadListener();
 		initGameSessionListener();
 		try {
@@ -128,7 +150,11 @@
 		<Onboarding onDone={handleOnboardingDone} />
 	{:else}
 		<div class="app-body">
-			<div class="ambient-bg"></div>
+			<div class="ambient-bg">
+				{#if ambience === 'particles' && !reduceMotion}
+					<ParticlesBackground />
+				{/if}
+			</div>
 			<Sidebar
 				instances={appState.instances}
 				selected={appState.selectedInstance}

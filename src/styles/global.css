@@ -156,6 +156,50 @@
 	--accent-text: #17220a;
 }
 
+/* Acentos extendidos — valores reales de @radix-ui/colors (escala paso 9,
+   el "solid" pensado para botones/acentos; hover en paso 10). */
+:root[data-accent='iris'] {
+	--accent: #5b5bd6;
+	--accent-rgb: 91, 91, 214;
+	--accent-hover: #5151cd;
+	--accent-text: #ffffff;
+}
+
+:root[data-accent='jade'] {
+	--accent: #29a383;
+	--accent-rgb: 41, 163, 131;
+	--accent-hover: #26997b;
+	--accent-text: #ffffff;
+}
+
+:root[data-accent='crimson'] {
+	--accent: #e93d82;
+	--accent-rgb: 233, 61, 130;
+	--accent-hover: #df3478;
+	--accent-text: #ffffff;
+}
+
+:root[data-accent='cyan'] {
+	--accent: #00a2c7;
+	--accent-rgb: 0, 162, 199;
+	--accent-hover: #0797b9;
+	--accent-text: #ffffff;
+}
+
+:root[data-accent='grass'] {
+	--accent: #46a758;
+	--accent-rgb: 70, 167, 88;
+	--accent-hover: #3e9b4f;
+	--accent-text: #ffffff;
+}
+
+:root[data-accent='plum'] {
+	--accent: #ab4aba;
+	--accent-rgb: 171, 74, 186;
+	--accent-hover: #a144af;
+	--accent-text: #ffffff;
+}
+
 /* Superficies: cambian la profundidad/tono de base antes de mezclar con
    el acento. Cada una define su propio par oscuro+claro — a propósito,
    para que Medianoche y Pizarra funcionen en los dos temas en vez de

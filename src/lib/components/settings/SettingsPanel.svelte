@@ -48,7 +48,13 @@
 		{ id: 'teal', label: 'Verde azulado', color: '#14b8a6' },
 		{ id: 'blue', label: 'Azul eléctrico', color: '#3b82f6' },
 		{ id: 'rose', label: 'Rosa plasma', color: '#f43f5e' },
-		{ id: 'lime', label: 'Lima', color: '#84cc16' }
+		{ id: 'lime', label: 'Lima', color: '#84cc16' },
+		{ id: 'iris', label: 'Iris', color: '#5b5bd6' },
+		{ id: 'jade', label: 'Jade', color: '#29a383' },
+		{ id: 'crimson', label: 'Carmesí', color: '#e93d82' },
+		{ id: 'cyan', label: 'Cian', color: '#00a2c7' },
+		{ id: 'grass', label: 'Césped', color: '#46a758' },
+		{ id: 'plum', label: 'Ciruela', color: '#ab4aba' }
 	];
 	const SURFACES = [
 		{ id: 'obsidian', label: 'Obsidiana' },
@@ -58,7 +64,8 @@
 	const AMBIENCES = [
 		{ id: 'aurora', label: 'Aurora' },
 		{ id: 'cosmic', label: 'Cósmico' },
-		{ id: 'minimal', label: 'Minimal' }
+		{ id: 'minimal', label: 'Minimal' },
+		{ id: 'particles', label: 'Partículas' }
 	];
 	const WALLPAPERS = [
 		{ id: 'none', label: 'Ninguno', preview: 'transparent' },
