@@ -194,7 +194,7 @@ async fn ensure_downloaded(
 /// lugar reservado — si el lanzamiento tiene éxito, lo libera la tarea de
 /// fondo que espera a que el proceso termine (ver el final de
 /// `launch_inner`).
-pub async fn launch(instance_name: String) -> Result<(), String> {
+pub async fn launch(app: tauri::AppHandle, instance_name: String) -> Result<(), String> {
     {
         let mut guard = RUNNING.lock().unwrap();
         if let Some(running) = guard.as_ref() {
@@ -209,14 +209,42 @@ pub async fn launch(instance_name: String) -> Result<(), String> {
         });
     }
 
-    let result = launch_inner(instance_name).await;
+    let result = launch_inner(app, instance_name).await;
     if result.is_err() {
         *RUNNING.lock().unwrap() = None;
     }
     result
 }
 
-async fn launch_inner(instance_name: String) -> Result<(), String> {
+/// Copia el jar de TFL MP Guard a `instance_dir/mods` si existe uno para
+/// esta versión de Minecraft — enforcement real (no solo el aviso de
+/// texto) para cuentas cracked en instancias con loader. Falla soft: si
+/// no hay jar para esta combinación (versión no soportada todavía), no
+/// bloquea el lanzamiento, solo loguea — la restricción JVM de siempre
+/// (auth hosts falsos) sigue aplicando igual.
+async fn inject_mp_guard(app: &tauri::AppHandle, mc_version: &str, instance_dir: &std::path::Path) {
+    let Ok(base) = crate::core::bundled_resource_dir(app, "mp-guard") else {
+        tracing::debug!("mp-guard: recurso empaquetado no encontrado, se omite");
+        return;
+    };
+    let jar = base.join(mc_version).join("tfl-mp-guard.jar");
+    if !jar.exists() {
+        tracing::info!("mp-guard: sin jar para Minecraft {mc_version}, se omite (queda solo el bloqueo JVM)");
+        return;
+    }
+    let mods_dir = instance_dir.join("mods");
+    if let Err(e) = tokio::fs::create_dir_all(&mods_dir).await {
+        error!("mp-guard: no se pudo crear la carpeta mods: {e}");
+        return;
+    }
+    if let Err(e) = tokio::fs::copy(&jar, mods_dir.join("tfl-mp-guard.jar")).await {
+        error!("mp-guard: no se pudo copiar el jar: {e}");
+    } else {
+        info!("mp-guard: jar instalado para Minecraft {mc_version}");
+    }
+}
+
+async fn launch_inner(app: tauri::AppHandle, instance_name: String) -> Result<(), String> {
     info!("Lanzando instancia \"{instance_name}\"");
     let data = instance_manager::get_instance(&instance_name).await?;
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
@@ -271,7 +299,10 @@ async fn launch_inner(instance_name: String) -> Result<(), String> {
             } else {
                 "mojang"
             }),
-        AccountType::Cracked => builder,
+        // El flag lo lee TFL MP Guard (mod inyectado abajo) para saber si
+        // tiene que bloquear multijugador — sin este flag el mod no hace
+        // nada, ni siquiera si el jar está instalado.
+        AccountType::Cracked => builder.extra_jvm_args(vec!["-Dtflclient.cracked=true".into()]),
     };
 
     let config = builder.build();
@@ -279,6 +310,10 @@ async fn launch_inner(instance_name: String) -> Result<(), String> {
     tokio::fs::create_dir_all(&instance_dir)
         .await
         .map_err(|e| e.to_string())?;
+
+    if user.user_type == AccountType::Cracked && data.loader != LoaderKind::Vanilla {
+        inject_mp_guard(&app, &data.mc_version, &instance_dir).await;
+    }
 
     let handle = LAUNCHWERK.prepare(manifest, config, instance_dir);
     handle.launch().await.map_err(|e| {

@@ -57,7 +57,8 @@
 			"icons/icon.ico"
 		],
 		"resources": {
-			"resources/instance-icons": "instance-icons"
+			"resources/instance-icons": "instance-icons",
+			"resources/mp-guard": "mp-guard"
 		},
 		"macOS": {
 			"signingIdentity": "-"

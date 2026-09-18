@@ -1,0 +1,105 @@
+TFL CLIENT — CHANGELOG: enforcement real de "cracked = solo singleplayer"
+================================================================================
+
+Contexto: reportado que cuentas offline/cracked podían usar multijugador.
+Investigado — la restricción de verdad (fase 2c del plan original) nunca
+se había construido, solo existía:
+  - El bloqueo JVM de auth Mojang (ya andaba, pero solo afecta a
+    servidores online-mode=true reales).
+  - El aviso "Offline — solo singleplayer" en el chip de cuenta (ya
+    andaba, es solo texto informativo).
+Lo que NO existía: nada bloqueaba el botón "Multijugador" en sí, ni
+"Abrir a LAN", ni ninguna instancia con mods (Fabric/Forge/etc) tenía
+NINGÚN tipo de enforcement — una cuenta cracked podía conectarse sin
+problema a cualquier servidor offline-mode=false, o abrir LAN, o jugar
+online en cualquier instancia modded.
+
+mp-guard/ (nuevo, proyecto separado — mod de Minecraft)
+  + Mod Fabric (Java 21, Mixin) para Minecraft 1.21.1. Dos mixins:
+    - TitleScreenMixin: deshabilita el botón "Multijugador" de la
+      pantalla de título.
+    - GameMenuScreenMixin: deshabilita "Abrir a LAN" del menú de pausa.
+    Ambos buscan el botón por su TEXTO TRADUCIDO ("menu.multiplayer" /
+    "menu.shareToLan") en vez de por nombre de campo/método interno —
+    los nombres obfuscados cambian de versión en versión, la clave de
+    traducción no, así que es más resistente a futuras actualizaciones
+    de Minecraft dentro del mismo rango de versión.
+  + El mod solo actúa si arranca con -Dtflclient.cracked=true en la
+    línea de comandos de Java — sin ese flag no hace NADA, ni siquiera
+    si el jar está presente (default seguro: nunca bloquea sin que el
+    launcher se lo pida explícitamente).
+  + NO se pudo compilar ni probar en esta sesión (sandbox sin acceso de
+    red a maven.fabricmc.net ni a los servidores de Mojang que Fabric
+    Loom necesita) — se compiló vía un workflow de CI nuevo
+    (.github/workflows/mp-guard.yml) que sí corre con internet completo.
+    El primer intento falló por incompatibilidad de versión de Gradle
+    (el runner instala 9.x por default, fabric-loom 1.7.4 necesita la
+    generación 8.x) — se fijó Gradle 8.10.2 explícito y compiló bien en
+    el segundo intento. El jar compilado se bajó del artifact de esa
+    corrida y se copió al repo (src-tauri/resources/mp-guard/1.21.1/).
+
+src-tauri/src/core/bundled_resources.rs (nuevo)
+  + bundled_resource_dir(app, subdir): extraído de icon_presets_dir()
+    (que hacía exactamente esto mismo, duplicado, solo para instance-icons)
+    a un helper compartido — con el mismo fallback de desarrollo que ya
+    existía (resource_dir() de Tauri no resuelve nada en `tauri dev`, solo
+    en un .app/.exe real empaquetado). commands/instance.rs actualizado
+    para reusarlo en vez de tener su propia copia.
+
+src-tauri/src/services/launcher.rs
+  + launch()/launch_inner() ahora reciben AppHandle (necesario para
+    resolver el recurso empaquetado del jar).
+  + inject_mp_guard(): si la cuenta es Cracked y el loader NO es Vanilla,
+    copia el jar correspondiente a instance_dir/mods/ antes de lanzar —
+    solo si existe un jar para esa versión de Minecraft (hoy solo
+    1.21.1); si no existe, no bloquea el lanzamiento, solo loguea y
+    queda la protección JVM de siempre.
+  + Cuando la cuenta es Cracked, se agrega -Dtflclient.cracked=true a
+    extra_jvm_args (ya existía ese campo en LaunchConfig, sin usar hasta
+    ahora) — es el flag que el mod lee para activarse.
+
+src-tauri/src/commands/instance.rs
+  - icon_presets_dir() simplificado a una sola línea (llama al helper
+    compartido nuevo).
+  ~ launch(): pasa el AppHandle a launcher::launch() (antes solo lo
+    usaba para abrir la ventana de log).
+
+src-tauri/tauri.conf.json
+  + bundle.resources: agregado "resources/mp-guard": "mp-guard" — se
+    empaqueta junto con los íconos de instancia.
+
+
+LO QUE SIGUE SIN CUBRIR (documentado, no maquillado)
+================================================================================
+  - Solo Minecraft 1.21.1. Otras versiones (1.20.x, snapshots, etc) caen
+    de nuevo en "solo protección JVM", sin bloqueo de botón — según el
+    plan original, cada versión soportada necesita su propio jar
+    (mapeos de ofuscación cambian por versión).
+  - Forge/NeoForge: NO tienen ningún jar todavía — API de mods
+    completamente distinta a Fabric, es otro proyecto separado. Quilt SÍ
+    debería andar con el mismo jar de Fabric (comparten API en la
+    mayoría de versiones) pero no se verificó específicamente.
+  - Vanilla puro (sin loader): sigue sin ningún mod posible — solo la
+    protección JVM de auth Mojang, tal como estaba documentado desde el
+    plan original.
+  - NO se pudo verificar visualmente que el botón realmente aparezca
+    deshabilitado en el juego real — el compilado de Mixin SÍ confirma
+    que las clases/métodos objetivo (TitleScreen.init(), GameMenuScreen.init(),
+    Screen.children(), ClickableWidget.active) existen con esas firmas
+    exactas en 1.21.1 (Mixin verifica esto a nivel de bytecode al
+    compilar, generó el refmap sin error), pero no confirma que el TEXTO
+    del botón coincida exactamente con "menu.multiplayer"/"menu.shareToLan"
+    en tiempo de ejecución, ni el comportamiento visual real.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - mp-guard: compiló exitosamente en CI (ver run del workflow
+    mp-guard.yml) — Mixin generó el refmap sin errores, lo que confirma
+    que los targets existen con la firma esperada en 1.21.1+Yarn build.3.
+  - NO probado: lanzar una instancia Fabric 1.21.1 con cuenta cracked y
+    confirmar en el juego real que el botón aparece gris/deshabilitado —
+    necesita una máquina real con Minecraft, no se pudo en esta sesión.
+================================================================================

@@ -16,31 +16,8 @@ const ICON_EXTENSIONS: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
 /// de instancia CC0 (Simplexity-Development/Entity-Icons +
 /// hube12/mc_icons) para elegir al azar al crear una instancia y después
 /// poder cambiar por otro del mismo set, sin depender de red.
-///
-/// `resource_dir()` resuelve a `${exe_dir}/../Resources` en macOS — válido
-/// dentro de un .app real, pero en `tauri dev` el binario corre suelto
-/// desde `target/debug/` sin ningún bundle alrededor, así que esa carpeta
-/// nunca existe ahí. Sin este fallback, el feature completo aparenta
-/// estar roto en cualquier sesión de desarrollo aunque funcione bien en
-/// un build real — se verificó justamente así (compilaba, pero
-/// `resource_dir()` apuntaba a una carpeta inexistente en dev).
 fn icon_presets_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
-    if let Ok(d) = app.path().resource_dir() {
-        let candidate = d.join("instance-icons");
-        if candidate.is_dir() {
-            return Ok(candidate);
-        }
-    }
-
-    #[cfg(debug_assertions)]
-    {
-        let dev_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/instance-icons");
-        if dev_path.is_dir() {
-            return Ok(dev_path);
-        }
-    }
-
-    Err("No se encontró la carpeta de íconos empaquetados".into())
+    crate::core::bundled_resource_dir(app, "instance-icons")
 }
 
 async fn resolve_loader(
@@ -156,7 +133,7 @@ pub async fn launch(app: AppHandle, instance_name: String) -> Result<(), String>
     // launcher::launch() rechaza si ya hay otra instancia corriendo — se
     // valida ahí antes, así que acá nunca se abre una ventana de log
     // huérfana por un lanzamiento que ni siquiera arrancó.
-    launcher::launch(instance_name.clone()).await?;
+    launcher::launch(app.clone(), instance_name.clone()).await?;
     open_log_window(&app, &instance_name)
 }
 
