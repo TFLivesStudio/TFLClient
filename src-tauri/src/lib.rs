@@ -68,6 +68,7 @@ pub fn run() {
             commands::mods::remove_shader,
             commands::modpacks::search_modpacks,
             commands::modpacks::install_modpack,
+            commands::modpacks::install_modpack_from_url,
             commands::modpacks::get_instance_modpacks,
             commands::modpacks::remove_modpack,
             commands::tfl_selection::get_tfl_selection,

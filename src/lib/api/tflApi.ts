@@ -115,6 +115,8 @@ export const getInstanceModpacks = (instanceName: string) =>
 	invoke<InstalledModpack[]>('get_instance_modpacks', { instanceName });
 export const removeModpack = (instanceName: string, versionId: string) =>
 	invoke<void>('remove_modpack', { instanceName, versionId });
+export const installModpackFromUrl = (instanceName: string, sourceId: string, mrpackUrl: string) =>
+	invoke<InstalledModpack>('install_modpack_from_url', { instanceName, sourceId, mrpackUrl });
 
 // ── TFL Selection ────────────────────────────────────────────────────
 export const getTflSelection = () => invoke<TflSelectionEntry[]>('get_tfl_selection');

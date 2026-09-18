@@ -1,0 +1,84 @@
+TFL CLIENT — CHANGELOG: TFL Selection descubre modpacks comunitarios de GitHub
+================================================================================
+
+Contexto: el cliente quería poder publicar sus propios modpacks (repo
+público en GitHub) y que aparezcan solos en TFL Selection, sin tocar
+código del launcher ni depender de que alguien acá los agregue a mano.
+
+src-tauri/src/commands/tfl_selection.rs (reescrito)
+  + get_tfl_selection() ahora junta DOS fuentes: la lista curada de
+    Modrinth de siempre (sin cambios), más el descubrimiento en vivo de
+    GitHub — corre cada vez que se abre el panel, no hay caché ni
+    servidor propio de por medio.
+  + discover_community_modpacks(): pega
+    GET api.github.com/search/repositories?q=org:TFLivesStudio+topic:tfl-modpack
+    (probado en vivo, query válida) — devuelve repos CANDIDATOS, nada
+    más. Restringido a la org TFLivesStudio a propósito: un repo ajeno
+    con el mismo topic puesto por otra persona nunca va a aparecer.
+  + fetch_manifest(): por cada candidato, pide
+    /repos/{owner}/{repo}/contents/tfl-modpack.json puntual. Si no
+    existe, está mal formado, le falta un campo obligatorio, o el
+    loader no es uno de los 5 válidos (vanilla/fabric/forge/neoforge/
+    quilt) — se descarta ese repo en silencio, no rompe el resto de la
+    lista ni tira error al usuario. El topic filtra candidatos; el
+    manifest válido es lo único que realmente decide si algo aparece.
+  + Soporta las DOS plantillas de manifest que se le pasaron al cliente
+    en la conversación: la plana (mc_version/loader/mrpack_url sueltos,
+    para un pack de una sola versión) y la de array `versions` (para un
+    pack compatible con varias versiones de Minecraft a la vez, cada
+    entrada con su propio mc_version/loader/mrpack_url).
+  + TflSelectionEntry ahora tiene un `id` estable (project_id de
+    Modrinth, o "owner/repo" para comunitarios) en vez de asumir que
+    siempre hay project_id — es la clave que usa el frontend para todo
+    (loop, selección de instancia, estado de instalación).
+
+src-tauri/src/commands/modpacks.rs
+  + install_modpack_from_url(instance_name, source_id, mrpack_url):
+    mismo motor que install_modpack (cubrinth::mrpack::install_mrpack)
+    pero sin pasar por la API de Modrinth — el manifest de GitHub ya
+    trae la URL exacta del .mrpack, se descarga directo y se instala.
+    Queda registrado con el mismo formato de manifest local que usa
+    install_modpack, así que remove_modpack (desinstalar) funciona
+    igual para los dos tipos sin tocar nada ahí.
+
+src-tauri/src/lib.rs
+  + Registrado install_modpack_from_url.
+
+src/lib/types/types.ts
+  + TflSelectionEntry: campos nuevos id/source/versions, project_id
+    ahora opcional. + ModpackVersion (mc_version/loader/mrpack_url).
+
+src/lib/api/tflApi.ts
+  + installModpackFromUrl() — wrapper del comando nuevo.
+
+src/lib/components/library/TflSelection.svelte
+  - Reescrito para trabajar con entry.id en vez de entry.project_id
+    (project_id ya no existe siempre).
+  + compatibleInstancesFor(entry): para Modrinth, cualquier instancia
+    con loader (como antes — la mejor versión se resuelve en el momento
+    contra la API). Para comunitarios, SOLO instancias cuya versión de
+    Minecraft + loader coincidan EXACTO con alguno de los builds que
+    ofrece el pack — si el pack es compatible con 1.18/1.19/1.20 y el
+    usuario tiene una instancia 1.21, no se la ofrece (no hay build para
+    eso).
+  + Tarjeta de un pack comunitario muestra qué versiones soporta
+    (ej. "1.18.2 (forge) · 1.19.4 (forge)").
+  + Si ninguna instancia del usuario coincide con las versiones del
+    pack, la tarjeta queda con el selector/botón deshabilitado y un
+    aviso — ya no depende de un chequeo global único, es por tarjeta.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - Query real de búsqueda de GitHub probada en vivo (curl directo a
+    api.github.com) — sintaxis válida, 0 resultados porque el cliente
+    todavía no creó ningún repo con el topic (esperado, no hay nada que
+    descubrir todavía).
+  - NO se pudo probar el flujo completo con un repo real (crear un repo
+    de prueba con el topic + manifest y ver que aparezca en el panel) —
+    necesita que exista al menos un repo así en la org, que todavía no
+    existe. Cuando el cliente suba el primero, se puede confirmar de
+    verdad.
+================================================================================

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { InstanceData, TflSelectionEntry } from '$lib/types/types';
-	import { getTflSelection, installModpack } from '$lib/api/tflApi';
+	import { getTflSelection, installModpack, installModpackFromUrl } from '$lib/api/tflApi';
 	import { X, Download, Loader2, Check } from 'lucide-svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
 
@@ -14,13 +14,26 @@
 	let doneFor = $state<Set<string>>(new Set());
 	let errorFor = $state<Record<string, string>>({});
 
-	const compatibleInstances = $derived(instances.filter((i) => i.loader !== 'vanilla'));
+	// Modrinth: cualquier instancia con loader (la mejor versión se
+	// resuelve en el momento contra la API de Modrinth). Comunitarios: solo
+	// instancias cuya versión de Minecraft + loader coincida EXACTO con
+	// alguno de los builds que ofrece el pack (puede tener varios, uno por
+	// versión soportada).
+	function compatibleInstancesFor(entry: TflSelectionEntry): InstanceData[] {
+		if (entry.source === 'modrinth') {
+			return instances.filter((i) => i.loader !== 'vanilla');
+		}
+		return instances.filter((i) =>
+			entry.versions.some((v) => v.loader === i.loader && v.mc_version === i.mc_version)
+		);
+	}
 
 	onMount(async () => {
 		try {
 			entries = await getTflSelection();
 			for (const e of entries) {
-				if (compatibleInstances[0]) selectedInstance[e.project_id] = compatibleInstances[0].uuid;
+				const compat = compatibleInstancesFor(e);
+				if (compat[0]) selectedInstance[e.id] = compat[0].uuid;
 			}
 		} finally {
 			loading = false;
@@ -28,17 +41,25 @@
 	});
 
 	async function handleInstall(entry: TflSelectionEntry) {
-		const uuid = selectedInstance[entry.project_id];
+		const uuid = selectedInstance[entry.id];
 		const instance = instances.find((i) => i.uuid === uuid);
 		if (!instance) return;
 
-		installingFor = entry.project_id;
-		errorFor = { ...errorFor, [entry.project_id]: '' };
+		installingFor = entry.id;
+		errorFor = { ...errorFor, [entry.id]: '' };
 		try {
-			await installModpack(instance.name, entry.project_id, instance.mc_version, instance.loader);
-			doneFor = new Set(doneFor).add(entry.project_id);
+			if (entry.source === 'modrinth') {
+				await installModpack(instance.name, entry.project_id!, instance.mc_version, instance.loader);
+			} else {
+				const variant = entry.versions.find(
+					(v) => v.loader === instance.loader && v.mc_version === instance.mc_version
+				);
+				if (!variant) throw new Error('No hay un build de este pack para esa instancia');
+				await installModpackFromUrl(instance.name, entry.id, variant.mrpack_url);
+			}
+			doneFor = new Set(doneFor).add(entry.id);
 		} catch (e) {
-			errorFor = { ...errorFor, [entry.project_id]: String(e) };
+			errorFor = { ...errorFor, [entry.id]: String(e) };
 		} finally {
 			installingFor = null;
 		}
@@ -78,14 +99,15 @@
 			<div class="loading-row"><Loader2 size={18} class="spin" /></div>
 		{:else if entries.length === 0}
 			<p class="empty">Todavía no hay modpacks en la selección.</p>
-		{:else if compatibleInstances.length === 0}
+		{:else if !instances.some((i) => i.loader !== 'vanilla')}
 			<p class="empty">
 				Necesitás una instancia con Fabric, Forge, NeoForge o Quilt para instalar un modpack —
 				Vanilla no soporta mods.
 			</p>
 		{:else}
 			<div class="entries">
-				{#each entries as entry (entry.project_id)}
+				{#each entries as entry (entry.id)}
+					{@const compat = compatibleInstancesFor(entry)}
 					<div class="entry-card anim-fade-in">
 						<div class="entry-glow"></div>
 						{#if entry.icon_url}
@@ -96,26 +118,33 @@
 						<div class="entry-info">
 							<span class="entry-title">{entry.title}</span>
 							<p class="entry-desc">{entry.description}</p>
-							{#if errorFor[entry.project_id]}
-								<p class="entry-error">{errorFor[entry.project_id]}</p>
+							{#if entry.source === 'community'}
+								<p class="entry-versions">
+									{entry.versions.map((v) => `${v.mc_version} (${v.loader})`).join(' · ')}
+								</p>
+							{/if}
+							{#if compat.length === 0}
+								<p class="entry-error">Ninguna instancia tuya coincide con las versiones de este pack.</p>
+							{:else if errorFor[entry.id]}
+								<p class="entry-error">{errorFor[entry.id]}</p>
 							{/if}
 						</div>
 						<div class="entry-actions">
-							<select bind:value={selectedInstance[entry.project_id]}>
-								{#each compatibleInstances as inst (inst.uuid)}
+							<select bind:value={selectedInstance[entry.id]} disabled={compat.length === 0}>
+								{#each compat as inst (inst.uuid)}
 									<option value={inst.uuid}>{inst.name}</option>
 								{/each}
 							</select>
 							<button
 								type="button"
 								class="install-btn"
-								disabled={installingFor === entry.project_id}
+								disabled={installingFor === entry.id || compat.length === 0}
 								onclick={() => handleInstall(entry)}
 							>
-								<span class="install-label">{doneFor.has(entry.project_id) ? 'Añadido' : 'Añadir'}</span>
-								{#if installingFor === entry.project_id}
+								<span class="install-label">{doneFor.has(entry.id) ? 'Añadido' : 'Añadir'}</span>
+								{#if installingFor === entry.id}
 									<Loader2 size={14} class="spin" />
-								{:else if doneFor.has(entry.project_id)}
+								{:else if doneFor.has(entry.id)}
 									<Check size={14} />
 								{:else}
 									<Download size={14} />
@@ -255,6 +284,13 @@
 		font-size: 0.74rem;
 		color: var(--text-muted);
 		margin-top: 2px;
+	}
+
+	.entry-versions {
+		font-size: 0.68rem;
+		color: var(--accent);
+		margin-top: 4px;
+		font-weight: 700;
 	}
 
 	.entry-error {

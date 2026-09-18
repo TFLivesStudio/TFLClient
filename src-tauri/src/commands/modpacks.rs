@@ -140,6 +140,67 @@ pub async fn install_modpack(
     Ok(installed)
 }
 
+/// Instala un modpack desde una URL de .mrpack directa — usado por TFL
+/// Selection para los modpacks comunitarios descubiertos en GitHub (no
+/// tienen project_id de Modrinth, ya viene resuelta la URL exacta desde
+/// el manifest del repo). Mismo motor que install_modpack (cubrinth),
+/// solo cambia de dónde sale el archivo.
+#[command]
+pub async fn install_modpack_from_url(
+    instance_name: String,
+    source_id: String,
+    mrpack_url: String,
+) -> Result<InstalledModpack, String> {
+    let instance = instance_manager::get_instance(&instance_name).await?;
+    let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
+    let temp_dir = shared_dir
+        .join("temp")
+        .join(format!("mrpack-community-{}", uuid::Uuid::new_v4()));
+    tokio::fs::create_dir_all(&temp_dir)
+        .await
+        .map_err(|e| e.to_string())?;
+    let temp_file = temp_dir.join("pack.mrpack");
+
+    let bytes = get_bytes_retrying(&mrpack_url).await?;
+    tokio::fs::write(&temp_file, &bytes)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let metadata = cubrinth::mrpack::install_mrpack(&temp_file, &instance.dir(), &shared_dir, None)
+        .await
+        .map_err(|e| e.to_string());
+
+    let _ = tokio::fs::remove_dir_all(&temp_dir).await;
+    let metadata = metadata?;
+
+    let installed = InstalledModpack {
+        project_id: source_id.clone(),
+        version_id: metadata.version_id.clone(),
+        title: metadata.name.clone(),
+        file_count: metadata.installed_paths.len(),
+    };
+
+    let manifest_dir = manifest_dir(&instance.dir());
+    tokio::fs::create_dir_all(&manifest_dir)
+        .await
+        .map_err(|e| e.to_string())?;
+    let manifest_path = manifest_dir.join(format!("{}.json", metadata.version_id));
+    let manifest = serde_json::json!({
+        "project_id": source_id,
+        "version_id": metadata.version_id,
+        "title": metadata.name,
+        "installed_paths": metadata.installed_paths,
+    });
+    tokio::fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).map_err(|e| e.to_string())?,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(installed)
+}
+
 #[command]
 pub async fn get_instance_modpacks(instance_name: String) -> Result<Vec<InstalledModpack>, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;

@@ -86,11 +86,20 @@ export interface InstalledModpack {
 	file_count: number;
 }
 
+export interface ModpackVersion {
+	mc_version: string;
+	loader: string;
+	mrpack_url: string;
+}
+
 export interface TflSelectionEntry {
-	project_id: string;
+	id: string;
 	title: string;
 	description: string;
 	icon_url: string | null;
+	source: 'modrinth' | 'community';
+	project_id: string | null;
+	versions: ModpackVersion[];
 }
 
 export interface DownloadProgressEvent {
