@@ -36,6 +36,12 @@
 
 	let query = $state('');
 
+	// Hint de la paleta de comandos (CommandPalette.svelte) — Cmd+K en
+	// macOS, Ctrl+K en Windows/Linux. Solo texto, la tecla real la maneja
+	// CommandPalette con e.metaKey || e.ctrlKey (agnóstico de plataforma).
+	const shortcutLabel =
+		typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform) ? '⌘K' : 'Ctrl K';
+
 	// Cabeza real de cuentas premium — se pide a Mojang directo (session
 	// server oficial), no a un CDN de terceros de renderizado de avatares
 	// (Crafatar/mc-heads.net/etc probaron estar caídos en distintos
@@ -88,6 +94,7 @@
 			<div class="search-box">
 				<Search size={13} />
 				<input type="text" placeholder="Buscar…" bind:value={query} />
+				<kbd class="shortcut-hint">{shortcutLabel}</kbd>
 			</div>
 		{/if}
 
@@ -266,6 +273,17 @@
 		outline: none;
 		font-size: 0.78rem;
 		color: var(--text-primary);
+	}
+
+	.shortcut-hint {
+		font-size: 0.62rem;
+		font-weight: 700;
+		color: var(--text-muted);
+		background: var(--bg-card);
+		border: 1px solid var(--border);
+		border-radius: 4px;
+		padding: 2px 5px;
+		flex-shrink: 0;
 	}
 
 	.instance-list {
