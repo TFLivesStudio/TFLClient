@@ -1,0 +1,52 @@
+TFL CLIENT — CHANGELOG: optimización de consumo de RAM
+================================================================================
+
+Contexto: reportado ~307MB en el proceso "tauri://localhost" (el
+renderer real de la UI), que no bajaba ni desactivando el modo
+Partículas. Aviso honesto de entrada: JS engines (WebKit/JavaScriptCore
+acá) no siempre devuelven memoria al sistema operativo apenas se libera
+internamente — es normal que el número que muestra Activity Monitor no
+baje hasta cerrar y reabrir la app, aunque no haya ningún leak real.
+Dicho eso, se aplicaron optimizaciones reales sobre lo que sí es
+controlable desde el código.
+
+src-tauri/tauri.conf.json
+  - devtools: true → false. Estaba habilitado hasta en builds de
+    RELEASE (lo que se distribuye) — según la propia documentación de
+    Tauri, en builds de debug (`tauri dev`) devtools sigue disponible
+    SIEMPRE sin importar este flag, así que esto no afecta nada del
+    desarrollo, solo lo que se empaqueta y se reparte. Tener devtools
+    cargado de más en el build final es costo de memoria innecesario
+    (y superficie de ataque de más — cualquiera podría abrir la consola
+    e inspeccionar/manipular la app).
+
+src/lib/components/layout/ParticlesBackground.svelte
+  ~ pauseOnBlur + pauseOnOutsideViewport: true (nuevos) — la animación
+    de partículas seguía corriendo (CPU/GPU) aunque la ventana estuviera
+    minimizada o sin foco. Ahora se pausa sola.
+  ~ detectRetina: true → false — en pantallas retina/HiDPI el buffer del
+    canvas se multiplica por el devicePixelRatio (2x-3x más píxeles
+    reales que renderizar y mantener en memoria). Para 24 motas
+    decorativas de fondo no vale ese costo, no se nota la diferencia
+    visual a simple vista.
+  ~ 36 → 24 partículas, fpsLimit 60 → 30 — menos trabajo por frame.
+  - Se confirmó (leyendo el código de @tsparticles/svelte) que el
+    componente SÍ destruye el motor de partículas correctamente al
+    desactivarse (llama a container.destroy() en onDestroy) — no había
+    un leak de código ahí; el número alto que no bajaba es más
+    consistente con el comportamiento normal de "memoria no devuelta al
+    SO tras un pico" explicado arriba que con una fuga real.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - tauri.conf.json validado como JSON válido.
+  - No se pudo medir el consumo de RAM real antes/después en esta sesión
+    (no hay forma de lanzar y perfilar el binario empaquetado desde acá)
+    — los cambios son reducciones reales y verificables por lectura de
+    código (menos partículas, sin retina, pausa automática, sin
+    devtools en release), pero el número final en Activity Monitor
+    conviene confirmarlo en la próxima build ya instalada.
+================================================================================

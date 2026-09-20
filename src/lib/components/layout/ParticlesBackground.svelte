@@ -22,9 +22,14 @@
 
 	const options: ISourceOptions = {
 		fullScreen: { enable: false },
-		fpsLimit: 60,
+		fpsLimit: 30,
+		// Corta la animación sola en cuanto la ventana pierde foco o queda
+		// fuera de pantalla (minimizada) — sin esto seguía consumiendo CPU/GPU
+		// de fondo aunque nadie la estuviera viendo.
+		pauseOnBlur: true,
+		pauseOnOutsideViewport: true,
 		particles: {
-			number: { value: 36, density: { enable: true, width: 1600, height: 900 } },
+			number: { value: 24, density: { enable: true, width: 1600, height: 900 } },
 			color: { value: accentColor },
 			opacity: {
 				value: { min: 0.08, max: 0.35 },
@@ -44,7 +49,10 @@
 		interactivity: {
 			events: { onHover: { enable: false }, onClick: { enable: false } }
 		},
-		detectRetina: true
+		// El buffer del canvas en pantallas retina/HiDPI se multiplica por el
+		// devicePixelRatio (2x-3x más píxeles reales) — para 24 motas
+		// decorativas no vale ese costo de memoria, se nota igual en 1x.
+		detectRetina: false
 	};
 </script>
 
