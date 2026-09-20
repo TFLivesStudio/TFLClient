@@ -1,0 +1,74 @@
+TFL CLIENT — CHANGELOG: OLED, estilo de tarjeta, microinteracciones, Cmd+K
+================================================================================
+
+Contexto: pedido de nivelar la capa visual al estándar de apps tipo
+Raycast/Linear/Lovable. La mayoría de lo pedido (sistema de tokens,
+temas dark/light, glassmorphism con backdrop-blur, 12 acentos
+inyectables, densidad, lucide-svelte unificado) YA estaba construido de
+tandas anteriores — se aclaró eso antes de tocar código (ver
+conversación) para no reescribir sobre lo mismo. Esta tanda cubre los 4
+gaps reales identificados.
+
+Nota de stack: el pedido original asumía React + Tailwind
+(clsx/tailwind-merge/lucide-react/framer-motion) — este proyecto es
+Svelte 5 + CSS nativo, no se instaló nada de eso. Svelte ya resuelve lo
+mismo nativo (class:condición, transiciones nativas, lucide-svelte ya en
+uso) sin agregar dependencias ni reescribir el CSS existente a utility
+classes.
+
+src/styles/global.css
+  + Superficie "OLED": negro puro (#000000), solo tiene efecto en modo
+    oscuro (elegirla en modo claro no hace nada — no hay contradicción
+    de "negro puro claro"). Mismo patrón que Obsidiana/Medianoche/Pizarra.
+  + Estilo de tarjeta "minimal": nueva regla CSS global
+    (html[data-card-style='minimal']) que oculta ícono/miniatura/glow en
+    .mod-card, .entry-card e .instance-avatar — sin tocar el markup de
+    ModsPanel/ShadersPanel/ModpacksPanel/TflSelection/Sidebar, apunta
+    directo a las clases que ya existían en cada uno.
+  + Microinteracciones parejas: transición base (170ms ease-out, dentro
+    del rango 150-200ms pedido) en TODOS los elementos interactivos
+    comunes (button, a, select, .choice, .swatch, .instance-item,
+    .mod-card, .entry-card, etc) — antes cada componente definía la suya
+    suelta o ninguna.
+  + Anillo de foco (:focus-visible) global — no existía NINGÚN estilo de
+    foco por teclado en toda la app hasta ahora. Solo aparece con
+    teclado, nunca con click de mouse.
+
+src/lib/components/settings/SettingsPanel.svelte
+  + "OLED" agregado a la lista de superficies.
+  + Nueva sección "Estilo de tarjeta" (Rica/Minimal) en la pestaña Estilo,
+    mismo patrón que Densidad (persistido en localStorage +
+    data-card-style en <html>).
+
+src/routes/+page.svelte
+  + data-card-style sumado a restoreAppearance() (mismo patrón que el
+    resto de preferencias de apariencia).
+  + Montado <CommandPalette> (nuevo) fuera del branch de la ventana de
+    log — no tiene sentido ahí.
+
+src/lib/components/layout/CommandPalette.svelte (nuevo)
+  - Paleta de comandos tipo Raycast/Linear, Cmd+K (Mac) / Ctrl+K
+    (Windows/Linux) desde cualquier pantalla. Lista: todas las
+    instancias (Enter = seleccionarla y cerrar) + 3 acciones (Crear
+    instancia, TFL Selection, Ajustes). Filtro en vivo por texto,
+    navegación completa por teclado (↑↓ mueve la selección, Enter
+    ejecuta, Escape cierra), hover de mouse también mueve la selección.
+    Entrada con fade-in + slide-up de 4px (reusa la animación
+    tfl-fade-in que ya existía, respeta el guard de perfil Lite/
+    data-reduce-motion sin nada nuevo que hacer).
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación,
+    sin cambios de Rust esta tanda).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes
+    (1 warning nuevo de accesibilidad detectado y corregido en el momento).
+  - bun run build (build de producción real): compiló limpio.
+  - No se pudo ver ninguno de los 4 cambios funcionando en vivo en esta
+    sesión (sin forma de automatizar clicks/teclado sobre el binario de
+    desarrollo) — verificado por compilación y lectura de código. El
+    Cmd+K en particular conviene probarlo a mano apenas se instale esta
+    versión: abrir con Cmd/Ctrl+K, escribir para filtrar, flechas +
+    Enter para confirmar que selecciona bien.
+================================================================================

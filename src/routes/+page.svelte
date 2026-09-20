@@ -7,6 +7,7 @@
 	import InstanceDetail from '$lib/components/library/InstanceDetail.svelte';
 	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
 	import ParticlesBackground from '$lib/components/layout/ParticlesBackground.svelte';
+	import CommandPalette from '$lib/components/layout/CommandPalette.svelte';
 	import DownloadProgressBar from '$lib/components/library/DownloadProgressBar.svelte';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 	import TflSelection from '$lib/components/library/TflSelection.svelte';
@@ -53,7 +54,8 @@
 			['tfl-surface', 'data-surface', 'obsidian'],
 			['tfl-ambience', 'data-ambience', 'aurora'],
 			['tfl-density', 'data-density', 'comfortable'],
-			['tfl-wallpaper', 'data-wallpaper', 'none']
+			['tfl-wallpaper', 'data-wallpaper', 'none'],
+			['tfl-card-style', 'data-card-style', 'rich']
 		] as const;
 		for (const [storageKey, attribute, defaultValue] of preferences) {
 			// Cada superficie (data-surface) trae su propia variante clara y
@@ -203,6 +205,16 @@
 
 {#if showCreateModal}
 	<CreateInstanceModal onClose={() => (showCreateModal = false)} onCreated={handleCreated} />
+{/if}
+
+{#if !isLogWindow}
+	<CommandPalette
+		instances={appState.instances}
+		onSelectInstance={handleSelect}
+		onCreate={() => (showCreateModal = true)}
+		onOpenSettings={() => (showSettings = true)}
+		onOpenTflSelection={() => (showTflSelection = true)}
+	/>
 {/if}
 
 {#if showSettings}

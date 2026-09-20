@@ -240,6 +240,19 @@
 	--raw-border: rgba(0, 0, 0, 0.14);
 }
 
+/* OLED — negro puro, ahorra batería en pantallas OLED reales y da el
+   máximo contraste. Solo tiene sentido en modo oscuro (elegirla en modo
+   claro no hace nada, no hay variante clara de "negro puro" — sería
+   contradictorio). */
+:root:not([data-theme='light'])[data-surface='oled'] {
+	--raw-main: #000000;
+	--raw-sidebar: #000000;
+	--raw-card: rgba(8, 8, 8, 0.92);
+	--raw-item-active: #0d0d0d;
+	--raw-input: #000000;
+	--raw-border: rgba(255, 255, 255, 0.09);
+}
+
 * {
 	box-sizing: border-box;
 	margin: 0;
@@ -266,6 +279,42 @@ select,
 textarea {
 	font-family: inherit;
 	color: inherit;
+}
+
+/* Microinteracciones parejas en TODA la app — antes cada componente
+   definía su propia transición (o ninguna) suelta. Esto es la base
+   compartida; un componente puede seguir agregando SU transición
+   puntual encima (ej. transform en hover de una card), esto solo
+   garantiza que color/fondo/borde respondan igual de rápido en todos
+   lados. 170ms ease-out: perceptible pero no lento, el rango que pide
+   cualquier guía de motion de apps tipo Raycast/Linear (150-200ms). */
+button,
+a,
+select,
+.choice,
+.swatch,
+.wallpaper-swatch,
+.icon-swatch,
+.mascot-swatch,
+.ptab,
+.instance-item,
+.mod-card,
+.entry-card,
+.quick-card {
+	transition:
+		background-color 0.17s ease-out,
+		border-color 0.17s ease-out,
+		color 0.17s ease-out,
+		opacity 0.17s ease-out;
+}
+
+/* Anillo de foco consistente — solo aparece con teclado (:focus-visible,
+   no en click de mouse), nunca existió un estilo de foco a propósito en
+   toda la app hasta ahora. */
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+	border-radius: 4px;
 }
 
 input,
@@ -336,6 +385,19 @@ html[data-reduce-motion]:not([data-quality='experience']) *::after {
 html[data-no-blur] * {
 	backdrop-filter: none !important;
 	-webkit-backdrop-filter: none !important;
+}
+
+/* Estilo de tarjeta — "rica" (default, con miniatura/ícono/efecto glow) vs
+   "minimal" (solo texto). CSS puro, no toca el markup de cada panel —
+   apunta directo a las clases de ícono/preview que ya existen en
+   Sidebar/ModsPanel/ShadersPanel/ModpacksPanel/TflSelection. */
+html[data-card-style='minimal'] .mod-card > img,
+html[data-card-style='minimal'] .mod-card > .mod-icon-fallback,
+html[data-card-style='minimal'] .entry-card > img,
+html[data-card-style='minimal'] .entry-card > .entry-icon-fallback,
+html[data-card-style='minimal'] .entry-glow,
+html[data-card-style='minimal'] .instance-avatar {
+	display: none !important;
 }
 
 /* Fondo de pantalla elegible — capa de abajo de todo (gradiente/foto/color

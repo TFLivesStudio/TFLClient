@@ -59,7 +59,8 @@
 	const SURFACES = [
 		{ id: 'obsidian', label: 'Obsidiana' },
 		{ id: 'midnight', label: 'Medianoche' },
-		{ id: 'slate', label: 'Pizarra' }
+		{ id: 'slate', label: 'Pizarra' },
+		{ id: 'oled', label: 'OLED' }
 	];
 	const AMBIENCES = [
 		{ id: 'aurora', label: 'Aurora' },
@@ -106,6 +107,9 @@
 	let ambience = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-ambience') ?? 'aurora') : 'aurora');
 	let density = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-density') ?? 'comfortable') : 'comfortable');
 	let wallpaper = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-wallpaper') ?? 'none') : 'none');
+	let cardStyle = $state(
+		typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-card-style') ?? 'rich') : 'rich'
+	);
 
 	let ramTotal = $state<number | null>(null);
 	let minRam = $state(appState.settings?.min_memory ?? 1024);
@@ -198,6 +202,10 @@
 	function applyDensity(id: string) {
 		density = id;
 		applyPreference('tfl-density', 'data-density', id, 'comfortable');
+	}
+	function applyCardStyle(id: string) {
+		cardStyle = id;
+		applyPreference('tfl-card-style', 'data-card-style', id, 'rich');
 	}
 
 	async function setTheme(theme: 'dark' | 'light') {
@@ -507,6 +515,13 @@
 				<section>
 					<span class="section-label">Densidad de interfaz</span>
 					<div class="row"><button type="button" class="choice" class:active={density === 'comfortable'} onclick={() => applyDensity('comfortable')}>Cómoda</button><button type="button" class="choice" class:active={density === 'compact'} onclick={() => applyDensity('compact')}>Compacta</button></div>
+				</section>
+				<section>
+					<span class="section-label">Estilo de tarjeta</span>
+					<div class="row">
+						<button type="button" class="choice" class:active={cardStyle === 'rich'} onclick={() => applyCardStyle('rich')}>Rica</button>
+						<button type="button" class="choice" class:active={cardStyle === 'minimal'} onclick={() => applyCardStyle('minimal')}>Minimal</button>
+					</div>
 				</section>
 			{:else if tab === 'accounts'}
 				<section>
