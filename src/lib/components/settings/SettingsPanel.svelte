@@ -190,6 +190,13 @@
 	function applySurface(id: string) {
 		surface = id;
 		applyPreference('tfl-surface', 'data-surface', id, 'obsidian');
+		// OLED (negro puro) solo tiene variante oscura — a propósito, un
+		// "negro puro claro" no tiene sentido. Sin este auto-switch, elegirla
+		// estando en modo claro no cambiaba nada visualmente y parecía que el
+		// botón no hacía nada.
+		if (id === 'oled' && appState.settings?.theme !== 'dark') {
+			setTheme('dark');
+		}
 	}
 	function applyAmbience(id: string) {
 		ambience = id;

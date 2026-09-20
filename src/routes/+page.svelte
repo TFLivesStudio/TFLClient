@@ -210,6 +210,7 @@
 {#if !isLogWindow}
 	<CommandPalette
 		instances={appState.instances}
+		blocked={showCreateModal || showSettings || showTflSelection}
 		onSelectInstance={handleSelect}
 		onCreate={() => (showCreateModal = true)}
 		onOpenSettings={() => (showSettings = true)}

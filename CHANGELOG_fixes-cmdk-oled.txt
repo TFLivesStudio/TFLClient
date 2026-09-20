@@ -1,0 +1,65 @@
+TFL CLIENT — CHANGELOG: 3 bugs reales encontrados y arreglados (paleta de comandos + OLED)
+================================================================================
+
+Contexto: tanda dedicada específicamente a corrección de bugs, sin
+features nuevas. Auditoría de lo agregado la tanda anterior (paleta de
+comandos Cmd+K, superficie OLED).
+
+src/lib/components/layout/CommandPalette.svelte
+  - BUG REAL #1: Cmd/Ctrl+K se podía apilar ENCIMA de otro modal ya
+    abierto (Ajustes, Crear instancia, TFL Selection) — la paleta tiene
+    z-index más alto que el resto, quedaban los dos overlays activos al
+    mismo tiempo, UI rota (podías, por ejemplo, estar en Ajustes,
+    apretar Cmd+K, elegir "Crear instancia" y terminar con Ajustes Y el
+    modal de crear instancia abiertos a la vez).
+  + Fix: nueva prop `blocked` — el atajo no abre la paleta si ya hay
+    otro modal abierto, y si por algún otro camino se abre uno mientras
+    la paleta ya estaba abierta, se cierra sola (efecto reactivo).
+
+  - BUG REAL #2: en macOS, Ctrl+K es un atajo NATIVO del sistema
+    ("borrar hasta fin de línea", binding tipo Emacs de Cocoa) activo en
+    CUALQUIER campo de texto de CUALQUIER app. El listener global
+    escuchaba `e.metaKey || e.ctrlKey` — en Mac eso también capturaba
+    Ctrl+K y lo interceptaba, rompiendo esa edición nativa en cualquier
+    input de la app (renombrar instancia, nombre de cuenta offline,
+    buscador del Sidebar, etc) para cualquier usuario de Mac que use esa
+    combinación por costumbre.
+  + Fix: detección de plataforma — en Mac SOLO responde a Cmd+K, en
+    Windows/Linux SOLO a Ctrl+K (ahí no hay atajo nativo en conflicto).
+
+src/lib/components/settings/SettingsPanel.svelte
+  - BUG REAL #3: elegir la superficie OLED (negro puro, tanda anterior)
+    estando en modo claro no cambiaba nada visualmente — OLED por
+    definición solo tiene variante oscura (un "negro puro claro" es
+    contradictorio, nunca se definió esa variante en el CSS). Sin
+    aviso ni cambio, parecía que el botón estaba roto.
+  + Fix: elegir OLED mientras el tema es claro cambia automáticamente a
+    modo oscuro también — coincide con lo que el usuario está pidiendo
+    en realidad.
+
+Revisado y confirmado que NO es un bug (falso positivo del linter)
+  - El warning de svelte-check en InstanceDetail.svelte:51
+    ("This reference only captures the initial value of `instance`")
+    está presente desde el principio de la sesión. Se confirmó que
+    +page.svelte envuelve InstanceDetail en
+    {#key appState.selectedInstance.uuid} — el componente se destruye y
+    recrea entero en cada cambio de instancia, así que "solo captura el
+    valor inicial" es correcto en este caso puntual (nunca queda
+    obsoleto, cada instancia del componente vive para una sola
+    instancia de Minecraft). No se tocó.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin
+    relación, sin cambios de Rust esta tanda).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings
+    preexistentes.
+  - bun run build (build de producción real): compiló limpio.
+  - No se pudo reproducir ninguno de los 3 bugs por click/teclado en
+    esta sesión (sin forma de automatizar interacción sobre el binario
+    de desarrollo) — los 3 son bugs de lógica claros por lectura de
+    código (condición de carrera de estado / comportamiento de atajo de
+    teclado documentado del sistema operativo / CSS sin variante
+    definida), no hipótesis especulativas.
+================================================================================

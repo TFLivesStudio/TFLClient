@@ -5,12 +5,16 @@
 
 	let {
 		instances,
+		blocked = false,
 		onSelectInstance,
 		onCreate,
 		onOpenSettings,
 		onOpenTflSelection
 	}: {
 		instances: InstanceData[];
+		/** true mientras otro modal (Ajustes, Crear instancia, TFL Selection)
+		 * ya está abierto — Cmd/Ctrl+K no debe apilar la paleta encima. */
+		blocked?: boolean;
 		onSelectInstance: (i: InstanceData) => void;
 		onCreate: () => void;
 		onOpenSettings: () => void;
@@ -29,6 +33,13 @@
 	let query = $state('');
 	let selectedIndex = $state(0);
 	let inputEl = $state<HTMLInputElement | undefined>(undefined);
+
+	// En macOS, Ctrl+K es un atajo nativo del sistema ("borrar hasta fin de
+	// línea", binding tipo Emacs de Cocoa) activo en CUALQUIER campo de
+	// texto — escuchar metaKey || ctrlKey lo pisaba ahí, rompiendo esa
+	// edición nativa en cualquier input de la app. Solo Cmd+K en Mac, solo
+	// Ctrl+K en Windows/Linux (ahí no hay conflicto).
+	const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
 
 	function close() {
 		open = false;
@@ -96,8 +107,9 @@
 	}
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
-		const isMod = e.metaKey || e.ctrlKey;
+		const isMod = isMac ? e.metaKey : e.ctrlKey;
 		if (isMod && e.key.toLowerCase() === 'k') {
+			if (blocked && !open) return; // ya hay otro modal abierto — no apilar
 			e.preventDefault();
 			if (open) close();
 			else openPalette();
@@ -105,6 +117,12 @@
 			close();
 		}
 	}
+
+	// Si otro modal se abre por otro camino mientras la paleta ya estaba
+	// abierta, la cerramos — nunca deben quedar los dos apilados.
+	$effect(() => {
+		if (blocked && open) close();
+	});
 
 	function handleInputKeydown(e: KeyboardEvent) {
 		if (e.key === 'ArrowDown') {
