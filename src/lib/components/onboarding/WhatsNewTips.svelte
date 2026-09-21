@@ -45,6 +45,8 @@
 	];
 </script>
 
+<svelte:window onkeydown={(e) => mode !== 'none' && e.key === 'Escape' && dismiss()} />
+
 {#if mode !== 'none'}
 	<div class="overlay" onclick={dismiss} onkeydown={(e) => e.key === 'Escape' && dismiss()} role="button" tabindex="-1">
 		<div class="panel anim-fade-in" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">

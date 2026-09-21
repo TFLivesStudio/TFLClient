@@ -55,6 +55,8 @@
 	}
 </script>
 
+<svelte:window onkeydown={(e) => e.key === 'Escape' && onClose()} />
+
 <div
 	class="overlay"
 	onclick={onClose}

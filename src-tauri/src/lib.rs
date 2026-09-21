@@ -40,6 +40,8 @@ pub fn run() {
             commands::settings::get_recommended_ram,
             commands::settings::get_recommended_ram_for_instance,
             commands::settings::clear_temp_cache,
+            commands::settings::set_custom_wallpaper,
+            commands::settings::get_custom_wallpaper_path,
             commands::settings::get_java_status,
             commands::instance::create_instance,
             commands::instance::get_instances,

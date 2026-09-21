@@ -537,9 +537,9 @@ html[data-wallpaper='animated-aurora']:not([data-reduce-motion]) .ambient-bg {
 }
 
 :root[data-ambience='cosmic'] {
-	--ambient-glow-1: radial-gradient(ellipse 760px 560px at 78% -8%, rgba(var(--accent-rgb), .2), transparent 64%);
-	--ambient-glow-2: radial-gradient(ellipse 570px 470px at 4% 88%, rgba(84, 74, 190, .17), transparent 66%);
-	--ambient-glow-3: radial-gradient(ellipse 680px 420px at 52% 48%, rgba(var(--accent-rgb), .045), transparent 70%);
+	--ambient-glow-1: radial-gradient(ellipse 820px 620px at 82% -10%, rgba(var(--accent-rgb), .32), transparent 62%);
+	--ambient-glow-2: radial-gradient(ellipse 620px 520px at 2% 92%, rgba(84, 74, 190, .28), transparent 64%);
+	--ambient-glow-3: radial-gradient(ellipse 700px 440px at 50% 46%, rgba(var(--accent-rgb), .08), transparent 68%);
 }
 
 :root[data-ambience='minimal'] {
@@ -567,6 +567,35 @@ html[data-wallpaper='animated-aurora']:not([data-reduce-motion]) .ambient-bg {
 
 html[data-no-blur] .ambient-bg {
 	opacity: 0.5;
+}
+
+/* Diferencia real entre Balanced y Experience (client feedback: antes se
+   veían idénticos, disable_infinite_animations se guardaba pero ninguna
+   CSS lo leía). Capa extra de resplandor de acento que respira despacio,
+   sin pisar el `animation` de .ambient-bg (usado por el wallpaper
+   "Aurora animada") porque vive en un pseudo-elemento aparte.
+   Solo corre en Experience (ausencia de data-no-infinite-fx), respeta
+   reduce-motion (Lite) igual que cualquier otra animación, y respeta
+   el ambience "Minimal" elegido a propósito — Experience no debe
+   pisarle la decisión explícita de "sin resplandor" al usuario. */
+html:not([data-no-infinite-fx]):not([data-reduce-motion]):not([data-ambience='minimal']) .ambient-bg::after {
+	content: '';
+	position: absolute;
+	inset: -12%;
+	background: radial-gradient(ellipse 55% 45% at 50% 38%, rgba(var(--accent-rgb), 0.12), transparent 70%);
+	animation: tfl-ambient-breathe 9s ease-in-out infinite;
+	pointer-events: none;
+}
+@keyframes tfl-ambient-breathe {
+	0%,
+	100% {
+		opacity: 0.3;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.85;
+		transform: scale(1.08);
+	}
 }
 
 :root[data-density='compact'] {

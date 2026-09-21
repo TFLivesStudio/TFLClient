@@ -18,6 +18,8 @@
 	} = $props();
 </script>
 
+<svelte:window onkeydown={(e) => e.key === 'Escape' && onCancel()} />
+
 <div
 	class="overlay"
 	onclick={onCancel}

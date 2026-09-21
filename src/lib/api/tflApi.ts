@@ -48,6 +48,9 @@ export const getRecommendedRam = () => invoke<RecommendedRam>('get_recommended_r
 export const getRecommendedRamForInstance = (name: string) =>
 	invoke<RecommendedRam>('get_recommended_ram_for_instance', { name });
 export const clearTempCache = () => invoke<number>('clear_temp_cache');
+export const setCustomWallpaper = (sourcePath: string) =>
+	invoke<string>('set_custom_wallpaper', { sourcePath });
+export const getCustomWallpaperPath = () => invoke<string | null>('get_custom_wallpaper_path');
 export const getJavaStatus = () => invoke<JavaStatus[]>('get_java_status');
 
 // ── Instances ────────────────────────────────────────────────────────

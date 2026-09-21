@@ -1,0 +1,117 @@
+TFL CLIENT — CHANGELOG: Feedback del cliente — Esc, fix OLED/Claro, wallpaper propio, perfiles de calidad reales
+================================================================================
+
+Cuatro pedidos concretos del cliente antes de la próxima actualización.
+El ítem 4 de su lista (mini-app Tauri+Svelte como frontend del
+instalador NSIS/Tauri) queda fuera de esta tanda, tal como pidió
+("de ya tener pensado algo mejor, ignorarlo").
+
+1) SALIDA RÁPIDA CON ESC
+--------------------------------------------------------------------------------
+El Escape para cerrar modales YA estaba en el código de todos los
+overlays, pero atado a un onkeydown puesto en el <div> del overlay —
+eso solo dispara si el foco del teclado está DENTRO de ese div, y con
+el mouse casi nunca termina ahí. Por eso "no funcionaba" en la
+práctica. Fix real: <svelte:window onkeydown=...> en cada modal, que
+escucha a nivel de toda la ventana sin depender de qué elemento tenga
+el foco.
+
+Archivos: ConfirmDialog.svelte, SettingsPanel.svelte,
+InstanceIconPicker.svelte, TflSelection.svelte, CreateInstanceModal.svelte,
+WhatsNewTips.svelte (onboarding/novedades).
+
+
+2) FIX REAL: SUPERFICIE OLED vs MODO CLARO
+--------------------------------------------------------------------------------
+Bug reportado: activar OLED y después cambiar a modo claro desde
+General dejaba todo en un estado mezclado — y volver a Estilo y tocar
+OLED (ya activo) lo mandaba de vuelta a oscuro. Causa real: había un
+auto-switch unidireccional (elegir OLED en modo claro forzaba oscuro)
+pero NADA impedía ir al revés (elegir modo claro estando en OLED),
+dejando surface='oled' y theme='light' guardados a la vez — un estado
+que el CSS nunca contempla.
+
+src/lib/components/settings/SettingsPanel.svelte
+  ~ Exclusión mutua real en los dos sentidos: el botón "OLED" se
+    deshabilita (con tooltip "Superficie OLED no compatible con modo
+    claro") mientras el tema es claro; el botón "Claro" se deshabilita
+    (tooltip "Modo claro no compatible con superficie OLED") mientras
+    la superficie es OLED. Se sacó el auto-switch viejo — ahora
+    directamente no se puede llegar al estado inválido, en vez de
+    corregirlo después de que ya pasó.
+
+src/routes/+page.svelte
+  + Normalización de arranque: si alguien ya tiene guardado el estado
+    viejo e inválido (surface='oled' + theme='light', de antes de este
+    fix), restoreAppearance() lo detecta y resetea la superficie a
+    Obsidiana una sola vez, en vez de arrastrar el bug para siempre.
+
+
+3) FONDO DE PANTALLA PROPIO
+--------------------------------------------------------------------------------
+src-tauri/src/commands/settings.rs
+  + set_custom_wallpaper(source_path): copia la imagen elegida (mismo
+    diálogo nativo que ya existía para íconos de instancia,
+    pick_image_file, reutilizado tal cual) a shared_dir/appearance/
+    custom-wallpaper.<ext> — un solo archivo activo a la vez, mismo
+    patrón que set_instance_icon.
+  + get_custom_wallpaper_path(): para recuperar el archivo ya subido
+    al reabrir el launcher.
+
+src/lib/components/settings/SettingsPanel.svelte
+  + Botón discreto (ícono de upload, borde punteado) al final de la
+    grilla de "Fondo de pantalla" — pedido tal cual por el cliente.
+    Al elegir una imagen queda seleccionada como wallpaper activo de
+    una. Un click posterior sobre la miniatura la vuelve a
+    seleccionar; el mismo botón de upload permite reemplazarla.
+
+src/routes/+page.svelte
+  ~ restoreAppearance() ahora reconstruye el wallpaper propio al
+    arrancar (la URL de la imagen es dinámica, no tiene una regla fija
+    en la hoja de estilos como los wallpapers built-in — sin este
+    paso, el fondo propio se perdía visualmente en cada reinicio aunque
+    el archivo siguiera ahí).
+
+
+4) PERFILES DE CALIDAD: DIFERENCIA REAL ENTRE BALANCED Y EXPERIENCE
+--------------------------------------------------------------------------------
+Causa raíz confirmada leyendo el código: el flag disable_infinite_
+animations SIEMPRE existió en el backend (Lite/Balanced=true,
+Experience=false) pero ninguna línea de CSS o JS del frontend lo leía
+— se guardaba y no hacía nada. Por eso Balanced y Experience se veían
+idénticos, tal como reportó el cliente.
+
+src/routes/+page.svelte, SettingsPanel.svelte
+  + El flag ahora se refleja en un atributo real (data-no-infinite-fx)
+    cada vez que se aplica un perfil.
+
+src/styles/global.css
+  + Nueva capa de resplandor pasivo ("respira" con una animación de
+    opacidad/escala lenta, 9s) que SOLO corre en el perfil Experience
+    — vive en un pseudo-elemento aparte de .ambient-bg para no pisar
+    la animación del wallpaper "Aurora animada". Usa el color de
+    acento (--accent-rgb), como pidió el cliente. Respeta el ambience
+    "Minimal" elegido a propósito (no le pisa la decisión explícita de
+    "sin resplandor" al usuario) y respeta reduce-motion (Lite) igual
+    que cualquier otra animación del launcher.
+  ~ Ambience "Cósmico" con gradientes más intensos (opacidad casi el
+    doble) — antes la diferencia contra "Aurora" era casi imperceptible,
+    ahora se nota a simple vista.
+
+Constraint explícito del cliente respetado: NO se agregó ningún
+@media (prefers-reduced-motion) global — el control de qué anima y qué
+no sigue siendo 100% por perfil de calidad (atributos en <html>), nunca
+una regla CSS que ignore el perfil elegido.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - bun run build (build de producción real): compiló limpio.
+  - No se pudo probar en vivo ninguno de los 4 flujos (Esc real, exclusión
+    OLED/Claro, subir y ver el wallpaper propio, comparar Balanced vs
+    Experience a ojo) en esta sesión — sin forma de automatizar interacción
+    con la ventana nativa de Tauri sobre el binario de desarrollo.
+    Verificado por compilación y lectura de código, como siempre.
+================================================================================

@@ -140,3 +140,49 @@ pub async fn clear_temp_cache() -> Result<u64, String> {
     }
     Ok(freed_bytes)
 }
+
+const WALLPAPER_EXTENSIONS: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
+
+fn wallpaper_dir() -> std::path::PathBuf {
+    PathManager::get().get_shared_dir().join("appearance")
+}
+
+/// Copia la imagen elegida por el usuario (vía `pick_image_file`, ya
+/// existente para íconos de instancia) a un archivo fijo propio —
+/// mismo patrón que `set_instance_icon`: un solo archivo activo a la
+/// vez, se borra cualquier extensión vieja antes de copiar la nueva.
+#[command]
+pub async fn set_custom_wallpaper(source_path: String) -> Result<String, String> {
+    let source = std::path::PathBuf::from(&source_path);
+    let ext = source
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_lowercase())
+        .filter(|e| WALLPAPER_EXTENSIONS.contains(&e.as_str()))
+        .ok_or("Formato de imagen no soportado (usá PNG, JPG o WEBP)")?;
+
+    let dir = wallpaper_dir();
+    tokio::fs::create_dir_all(&dir)
+        .await
+        .map_err(|e| e.to_string())?;
+    for old_ext in WALLPAPER_EXTENSIONS {
+        let _ = tokio::fs::remove_file(dir.join(format!("custom-wallpaper.{old_ext}"))).await;
+    }
+    let dest = dir.join(format!("custom-wallpaper.{ext}"));
+    tokio::fs::copy(&source, &dest)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(dest.to_string_lossy().to_string())
+}
+
+#[command]
+pub async fn get_custom_wallpaper_path() -> Option<String> {
+    let dir = wallpaper_dir();
+    for ext in WALLPAPER_EXTENSIONS {
+        let p = dir.join(format!("custom-wallpaper.{ext}"));
+        if p.exists() {
+            return Some(p.to_string_lossy().to_string());
+        }
+    }
+    None
+}

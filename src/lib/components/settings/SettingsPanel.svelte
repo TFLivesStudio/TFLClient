@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 	import { check as checkForUpdate, type Update } from '@tauri-apps/plugin-updater';
 	import { relaunch } from '@tauri-apps/plugin-process';
@@ -18,7 +19,10 @@
 		addOfflineAccount,
 		getCurrentUser,
 		getDeviceCode,
-		authenticateWithDeviceCode
+		authenticateWithDeviceCode,
+		pickImageFile,
+		setCustomWallpaper,
+		getCustomWallpaperPath
 	} from '$lib/api/tflApi';
 	import type { QualityProfile, MinecraftUser, JavaStatus } from '$lib/types/types';
 	import {
@@ -37,7 +41,8 @@
 		Copy,
 		CheckCircle2,
 		Download,
-		RefreshCw
+		RefreshCw,
+		Upload
 	} from 'lucide-svelte';
 
 	let { onClose }: { onClose: () => void } = $props();
@@ -116,6 +121,9 @@
 	let cardStyle = $state(
 		typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-card-style') ?? 'rich') : 'rich'
 	);
+	let customWallpaperUrl = $state<string | null>(null);
+	let customWallpaperBusy = $state(false);
+	let customWallpaperError = $state<string | null>(null);
 
 	let ramTotal = $state<number | null>(null);
 	let minRam = $state(appState.settings?.min_memory ?? 1024);
@@ -175,6 +183,12 @@
 		} catch {
 			// no bloquea el panel si falla
 		}
+		try {
+			const path = await getCustomWallpaperPath();
+			if (path) customWallpaperUrl = `${convertFileSrc(path)}?t=${Date.now()}`;
+		} catch {
+			// sin wallpaper propio subido todavía, no es un error
+		}
 	});
 
 	function applyAccent(id: string) {
@@ -194,15 +208,12 @@
 	}
 
 	function applySurface(id: string) {
+		// OLED (negro puro) solo tiene variante oscura a propósito — el botón
+		// ya viene deshabilitado en modo claro (ver markup), así que llegar
+		// acá con theme==='light' no debería pasar nunca por la UI normal.
+		if (id === 'oled' && appState.settings?.theme === 'light') return;
 		surface = id;
 		applyPreference('tfl-surface', 'data-surface', id, 'obsidian');
-		// OLED (negro puro) solo tiene variante oscura — a propósito, un
-		// "negro puro claro" no tiene sentido. Sin este auto-switch, elegirla
-		// estando en modo claro no cambiaba nada visualmente y parecía que el
-		// botón no hacía nada.
-		if (id === 'oled' && appState.settings?.theme !== 'dark') {
-			setTheme('dark');
-		}
 	}
 	function applyAmbience(id: string) {
 		ambience = id;
@@ -211,6 +222,37 @@
 	function applyWallpaper(id: string) {
 		wallpaper = id;
 		applyPreference('tfl-wallpaper', 'data-wallpaper', id, 'none');
+		// El wallpaper propio setea --wallpaper-bg inline (ver
+		// selectCustomWallpaper) — al elegir cualquier otro fondo hay que
+		// sacar ese inline override, si no pisa para siempre la variable que
+		// define la hoja de estilos para el fondo built-in elegido.
+		if (id !== 'custom') {
+			document.documentElement.style.removeProperty('--wallpaper-bg');
+		}
+	}
+
+	function selectCustomWallpaper() {
+		if (!customWallpaperUrl) return;
+		wallpaper = 'custom';
+		localStorage.setItem('tfl-wallpaper', 'custom');
+		document.documentElement.setAttribute('data-wallpaper', 'custom');
+		document.documentElement.style.setProperty('--wallpaper-bg', `url("${customWallpaperUrl}")`);
+	}
+
+	async function pickCustomWallpaper() {
+		customWallpaperError = null;
+		customWallpaperBusy = true;
+		try {
+			const source = await pickImageFile();
+			if (!source) return;
+			const path = await setCustomWallpaper(source);
+			customWallpaperUrl = `${convertFileSrc(path)}?t=${Date.now()}`;
+			selectCustomWallpaper();
+		} catch (e) {
+			customWallpaperError = String(e);
+		} finally {
+			customWallpaperBusy = false;
+		}
 	}
 	function applyDensity(id: string) {
 		density = id;
@@ -223,6 +265,10 @@
 
 	async function setTheme(theme: 'dark' | 'light') {
 		if (!appState.settings) return;
+		// OLED no tiene variante clara — el botón "Claro" ya viene
+		// deshabilitado mientras surface === 'oled' (ver markup), esto es
+		// solo el guard defensivo del lado de la función.
+		if (theme === 'light' && surface === 'oled') return;
 		document.documentElement.setAttribute('data-theme', theme);
 		// Cada superficie define su propia variante clara y oscura (ver
 		// global.css) — cambiar de tema ya no tiene que tocar ni resetear
@@ -238,6 +284,7 @@
 		document.documentElement.setAttribute('data-quality', profile.toLowerCase());
 		document.documentElement.toggleAttribute('data-reduce-motion', profile === 'Lite');
 		document.documentElement.toggleAttribute('data-no-blur', updated.disable_blur_effects);
+		document.documentElement.toggleAttribute('data-no-infinite-fx', updated.disable_infinite_animations);
 	}
 
 	function changeMascot(uuid: string, id: MascotId) {
@@ -354,6 +401,8 @@
 	}
 </script>
 
+<svelte:window onkeydown={(e) => e.key === 'Escape' && onClose()} />
+
 <div
 	class="overlay"
 	onclick={onClose}
@@ -426,6 +475,8 @@
 							type="button"
 							class="choice"
 							class:active={appState.settings?.theme === 'light'}
+							disabled={surface === 'oled'}
+							title={surface === 'oled' ? 'Modo claro no compatible con superficie OLED' : undefined}
 							onclick={() => setTheme('light')}>Claro</button
 						>
 					</div>
@@ -526,7 +577,7 @@
 				</section>
 				<section>
 					<span class="section-label"><PanelLeft size={13} /> Superficie</span>
-					<div class="row">{#each SURFACES as item (item.id)}<button type="button" class="choice" class:active={surface === item.id} onclick={() => applySurface(item.id)}>{item.label}</button>{/each}</div>
+					<div class="row">{#each SURFACES as item (item.id)}<button type="button" class="choice" class:active={surface === item.id} disabled={item.id === 'oled' && appState.settings?.theme === 'light'} title={item.id === 'oled' && appState.settings?.theme === 'light' ? 'Superficie OLED no compatible con modo claro' : undefined} onclick={() => applySurface(item.id)}>{item.label}</button>{/each}</div>
 				</section>
 				<section>
 					<span class="section-label"><WandSparkles size={13} /> Efecto ambiental</span>
@@ -548,7 +599,31 @@
 								{#if wallpaper === item.id}<Check size={12} />{/if}
 							</button>
 						{/each}
+						{#if customWallpaperUrl}
+							<button
+								type="button"
+								class="wallpaper-swatch"
+								class:active={wallpaper === 'custom'}
+								style="background-image: url('{customWallpaperUrl}'); background-size: cover; background-position: center;"
+								onclick={selectCustomWallpaper}
+								aria-label="Tu imagen"
+								title="Tu imagen"
+							>
+								{#if wallpaper === 'custom'}<Check size={12} />{/if}
+							</button>
+						{/if}
+						<button
+							type="button"
+							class="wallpaper-swatch wallpaper-upload"
+							onclick={pickCustomWallpaper}
+							disabled={customWallpaperBusy}
+							aria-label={customWallpaperUrl ? 'Cambiar tu imagen' : 'Subir tu imagen'}
+							title={customWallpaperUrl ? 'Cambiar tu imagen' : 'Subir tu imagen'}
+						>
+							<Upload size={13} />
+						</button>
 					</div>
+					{#if customWallpaperError}<p class="error-text">{customWallpaperError}</p>{/if}
 				</section>
 				<section>
 					<span class="section-label">Densidad de interfaz</span>
@@ -877,6 +952,23 @@
 		opacity: 1;
 		border-color: var(--accent);
 		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+	}
+
+	.wallpaper-upload {
+		background: var(--bg-input);
+		border-style: dashed;
+		color: var(--text-muted);
+	}
+
+	.wallpaper-upload:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.error-text {
+		margin-top: 8px;
+		font-size: 0.75rem;
+		color: var(--color-error);
 	}
 
 	.ram-row {
