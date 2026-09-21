@@ -38,11 +38,14 @@ pub fn run() {
             commands::settings::update_settings,
             commands::settings::set_quality_profile,
             commands::settings::get_recommended_ram,
+            commands::settings::get_recommended_ram_for_instance,
+            commands::settings::clear_temp_cache,
             commands::settings::get_java_status,
             commands::instance::create_instance,
             commands::instance::get_instances,
             commands::instance::delete_instance,
             commands::instance::rename_instance,
+            commands::instance::duplicate_instance,
             commands::instance::update_instance_memory,
             commands::instance::launch,
             commands::instance::stop_running_instance,
@@ -71,6 +74,7 @@ pub fn run() {
             commands::modpacks::install_modpack_from_url,
             commands::modpacks::get_instance_modpacks,
             commands::modpacks::remove_modpack,
+            commands::modpacks::check_modpack_updates,
             commands::tfl_selection::get_tfl_selection,
         ])
         .run(tauri::generate_context!())

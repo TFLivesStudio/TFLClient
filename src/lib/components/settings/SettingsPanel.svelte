@@ -10,6 +10,7 @@
 		updateSettings,
 		setQualityProfile,
 		getRecommendedRam,
+		clearTempCache,
 		getJavaStatus,
 		getUserList,
 		switchUser,
@@ -262,6 +263,22 @@
 		}
 	}
 
+	let clearingCache = $state(false);
+	let cacheClearedMsg = $state<string | null>(null);
+	async function handleClearCache() {
+		clearingCache = true;
+		cacheClearedMsg = null;
+		try {
+			const freedBytes = await clearTempCache();
+			const freedMb = (freedBytes / 1024 / 1024).toFixed(1);
+			cacheClearedMsg = `Liberados ${freedMb} MB.`;
+		} catch (e) {
+			cacheClearedMsg = `No se pudo limpiar: ${e}`;
+		} finally {
+			clearingCache = false;
+		}
+	}
+
 	async function loadAccounts() {
 		users = await getUserList();
 	}
@@ -443,6 +460,15 @@
 					<button type="button" class="save-btn" disabled={savingRam} onclick={saveRam}>
 						<Check size={13} /> Guardar
 					</button>
+				</section>
+
+				<section>
+					<span class="section-label">Almacenamiento</span>
+					<button type="button" class="save-btn" disabled={clearingCache} onclick={handleClearCache}>
+						{#if clearingCache}<Loader2 size={13} class="spin" />{:else}<Trash2 size={13} />{/if}
+						Limpiar caché temporal
+					</button>
+					{#if cacheClearedMsg}<p class="hint">{cacheClearedMsg}</p>{/if}
 				</section>
 
 				<section>

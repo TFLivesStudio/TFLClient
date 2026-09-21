@@ -110,7 +110,7 @@ async fn discover_community_modpacks() -> Result<Vec<TflSelectionEntry>, String>
 /// Lee y valida `tfl-modpack.json` de un repo puntual. `Ok(None)` (no
 /// `Err`) para cualquier manifest ausente/inválido — un repo mal armado
 /// no debe tirar abajo el resto de la lista, solo se lo salta.
-async fn fetch_manifest(full_name: &str) -> Result<Option<TflSelectionEntry>, String> {
+pub(crate) async fn fetch_manifest(full_name: &str) -> Result<Option<TflSelectionEntry>, String> {
     let url = format!("https://api.github.com/repos/{full_name}/contents/{MANIFEST_FILENAME}");
     let res = HTTP.get(&url).send().await.map_err(|e| e.to_string())?;
     if !res.status().is_success() {

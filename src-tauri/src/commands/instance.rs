@@ -120,6 +120,11 @@ pub async fn rename_instance(old_name: String, new_name: String) -> Result<Insta
 }
 
 #[command]
+pub async fn duplicate_instance(name: String) -> Result<InstanceData, String> {
+    instance_manager::duplicate_instance(&name).await
+}
+
+#[command]
 pub async fn update_instance_memory(
     name: String,
     min_memory: Option<u32>,

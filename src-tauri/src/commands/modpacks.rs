@@ -190,6 +190,10 @@ pub async fn install_modpack_from_url(
         "version_id": metadata.version_id,
         "title": metadata.name,
         "installed_paths": metadata.installed_paths,
+        // Guardado para poder comparar contra el manifest actual del repo
+        // más adelante (check_modpack_updates) — instalado vía Modrinth
+        // nunca tiene este campo, ahí no aplica.
+        "mrpack_url": mrpack_url,
     });
     tokio::fs::write(
         &manifest_path,
@@ -268,4 +272,71 @@ pub async fn remove_modpack(instance_name: String, version_id: String) -> Result
     tokio::fs::remove_file(&manifest_path)
         .await
         .map_err(|e| e.to_string())
+}
+
+/// version_id de cada modpack instalado en la instancia que tiene una
+/// versión más nueva disponible en su repo de origen — solo aplica a
+/// modpacks comunitarios (los de Modrinth no guardan mrpack_url, project_id
+/// ahí es un id corto sin "/"). Compara la mrpack_url guardada al instalar
+/// contra la que tiene HOY el manifest del repo para la misma
+/// versión de Minecraft + loader de la instancia — si cambió, hay update.
+/// Falla soft en cualquier paso (repo borrado, sin red, manifest inválido):
+/// ese modpack puntual simplemente no aparece como actualizable, no rompe
+/// el resto de la lista.
+#[derive(serde::Serialize)]
+pub struct ModpackUpdateInfo {
+    pub version_id: String,
+    pub new_mrpack_url: String,
+}
+
+#[command]
+pub async fn check_modpack_updates(instance_name: String) -> Vec<ModpackUpdateInfo> {
+    let Ok(instance) = instance_manager::get_instance(&instance_name).await else {
+        return Vec::new();
+    };
+    let instance_loader = serde_json::to_value(&instance.loader)
+        .ok()
+        .and_then(|v| v.as_str().map(String::from))
+        .unwrap_or_default();
+
+    let manifest_dir = manifest_dir(&instance.dir());
+    let Ok(mut entries) = tokio::fs::read_dir(&manifest_dir).await else {
+        return Vec::new();
+    };
+
+    let mut updatable = Vec::new();
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let Ok(raw) = tokio::fs::read_to_string(entry.path()).await else {
+            continue;
+        };
+        let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&raw) else {
+            continue;
+        };
+        let (Some(project_id), Some(version_id), Some(installed_url)) = (
+            manifest.get("project_id").and_then(|v| v.as_str()),
+            manifest.get("version_id").and_then(|v| v.as_str()),
+            manifest.get("mrpack_url").and_then(|v| v.as_str()),
+        ) else {
+            continue;
+        };
+        if !project_id.contains('/') {
+            continue; // Modrinth, no comunitario — no aplica acá
+        }
+
+        if let Ok(Some(current)) = super::tfl_selection::fetch_manifest(project_id).await {
+            let matching_build = current
+                .versions
+                .iter()
+                .find(|v| v.loader == instance_loader && v.mc_version == instance.mc_version);
+            if let Some(build) = matching_build {
+                if build.mrpack_url != installed_url {
+                    updatable.push(ModpackUpdateInfo {
+                        version_id: version_id.to_string(),
+                        new_mrpack_url: build.mrpack_url.clone(),
+                    });
+                }
+            }
+        }
+    }
+    updatable
 }

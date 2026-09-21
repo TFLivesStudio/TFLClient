@@ -86,6 +86,11 @@ export interface InstalledModpack {
 	file_count: number;
 }
 
+export interface ModpackUpdateInfo {
+	version_id: string;
+	new_mrpack_url: string;
+}
+
 export interface ModpackVersion {
 	mc_version: string;
 	loader: string;

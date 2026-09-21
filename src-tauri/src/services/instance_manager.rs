@@ -156,6 +156,59 @@ pub async fn rename_instance(old_name: &str, new_name: String) -> Result<Instanc
     Ok(data)
 }
 
+/// Copia recursiva síncrona — corre en spawn_blocking, una instancia puede
+/// pesar cientos de MB (mods, resource packs, mundos) y tokio::fs no trae
+/// un equivalente recursivo propio.
+fn copy_dir_recursive(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(to)?;
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let src = entry.path();
+        let dst = to.join(entry.file_name());
+        if src.is_dir() {
+            copy_dir_recursive(&src, &dst)?;
+        } else {
+            std::fs::copy(&src, &dst)?;
+        }
+    }
+    Ok(())
+}
+
+/// Primer nombre libre de la forma "{base} (copia)", "{base} (copia 2)", ...
+async fn free_copy_name(base: &str) -> String {
+    let instance_dir = PathManager::get().get_instance_dir();
+    let mut candidate = format!("{base} (copia)");
+    let mut n = 2u32;
+    while instance_dir.join(&candidate).exists() {
+        candidate = format!("{base} (copia {n})");
+        n += 1;
+    }
+    candidate
+}
+
+/// Duplica una instancia entera (mods, config, mundos, todo) — nombre nuevo
+/// generado solo ("{nombre} (copia)", sin pedirle nada al usuario), mismo
+/// uuid NO se reusa (instancia realmente independiente, no un alias de la
+/// original).
+pub async fn duplicate_instance(source_name: &str) -> Result<InstanceData, String> {
+    let source = get_instance(source_name).await?;
+    let new_name = free_copy_name(source_name).await;
+    let dest_dir = PathManager::get().get_instance_dir().join(&new_name);
+    let source_dir = source.dir();
+    let dest_dir_clone = dest_dir.clone();
+    tokio::task::spawn_blocking(move || copy_dir_recursive(&source_dir, &dest_dir_clone))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())?;
+
+    let mut data = source;
+    data.uuid = Uuid::new_v4().to_string();
+    data.name = new_name;
+    data.last_played = 0;
+    data.save().await.map_err(|e| e.to_string())?;
+    Ok(data)
+}
+
 pub async fn update_instance_memory(
     name: &str,
     min_memory: Option<u32>,

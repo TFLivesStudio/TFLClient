@@ -11,6 +11,7 @@ import type {
 	RecommendedRam,
 	JavaStatus,
 	InstalledModpack,
+	ModpackUpdateInfo,
 	TflSelectionEntry
 } from '$lib/types/types';
 
@@ -42,6 +43,9 @@ export const updateSettings = (settings: Settings) =>
 export const setQualityProfile = (profile: QualityProfile) =>
 	invoke<Settings>('set_quality_profile', { profile });
 export const getRecommendedRam = () => invoke<RecommendedRam>('get_recommended_ram');
+export const getRecommendedRamForInstance = (name: string) =>
+	invoke<RecommendedRam>('get_recommended_ram_for_instance', { name });
+export const clearTempCache = () => invoke<number>('clear_temp_cache');
 export const getJavaStatus = () => invoke<JavaStatus[]>('get_java_status');
 
 // ── Instances ────────────────────────────────────────────────────────
@@ -51,6 +55,7 @@ export const getInstances = () => invoke<InstanceData[]>('get_instances');
 export const deleteInstance = (name: string) => invoke<void>('delete_instance', { name });
 export const renameInstance = (oldName: string, newName: string) =>
 	invoke<InstanceData>('rename_instance', { oldName, newName });
+export const duplicateInstance = (name: string) => invoke<InstanceData>('duplicate_instance', { name });
 export const updateInstanceMemory = (
 	name: string,
 	minMemory: number | null,
@@ -117,6 +122,8 @@ export const removeModpack = (instanceName: string, versionId: string) =>
 	invoke<void>('remove_modpack', { instanceName, versionId });
 export const installModpackFromUrl = (instanceName: string, sourceId: string, mrpackUrl: string) =>
 	invoke<InstalledModpack>('install_modpack_from_url', { instanceName, sourceId, mrpackUrl });
+export const checkModpackUpdates = (instanceName: string) =>
+	invoke<ModpackUpdateInfo[]>('check_modpack_updates', { instanceName });
 
 // ── TFL Selection ────────────────────────────────────────────────────
 export const getTflSelection = () => invoke<TflSelectionEntry[]>('get_tfl_selection');

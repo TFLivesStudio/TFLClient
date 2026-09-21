@@ -1,0 +1,77 @@
+TFL CLIENT — CHANGELOG: Bloque 1 — duplicar instancia, RAM por mods, caché, updates de modpack
+================================================================================
+
+Primer bloque de la lista grande aprobada (Instancias, Diagnóstico,
+Personalización, Confianza, Onboarding, Mods — la lista completa quedó
+dividida en 5 bloques para no entregar todo a medias de una).
+
+src-tauri/src/services/instance_manager.rs
+  + duplicate_instance(source_name): copia una instancia entera (mods,
+    config, mundos, todo) bajo un nombre nuevo generado solo
+    ("Nombre (copia)", "Nombre (copia 2)"... sin pedirle nada al
+    usuario). UUID nuevo — es una instancia independiente de verdad, no
+    un alias. Copia recursiva corre en spawn_blocking (una instancia
+    puede pesar cientos de MB).
+
+src-tauri/src/commands/settings.rs
+  + get_recommended_ram_for_instance(name): misma base que
+    get_recommended_ram (según RAM total del sistema) pero ajustada por
+    cantidad de mods instalados — más allá de 20 mods, suma 48MB al
+    máximo recomendado por cada mod de más (nunca por encima de
+    total_mb - 1024, deja margen para el SO). Heurística simple, no una
+    medición real por mod (eso no se puede saber sin perfilar cada uno,
+    se documenta como tal).
+  + clear_temp_cache(): borra SOLO shared_dir/temp (scratch de
+    descargas/instalaciones a medio terminar — mrpacks, procesadores de
+    Forge, etc) — nunca libraries/assets/versions ya bajadas, eso
+    obligaría a re-descargar todo, no es "limpiar caché". Devuelve
+    cuántos bytes se liberaron.
+
+src-tauri/src/commands/modpacks.rs
+  + install_modpack_from_url ahora guarda mrpack_url en el manifest
+    local (.tfl_modpacks/{version_id}.json) — necesario para poder
+    comparar después si hay una versión más nueva.
+  + check_modpack_updates(instance_name): por cada modpack comunitario
+    instalado (project_id con "/" = repo de GitHub, los de Modrinth no
+    aplican acá), vuelve a pedir el manifest actual del repo
+    (fetch_manifest, ahora pub(crate) en tfl_selection.rs — reusado, no
+    duplicado) y compara la mrpack_url guardada contra la build actual
+    para la misma versión de Minecraft + loader de la instancia. Devuelve
+    version_id + la URL nueva de cada uno que cambió. Falla soft en
+    cualquier paso (repo borrado, sin red, manifest inválido) — ese
+    modpack puntual no aparece como actualizable, no rompe el resto.
+
+src-tauri/src/lib.rs
+  + Registrados duplicate_instance, get_recommended_ram_for_instance,
+    clear_temp_cache, check_modpack_updates.
+
+src/lib/components/library/InstanceDetail.svelte
+  + Botón "Duplicar" (ícono Copy) al lado de Renombrar/Eliminar.
+  ~ El hint de RAM recomendada ahora usa getRecommendedRamForInstance
+    (antes era el genérico de sistema, sin mirar la instancia) — mismo
+    lugar donde ya se mostraba, ahora más preciso.
+
+src/lib/components/settings/SettingsPanel.svelte
+  + Nueva sección "Almacenamiento" (pestaña General) con botón "Limpiar
+    caché temporal" — muestra cuántos MB se liberaron.
+
+src/lib/components/library/ModpacksPanel.svelte
+  + Modpacks comunitarios instalados con versión nueva disponible
+    muestran un botón "Actualizar" en la fila — quita el instalado viejo
+    e instala el nuevo desde la URL fresca, en un solo click. Se chequea
+    solo, sin que el usuario tenga que ir a comparar nada a mano.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - bun run build (build de producción real): compiló limpio.
+  - Encontrado y corregido en el momento: un #[command] mal puesto
+    (decorando el struct ModpackUpdateInfo en vez de la función) durante
+    la escritura de check_modpack_updates — no llegó a commitearse así,
+    se detectó y arregló antes de este changelog.
+  - No se pudo probar ninguno de los 4 flujos por click en esta sesión
+    (sin forma de automatizar interacción sobre el binario de
+    desarrollo) — verificado por compilación y lectura de código.
+================================================================================

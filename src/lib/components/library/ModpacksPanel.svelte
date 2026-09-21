@@ -1,29 +1,56 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { InstanceData, ModSearchHit, InstalledModpack } from '$lib/types/types';
+	import type { InstanceData, ModSearchHit, InstalledModpack, ModpackUpdateInfo } from '$lib/types/types';
 	import {
 		searchModpacks,
 		installModpack,
+		installModpackFromUrl,
 		getInstanceModpacks,
+		checkModpackUpdates,
 		removeModpack
 	} from '$lib/api/tflApi';
-	import { Search, Download, Trash2, Loader2, Package } from 'lucide-svelte';
+	import { Search, Download, Trash2, Loader2, Package, RefreshCw } from 'lucide-svelte';
 
 	let { instance }: { instance: InstanceData } = $props();
 
 	let query = $state('');
 	let results = $state<ModSearchHit[]>([]);
 	let installed = $state<InstalledModpack[]>([]);
+	let updates = $state<Record<string, string>>({}); // version_id -> new_mrpack_url
 	let searching = $state(false);
 	let installingId = $state<string | null>(null);
 	let removingId = $state<string | null>(null);
+	let updatingId = $state<string | null>(null);
 	let error = $state<string | null>(null);
 
 	async function refreshInstalled() {
 		installed = await getInstanceModpacks(instance.name);
+		try {
+			const found = await checkModpackUpdates(instance.name);
+			updates = Object.fromEntries(found.map((u) => [u.version_id, u.new_mrpack_url]));
+		} catch {
+			// silencioso — solo es una notificación, no bloquea la lista
+			updates = {};
+		}
 	}
 
 	onMount(refreshInstalled);
+
+	async function handleUpdate(pack: InstalledModpack) {
+		const newUrl = updates[pack.version_id];
+		if (!newUrl) return;
+		updatingId = pack.version_id;
+		error = null;
+		try {
+			await removeModpack(instance.name, pack.version_id);
+			await installModpackFromUrl(instance.name, pack.project_id, newUrl);
+			await refreshInstalled();
+		} catch (e) {
+			error = String(e);
+		} finally {
+			updatingId = null;
+		}
+	}
 
 	let searchToken = 0;
 	async function runSearch(q: string) {
@@ -110,6 +137,21 @@
 					<div class="installed-row">
 						<Package size={13} class="pack-icon" />
 						<span class="filename">{pack.title} · {pack.file_count} archivos</span>
+						{#if updates[pack.version_id]}
+							<button
+								type="button"
+								class="update-btn"
+								disabled={updatingId === pack.version_id}
+								onclick={() => handleUpdate(pack)}
+							>
+								{#if updatingId === pack.version_id}
+									<Loader2 size={12} class="spin" />
+								{:else}
+									<RefreshCw size={12} />
+								{/if}
+								Actualizar
+							</button>
+						{/if}
 						<button
 							type="button"
 							class="icon-btn"
@@ -234,6 +276,26 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	.update-btn {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		flex-shrink: 0;
+		padding: 4px 8px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--accent);
+		background: color-mix(in srgb, var(--accent) 14%, var(--bg-input));
+		color: var(--accent);
+		font-size: 0.68rem;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.update-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 
 	.icon-btn {

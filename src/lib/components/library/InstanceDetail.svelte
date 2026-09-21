@@ -6,8 +6,9 @@
 		launchInstance,
 		deleteInstance,
 		renameInstance,
+		duplicateInstance,
 		updateInstanceMemory,
-		getRecommendedRam,
+		getRecommendedRamForInstance,
 		openInstanceFolder,
 		getInstanceMods,
 		getInstanceIconPath
@@ -31,7 +32,8 @@
 		FolderOpen,
 		Puzzle,
 		ImagePlus,
-		ChevronRight
+		ChevronRight,
+		Copy
 	} from 'lucide-svelte';
 
 	let {
@@ -132,10 +134,24 @@
 	async function loadRamHint() {
 		if (ramRecommended !== null) return;
 		try {
-			const r = await getRecommendedRam();
+			const r = await getRecommendedRamForInstance(instance.name);
 			ramRecommended = r.recommended_max_mb;
 		} catch {
 			// silencioso — solo es una sugerencia
+		}
+	}
+
+	let duplicating = $state(false);
+	async function handleDuplicate() {
+		duplicating = true;
+		error = null;
+		try {
+			const copy = await duplicateInstance(instance.name);
+			onChanged(copy);
+		} catch (e) {
+			error = String(e);
+		} finally {
+			duplicating = false;
 		}
 	}
 
@@ -225,6 +241,16 @@
 						aria-label="Renombrar"
 					>
 						<Pencil size={13} />
+					</button>
+					<button
+						type="button"
+						class="icon-btn"
+						disabled={duplicating}
+						onclick={handleDuplicate}
+						aria-label="Duplicar"
+						title="Duplicar instancia"
+					>
+						{#if duplicating}<Loader2 size={13} class="spin" />{:else}<Copy size={13} />{/if}
 					</button>
 					<button
 						type="button"
