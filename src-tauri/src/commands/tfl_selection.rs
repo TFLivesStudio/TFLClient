@@ -1,14 +1,11 @@
 //! "TFL Selection" — modpacks listados para que el usuario los instale en
-//! cualquier instancia compatible con un solo click. Dos fuentes:
-//!
-//! 1. Curados a mano (Modrinth) — placeholder real y funcional hasta que
-//!    TFLives entregue su lista final (spec §26).
-//! 2. Comunitarios (GitHub) — descubiertos en vivo cada vez que se abre
-//!    el panel: se buscan repos públicos con el topic `tfl-modpack` en la
-//!    org de TFLives, y de cada uno se lee `tfl-modpack.json` (si existe
-//!    y es válido) para armar la entrada. Un repo con el topic pero sin
-//!    manifest válido nunca aparece — el topic solo filtra candidatos,
-//!    el manifest es lo que realmente decide.
+//! cualquier instancia compatible con un solo click. Una sola fuente:
+//! repos públicos de la org de TFLives en GitHub con el topic
+//! `tfl-modpack`, descubiertos en vivo cada vez que se abre el panel. De
+//! cada uno se lee `tfl-modpack.json` (si existe y es válido) para armar
+//! la entrada. Un repo con el topic pero sin manifest válido nunca
+//! aparece — el topic solo filtra candidatos, el manifest es lo que
+//! realmente decide.
 use crate::core::http_client::{HTTP, get_json_retrying};
 use base64::Engine;
 use serde::Serialize;
@@ -48,26 +45,13 @@ pub struct TflSelectionEntry {
 
 #[command]
 pub async fn get_tfl_selection() -> Vec<TflSelectionEntry> {
-    let mut entries = vec![
-        // TODO(TFL): reemplazar por la lista real de modpacks curados de TFLives.
-        TflSelectionEntry {
-            id: "1KVo5zza".into(),
-            title: "Fabulously Optimized".into(),
-            description: "Rendimiento y calidad de vida para Fabric, sin cambiar el juego base."
-                .into(),
-            icon_url: None,
-            source: "modrinth".into(),
-            project_id: Some("1KVo5zza".into()),
-            versions: Vec::new(),
-        },
-    ];
-
     match discover_community_modpacks().await {
-        Ok(mut community) => entries.append(&mut community),
-        Err(e) => tracing::warn!("TFL Selection: no se pudo consultar GitHub ({e}), se omite"),
+        Ok(entries) => entries,
+        Err(e) => {
+            tracing::warn!("TFL Selection: no se pudo consultar GitHub ({e}), se omite");
+            Vec::new()
+        }
     }
-
-    entries
 }
 
 #[derive(Debug, serde::Deserialize)]
