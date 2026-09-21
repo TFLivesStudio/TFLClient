@@ -1,0 +1,57 @@
+TFL CLIENT — CHANGELOG: Bloque 3 — exportar .mrpack, backup de mundo, verificar integridad
+================================================================================
+
+Tercer bloque de la lista grande aprobada.
+
+src-tauri/src/commands/mods.rs
+  + export_instance_as_mrpack(instance_name): genera un .mrpack real,
+    compatible con cualquier launcher que soporte el formato (Modrinth
+    App, ATLauncher, este mismo). Los mods que resuelven contra
+    Modrinth (por hash, mismo mecanismo de check_mod_updates) quedan
+    referenciados por URL — el archivo sale liviano, no lleva un jar de
+    cada mod adentro. Todo lo que NO resuelve (jars de otro lado) más
+    config/, resourcepacks/, shaderpacks/ enteros van embebidos de
+    verdad en overrides/ dentro del zip, como pide el formato. Se guarda
+    en shared_dir/exports/.
+  + backup_world_dir(): antes de actualizar mods (update_all_mods),
+    respalda saves/ entero a un .zip con timestamp en
+    instance_dir/.tfl_backups/ — un mod nuevo puede romper un mundo
+    existente (formato de chunk, IDs de bloque). Best-effort: si falla
+    no bloquea la actualización, solo no queda backup.
+  + list_world_backups(instance_name): lista los backups que existen
+    (más reciente primero).
+  ~ ModrinthFile/ModrinthFileHashes ahora también capturan size y
+    sha512 (antes solo url/filename/primary/sha1) — hacían falta para
+    poder armar un modrinth.index.json spec-completo en el export.
+
+src-tauri/src/commands/modpacks.rs
+  + verify_instance_integrity(instance_name): chequea que los archivos
+    que instaló cada modpack (según su manifest en .tfl_modpacks/)
+    sigan existiendo — detecta si algo se borró/movió por fuera del
+    launcher. Documentado como lo que realmente es: detecta archivos
+    FALTANTES, no corrupción de contenido byte a byte (no se guarda
+    ningún hash de referencia para comparar eso — sería una feature
+    distinta y más cara).
+
+src-tauri/src/lib.rs
+  + Registrados export_instance_as_mrpack, list_world_backups,
+    verify_instance_integrity.
+
+src/lib/components/library/InstanceDetail.svelte
+  + Dos botones nuevos al lado de Duplicar: "Exportar como .mrpack"
+    (muestra la ruta del archivo generado) y "Verificar integridad"
+    (lista qué archivos faltan, o confirma que está todo en orden).
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - bun run build (build de producción real): compiló limpio.
+  - No se pudo probar ninguno de estos flujos por click en esta sesión
+    (sin forma de automatizar interacción sobre el binario de
+    desarrollo) — verificado por compilación y lectura de código. El
+    formato del .mrpack exportado (modrinth.index.json + overrides/)
+    sigue el spec real del formato, el mismo que ya lee
+    cubrinth::mrpack::install_mrpack en este mismo repo.
+================================================================================

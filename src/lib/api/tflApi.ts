@@ -135,6 +135,12 @@ export const installModpackFromUrl = (instanceName: string, sourceId: string, mr
 	invoke<InstalledModpack>('install_modpack_from_url', { instanceName, sourceId, mrpackUrl });
 export const checkModpackUpdates = (instanceName: string) =>
 	invoke<ModpackUpdateInfo[]>('check_modpack_updates', { instanceName });
+export const verifyInstanceIntegrity = (instanceName: string) =>
+	invoke<string[]>('verify_instance_integrity', { instanceName });
+export const exportInstanceAsMrpack = (instanceName: string) =>
+	invoke<string>('export_instance_as_mrpack', { instanceName });
+export const listWorldBackups = (instanceName: string) =>
+	invoke<string[]>('list_world_backups', { instanceName });
 
 // ── TFL Selection ────────────────────────────────────────────────────
 export const getTflSelection = () => invoke<TflSelectionEntry[]>('get_tfl_selection');

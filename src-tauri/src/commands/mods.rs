@@ -5,7 +5,7 @@
 //! carpeta de destino dentro de la instancia (`mods/` vs `shaderpacks/`).
 //! CurseForge queda para una próxima iteración — necesita una API key
 //! propia que todavía no existe (spec §26).
-use crate::core::{AppEvent, emit, get_bytes_retrying, get_json_retrying, post_json_retrying};
+use crate::core::{AppEvent, PathManager, emit, get_bytes_retrying, get_json_retrying, post_json_retrying};
 use crate::services::instance_manager;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -145,11 +145,15 @@ pub(crate) struct ModrinthFile {
     pub(crate) filename: String,
     pub(crate) primary: bool,
     pub(crate) hashes: Option<ModrinthFileHashes>,
+    #[serde(default)]
+    pub(crate) size: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub(crate) struct ModrinthFileHashes {
     pub(crate) sha1: Option<String>,
+    #[serde(default)]
+    pub(crate) sha512: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -594,6 +598,16 @@ pub async fn check_mod_updates(instance_name: String) -> Result<Vec<ModUpdateAva
 #[command]
 pub async fn update_all_mods(instance_name: String) -> Result<u32, String> {
     let updates = check_mod_updates(instance_name.clone()).await?;
+    if updates.is_empty() {
+        return Ok(0);
+    }
+    // Backup del mundo antes de tocar mods — un mod nuevo puede romper un
+    // mundo existente (cambios de formato de chunk, IDs de bloque
+    // distintos, etc). Best-effort: si falla (sin carpeta saves/, error de
+    // disco) no bloquea la actualización, solo no queda backup.
+    if let Ok(instance) = instance_manager::get_instance(&instance_name).await {
+        let _ = backup_world_dir(&instance.dir()).await;
+    }
     let mut count = 0u32;
     for update in updates {
         let Ok(version) = version_by_id(&update.new_version_id).await else {
@@ -634,4 +648,285 @@ pub async fn find_duplicate_mods(instance_name: String) -> Result<Vec<Vec<String
         }
     }
     Ok(by_project.into_values().filter(|v| v.len() > 1).collect())
+}
+
+// ── Exportar instancia a .mrpack ────────────────────────────────────────────
+//
+// Los mods que resuelven contra Modrinth se referencian por URL (igual que
+// hace cualquier .mrpack real) — el export sale liviano, no va un jar de 20MB
+// adentro por cada mod. Todo lo que NO resuelve (jars de otro lado, config,
+// resourcepacks, shaderpacks) se empaqueta de verdad adentro del zip, en
+// overrides/ — así es como el formato .mrpack espera ese contenido.
+
+#[derive(Serialize)]
+struct MrpackIndexFile {
+    path: String,
+    hashes: std::collections::HashMap<String, String>,
+    env: std::collections::HashMap<String, String>,
+    downloads: Vec<String>,
+    #[serde(rename = "fileSize")]
+    file_size: u64,
+}
+
+#[derive(Serialize)]
+struct MrpackIndex {
+    game: String,
+    #[serde(rename = "formatVersion")]
+    format_version: u32,
+    #[serde(rename = "versionId")]
+    version_id: String,
+    name: String,
+    summary: Option<String>,
+    files: Vec<MrpackIndexFile>,
+    dependencies: std::collections::HashMap<String, String>,
+}
+
+fn loader_dependency_key(loader: instance_manager::LoaderKind) -> Option<&'static str> {
+    match loader {
+        instance_manager::LoaderKind::Fabric => Some("fabric-loader"),
+        instance_manager::LoaderKind::Forge => Some("forge"),
+        instance_manager::LoaderKind::NeoForge => Some("neoforge"),
+        instance_manager::LoaderKind::Quilt => Some("quilt-loader"),
+        instance_manager::LoaderKind::Vanilla => None,
+    }
+}
+
+/// Agrega una carpeta entera al zip bajo `overrides/<nombre de la carpeta>`
+/// — sync, corre dentro de spawn_blocking. Si la carpeta no existe (ej. la
+/// instancia no tiene shaderpacks), no hace nada, no es un error.
+fn add_override_dir(
+    zip: &mut zip::ZipWriter<std::fs::File>,
+    source: &std::path::Path,
+    zip_prefix: &str,
+) -> std::io::Result<()> {
+    if !source.is_dir() {
+        return Ok(());
+    }
+    for entry in walkdir_files(source) {
+        let rel = entry.strip_prefix(source).unwrap_or(&entry);
+        let zip_path = format!("{zip_prefix}/{}", rel.to_string_lossy().replace('\\', "/"));
+        let bytes = std::fs::read(&entry)?;
+        zip.start_file(zip_path, zip::write::SimpleFileOptions::default())?;
+        std::io::Write::write_all(zip, &bytes)?;
+    }
+    Ok(())
+}
+
+/// Lista recursiva simple de archivos (no directorios) bajo `dir`.
+fn walkdir_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return out;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            out.extend(walkdir_files(&path));
+        } else {
+            out.push(path);
+        }
+    }
+    out
+}
+
+fn build_mrpack_zip(
+    instance_dir: &std::path::Path,
+    mods_dir: &std::path::Path,
+    unresolved_mod_filenames: &std::collections::HashSet<String>,
+    index: &MrpackIndex,
+    export_path: &std::path::Path,
+) -> std::io::Result<()> {
+    if let Some(parent) = export_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let file = std::fs::File::create(export_path)?;
+    let mut zip = zip::ZipWriter::new(file);
+
+    let index_json = serde_json::to_vec_pretty(index)
+        .map_err(|e| std::io::Error::other(e.to_string()))?;
+    zip.start_file("modrinth.index.json", zip::write::SimpleFileOptions::default())?;
+    std::io::Write::write_all(&mut zip, &index_json)?;
+
+    // Mods que no resolvieron contra Modrinth — van embebidos de verdad,
+    // no hay URL pública de donde bajarlos después.
+    for filename in unresolved_mod_filenames {
+        let path = mods_dir.join(filename);
+        let Ok(bytes) = std::fs::read(&path) else {
+            continue;
+        };
+        zip.start_file(
+            format!("overrides/mods/{filename}"),
+            zip::write::SimpleFileOptions::default(),
+        )?;
+        std::io::Write::write_all(&mut zip, &bytes)?;
+    }
+
+    for subdir in ["config", "resourcepacks", "shaderpacks"] {
+        add_override_dir(&mut zip, &instance_dir.join(subdir), &format!("overrides/{subdir}"))?;
+    }
+
+    zip.finish()?;
+    Ok(())
+}
+
+/// Exporta la instancia como un .mrpack real y portable — cualquier launcher
+/// compatible con el formato (incluido este) puede instalarlo. Devuelve la
+/// ruta del archivo generado.
+#[command]
+pub async fn export_instance_as_mrpack(instance_name: String) -> Result<String, String> {
+    let instance = instance_manager::get_instance(&instance_name).await?;
+    let instance_dir = instance.dir();
+    let mods_dir = instance_dir.join("mods");
+
+    let hashed = hash_installed_files(&mods_dir).await;
+    let resolved: std::collections::HashMap<String, ModrinthVersion> = if hashed.is_empty() {
+        Default::default()
+    } else {
+        let hashes: Vec<String> = hashed.iter().map(|(_, h)| h.clone()).collect();
+        let body = HashLookupBody {
+            hashes: &hashes,
+            algorithm: "sha1",
+        };
+        post_json_retrying(&format!("{MODRINTH_API}/version_files"), &body)
+            .await
+            .unwrap_or_default()
+    };
+
+    let mut index_files = Vec::new();
+    let mut unresolved = std::collections::HashSet::new();
+
+    for (filename, hash) in &hashed {
+        let Some(version) = resolved.get(hash) else {
+            unresolved.insert(filename.clone());
+            continue;
+        };
+        let Some(file) = version.files.iter().find(|f| {
+            f.hashes.as_ref().and_then(|h| h.sha1.as_deref()) == Some(hash.as_str())
+        }) else {
+            unresolved.insert(filename.clone());
+            continue;
+        };
+        let Some(sha1) = file.hashes.as_ref().and_then(|h| h.sha1.clone()) else {
+            unresolved.insert(filename.clone());
+            continue;
+        };
+        let mut hashes_map = std::collections::HashMap::new();
+        hashes_map.insert("sha1".to_string(), sha1);
+        if let Some(sha512) = file.hashes.as_ref().and_then(|h| h.sha512.clone()) {
+            hashes_map.insert("sha512".to_string(), sha512);
+        }
+        index_files.push(MrpackIndexFile {
+            path: format!("mods/{filename}"),
+            hashes: hashes_map,
+            env: std::collections::HashMap::from([
+                ("client".to_string(), "required".to_string()),
+                ("server".to_string(), "required".to_string()),
+            ]),
+            downloads: vec![file.url.clone()],
+            file_size: file.size.unwrap_or(0),
+        });
+    }
+
+    let mut dependencies = std::collections::HashMap::new();
+    dependencies.insert("minecraft".to_string(), instance.mc_version.clone());
+    if let (Some(loader_version), Some(key)) =
+        (&instance.loader_version, loader_dependency_key(instance.loader))
+    {
+        dependencies.insert(key.to_string(), loader_version.clone());
+    }
+
+    let export_id = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let index = MrpackIndex {
+        game: "minecraft".into(),
+        format_version: 1,
+        version_id: format!("tfl-export-{export_id}"),
+        name: instance.name.clone(),
+        summary: None,
+        files: index_files,
+        dependencies,
+    };
+
+    let safe_name: String = instance
+        .name
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .collect();
+    let export_path = PathManager::get()
+        .get_shared_dir()
+        .join("exports")
+        .join(format!("{safe_name}-{export_id}.mrpack"));
+
+    let instance_dir_clone = instance_dir.clone();
+    let mods_dir_clone = mods_dir.clone();
+    let export_path_clone = export_path.clone();
+    tokio::task::spawn_blocking(move || {
+        build_mrpack_zip(&instance_dir_clone, &mods_dir_clone, &unresolved, &index, &export_path_clone)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())?;
+
+    Ok(export_path.to_string_lossy().to_string())
+}
+
+// ── Backup de mundo + verificación de integridad ────────────────────────────
+
+fn zip_dir(source: &std::path::Path, dest: &std::path::Path) -> std::io::Result<()> {
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let file = std::fs::File::create(dest)?;
+    let mut zip = zip::ZipWriter::new(file);
+    for entry in walkdir_files(source) {
+        let rel = entry.strip_prefix(source).unwrap_or(&entry);
+        let zip_path = rel.to_string_lossy().replace('\\', "/");
+        let bytes = std::fs::read(&entry)?;
+        zip.start_file(zip_path, zip::write::SimpleFileOptions::default())?;
+        std::io::Write::write_all(&mut zip, &bytes)?;
+    }
+    zip.finish()?;
+    Ok(())
+}
+
+/// Backup de saves/ antes de tocar mods — un mod nuevo puede romper un
+/// mundo existente (formato de chunk, IDs de bloque distintos entre
+/// versiones de un mod, etc). `None` si la instancia no tiene mundos
+/// todavía (nada que respaldar, no es un error).
+async fn backup_world_dir(instance_dir: &std::path::Path) -> Result<Option<String>, String> {
+    let saves_dir = instance_dir.join("saves");
+    if !saves_dir.is_dir() {
+        return Ok(None);
+    }
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let backup_path = instance_dir.join(".tfl_backups").join(format!("saves-{ts}.zip"));
+    let backup_path_clone = backup_path.clone();
+    tokio::task::spawn_blocking(move || zip_dir(&saves_dir, &backup_path_clone))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())?;
+    Ok(Some(backup_path.to_string_lossy().to_string()))
+}
+
+#[command]
+pub async fn list_world_backups(instance_name: String) -> Result<Vec<String>, String> {
+    let instance = instance_manager::get_instance(&instance_name).await?;
+    let backups_dir = instance.dir().join(".tfl_backups");
+    let Ok(mut entries) = tokio::fs::read_dir(&backups_dir).await else {
+        return Ok(Vec::new());
+    };
+    let mut out = Vec::new();
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        if let Some(name) = entry.file_name().to_str() {
+            out.push(name.to_string());
+        }
+    }
+    out.sort();
+    out.reverse(); // más reciente primero — el timestamp está en el nombre
+    Ok(out)
 }

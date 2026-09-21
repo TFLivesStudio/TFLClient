@@ -7,6 +7,8 @@
 		deleteInstance,
 		renameInstance,
 		duplicateInstance,
+		exportInstanceAsMrpack,
+		verifyInstanceIntegrity,
 		updateInstanceMemory,
 		getRecommendedRamForInstance,
 		openInstanceFolder,
@@ -33,7 +35,9 @@
 		Puzzle,
 		ImagePlus,
 		ChevronRight,
-		Copy
+		Copy,
+		FileOutput,
+		ShieldCheck
 	} from 'lucide-svelte';
 
 	let {
@@ -155,6 +159,36 @@
 		}
 	}
 
+	let exporting = $state(false);
+	let exportedPath = $state<string | null>(null);
+	async function handleExport() {
+		exporting = true;
+		error = null;
+		exportedPath = null;
+		try {
+			exportedPath = await exportInstanceAsMrpack(instance.name);
+		} catch (e) {
+			error = String(e);
+		} finally {
+			exporting = false;
+		}
+	}
+
+	let verifying = $state(false);
+	let integrityIssues = $state<string[] | null>(null);
+	async function handleVerifyIntegrity() {
+		verifying = true;
+		error = null;
+		integrityIssues = null;
+		try {
+			integrityIssues = await verifyInstanceIntegrity(instance.name);
+		} catch (e) {
+			error = String(e);
+		} finally {
+			verifying = false;
+		}
+	}
+
 	async function loadModCount() {
 		if (instance.loader === 'vanilla') return;
 		try {
@@ -254,6 +288,26 @@
 					</button>
 					<button
 						type="button"
+						class="icon-btn"
+						disabled={exporting}
+						onclick={handleExport}
+						aria-label="Exportar como .mrpack"
+						title="Exportar como .mrpack"
+					>
+						{#if exporting}<Loader2 size={13} class="spin" />{:else}<FileOutput size={13} />{/if}
+					</button>
+					<button
+						type="button"
+						class="icon-btn"
+						disabled={verifying}
+						onclick={handleVerifyIntegrity}
+						aria-label="Verificar integridad"
+						title="Verificar integridad"
+					>
+						{#if verifying}<Loader2 size={13} class="spin" />{:else}<ShieldCheck size={13} />{/if}
+					</button>
+					<button
+						type="button"
 						class="icon-btn danger"
 						onclick={() => (showDeleteConfirm = true)}
 						aria-label="Eliminar"
@@ -261,6 +315,19 @@
 						<Trash2 size={13} />
 					</button>
 				</div>
+				{#if exportedPath}
+					<p class="hint">Exportado: {exportedPath}</p>
+				{/if}
+				{#if integrityIssues !== null}
+					{#if integrityIssues.length === 0}
+						<p class="hint">Todo en orden — no falta ningún archivo instalado.</p>
+					{:else}
+						<p class="error">
+							Faltan {integrityIssues.length} archivo{integrityIssues.length === 1 ? '' : 's'} que
+							un modpack instaló: {integrityIssues.join(', ')}
+						</p>
+					{/if}
+				{/if}
 			{/if}
 
 			<div class="stat-chips">

@@ -340,3 +340,41 @@ pub async fn check_modpack_updates(instance_name: String) -> Vec<ModpackUpdateIn
     }
     updatable
 }
+
+/// Chequea que los archivos que instaló cada modpack (según su manifest
+/// local en .tfl_modpacks/) sigan existiendo — detecta si algo se
+/// borró/movió por fuera del launcher después de instalar. Es honesto en lo
+/// que puede detectar: archivos faltantes, no corrupción de contenido byte a
+/// byte (no se guarda ningún hash de referencia para comparar eso).
+#[command]
+pub async fn verify_instance_integrity(instance_name: String) -> Result<Vec<String>, String> {
+    let instance = instance_manager::get_instance(&instance_name).await?;
+    let instance_dir = instance.dir();
+    let manifests_dir = manifest_dir(&instance_dir);
+    let Ok(mut entries) = tokio::fs::read_dir(&manifests_dir).await else {
+        return Ok(Vec::new());
+    };
+
+    let mut missing = Vec::new();
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let Ok(raw) = tokio::fs::read_to_string(entry.path()).await else {
+            continue;
+        };
+        let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&raw) else {
+            continue;
+        };
+        let Some(paths) = manifest.get("installed_paths").and_then(|v| v.as_array()) else {
+            continue;
+        };
+        for p in paths {
+            let Some(rel) = p.as_str() else { continue };
+            let Ok(abs) = cubrinth::utils::path::safe_join(&instance_dir, rel) else {
+                continue;
+            };
+            if !abs.exists() {
+                missing.push(rel.to_string());
+            }
+        }
+    }
+    Ok(missing)
+}
