@@ -328,8 +328,17 @@ pub fn java_runtime_preferences(mc_version: &str) -> &'static [u8] {
         Some((1, n)) if n >= 21 => &[21, 17, 8],
         Some((1, n)) if n >= 17 => &[17, 21, 8],
         Some((1, _)) => &[8, 17, 21],
-        // Year-based and snapshot versions default to the most recent LTS Java.
-        _ => &[21, 17, 8],
+        // Mojang reemplazó el esquema "1.x" por versionado por año (24.x,
+        // 25.x, 26.x...) a partir de fines de 2025. Estas versiones son
+        // siempre más nuevas que cualquier "1.x" y compilan con un
+        // class file más nuevo que Java 21 soporta — usar el LTS
+        // gestionado más reciente, no el viejo default fijo.
+        // Bug real: quedó hardcodeado en 21 y una instancia en MC 26.3
+        // crasheó con UnsupportedClassVersionError (necesitaba Java 25).
+        Some((major, _)) if major > 1 => &[25, 21, 17],
+        // Snapshot u otro string no parseable: mismo criterio, preferir
+        // el LTS gestionado más nuevo primero.
+        _ => &[25, 21, 17],
     }
 }
 
@@ -533,7 +542,11 @@ mod tests {
         assert_eq!(java_runtime_preferences("1.20.4"), &[17, 21, 8]);
         assert_eq!(java_runtime_preferences("1.21"), &[21, 17, 8]);
         assert_eq!(java_runtime_preferences("1.21.4"), &[21, 17, 8]);
-        assert_eq!(java_runtime_preferences("26.3-snapshot-2"), &[21, 17, 8]);
+        // Esquema por año (post "1.x"): siempre necesita el LTS gestionado
+        // más nuevo, no el viejo default de 21 (bug real: MC 26.3 con
+        // Java 21 tiraba UnsupportedClassVersionError).
+        assert_eq!(java_runtime_preferences("26.3"), &[25, 21, 17]);
+        assert_eq!(java_runtime_preferences("26.3-snapshot-2"), &[25, 21, 17]);
     }
 
     #[test]
@@ -541,6 +554,7 @@ mod tests {
         assert_eq!(infer_java_version("1.16.5"), 8);
         assert_eq!(infer_java_version("1.17.1"), 17);
         assert_eq!(infer_java_version("1.21.4"), 21);
-        assert_eq!(infer_java_version("26.3-snapshot-2"), 21);
+        assert_eq!(infer_java_version("26.3"), 25);
+        assert_eq!(infer_java_version("26.3-snapshot-2"), 25);
     }
 }

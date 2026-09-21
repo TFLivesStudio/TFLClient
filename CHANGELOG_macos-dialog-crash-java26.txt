@@ -1,0 +1,70 @@
+TFL CLIENT — CHANGELOG: crash al subir imagen en macOS + Java incorrecto en Minecraft 26.x
+================================================================================
+
+src-tauri/tauri.conf.json
+  + bundle.macOS.hardenedRuntime: false — explícito, antes quedaba en el
+    default de Tauri (true) sin que nada del repo lo pidiera.
+  - BUG REAL: subir una imagen propia (icono de instancia o skin de
+    perfil) crasheaba la app entera en macOS al elegir el archivo en el
+    diálogo nativo. Causa: Tauri activa hardenedRuntime=true por default
+    en el bundle de macOS pase lo que pase, incluso sin signingIdentity
+    real — acá la firma es ad-hoc ("-", sin cuenta Apple Developer, ver
+    CHANGELOG_firma-macos-updater.txt). Hardened Runtime + firma ad-hoc
+    (sin Team ID) es una combinación que el servicio XPC del panel nativo
+    (com.apple.appkit.xpc.openAndSavePanelService) rechaza: NSOpenPanel
+    devuelve NULL, tauri-plugin-dialog no tiene ese caso cubierto y hace
+    panic — con panic="abort" en el profile release (Cargo.toml raíz),
+    ese panic no se queda en un hilo, tira abajo el proceso entero.
+  - Verificado con codesign -dv sobre el .app compilado: antes
+    flags=0x10002(adhoc,runtime); después del fix, flags=0x2(adhoc), sin
+    el bit de hardened runtime. Con signingIdentity "-" puesto explícito
+    también se confirmó que el Identifier de la firma coincide con
+    com.tflives.tflclient (CFBundleIdentifier) — un mismatch ahí es otra
+    causa conocida de que el mismo XPC service rechace la conexión.
+  - Esto no reemplaza la firma real de Developer ID ($99/año, pendiente
+    de decisión de infraestructura, ver changelog de arriba) — solo saca
+    una combinación de flags que no tiene sentido sin ella y que además
+    rompía una función básica del launcher.
+
+crates/aqua/src/utilities/mod.rs
+  - BUG REAL: una instancia en Minecraft 26.3 crasheaba al lanzar con
+    `java.lang.UnsupportedClassVersionError: ... class file version 69.0,
+    this version of the Java Runtime only recognizes class file versions
+    up to 65.0` — el launcher había auto-instalado Java 21 (hasta class
+    file 65) en vez de Java 25 (class file 69, que es lo que ese
+    Minecraft necesita). El auto-instalado en sí funciona bien (ver
+    src-tauri/src/services/java_manager.rs, ensure_java) — el problema es
+    QUÉ versión de Java elige.
+  - Causa: `java_runtime_preferences()` solo reconocía el esquema viejo
+    "1.x" (parse_mc_major_minor devuelve Some((1, n))). Minecraft 26.3 no
+    matchea ese patrón (major=26, no 1) y caía al brazo catch-all `_`,
+    que estaba hardcodeado en `[21, 17, 8]` con el comentario "default a
+    la LTS más reciente" — comentario que quedó desactualizado el día que
+    Java 25 se agregó a MANAGED_MAJORS en java_manager.rs sin tocar este
+    default.
+  - Fix: agregado un brazo explícito para major > 1 (el versionado nuevo
+    por año de Mojang, 24.x/25.x/26.x...) que prefiere Java 25 primero,
+    y el catch-all para strings no parseables ahora usa el mismo orden
+    — ya no hay ningún camino que devuelva 21 como opción preferida para
+    una versión de Minecraft que no sea explícitamente "1.x" vieja.
+  - Tests actualizados: test_java_runtime_preferences y
+    test_infer_java_version tenían aserciones que fijaban el
+    comportamiento viejo (21) como "correcto" para "26.3-snapshot-2" —
+    ahora esperan 25, y se agregó un caso nuevo para "26.3" a secas (el
+    reportado en el crash real).
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo test -p aqua (test_java_runtime_preferences, test_infer_java_version):
+    ambos pasan con los valores corregidos.
+  - Build macOS real (.app) reconstruido con hardenedRuntime:false +
+    signingIdentity "-": codesign -dv confirma flags=0x2(adhoc), sin
+    "runtime", Identifier=com.tflives.tflclient matcheando el
+    CFBundleIdentifier del Info.plist.
+  - No se reprodujo el lanzamiento real de una instancia en Minecraft
+    26.3 en esta sesión (requiere la descarga real de esa versión) — el
+    fix es una corrección directa de mapeo versión→Java, verificable por
+    lectura y cubierta por los tests unitarios con el caso exacto
+    reportado (26.3, class file 69 → Java 25).
+================================================================================
