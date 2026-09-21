@@ -3,8 +3,9 @@
 	import Tfl from '$lib/icons/Tfl.svelte';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { getMascotFor } from '$lib/mascots';
+	import { network } from '$lib/state/network.svelte';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
-	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes, Sparkles } from 'lucide-svelte';
+	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes, Sparkles, WifiOff } from 'lucide-svelte';
 
 	let {
 		instances,
@@ -81,6 +82,13 @@
 		<Sparkles size={15} />
 		TFL Selection
 	</button>
+
+	{#if !network.online}
+		<div class="offline-badge">
+			<WifiOff size={12} />
+			<span>Sin conexión — jugá lo que ya tenés instalado</span>
+		</div>
+	{/if}
 
 	<div class="instances">
 		<div class="section-label">
@@ -205,6 +213,23 @@
 	.tfl-selection-btn:hover {
 		background: color-mix(in srgb, var(--accent) 20%, var(--bg-card));
 		border-color: var(--accent);
+	}
+
+	.offline-badge {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 10px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--border));
+		background: color-mix(in srgb, #f59e0b 12%, var(--bg-card));
+		color: #f59e0b;
+		font-size: 0.68rem;
+		line-height: 1.3;
+	}
+
+	.offline-badge :global(svg) {
+		flex-shrink: 0;
 	}
 
 	.brand-mark {

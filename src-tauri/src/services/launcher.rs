@@ -21,6 +21,7 @@ static LAUNCHWERK: LazyLock<Launchwerk> =
 struct RunningGame {
     name: String,
     id: Option<uuid::Uuid>,
+    pid: Option<u32>,
 }
 
 static RUNNING: LazyLock<Mutex<Option<RunningGame>>> = LazyLock::new(|| Mutex::new(None));
@@ -28,6 +29,13 @@ static RUNNING: LazyLock<Mutex<Option<RunningGame>>> = LazyLock::new(|| Mutex::n
 /// Nombre de la instancia corriendo ahora mismo, si hay alguna.
 pub fn running_instance_name() -> Option<String> {
     RUNNING.lock().unwrap().as_ref().map(|r| r.name.clone())
+}
+
+/// PID del proceso de Java corriendo ahora mismo, si hay alguna instancia
+/// activa y ya arrancó de verdad (puede ser `None` un instante mientras se
+/// resuelve, aunque `running_instance_name` ya no sea `None`).
+pub fn running_instance_pid() -> Option<u32> {
+    RUNNING.lock().unwrap().as_ref().and_then(|r| r.pid)
 }
 
 /// Mata el proceso de la instancia en ejecución (si hay alguna). La
@@ -206,6 +214,7 @@ pub async fn launch(app: tauri::AppHandle, instance_name: String) -> Result<(), 
         *guard = Some(RunningGame {
             name: instance_name.clone(),
             id: None,
+            pid: None,
         });
     }
 
@@ -324,8 +333,10 @@ async fn launch_inner(app: tauri::AppHandle, instance_name: String) -> Result<()
     instance_manager::mark_last_played(&instance_name).await?;
 
     let id = handle.id();
+    let pid = handle.pid().await;
     if let Some(running) = RUNNING.lock().unwrap().as_mut() {
         running.id = Some(id);
+        running.pid = pid;
     }
     emit(AppEvent::InstanceStatusChanged {
         name: instance_name.clone(),

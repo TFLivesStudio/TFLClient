@@ -15,12 +15,37 @@
 
 	const MAX_LINES = 5000;
 
+	interface ProcessStats {
+		cpu_percent: number;
+		memory_mb: number;
+	}
+
 	let lines = $state<LogLine[]>([]);
 	let exitCode = $state<number | null | undefined>(undefined);
 	let stopping = $state(false);
 	let autoScroll = $state(true);
+	let stats = $state<ProcessStats | null>(null);
 	let logEl: HTMLDivElement;
 	let unlisten: UnlistenFn | undefined;
+	let statsInterval: ReturnType<typeof setInterval> | undefined;
+
+	async function pollStats() {
+		try {
+			stats = await invoke<ProcessStats | null>('get_running_instance_stats');
+		} catch {
+			stats = null;
+		}
+	}
+
+	// Deja de pollear apenas el proceso termina — no tiene sentido seguir
+	// pidiendo stats de un PID que ya no existe.
+	$effect(() => {
+		if (exitCode !== undefined && statsInterval) {
+			clearInterval(statsInterval);
+			statsInterval = undefined;
+			stats = null;
+		}
+	});
 
 	async function handleStop() {
 		stopping = true;
@@ -42,6 +67,53 @@
 		autoScroll = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 40;
 	}
 
+	// Traducción de errores conocidos — el stacktrace crudo de Java sigue
+	// abajo para quien lo necesite, esto es un cartel arriba con la
+	// explicación en criollo para los casos más comunes. Best-effort, no
+	// cubre absolutamente todo lo que puede fallar.
+	const KNOWN_ERRORS: { pattern: RegExp; message: string }[] = [
+		{
+			pattern: /OutOfMemoryError|Java heap space/i,
+			message: 'Se quedó sin memoria RAM asignada — probá subir la RAM máxima en Ajustes.'
+		},
+		{
+			pattern: /UnsupportedClassVersionError/i,
+			message: 'Esta versión de Minecraft necesita una versión de Java más nueva que la instalada.'
+		},
+		{
+			pattern: /Could not reserve enough space for( the)? object heap/i,
+			message: 'Le pediste más RAM de la que tiene disponible tu compu — bajá el máximo en Ajustes.'
+		},
+		{
+			pattern: /A JNI error has occurred/i,
+			message: 'Conflicto entre mods, o una versión de Java incompatible con esta instancia.'
+		},
+		{
+			pattern: /Mixin apply .*failed|MixinApplicatorStandard/i,
+			message: 'Un mod (mixin) chocó con otro — probá sacar el último mod que instalaste.'
+		},
+		{
+			pattern: /NoClassDefFoundError|ClassNotFoundException/i,
+			message: 'Falta una dependencia que un mod necesita — revisá si instalaste todo lo que pedía.'
+		},
+		{
+			pattern: /DuplicateModsFoundException|duplicate mod/i,
+			message: 'Tenés el mismo mod instalado dos veces — revisá la lista de mods de la instancia.'
+		}
+	];
+
+	let friendlyError = $state<string | null>(null);
+
+	function checkForKnownError(line: string) {
+		if (friendlyError) return; // ya hay uno mostrado, no lo piso con otro
+		for (const { pattern, message } of KNOWN_ERRORS) {
+			if (pattern.test(line)) {
+				friendlyError = message;
+				return;
+			}
+		}
+	}
+
 	onMount(async () => {
 		unlisten = await listen<{ type: string; data: Record<string, unknown> }>('app-event', (event) => {
 			const payload = event.payload;
@@ -50,6 +122,7 @@
 				if (d.instance !== instanceName) return;
 				const next = [...lines, { stream: d.stream as 'stdout' | 'stderr', line: d.line }];
 				lines = next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
+				if (d.stream === 'stderr') checkForKnownError(d.line);
 				tick().then(() => {
 					if (autoScroll && logEl) logEl.scrollTop = logEl.scrollHeight;
 				});
@@ -59,10 +132,13 @@
 				exitCode = d.code;
 			}
 		});
+		pollStats();
+		statsInterval = setInterval(pollStats, 2000);
 	});
 
 	onDestroy(() => {
 		unlisten?.();
+		clearInterval(statsInterval);
 	});
 </script>
 
@@ -76,6 +152,9 @@
 				{:else}
 					Proceso finalizado{exitCode !== null ? ` (código ${exitCode})` : ''}
 				{/if}
+				{#if stats}
+					· CPU {stats.cpu_percent.toFixed(0)}% · RAM {stats.memory_mb} MB
+				{/if}
 			</span>
 		</div>
 		<div class="actions">
@@ -86,6 +165,13 @@
 			<button type="button" onclick={handleClose}><X size={13} /> Cerrar</button>
 		</div>
 	</header>
+
+	{#if friendlyError}
+		<div class="friendly-error">
+			<span>{friendlyError}</span>
+			<button type="button" onclick={() => (friendlyError = null)} aria-label="Cerrar aviso">✕</button>
+		</div>
+	{/if}
 
 	<div class="log-body" bind:this={logEl} onscroll={handleScroll}>
 		{#each lines as l, i (i)}
@@ -140,6 +226,32 @@
 
 	.status.exited {
 		color: #f59e0b;
+	}
+
+	.friendly-error {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		padding: 8px 14px;
+		background: rgba(245, 158, 11, 0.14);
+		border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+		color: #f5c518;
+		font-size: 0.74rem;
+	}
+
+	.friendly-error button {
+		flex-shrink: 0;
+		border: none;
+		background: transparent;
+		color: inherit;
+		cursor: pointer;
+		font-size: 0.8rem;
+		opacity: 0.75;
+	}
+
+	.friendly-error button:hover {
+		opacity: 1;
 	}
 
 	.actions {

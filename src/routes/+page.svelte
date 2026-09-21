@@ -15,6 +15,7 @@
 	import { appState } from '$lib/state/state.svelte';
 	import { initDownloadListener } from '$lib/state/downloadState.svelte';
 	import { initGameSessionListener } from '$lib/state/gameSession.svelte';
+	import { initNetworkListener } from '$lib/state/network.svelte';
 	import { getCurrentUser, getInstances, getSettings, logout as apiLogout } from '$lib/api/tflApi';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
 	import { Plus, Sparkles, PackageOpen, Zap } from 'lucide-svelte';
@@ -93,6 +94,7 @@
 
 		initDownloadListener();
 		initGameSessionListener();
+		initNetworkListener();
 		try {
 			const [user, settings] = await Promise.all([getCurrentUser(), getSettings()]);
 			appState.currentUser = user;

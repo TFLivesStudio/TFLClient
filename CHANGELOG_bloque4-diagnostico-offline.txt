@@ -1,0 +1,68 @@
+TFL CLIENT — CHANGELOG: Bloque 4 — RAM/CPU en vivo, errores de Java traducidos, modo offline
+================================================================================
+
+Cuarto bloque de la lista grande aprobada. Antes de construir "modo
+offline real" se auditó qué tan offline-capaz ya era el flujo de
+lanzar una instancia — resultado honesto: el camino central YA
+funcionaba sin red (ensure_downloaded/ensure_java/instalación de loader
+ya chequean archivos locales primero, solo pegan a internet si falta
+algo de verdad — se confirmó leyendo el código, no hubo que
+reconstruir nada ahí). Lo que faltaba de verdad era avisar cuándo no
+hay conexión, en vez de dejar que cada panel tire un error de red
+crudo y confuso.
+
+crates/launchwerk/src/handle.rs
+  + InstanceHandle::pid(): PID del proceso de Java corriendo, si sigue
+    vivo — necesario para poder monitorear CPU/RAM desde afuera sin que
+    launchwerk tenga que depender de una crate de monitoreo de sistema.
+
+src-tauri/src/services/launcher.rs
+  ~ RunningGame ahora también guarda el pid (se resuelve apenas el
+    proceso arranca, junto al uuid de launchwerk).
+  + running_instance_pid(): getter, mismo patrón que
+    running_instance_name().
+
+src-tauri/src/commands/instance.rs
+  + get_running_instance_stats(): %CPU + RAM en vivo del proceso de
+    Java activo, vía sysinfo — con un System PERSISTENTE entre llamadas
+    (necesario para que sysinfo pueda calcular %CPU comparando contra
+    la muestra anterior; uno nuevo por llamada siempre daría 0%).
+
+src/lib/components/library/InstanceLogWindow.svelte
+  + Polling cada 2s de CPU/RAM mientras el proceso sigue corriendo,
+    mostrado al lado del estado ("Corriendo… · CPU 12% · RAM 3200 MB").
+    Se corta solo apenas el proceso termina.
+  + Traducción de errores comunes de Java/Minecraft: detecta patrones
+    conocidos en las líneas de stderr (OutOfMemoryError,
+    UnsupportedClassVersionError, falta de espacio para el heap, JNI
+    error, mixin que chocó con otro mod, NoClassDefFoundError, mods
+    duplicados) y muestra un cartel arriba del log con la explicación en
+    criollo — el stacktrace crudo sigue abajo para quien lo necesite,
+    esto no lo reemplaza. Best-effort, no cubre todo lo que puede
+    fallar en Java.
+
+src/lib/state/network.svelte.ts (nuevo)
+  + Store de conectividad (navigator.onLine + eventos online/offline
+    del navegador, que el WebView sí dispara). No hay nada de Rust
+    involucrado — es puramente para AVISAR en la UI, la capa de Rust ya
+    funciona offline sola cuando corresponde.
+
+src/lib/components/layout/Sidebar/Sidebar.svelte
+  + Badge "Sin conexión — jugá lo que ya tenés instalado" cuando no hay
+    red — mismo lugar/estilo que el aviso de cuenta offline que ya
+    existía.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - bun run build (build de producción real): compiló limpio.
+  - Confirmado por lectura de código (no reconstruido): ensure_downloaded,
+    ensure_java y la instalación de loader ya evitaban red cuando todo
+    está cacheado localmente, antes de esta tanda.
+  - No se pudo probar en vivo ninguno de los 3 flujos (RAM/CPU real,
+    detección de un crash real, desconectar la red de verdad) en esta
+    sesión — sin forma de automatizar eso sobre el binario de
+    desarrollo. Verificado por compilación y lectura de código.
+================================================================================

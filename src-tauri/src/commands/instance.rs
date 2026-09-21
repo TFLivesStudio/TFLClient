@@ -183,6 +183,34 @@ pub fn get_running_instance() -> Option<String> {
     launcher::running_instance_name()
 }
 
+/// System persistente entre llamadas — sysinfo necesita eso para poder
+/// calcular %CPU (compara contra la muestra anterior del mismo proceso).
+/// Uno nuevo por llamada siempre daría 0%.
+static PROCESS_MONITOR: std::sync::LazyLock<std::sync::Mutex<sysinfo::System>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(sysinfo::System::new()));
+
+#[derive(serde::Serialize)]
+pub struct ProcessStats {
+    pub cpu_percent: f32,
+    pub memory_mb: u64,
+}
+
+/// Uso de CPU/RAM del proceso de Java en vivo — `None` si no hay ninguna
+/// instancia corriendo ahora mismo. Pensado para pollearse cada 1-2s desde
+/// la ventana de log mientras el juego está abierto.
+#[command]
+pub fn get_running_instance_stats() -> Option<ProcessStats> {
+    let pid = launcher::running_instance_pid()?;
+    let sysinfo_pid = sysinfo::Pid::from_u32(pid);
+    let mut sys = PROCESS_MONITOR.lock().unwrap();
+    sys.refresh_process(sysinfo_pid);
+    let process = sys.process(sysinfo_pid)?;
+    Some(ProcessStats {
+        cpu_percent: process.cpu_usage(),
+        memory_mb: process.memory() / 1024 / 1024,
+    })
+}
+
 #[command]
 pub async fn open_instance_folder(app: AppHandle, name: String) -> Result<(), String> {
     let data = instance_manager::get_instance(&name).await?;

@@ -216,6 +216,15 @@ impl InstanceHandle {
         }
         Ok(())
     }
+
+    /// OS process id of the running Java process, if it's still running.
+    /// Lets a caller monitor CPU/RAM usage externally (e.g. via `sysinfo`)
+    /// without launchwerk itself needing to depend on a system-monitoring
+    /// crate.
+    pub async fn pid(&self) -> Option<u32> {
+        let rt = self.inner.runtime.lock().await;
+        rt.process.as_ref().and_then(|c| c.id())
+    }
 }
 
 // ─── Constructor (crate-internal) ────────────────────────────────────────────
