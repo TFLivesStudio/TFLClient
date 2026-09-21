@@ -360,3 +360,71 @@ pub async fn get_instance_icon_path(name: String) -> Option<String> {
     }
     None
 }
+
+#[derive(serde::Serialize)]
+pub struct ScreenshotInfo {
+    pub filename: String,
+    pub path: String,
+    pub modified_ms: u64,
+}
+
+/// Minecraft guarda las capturas en `<instancia>/screenshots/*.png` solo —
+/// no hace falta ningún comando nuevo de "sacar captura", el juego ya lo
+/// hace con F2. Esto es puramente el gestor: listar/borrar/abrir carpeta.
+#[command]
+pub async fn get_instance_screenshots(name: String) -> Result<Vec<ScreenshotInfo>, String> {
+    let instance = instance_manager::get_instance(&name).await?;
+    let dir = instance.dir().join("screenshots");
+    let mut out = Vec::new();
+    let Ok(mut entries) = tokio::fs::read_dir(&dir).await else {
+        return Ok(out); // sin capturas todavía, no es un error
+    };
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("png") {
+            continue;
+        }
+        let Some(filename) = path.file_name().and_then(|f| f.to_str()) else {
+            continue;
+        };
+        let modified_ms = entry
+            .metadata()
+            .await
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        out.push(ScreenshotInfo {
+            filename: filename.to_string(),
+            path: path.to_string_lossy().to_string(),
+            modified_ms,
+        });
+    }
+    out.sort_by(|a, b| b.modified_ms.cmp(&a.modified_ms));
+    Ok(out)
+}
+
+#[command]
+pub async fn delete_screenshot(name: String, filename: String) -> Result<(), String> {
+    if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+        return Err("Nombre de archivo inválido".into());
+    }
+    let instance = instance_manager::get_instance(&name).await?;
+    let path = instance.dir().join("screenshots").join(filename);
+    tokio::fs::remove_file(&path)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn open_screenshots_folder(app: AppHandle, name: String) -> Result<(), String> {
+    let instance = instance_manager::get_instance(&name).await?;
+    let dir = instance.dir().join("screenshots");
+    tokio::fs::create_dir_all(&dir)
+        .await
+        .map_err(|e| e.to_string())?;
+    app.opener()
+        .open_path(dir.to_string_lossy().to_string(), None::<&str>)
+        .map_err(|e| e.to_string())
+}

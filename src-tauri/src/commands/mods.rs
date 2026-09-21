@@ -18,6 +18,7 @@ const MAX_DEPENDENCY_DEPTH: u8 = 10;
 pub enum ContentKind {
     Mod,
     Shader,
+    ResourcePack,
 }
 
 impl ContentKind {
@@ -25,6 +26,7 @@ impl ContentKind {
         match self {
             ContentKind::Mod => "mod",
             ContentKind::Shader => "shader",
+            ContentKind::ResourcePack => "resourcepack",
         }
     }
 
@@ -33,13 +35,15 @@ impl ContentKind {
         match self {
             ContentKind::Mod => "mods",
             ContentKind::Shader => "shaderpacks",
+            ContentKind::ResourcePack => "resourcepacks",
         }
     }
 
-    /// Los shaders no se filtran por mod loader (Fabric/Forge/…) en
-    /// Modrinth — son compatibles vía un mod aparte (Iris/OptiFine), no
-    /// por sí mismos. Filtrar por loader ahí no tendría sentido y dejaría
-    /// la búsqueda vacía.
+    /// Los shaders y resource packs no se filtran por mod loader
+    /// (Fabric/Forge/…) en Modrinth — son compatibles con vanilla o vía un
+    /// mod aparte (Iris/OptiFine para shaders), no por loader propio.
+    /// Filtrar por loader ahí no tendría sentido y dejaría la búsqueda
+    /// vacía.
     fn filters_by_loader(self) -> bool {
         matches!(self, ContentKind::Mod)
     }
@@ -126,6 +130,14 @@ pub async fn search_shaders(
     mc_version: String,
 ) -> Result<Vec<ModSearchHit>, String> {
     search_content(&query, &mc_version, "", ContentKind::Shader).await
+}
+
+#[command]
+pub async fn search_resourcepacks(
+    query: String,
+    mc_version: String,
+) -> Result<Vec<ModSearchHit>, String> {
+    search_content(&query, &mc_version, "", ContentKind::ResourcePack).await
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -384,6 +396,26 @@ pub async fn install_shader(
     .await
 }
 
+#[command]
+pub async fn install_resourcepack(
+    instance_name: String,
+    project_id: String,
+    mc_version: String,
+) -> Result<(), String> {
+    let mut seen = HashSet::new();
+    install_recursive(
+        &instance_name,
+        &mc_version,
+        "",
+        &project_id,
+        None,
+        0,
+        &mut seen,
+        ContentKind::ResourcePack,
+    )
+    .await
+}
+
 async fn list_dir_names(instance_name: &str, subdir: &str) -> Result<Vec<String>, String> {
     let instance = instance_manager::get_instance(instance_name).await?;
     let dir = instance.dir().join(subdir);
@@ -428,6 +460,16 @@ pub async fn get_instance_shaders(instance_name: String) -> Result<Vec<String>, 
 #[command]
 pub async fn remove_shader(instance_name: String, filename: String) -> Result<(), String> {
     remove_file_in(&instance_name, "shaderpacks", &filename).await
+}
+
+#[command]
+pub async fn get_instance_resourcepacks(instance_name: String) -> Result<Vec<String>, String> {
+    list_dir_names(&instance_name, "resourcepacks").await
+}
+
+#[command]
+pub async fn remove_resourcepack(instance_name: String, filename: String) -> Result<(), String> {
+    remove_file_in(&instance_name, "resourcepacks", &filename).await
 }
 
 // ── Resolución de mods instalados por hash, updates, duplicados ────────────

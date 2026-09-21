@@ -14,7 +14,8 @@ import type {
 	ModpackUpdateInfo,
 	InstalledModInfo,
 	ModUpdateAvailable,
-	TflSelectionEntry
+	TflSelectionEntry,
+	ScreenshotInfo
 } from '$lib/types/types';
 
 // ── Auth ─────────────────────────────────────────────────────────────
@@ -76,6 +77,12 @@ export const setInstanceIcon = (name: string, sourcePath: string) =>
 	invoke<string>('set_instance_icon', { name, sourcePath });
 export const getInstanceIconPath = (name: string) =>
 	invoke<string | null>('get_instance_icon_path', { name });
+export const getInstanceScreenshots = (name: string) =>
+	invoke<ScreenshotInfo[]>('get_instance_screenshots', { name });
+export const deleteScreenshot = (name: string, filename: string) =>
+	invoke<void>('delete_screenshot', { name, filename });
+export const openScreenshotsFolder = (name: string) =>
+	invoke<void>('open_screenshots_folder', { name });
 
 // ── Versions / loaders ─────────────────────────────────────────────────
 export const getAvailableVersions = () => invoke<MinecraftVersion[]>('get_available_versions');
@@ -120,6 +127,16 @@ export const getInstanceShaders = (instanceName: string) =>
 	invoke<string[]>('get_instance_shaders', { instanceName });
 export const removeShader = (instanceName: string, filename: string) =>
 	invoke<void>('remove_shader', { instanceName, filename });
+
+// ── Resource packs ───────────────────────────────────────────────────
+export const searchResourcepacks = (query: string, mcVersion: string) =>
+	invoke<ModSearchHit[]>('search_resourcepacks', { query, mcVersion });
+export const installResourcepack = (instanceName: string, projectId: string, mcVersion: string) =>
+	invoke<void>('install_resourcepack', { instanceName, projectId, mcVersion });
+export const getInstanceResourcepacks = (instanceName: string) =>
+	invoke<string[]>('get_instance_resourcepacks', { instanceName });
+export const removeResourcepack = (instanceName: string, filename: string) =>
+	invoke<void>('remove_resourcepack', { instanceName, filename });
 
 // ── Modpacks ─────────────────────────────────────────────────────────
 export const searchModpacks = (query: string, mcVersion: string, loader: Loader) =>

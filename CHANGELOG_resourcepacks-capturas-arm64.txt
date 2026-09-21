@@ -1,0 +1,82 @@
+TFL CLIENT — CHANGELOG: Resource Packs, gestor de capturas, CI arm64
+================================================================================
+
+1) PANEL DE RESOURCE PACKS
+--------------------------------------------------------------------------------
+Mods, Shaders y Modpacks ya tenían su propio panel de búsqueda/instalación
+contra Modrinth — Resource Packs no. El backend ya tenía toda la lógica
+genérica hecha (ContentKind, search_content, install_recursive,
+list_dir_names, remove_file_in) pensada justo para agregar un tipo de
+contenido nuevo sin duplicar nada.
+
+src-tauri/src/commands/mods.rs
+  + ContentKind::ResourcePack — project_type "resourcepack" de Modrinth,
+    carpeta resourcepacks/, sin filtro por loader (igual que shaders: no
+    son específicos de Fabric/Forge/etc).
+  + search_resourcepacks, install_resourcepack, get_instance_resourcepacks,
+    remove_resourcepack — los 4 comandos espejo de los que ya existían
+    para shaders, cero lógica nueva además del enum.
+
+src/lib/components/library/ResourcePacksPanel.svelte (nuevo)
+  + Mismo patrón visual que ShadersPanel (buscador con debounce, grilla de
+    resultados, lista de instalados con botón de quitar) — sin el
+    bloqueo de "necesitás Fabric/Forge" que sí aplica a shaders, porque
+    resource packs funcionan en vanilla también.
+
+src/lib/components/library/InstanceDetail.svelte
+  ~ Nueva pestaña "Resource Packs" entre Shaders y Modpacks. La fila de
+    pestañas ahora scrollea horizontal en vez de desbordar (6 pestañas ya
+    no entran cómodas en el ancho fijo del panel).
+
+
+2) GESTOR DE CAPTURAS DE PANTALLA
+--------------------------------------------------------------------------------
+Minecraft ya guarda las capturas (F2) en `<instancia>/screenshots/*.png`
+solo — no hacía falta ningún comando de "sacar captura", solo mostrarlas
+y administrarlas desde el launcher.
+
+src-tauri/src/commands/instance.rs
+  + get_instance_screenshots(name): lista .png de screenshots/, más
+    recientes primero, con su ruta absoluta y fecha de modificación.
+  + delete_screenshot(name, filename): borra un archivo puntual.
+  + open_screenshots_folder(name): abre la carpeta en el explorador de
+    archivos del SO (mismo patrón que open_instance_folder).
+
+src/lib/components/library/ScreenshotsPanel.svelte (nuevo)
+  + Grilla de miniaturas (convertFileSrc directo sobre el path, sin bajar
+    nada a base64 — mismo approach que los íconos de instancia). Click
+    abre una vista grande (lightbox), hover muestra fecha y botón de
+    borrar por captura, botón "Abrir carpeta" arriba.
+
+src/lib/components/library/InstanceDetail.svelte
+  ~ Nueva pestaña "Capturas".
+
+
+3) CI: BUILD ARM64 NATIVO PARA LINUX
+--------------------------------------------------------------------------------
+.github/workflows/build.yml
+  + Runner ubuntu-22.04-arm sumado a la matriz — gratis para repos
+    públicos (este repo dejó de ser privado esta sesión). Nativo, no
+    cross-compile: mismo pipeline que el runner x86_64 de al lado, Tauri
+    detecta la arquitectura del runner solo y genera .deb/.AppImage/.rpm
+    arm64 sin flags extra. Antes solo había build x86_64 para Linux —
+    Debian/Ubuntu arm64 (Raspberry Pi y similares) no tenían instalador
+    propio, había que compilar a mano.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - bun run build (build de producción real): compiló limpio.
+  - El runner arm64 nuevo todavía no corrió ningún build real — se prueba
+    recién en el próximo tag que se corte. Si el label ubuntu-22.04-arm
+    no está disponible por algún motivo puntual de la cuenta, el job de
+    esa plataforma va a fallar solo (fail-fast: false ya estaba, así que
+    no tira abajo mac/windows/x86_64 aunque eso pase).
+  - No se pudo probar en vivo ninguno de los dos paneles nuevos (buscar e
+    instalar un resource pack real, ver/borrar una captura real) en esta
+    sesión — sin forma de automatizar interacción con la ventana nativa
+    de Tauri sobre el binario de desarrollo. Verificado por compilación y
+    lectura de código, como siempre.
+================================================================================

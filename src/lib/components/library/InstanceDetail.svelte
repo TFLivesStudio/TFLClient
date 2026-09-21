@@ -19,6 +19,8 @@
 	import ModsPanel from './ModsPanel.svelte';
 	import ShadersPanel from './ShadersPanel.svelte';
 	import ModpacksPanel from './ModpacksPanel.svelte';
+	import ResourcePacksPanel from './ResourcePacksPanel.svelte';
+	import ScreenshotsPanel from './ScreenshotsPanel.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import InstanceIconPicker from './InstanceIconPicker.svelte';
 	import {
@@ -51,7 +53,9 @@
 	let launching = $state(false);
 	const blockedByOther = $derived(!!gameSession.running && gameSession.running !== instance.name);
 	let error = $state<string | null>(null);
-	let tab = $state<'details' | 'mods' | 'shaders' | 'modpacks'>('details');
+	let tab = $state<
+		'details' | 'mods' | 'shaders' | 'resourcepacks' | 'modpacks' | 'screenshots'
+	>('details');
 	let showDeleteConfirm = $state(false);
 	let editingName = $state(false);
 	let nameDraft = $state(instance.name);
@@ -414,10 +418,26 @@
 		<button
 			type="button"
 			class="tab-btn"
+			class:active={tab === 'resourcepacks'}
+			onclick={() => (tab = 'resourcepacks')}
+		>
+			Resource Packs
+		</button>
+		<button
+			type="button"
+			class="tab-btn"
 			class:active={tab === 'modpacks'}
 			onclick={() => (tab = 'modpacks')}
 		>
 			Modpacks
+		</button>
+		<button
+			type="button"
+			class="tab-btn"
+			class:active={tab === 'screenshots'}
+			onclick={() => (tab = 'screenshots')}
+		>
+			Capturas
 		</button>
 	</div>
 
@@ -464,8 +484,12 @@
 		<ModsPanel {instance} />
 	{:else if tab === 'shaders'}
 		<ShadersPanel {instance} />
-	{:else}
+	{:else if tab === 'resourcepacks'}
+		<ResourcePacksPanel {instance} />
+	{:else if tab === 'modpacks'}
 		<ModpacksPanel {instance} />
+	{:else}
+		<ScreenshotsPanel {instance} />
 	{/if}
 </div>
 
@@ -760,6 +784,12 @@
 		display: flex;
 		gap: 4px;
 		border-bottom: 1px solid var(--border);
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+
+	.tabs::-webkit-scrollbar {
+		display: none;
 	}
 
 	.tab-btn {
@@ -772,6 +802,8 @@
 		font-weight: 600;
 		cursor: pointer;
 		margin-right: 16px;
+		white-space: nowrap;
+		flex-shrink: 0;
 	}
 
 	.tab-btn.active {

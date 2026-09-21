@@ -149,3 +149,9 @@ export type AppEvent =
 	| DownloadFinishedEvent
 	| DownloadFailedEvent
 	| { type: string; data: unknown };
+
+export interface ScreenshotInfo {
+	filename: string;
+	path: string;
+	modified_ms: number;
+}
