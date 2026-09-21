@@ -79,6 +79,20 @@ export interface ModSearchHit {
 	author: string;
 }
 
+export interface InstalledModInfo {
+	filename: string;
+	project_id: string | null;
+	title: string | null;
+	version_id: string | null;
+}
+
+export interface ModUpdateAvailable {
+	filename: string;
+	project_id: string;
+	title: string;
+	new_version_id: string;
+}
+
 export interface InstalledModpack {
 	project_id: string;
 	version_id: string;

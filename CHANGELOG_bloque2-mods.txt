@@ -1,0 +1,79 @@
+TFL CLIENT — CHANGELOG: Bloque 2 — favoritos, actualizar mods, changelog, duplicados, multi-archivo
+================================================================================
+
+Segundo bloque de la lista grande aprobada. Antes de construir nada
+nuevo se revisó la resolución de dependencias con versión específica que
+pediste explícitamente ("si pide una versión de forge/fabric específica
+para esos mods, intentará instalar... la que pide específicamente") —
+YA estaba bien hecha (install_recursive ya usaba version_by_id cuando la
+dependencia trae un version_id explícito, en vez de siempre ir a la
+última). Lo que sí faltaba y se arregló: cuando una versión trae VARIOS
+archivos en el mismo paquete, antes solo se bajaba el "primary" y el
+resto se perdía en silencio.
+
+src-tauri/src/commands/mods.rs
+  - BUG REAL: download_content_file solo bajaba el archivo "primary" de
+    una versión de Modrinth — si una versión traía más de un archivo
+    (pasa con algunos mods que empaquetan una lib requerida junto al mod
+    en la misma versión), el resto se descartaba sin avisar. Ahora baja
+    TODOS los archivos de la versión.
+  + get_installed_mods_info(instance): resuelve cada .jar instalado en
+    mods/ contra Modrinth por hash SHA1 (endpoint /version_files, en
+    lote, un solo viaje de red) — funciona con cualquier mod publicado
+    ahí, se haya instalado desde este launcher o no. Los que no
+    resuelven (mods de otro lado) quedan con título/project_id en null,
+    no rompe nada.
+  + check_mod_updates(instance): mismo mecanismo pero contra
+    /version_files/update — Modrinth devuelve directo la build más
+    nueva compatible con la versión de Minecraft + loader de la
+    instancia, sin tener que buscar mod por mod.
+  + update_all_mods(instance): baja e instala todas las actualizaciones
+    detectadas, sigue de largo si un mod puntual falla (no aborta el
+    lote entero). Devuelve cuántos se actualizaron de verdad.
+  + get_mod_version_changelog(version_id): notas de cambios de una
+    versión puntual (Modrinth ya las trae en la respuesta de /version,
+    solo faltaba exponerlo).
+  + find_duplicate_mods(instance): agrupa archivos que resuelven al
+    MISMO mod de Modrinth — caso real y bien definido de "mods
+    duplicados" (dos builds del mismo mod instaladas a la vez, causa
+    crashes típica). Detectar conflictos entre mods NO relacionados
+    queda fuera de alcance — mucho más especulativo, no hay forma
+    confiable de saberlo sin ejecutar el juego.
+
+src-tauri/src/core/http_client.rs
+  + post_json_retrying: mismo patrón de reintento que los helpers GET
+    que ya existían — hacía falta un POST porque los endpoints de
+    resolución por lote de Modrinth mandan la lista de hashes en el
+    body, no caben en query string.
+
+src/lib/state/modFavorites.svelte.ts (nuevo)
+  + Colección de mods favoritos cross-instancia — localStorage nomás,
+    no hace falta ida y vuelta a Rust para algo así de simple. Un mod se
+    marca favorito una vez, después se puede instalar rápido en
+    cualquier instancia sin volver a buscarlo.
+
+src/lib/components/library/ModsPanel.svelte
+  + Lista de instalados ahora muestra el TÍTULO real (cuando se puede
+    resolver), no solo el nombre de archivo crudo.
+  + Aviso arriba de todo si hay mods duplicados (mismo mod dos veces).
+  + Botón "Actualizar todos (N)" cuando hay actualizaciones pendientes,
+    más botón "Novedades" por mod que expande el changelog de la
+    versión nueva sin salir del panel.
+  + Sección "Favoritos" (cuando no hay texto en el buscador) con
+    instalación directa de un click.
+  + Estrella en cada resultado de búsqueda para marcar/desmarcar favorito.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes.
+  - bun run build (build de producción real): compiló limpio.
+  - No se pudo probar ninguno de estos flujos por click en esta sesión
+    (sin forma de automatizar interacción sobre el binario de
+    desarrollo) — verificado por compilación y lectura de código. Los
+    endpoints de Modrinth usados (/version_files, /version_files/update)
+    son los mismos que documentan oficialmente para este caso de uso
+    (resolver/actualizar mods instalados por hash), no una integración
+    inventada a ciegas.
+================================================================================

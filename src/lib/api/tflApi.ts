@@ -12,6 +12,8 @@ import type {
 	JavaStatus,
 	InstalledModpack,
 	ModpackUpdateInfo,
+	InstalledModInfo,
+	ModUpdateAvailable,
 	TflSelectionEntry
 } from '$lib/types/types';
 
@@ -95,6 +97,15 @@ export const getInstanceMods = (instanceName: string) =>
 	invoke<string[]>('get_instance_mods', { instanceName });
 export const removeMod = (instanceName: string, filename: string) =>
 	invoke<void>('remove_mod', { instanceName, filename });
+export const getInstalledModsInfo = (instanceName: string) =>
+	invoke<InstalledModInfo[]>('get_installed_mods_info', { instanceName });
+export const checkModUpdates = (instanceName: string) =>
+	invoke<ModUpdateAvailable[]>('check_mod_updates', { instanceName });
+export const updateAllMods = (instanceName: string) => invoke<number>('update_all_mods', { instanceName });
+export const getModVersionChangelog = (versionId: string) =>
+	invoke<string | null>('get_mod_version_changelog', { versionId });
+export const findDuplicateMods = (instanceName: string) =>
+	invoke<string[][]>('find_duplicate_mods', { instanceName });
 
 // ── Shaders ──────────────────────────────────────────────────────────
 export const searchShaders = (query: string, mcVersion: string) =>

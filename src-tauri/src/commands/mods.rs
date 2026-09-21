@@ -5,7 +5,7 @@
 //! carpeta de destino dentro de la instancia (`mods/` vs `shaderpacks/`).
 //! CurseForge queda para una próxima iteración — necesita una API key
 //! propia que todavía no existe (spec §26).
-use crate::core::{AppEvent, emit, get_bytes_retrying, get_json_retrying};
+use crate::core::{AppEvent, emit, get_bytes_retrying, get_json_retrying, post_json_retrying};
 use crate::services::instance_manager;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -130,10 +130,11 @@ pub async fn search_shaders(
 
 #[derive(Debug, Deserialize, Clone)]
 pub(crate) struct ModrinthVersion {
-    #[allow(dead_code)]
     pub(crate) id: String,
     pub(crate) project_id: String,
     pub(crate) name: String,
+    #[serde(default)]
+    pub(crate) changelog: Option<String>,
     pub(crate) files: Vec<ModrinthFile>,
     pub(crate) dependencies: Vec<ModrinthDependency>,
 }
@@ -187,18 +188,10 @@ pub(crate) async fn version_by_id(version_id: &str) -> Result<ModrinthVersion, S
     get_json_retrying(&format!("{MODRINTH_API}/version/{version_id}")).await
 }
 
-async fn download_content_file(
-    instance_name: &str,
-    version: &ModrinthVersion,
-    kind: ContentKind,
+async fn download_single_file(
+    dest_dir: &std::path::Path,
+    file: &ModrinthFile,
 ) -> Result<(), String> {
-    let file = version
-        .files
-        .iter()
-        .find(|f| f.primary)
-        .or_else(|| version.files.first())
-        .ok_or("No tiene archivos para descargar")?;
-
     if file.filename.contains('/') || file.filename.contains('\\') || file.filename.contains("..")
     {
         return Err(format!(
@@ -207,16 +200,8 @@ async fn download_content_file(
         ));
     }
 
-    let instance = instance_manager::get_instance(instance_name).await?;
-    let dest_dir = instance.dir().join(kind.subdir());
-    tokio::fs::create_dir_all(&dest_dir)
-        .await
-        .map_err(|e| e.to_string())?;
     let dest = dest_dir.join(&file.filename);
     if dest.exists() {
-        emit(AppEvent::DownloadFinished {
-            task: format!("{}:{}", kind.subdir(), version.name),
-        });
         return Ok(());
     }
 
@@ -247,15 +232,41 @@ async fn download_content_file(
         tokio::fs::write(&dest, &bytes)
             .await
             .map_err(|e| e.to_string())?;
-        emit(AppEvent::DownloadFinished {
-            task: format!("{}:{}", kind.subdir(), version.name),
-        });
         return Ok(());
     }
     Err(format!(
         "No se pudo descargar {} de forma íntegra: {last_err}",
         file.filename
     ))
+}
+
+/// Baja TODOS los archivos que trae la versión, no solo el "primary" — la
+/// mayoría de las versiones de Modrinth traen uno solo, pero algunas
+/// empaquetan varios en la misma versión (el mod + una lib que necesita sí
+/// o sí) y antes esto se perdía en silencio, solo se bajaba el primero.
+async fn download_content_file(
+    instance_name: &str,
+    version: &ModrinthVersion,
+    kind: ContentKind,
+) -> Result<(), String> {
+    if version.files.is_empty() {
+        return Err("No tiene archivos para descargar".into());
+    }
+
+    let instance = instance_manager::get_instance(instance_name).await?;
+    let dest_dir = instance.dir().join(kind.subdir());
+    tokio::fs::create_dir_all(&dest_dir)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    for file in &version.files {
+        download_single_file(&dest_dir, file).await?;
+    }
+
+    emit(AppEvent::DownloadFinished {
+        task: format!("{}:{}", kind.subdir(), version.name),
+    });
+    Ok(())
 }
 
 /// Instala un mod/shader y, recursivamente, sus dependencias *requeridas*
@@ -413,4 +424,214 @@ pub async fn get_instance_shaders(instance_name: String) -> Result<Vec<String>, 
 #[command]
 pub async fn remove_shader(instance_name: String, filename: String) -> Result<(), String> {
     remove_file_in(&instance_name, "shaderpacks", &filename).await
+}
+
+// ── Resolución de mods instalados por hash, updates, duplicados ────────────
+//
+// get_instance_mods solo devolvía nombres de archivo crudos — no había
+// forma de saber a qué mod de Modrinth correspondía cada .jar instalado (ni
+// para mostrar el nombre real, ni para ofrecer actualizarlo). La API de
+// Modrinth tiene justo un endpoint pensado para esto: resolver por hash
+// SHA1 del archivo, sin importar si se instaló desde este launcher o no.
+
+#[derive(Serialize)]
+struct HashLookupBody<'a> {
+    hashes: &'a [String],
+    algorithm: &'a str,
+}
+
+#[derive(Serialize)]
+struct HashUpdateBody<'a> {
+    hashes: &'a [String],
+    algorithm: &'a str,
+    loaders: Vec<&'a str>,
+    game_versions: Vec<&'a str>,
+}
+
+fn sha1_hex(bytes: &[u8]) -> String {
+    use sha1::{Digest, Sha1};
+    Sha1::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+/// (filename, sha1) de cada .jar en mods/ — no recursivo, los mods viven
+/// todos sueltos ahí, no en subcarpetas.
+async fn hash_installed_files(dir: &std::path::Path) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    let Ok(mut entries) = tokio::fs::read_dir(dir).await else {
+        return out;
+    };
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("jar") {
+            continue;
+        }
+        let Ok(bytes) = tokio::fs::read(&path).await else {
+            continue;
+        };
+        let Some(filename) = path.file_name().and_then(|f| f.to_str()) else {
+            continue;
+        };
+        out.push((filename.to_string(), sha1_hex(&bytes)));
+    }
+    out
+}
+
+fn instance_loader_str(instance: &instance_manager::InstanceData) -> String {
+    serde_json::to_value(&instance.loader)
+        .ok()
+        .and_then(|v| v.as_str().map(String::from))
+        .unwrap_or_default()
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct InstalledModInfo {
+    pub filename: String,
+    pub project_id: Option<String>,
+    pub title: Option<String>,
+    pub version_id: Option<String>,
+}
+
+/// Resuelve cada mod instalado contra Modrinth por hash — funciona con
+/// cualquier .jar que sea una build publicada ahí, se haya instalado desde
+/// este launcher o no. Los que no resuelven (mods de otro lado, builds
+/// custom) quedan con los campos en None, no rompe nada.
+#[command]
+pub async fn get_installed_mods_info(instance_name: String) -> Result<Vec<InstalledModInfo>, String> {
+    let instance = instance_manager::get_instance(&instance_name).await?;
+    let hashed = hash_installed_files(&instance.dir().join("mods")).await;
+    if hashed.is_empty() {
+        return Ok(Vec::new());
+    }
+    let hashes: Vec<String> = hashed.iter().map(|(_, h)| h.clone()).collect();
+    let body = HashLookupBody {
+        hashes: &hashes,
+        algorithm: "sha1",
+    };
+    let resolved: std::collections::HashMap<String, ModrinthVersion> =
+        post_json_retrying(&format!("{MODRINTH_API}/version_files"), &body)
+            .await
+            .unwrap_or_default();
+
+    Ok(hashed
+        .into_iter()
+        .map(|(filename, hash)| match resolved.get(&hash) {
+            Some(v) => InstalledModInfo {
+                filename,
+                project_id: Some(v.project_id.clone()),
+                title: Some(v.name.clone()),
+                version_id: Some(v.id.clone()),
+            },
+            None => InstalledModInfo {
+                filename,
+                project_id: None,
+                title: None,
+                version_id: None,
+            },
+        })
+        .collect())
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ModUpdateAvailable {
+    pub filename: String,
+    pub project_id: String,
+    pub title: String,
+    pub new_version_id: String,
+}
+
+/// Mods instalados con una versión más nueva disponible para la versión de
+/// Minecraft + loader de ESTA instancia puntual — usa el endpoint de
+/// Modrinth pensado justo para esto (resuelve por hash y devuelve la
+/// última build compatible, sin tener que buscar mod por mod).
+#[command]
+pub async fn check_mod_updates(instance_name: String) -> Result<Vec<ModUpdateAvailable>, String> {
+    let instance = instance_manager::get_instance(&instance_name).await?;
+    let hashed = hash_installed_files(&instance.dir().join("mods")).await;
+    if hashed.is_empty() {
+        return Ok(Vec::new());
+    }
+    let hashes: Vec<String> = hashed.iter().map(|(_, h)| h.clone()).collect();
+    let loader_str = instance_loader_str(&instance);
+    let body = HashUpdateBody {
+        hashes: &hashes,
+        algorithm: "sha1",
+        loaders: vec![loader_str.as_str()],
+        game_versions: vec![instance.mc_version.as_str()],
+    };
+    let latest: std::collections::HashMap<String, ModrinthVersion> =
+        post_json_retrying(&format!("{MODRINTH_API}/version_files/update"), &body)
+            .await
+            .unwrap_or_default();
+
+    let mut out = Vec::new();
+    for (filename, hash) in hashed {
+        let Some(newest) = latest.get(&hash) else {
+            continue;
+        };
+        // Modrinth devuelve la versión más nueva pase lo que pase — si
+        // coincide con el hash ya instalado, en realidad no hay update.
+        let already_current = newest.files.iter().any(|f| {
+            f.hashes.as_ref().and_then(|h| h.sha1.as_deref()) == Some(hash.as_str())
+        });
+        if !already_current {
+            out.push(ModUpdateAvailable {
+                filename,
+                project_id: newest.project_id.clone(),
+                title: newest.name.clone(),
+                new_version_id: newest.id.clone(),
+            });
+        }
+    }
+    Ok(out)
+}
+
+/// Actualiza todos los mods con versión nueva disponible de una — sigue de
+/// largo si un mod puntual falla (red, archivo corrupto, etc), no aborta
+/// el resto del lote. Devuelve cuántos se actualizaron de verdad.
+#[command]
+pub async fn update_all_mods(instance_name: String) -> Result<u32, String> {
+    let updates = check_mod_updates(instance_name.clone()).await?;
+    let mut count = 0u32;
+    for update in updates {
+        let Ok(version) = version_by_id(&update.new_version_id).await else {
+            continue;
+        };
+        if download_content_file(&instance_name, &version, ContentKind::Mod)
+            .await
+            .is_err()
+        {
+            continue;
+        }
+        if let Ok(instance) = instance_manager::get_instance(&instance_name).await {
+            let _ = tokio::fs::remove_file(instance.dir().join("mods").join(&update.filename)).await;
+        }
+        count += 1;
+    }
+    Ok(count)
+}
+
+#[command]
+pub async fn get_mod_version_changelog(version_id: String) -> Result<Option<String>, String> {
+    let version = version_by_id(&version_id).await?;
+    Ok(version.changelog)
+}
+
+/// Grupos de archivos que resuelven al MISMO mod de Modrinth (dos builds
+/// distintas del mismo mod instaladas a la vez) — el caso de "mods
+/// duplicados/incompatibles" más común y bien definido; detectar choques
+/// entre mods NO relacionados es un problema mucho más especulativo, fuera
+/// de alcance acá.
+#[command]
+pub async fn find_duplicate_mods(instance_name: String) -> Result<Vec<Vec<String>>, String> {
+    let infos = get_installed_mods_info(instance_name).await?;
+    let mut by_project: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    for info in infos {
+        if let Some(pid) = info.project_id {
+            by_project.entry(pid).or_default().push(info.filename);
+        }
+    }
+    Ok(by_project.into_values().filter(|v| v.len() > 1).collect())
 }

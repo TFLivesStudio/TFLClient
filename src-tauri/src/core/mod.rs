@@ -14,5 +14,5 @@ pub use errors::AppError;
 #[allow(unused_imports)]
 pub use event_bus::{AppEvent, emit};
 #[allow(unused_imports)]
-pub use http_client::{HTTP, get_bytes_retrying, get_json_retrying, get_text_retrying};
+pub use http_client::{HTTP, get_bytes_retrying, get_json_retrying, get_text_retrying, post_json_retrying};
 pub use path_manager::PathManager;
