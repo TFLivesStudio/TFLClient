@@ -16,6 +16,13 @@ jobs:
             args: ''
           - platform: ubuntu-22.04
             args: ''
+          # Runner arm64 nativo de GitHub — gratis para repos públicos desde
+          # que este repo dejó de ser privado. Nativo, no cross-compile: no
+          # hace falta target extra de Rust ni configurar un linker cruzado,
+          # compila y bundlea .deb/.AppImage/.rpm arm64 tal cual, igual que
+          # el runner x86_64 de al lado.
+          - platform: ubuntu-22.04-arm
+            args: ''
           - platform: windows-latest
             args: ''
 
@@ -24,7 +31,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Instalar dependencias de sistema (Linux)
-        if: matrix.platform == 'ubuntu-22.04'
+        if: startsWith(matrix.platform, 'ubuntu')
         run: |
           sudo apt-get update
           sudo apt-get install -y \
