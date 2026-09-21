@@ -444,6 +444,26 @@ html[data-card-style='minimal'] .instance-avatar {
 :root[data-wallpaper='charcoal'] {
 	--wallpaper-bg: #0f1115;
 }
+/* Wallpaper "animado" — sin video/gif de por medio (no hay herramienta de
+   generación de imagen/video en esta sesión, y un video real pesaría mucho
+   más que esto de todos modos). Mismo gradiente de Aurora, con un filtro
+   hue-rotate corriendo despacio en loop sobre TODA la capa .ambient-bg —
+   barato en GPU, un solo filtro, nada de decodificar video. Respeta el
+   guard de reduce-motion (perfil Lite) como cualquier otra animación. */
+:root[data-wallpaper='animated-aurora'] {
+	--wallpaper-bg: linear-gradient(135deg, #040d10 0%, #041410 40%, #0a0420 80%, #04100d 100%);
+}
+html[data-wallpaper='animated-aurora']:not([data-reduce-motion]) .ambient-bg {
+	animation: tfl-wallpaper-hue 18s linear infinite;
+}
+@keyframes tfl-wallpaper-hue {
+	0% {
+		filter: hue-rotate(0deg);
+	}
+	100% {
+		filter: hue-rotate(360deg);
+	}
+}
 /* Fotos reales de Minecraft (capturas in-game con shaders), locales en
    static/wallpapers/ — reemplazan las fotos genéricas de Unsplash
    hotlinkeadas de la pasada anterior: no dependen de red, cargan al

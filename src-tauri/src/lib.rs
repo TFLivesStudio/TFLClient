@@ -52,6 +52,7 @@ pub fn run() {
             commands::instance::get_running_instance,
             commands::instance::get_running_instance_stats,
             commands::instance::open_instance_folder,
+            commands::instance::open_external_url,
             commands::instance::pick_image_file,
             commands::instance::set_instance_icon,
             commands::instance::get_instance_icon_path,

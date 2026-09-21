@@ -223,6 +223,21 @@ pub async fn open_instance_folder(app: AppHandle, name: String) -> Result<(), St
         .map_err(|e| e.to_string())
 }
 
+/// Abre una URL en el navegador del sistema — restringido a
+/// github.com/TFLivesStudio/TFLClient (el panel de "qué hay de nuevo" es lo
+/// único que llama esto, para linkear al Release). No es un "abrir
+/// cualquier URL" genérico a propósito, evita que se pueda usar para abrir
+/// lo que sea.
+#[command]
+pub fn open_external_url(app: AppHandle, url: String) -> Result<(), String> {
+    if !url.starts_with("https://github.com/TFLivesStudio/TFLClient/") {
+        return Err("URL no permitida".into());
+    }
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
 /// Abre el diálogo nativo de "elegir archivo" filtrado a imágenes. Comando
 /// separado de `set_instance_icon` para que el bloqueo del diálogo (síncrono,
 /// espera a que el usuario elija) no retenga nada del lado de la instancia.

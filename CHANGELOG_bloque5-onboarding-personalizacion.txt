@@ -1,0 +1,87 @@
+TFL CLIENT — CHANGELOG: Bloque 5 — Qué hay de nuevo, tour rápido, wallpaper animado, perfil gráfico
+================================================================================
+
+Quinto y último bloque de la lista grande aprobada (Instancias, Mods,
+Diagnóstico/rendimiento, Personalización, Confianza, Onboarding). Este
+bloque junta lo que quedaba de "Onboarding" y "Personalización": un
+mecanismo único de "primera vez / recién actualizado" en vez de dos
+sistemas separados, más dos extras chicos de personalización que ya
+tenían toda la infraestructura lista (fondo animado, perfiles gráficos
+de shaders con un click).
+
+src-tauri/src/commands/instance.rs
+  + open_external_url(url): abre una URL en el navegador del sistema —
+    con allowlist estricta, solo acepta URLs que empiecen con
+    "https://github.com/TFLivesStudio/TFLClient/". No es un "abrir
+    cualquier URL" genérico, es deliberadamente angosto.
+
+src-tauri/src/lib.rs
+  + open_external_url registrado en el invoke_handler.
+
+src/lib/api/tflApi.ts
+  + openExternalUrl(url): wrapper del comando nuevo.
+
+src/app.d.ts
+  + Declaración ambiente __APP_VERSION__ (ya vive en vite.config.ts vía
+    `define` desde el arranque de la sesión, pero nunca se había
+    consumido en el frontend — sin esta declaración TypeScript no
+    reconoce el global).
+
+src/lib/components/onboarding/WhatsNewTips.svelte (nuevo)
+  + Un solo mecanismo cubre dos casos, comparando
+    localStorage['tfl-last-seen-version'] contra __APP_VERSION__:
+      - No hay valor guardado (primera apertura del launcher): muestra
+        4 tips rápidos de uso (Ctrl+K/⌘K, TFL Selection, pestañas por
+        instancia, Ajustes → Estilo). Versión simplificada de "tour
+        guiado" — una lista, no un spotlight interactivo posicionado
+        sobre elementos reales de la UI (eso es bastante más trabajo de
+        UI, quedó fuera de este bloque).
+      - Hay un valor guardado pero no coincide con la versión actual
+        (se acaba de actualizar solo): muestra "Novedades en vX.X.X"
+        con un botón que abre el Release de GitHub correspondiente vía
+        openExternalUrl.
+      - Si coincide, no muestra nada — no molesta en cada apertura.
+    Al cerrar (botón "Entendido" o click afuera) guarda la versión
+    actual en localStorage.
+
+src/routes/+page.svelte
+  + <WhatsNewTips /> montado junto a los demás overlays, gateado por
+    !isLogWindow (no debe aparecer en la ventana de logs) y
+    !needsOnboarding (no debe competir con el onboarding real de
+    cuenta para gente completamente nueva).
+
+src/styles/global.css
+  + Wallpaper "Aurora animada": mismo gradiente que aurora-gradient,
+    pero con una animación CSS pura de hue-rotate sobre .ambient-bg
+    (18s, infinita) — sin video ni imagen de por medio, barato para la
+    GPU. Respeta el guard existente data-reduce-motion (no anima si el
+    usuario pidió menos movimiento).
+
+src/lib/components/settings/SettingsPanel.svelte
+  + Entrada "Aurora animada" agregada al array WALLPAPERS de Ajustes →
+    Estilo, con su preview estático correspondiente.
+
+src/lib/components/library/ShadersPanel.svelte
+  + Sección "Perfil gráfico rápido": 3 botones (Bajo/Medio/Alto) que
+    instalan de una un shader curado y verificado en Modrinth (MakeUp -
+    Ultra Fast / Complementary Reimagined / Complementary Unbound),
+    reusando el mismo flujo de instalación que ya existía — no hay
+    lógica nueva de descarga, solo un atajo sobre la que ya estaba.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check --workspace: limpio (mismo warning preexistente sin relación,
+    AppError con variantes no usadas).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings preexistentes
+    de antes de este bloque.
+  - bun run build (build de producción real): compiló limpio.
+  - Los 3 project IDs de Modrinth usados en el perfil gráfico rápido se
+    verificaron contra la API real de Modrinth antes de este bloque (no son
+    inventados).
+  - No se pudo probar en vivo ninguno de los 3 flujos nuevos (panel de
+    "qué hay de nuevo" en primera apertura, en actualización, ni el link
+    real a un Release de GitHub) en esta sesión — sin forma de automatizar
+    eso sobre el binario de desarrollo. Verificado por compilación y
+    lectura de código.
+================================================================================

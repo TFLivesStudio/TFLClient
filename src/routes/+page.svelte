@@ -8,6 +8,7 @@
 	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
 	import ParticlesBackground from '$lib/components/layout/ParticlesBackground.svelte';
 	import CommandPalette from '$lib/components/layout/CommandPalette.svelte';
+	import WhatsNewTips from '$lib/components/onboarding/WhatsNewTips.svelte';
 	import DownloadProgressBar from '$lib/components/library/DownloadProgressBar.svelte';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 	import TflSelection from '$lib/components/library/TflSelection.svelte';
@@ -218,6 +219,10 @@
 		onOpenSettings={() => (showSettings = true)}
 		onOpenTflSelection={() => (showTflSelection = true)}
 	/>
+{/if}
+
+{#if !isLogWindow && !needsOnboarding}
+	<WhatsNewTips />
 {/if}
 
 {#if showSettings}

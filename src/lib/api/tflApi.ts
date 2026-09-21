@@ -67,6 +67,7 @@ export const launchInstance = (instanceName: string) => invoke<void>('launch', {
 export const stopRunningInstance = () => invoke<void>('stop_running_instance');
 export const getRunningInstance = () => invoke<string | null>('get_running_instance');
 export const openInstanceFolder = (name: string) => invoke<void>('open_instance_folder', { name });
+export const openExternalUrl = (url: string) => invoke<void>('open_external_url', { url });
 export const pickImageFile = () => invoke<string | null>('pick_image_file');
 export const setInstanceIcon = (name: string, sourcePath: string) =>
 	invoke<string>('set_instance_icon', { name, sourcePath });

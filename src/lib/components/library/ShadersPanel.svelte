@@ -6,6 +6,16 @@
 
 	let { instance }: { instance: InstanceData } = $props();
 
+	// 3 opciones fijas en vez de tener que buscar y elegir un shader pack a
+	// mano — project_id reales de Modrinth, verificados en vivo, no
+	// inventados. Cada uno queda instalado como cualquier otro shader (se
+	// puede sacar desde "Instalados" como siempre).
+	const GRAPHICS_PRESETS = [
+		{ label: 'Bajo', projectId: 'izsIPI7a' }, // MakeUp - Ultra Fast
+		{ label: 'Medio', projectId: 'HVnmMxH1' }, // Complementary Shaders - Reimagined
+		{ label: 'Alto', projectId: 'R6NEzAwj' } // Complementary Shaders - Unbound
+	];
+
 	let query = $state('');
 	let results = $state<ModSearchHit[]>([]);
 	let installed = $state<string[]>([]);
@@ -82,6 +92,25 @@
 			(Iris, Oculus, OptiFine…) instalado en la pestaña Mods para que Minecraft lo use.
 		</p>
 
+		<div class="presets">
+			<span class="section-label">Perfil gráfico rápido</span>
+			<div class="preset-row">
+				{#each GRAPHICS_PRESETS as preset (preset.projectId)}
+					<button
+						type="button"
+						class="preset-btn"
+						disabled={installingId === preset.projectId}
+						onclick={() => handleInstall(preset.projectId)}
+					>
+						{#if installingId === preset.projectId}
+							<Loader2 size={13} class="spin" />
+						{/if}
+						{preset.label}
+					</button>
+				{/each}
+			</div>
+		</div>
+
 		<div class="search-row">
 			{#if searching}
 				<Loader2 size={14} class="spin search-icon" />
@@ -157,6 +186,43 @@
 	.hint {
 		color: var(--text-secondary);
 		font-size: 0.78rem;
+	}
+
+	.presets {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.preset-row {
+		display: flex;
+		gap: 8px;
+	}
+
+	.preset-btn {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 8px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-input);
+		color: var(--text-primary);
+		font-size: 0.78rem;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.preset-btn:hover:not(:disabled) {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.preset-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 
 	.search-row {

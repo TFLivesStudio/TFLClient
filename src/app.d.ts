@@ -8,6 +8,9 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+	// Inyectada por vite.config.ts (define) desde package.json — versión
+	// del build actual, para poder detectar "se acaba de actualizar".
+	const __APP_VERSION__: string;
 }
 
 export {};

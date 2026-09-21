@@ -80,6 +80,11 @@
 			label: 'Aurora',
 			preview: 'linear-gradient(135deg, #040d10, #041410 40%, #0a0420 80%, #04100d)'
 		},
+		{
+			id: 'animated-aurora',
+			label: 'Aurora animada',
+			preview: 'linear-gradient(135deg, #040d10, #041410 40%, #0a0420 80%, #04100d)'
+		},
 		{ id: 'obsidian-solid', label: 'Obsidiana', preview: '#08090c' },
 		{ id: 'charcoal', label: 'Carbón', preview: '#0f1115' },
 		{ id: 'savanna', label: 'Sabana', preview: 'url(/wallpapers/mc-wallpaper-1.jpg)' },
