@@ -7,9 +7,13 @@
 	//     sobre elementos reales, eso es mucho más trabajo de UI; esto son
 	//     4 tips en una lista).
 	//   - Había un valor guardado pero es distinto al actual → se acaba de
-	//     actualizar, muestra "qué hay de nuevo" con link al Release.
+	//     actualizar, muestra "qué hay de nuevo" con el contenido real de
+	//     esa versión (RELEASE_NOTES) — la mayoría de los usuarios nunca va
+	//     a abrir el Release de GitHub, así que el texto tiene que estar
+	//     ACÁ, el link de salida queda solo como detalle extra opcional.
 	// Si coincide, no muestra nada — no molesta en cada apertura.
 	import { openExternalUrl } from '$lib/api/tflApi';
+	import { RELEASE_NOTES } from '$lib/releaseNotes';
 	import { Sparkles, X, ExternalLink } from 'lucide-svelte';
 
 	const STORAGE_KEY = 'tfl-last-seen-version';
@@ -43,6 +47,8 @@
 		'Cada instancia tiene su propia pestaña de Mods, Shaders y Modpacks — nada se mezcla entre instancias.',
 		'En Ajustes → Estilo podés cambiar acento, superficie, densidad y hasta el fondo animado.'
 	];
+
+	const updateNotes = RELEASE_NOTES[__APP_VERSION__] ?? [];
 </script>
 
 <svelte:window onkeydown={(e) => mode !== 'none' && e.key === 'Escape' && dismiss()} />
@@ -61,6 +67,16 @@
 						<li>{tip}</li>
 					{/each}
 				</ul>
+			{:else if updateNotes.length > 0}
+				<p class="update-text">Se actualizó solo a la versión <strong>{__APP_VERSION__}</strong>:</p>
+				<ul class="tips">
+					{#each updateNotes as note}
+						<li>{note}</li>
+					{/each}
+				</ul>
+				<button type="button" class="release-link" onclick={openRelease}>
+					<ExternalLink size={13} /> Ver el detalle técnico en GitHub
+				</button>
 			{:else}
 				<p class="update-text">
 					Se actualizó solo a la versión <strong>{__APP_VERSION__}</strong>. El detalle completo de
