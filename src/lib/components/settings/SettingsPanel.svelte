@@ -878,6 +878,14 @@
 		flex-direction: column;
 		gap: 18px;
 		overflow-y: auto;
+		overflow-x: hidden;
+		/* Sin este padding lateral, el anillo del swatch de color activo
+		   (box-shadow que sobresale ~6px del círculo) queda pegado al
+		   borde de este contenedor y overflow-y:auto recorta también el
+		   eje horizontal (comportamiento real de la spec: si un eje no es
+		   "visible", el otro se computa como "auto" aunque no se haya
+		   puesto explícito) — se veía cortado/"saliendo" del panel. */
+		padding: 0 4px;
 	}
 
 	.section-label {
@@ -905,6 +913,7 @@
 
 	.row {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 8px;
 	}
 

@@ -1,0 +1,37 @@
+TFL CLIENT — CHANGELOG: fix overflow/recorte en Ajustes → Apariencia
+================================================================================
+
+src/lib/components/settings/SettingsPanel.svelte
+  - BUG REAL (reportado con captura): en la pestaña Apariencia, el
+    anillo del color de acento activo (el círculo seleccionado) se veía
+    cortado/"saliendo" del panel, y filas de opciones (Superficie,
+    Efecto ambiental) se veían amontonadas/recortadas por el lado
+    derecho.
+  - Causa: `.panel-body` tenía `overflow-y: auto` sin `overflow-x`
+    explícito. Por la spec de CSS, cuando un eje de overflow no es
+    "visible", el OTRO eje se computa como "auto" aunque no se haya
+    puesto — o sea, el eje horizontal también quedaba recortando/
+    scrolleando sin querer. Como `.panel-body` no tenía padding propio,
+    el `box-shadow` del swatch activo (que sobresale ~6px del círculo
+    para el anillo) quedaba pegado al borde y se cortaba ahí.
+  - Fix: `overflow-x: hidden` explícito (en vez de dejarlo caer a "auto"
+    por accidente) + `padding: 0 4px` en `.panel-body` para darle
+    margen al anillo del swatch.
+  - De paso: `.row` (usado por las filas de Superficie/Efecto
+    ambiental/Densidad/etc.) no tenía `flex-wrap: wrap` — cualquier fila
+    con opciones que no entren en el ancho disponible ahora hace salto
+    de línea en vez de desbordar.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings
+    preexistentes.
+  - No se pudo re-renderizar la UI real en esta sesión para confirmar
+    visualmente (la app necesita el runtime nativo de Tauri — el IPC a
+    Rust — no corre suelta en un navegador de dev). El diagnóstico se
+    basa en la estructura real del DOM/CSS leída del archivo y en el
+    comportamiento documentado de la spec de CSS Overflow, no en
+    suposición. Pedirle confirmación visual al usuario en el próximo
+    build antes de darlo por cerrado del todo.
+================================================================================
