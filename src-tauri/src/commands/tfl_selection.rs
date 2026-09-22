@@ -41,6 +41,11 @@ pub struct TflSelectionEntry {
     /// una sola entrada (pack de una versión) o varias (compatible con
     /// varias versiones de Minecraft a la vez).
     pub versions: Vec<ModpackVersion>,
+    /// Categoría libre puesta por quien publica el pack (ej. "PvP",
+    /// "Chill", "Técnico") — el frontend arma las pestañas dinámicamente
+    /// según lo que encuentre, no hay un enum fijo acá. `None` si el
+    /// manifest no la trae (cae en la pestaña "General").
+    pub category: Option<String>,
 }
 
 #[command]
@@ -125,6 +130,12 @@ pub(crate) async fn fetch_manifest(full_name: &str) -> Result<Option<TflSelectio
         .and_then(|v| v.as_str())
         .filter(|s| !s.is_empty())
         .map(String::from);
+    let category = raw
+        .get("category")
+        .and_then(|v| v.as_str())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(String::from);
 
     let versions = extract_versions(&raw);
     if versions.is_empty() {
@@ -139,6 +150,7 @@ pub(crate) async fn fetch_manifest(full_name: &str) -> Result<Option<TflSelectio
         source: "community".into(),
         project_id: None,
         versions,
+        category,
     }))
 }
 

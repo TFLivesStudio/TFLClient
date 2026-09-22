@@ -1,0 +1,41 @@
+TFL CLIENT — CHANGELOG: pestañas por categoría en TFL Selection
+================================================================================
+
+src-tauri/src/commands/tfl_selection.rs
+  + Campo nuevo y opcional `category` en tfl-modpack.json — texto libre
+    (ej. "PvP", "Chill", "Técnico"), lo pone quien publica el repo. Se
+    lee, se recorta (trim) y se descarta si queda vacío. No rompe los
+    manifests ya publicados que no lo tienen (category queda None).
+
+src/lib/types/types.ts
+  + TflSelectionEntry.category: string | null.
+
+src/lib/components/library/TflSelection.svelte
+  + Pestañas dinámicas arriba de la lista: una por cada categoría
+    distinta que traigan los packs (agrupadas sin distinguir mayúsculas/
+    minúsculas para evitar "PvP" y "pvp" como pestañas separadas, pero
+    mostrando la primera grafía que apareció), más "General" al final
+    para los que no pusieron categoría, más "Todos" siempre primero. Las
+    pestañas solo se muestran si hay más de una categoría real — con una
+    sola no tiene sentido, se ve la lista directo.
+  + Filtra la lista de packs por la pestaña activa (visibleEntries).
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check -p tflclient: limpio (mismo warning preexistente sin
+    relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings
+    preexistentes.
+  - No se probó con packs reales categorizados en esta sesión (requiere
+    repos GitHub reales con el campo nuevo) — cambio aditivo y acotado,
+    verificable por lectura.
+
+Nota para el cliente
+--------------------------------------------------------------------------
+El campo `category` es opcional y de texto libre — no hay que avisar
+antes de agregarlo, y los packs ya publicados sin ese campo siguen
+funcionando igual (van a la pestaña "General"). No hay una doc en el
+repo con la plantilla completa del manifest todavía — si hace falta,
+se puede armar aparte.
+================================================================================

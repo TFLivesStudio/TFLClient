@@ -36,6 +36,40 @@
 	let installingFor = $state<string | null>(null);
 	let doneFor = $state<Set<string>>(new Set());
 	let errorFor = $state<Record<string, string>>({});
+	let activeTab = $state<string>('all');
+
+	const GENERAL_TAB = 'general';
+
+	function categoryKey(entry: TflSelectionEntry): string {
+		return entry.category?.trim().toLowerCase() || GENERAL_TAB;
+	}
+
+	// Pestañas dinámicas: una por cada categoría distinta que traigan los
+	// packs publicados (texto libre, lo pone quien publica el repo — no
+	// hay un enum fijo), en el orden en que van apareciendo, más
+	// "General" al final para los que no pusieron categoría. La etiqueta
+	// visible usa la primera grafía que apareció para esa categoría (si
+	// alguien escribe "PvP" en un repo, se muestra así, no "Pvp").
+	const tabs = $derived.by(() => {
+		const labels = new Map<string, string>();
+		let hasGeneral = false;
+		for (const e of entries) {
+			const key = categoryKey(e);
+			if (key === GENERAL_TAB) {
+				hasGeneral = true;
+				continue;
+			}
+			if (!labels.has(key)) labels.set(key, e.category!.trim());
+		}
+		const result = [{ key: 'all', label: 'Todos' }];
+		for (const [key, label] of labels) result.push({ key, label });
+		if (hasGeneral) result.push({ key: GENERAL_TAB, label: 'General' });
+		return result;
+	});
+
+	const visibleEntries = $derived(
+		activeTab === 'all' ? entries : entries.filter((e) => categoryKey(e) === activeTab)
+	);
 
 	// Modrinth: cualquier instancia con loader (la mejor versión se
 	// resuelve en el momento contra la API de Modrinth). Comunitarios: solo
@@ -168,8 +202,22 @@
 		{:else if entries.length === 0}
 			<p class="empty">Todavía no hay modpacks en la selección.</p>
 		{:else}
+			{#if tabs.length > 2}
+				<div class="tabs">
+					{#each tabs as tab (tab.key)}
+						<button
+							type="button"
+							class="tab"
+							class:active={activeTab === tab.key}
+							onclick={() => (activeTab = tab.key)}
+						>
+							{tab.label}
+						</button>
+					{/each}
+				</div>
+			{/if}
 			<div class="entries">
-				{#each entries as entry (entry.id)}
+				{#each visibleEntries as entry (entry.id)}
 					{@const compat = compatibleInstancesFor(entry)}
 					{@const createOpts = createOptionsFor(entry)}
 					{@const noOptions = compat.length === 0 && createOpts.length === 0}
@@ -310,6 +358,31 @@
 		font-size: 0.8rem;
 		color: var(--text-muted);
 		padding: 16px 0;
+	}
+
+	.tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin-bottom: 12px;
+	}
+
+	.tab {
+		padding: 6px 12px;
+		border-radius: 999px;
+		border: 1px solid var(--border);
+		background: var(--bg-input);
+		color: var(--text-secondary);
+		font-size: 0.74rem;
+		font-weight: 600;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.tab.active {
+		background: var(--accent);
+		border-color: var(--accent);
+		color: var(--accent-text);
 	}
 
 	.entries {

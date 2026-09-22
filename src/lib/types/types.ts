@@ -119,6 +119,7 @@ export interface TflSelectionEntry {
 	source: 'modrinth' | 'community';
 	project_id: string | null;
 	versions: ModpackVersion[];
+	category: string | null;
 }
 
 export interface DownloadProgressEvent {
