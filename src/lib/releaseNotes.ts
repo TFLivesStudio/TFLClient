@@ -29,5 +29,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.9.8': [
 		'TFL Selection: los packs curados ahora pueden crear su propia instancia (con la versión y el loader correctos) con un solo click, sin tener que armarla vos antes.'
+	],
+	'0.9.9': [
+		'TFL Selection: los packs curados ahora se organizan en pestañas por categoría (PvP, Chill, Técnico, etc.) en vez de una sola lista larga.'
 	]
 };
