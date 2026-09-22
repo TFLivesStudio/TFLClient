@@ -125,6 +125,12 @@
 	let customWallpaperBusy = $state(false);
 	let customWallpaperError = $state<string | null>(null);
 
+	// Subir imagen propia crashea el launcher entero en macOS (bug conocido
+	// del diálogo nativo de archivos con la firma ad-hoc del build, ver
+	// CHANGELOG_macos-dialog-crash-java26.txt) — bloqueado acá hasta tener
+	// una firma real de Apple Developer. El resto de la app no se toca.
+	const isMacOS = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
+
 	let ramTotal = $state<number | null>(null);
 	let minRam = $state(appState.settings?.min_memory ?? 1024);
 	let maxRam = $state(appState.settings?.max_memory ?? 2048);
@@ -240,6 +246,7 @@
 	}
 
 	async function pickCustomWallpaper() {
+		if (isMacOS) return;
 		customWallpaperError = null;
 		customWallpaperBusy = true;
 		try {
@@ -616,13 +623,18 @@
 							type="button"
 							class="wallpaper-swatch wallpaper-upload"
 							onclick={pickCustomWallpaper}
-							disabled={customWallpaperBusy}
+							disabled={customWallpaperBusy || isMacOS}
 							aria-label={customWallpaperUrl ? 'Cambiar tu imagen' : 'Subir tu imagen'}
-							title={customWallpaperUrl ? 'Cambiar tu imagen' : 'Subir tu imagen'}
+							title={isMacOS
+								? 'No disponible en macOS por ahora'
+								: customWallpaperUrl
+									? 'Cambiar tu imagen'
+									: 'Subir tu imagen'}
 						>
 							<Upload size={13} />
 						</button>
 					</div>
+					{#if isMacOS}<p class="mac-notice">Subir tu propia imagen no está disponible en macOS por ahora.</p>{/if}
 					{#if customWallpaperError}<p class="error-text">{customWallpaperError}</p>{/if}
 				</section>
 				<section>
@@ -969,6 +981,12 @@
 		margin-top: 8px;
 		font-size: 0.75rem;
 		color: var(--color-error);
+	}
+
+	.mac-notice {
+		margin-top: 8px;
+		font-size: 0.75rem;
+		color: var(--text-secondary);
 	}
 
 	.ram-row {

@@ -24,6 +24,12 @@
 	let busy = $state<string | null>(null);
 	let error = $state<string | null>(null);
 
+	// Subir imagen propia crashea el launcher entero en macOS (bug conocido
+	// del diálogo nativo de archivos con la firma ad-hoc del build, ver
+	// CHANGELOG_macos-dialog-crash-java26.txt) — bloqueado acá hasta tener
+	// una firma real de Apple Developer. El resto de la app no se toca.
+	const isMacOS = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
+
 	onMount(async () => {
 		try {
 			presets = await invoke<IconPreset[]>('list_instance_icon_presets');
@@ -54,6 +60,7 @@
 	}
 
 	async function uploadOwn() {
+		if (isMacOS) return;
 		const source = await pickImageFile();
 		if (!source) return;
 		busy = 'upload';
@@ -94,10 +101,19 @@
 			</button>
 		</div>
 
-		<button type="button" class="upload-btn" disabled={busy === 'upload'} onclick={uploadOwn}>
+		<button
+			type="button"
+			class="upload-btn"
+			disabled={busy === 'upload' || isMacOS}
+			title={isMacOS ? 'No disponible en macOS por ahora' : undefined}
+			onclick={uploadOwn}
+		>
 			{#if busy === 'upload'}<Loader2 size={14} class="spin" />{:else}<Upload size={14} />{/if}
 			Subir mi propia imagen
 		</button>
+		{#if isMacOS}
+			<p class="mac-notice">No disponible en macOS por ahora.</p>
+		{/if}
 
 		{#if error}<p class="error">{error}</p>{/if}
 
@@ -198,6 +214,11 @@
 	.error {
 		color: var(--color-error);
 		font-size: 0.78rem;
+	}
+
+	.mac-notice {
+		color: var(--text-secondary, #888);
+		font-size: 0.72rem;
 	}
 
 	.loading-row {

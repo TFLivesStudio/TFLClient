@@ -1,0 +1,58 @@
+TFL CLIENT — CHANGELOG: bloquear subida de imagen propia en macOS
+================================================================================
+
+Contexto
+--------------------------------------------------------------------------
+El fix de 0.9.6 (bundle.macOS.hardenedRuntime: false) corrige el mecanismo
+de crash que se había diagnosticado, y el build real (.dmg del Release)
+firma correctamente (codesign -dv: flags=0x2(adhoc), sin "runtime",
+Identifier=com.tflives.tflclient coincidiendo con CFBundleIdentifier —
+verificado descargando el artifact real del Release, no solo un build
+local). A pesar de eso, se reportó que subir imagen propia en macOS
+SIGUE crasheando en la práctica. No se pudo confirmar una causa nueva
+distinta a la ya arreglada en esta sesión (sin acceso a un log de crash
+nuevo) — en vez de seguir iterando a ciegas sobre un crash que no se
+puede reproducir ni depurar más en esta sesión, se bloquea la función
+en macOS para que no rompa la app, y queda pendiente investigar con más
+información (log de Console.app o de macOS Crash Reporter la próxima
+vez que pase).
+
+src/lib/components/library/InstanceIconPicker.svelte
+  + isMacOS (mismo patrón que ya usaba CommandPalette.svelte /
+    Sidebar.svelte: navigator.platform contra /Mac/i).
+  + Botón "Subir mi propia imagen" deshabilitado en macOS, con tooltip
+    "No disponible en macOS por ahora" y aviso de texto debajo.
+  + uploadOwn() corta temprano si isMacOS, por si igual se dispara el
+    handler (defensa extra, no solo UI).
+
+src/lib/components/settings/SettingsPanel.svelte
+  + Mismo patrón: botón de subir wallpaper propio (Ajustes → Estilo)
+    deshabilitado en macOS, con el mismo tooltip y aviso. El selector
+    de un wallpaper YA subido antes (el swatch con el thumbnail, si
+    existía uno de una sesión anterior) NO se toca — eso no abre ningún
+    diálogo, no crashea, se deja funcionando.
+
+README.md
+  + Sección "Limitaciones conocidas" en la página principal del repo:
+    aviso de que subir imagen propia no está disponible en macOS por
+    ahora, aclarando que no afecta Windows/Linux ni el resto de las
+    funciones.
+
+Alcance del bloqueo — explícitamente NO tocado
+--------------------------------------------------------------------------
+Solo se deshabilitaron los dos botones de "subir imagen propia" en
+macOS. Todo lo demás sigue igual en las tres plataformas: elegir un
+ícono de instancia de los presets, elegir un wallpaper de los
+predefinidos, un wallpaper propio ya subido antes, y cualquier otro
+menú del launcher.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings
+    preexistentes sin relación.
+  - No se puede probar en un Mac real desde esta sesión que el bloqueo
+    se vea bien (haría falta abrir la app compilada) — es un cambio de
+    UI puro (disabled + texto condicional), de bajo riesgo, verificable
+    por lectura.
+================================================================================

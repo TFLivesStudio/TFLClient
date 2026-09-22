@@ -2,6 +2,10 @@
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 
+## Limitaciones conocidas
+
+- **macOS:** subir una imagen propia (ícono de instancia, fondo de pantalla) no está disponible por ahora — el diálogo nativo de archivos crashea el launcher en esta plataforma (firma ad-hoc sin certificado de Apple Developer). El resto de las funciones no se ve afectado, y esto no aplica a Windows ni Linux. Ver `CHANGELOG_macos-dialog-crash-java26.txt` para el detalle técnico.
+
 ## Creating a project
 
 If you're seeing this, you've probably already done this step. Congrats!
