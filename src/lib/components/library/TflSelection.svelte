@@ -1,11 +1,34 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { InstanceData, TflSelectionEntry } from '$lib/types/types';
-	import { getTflSelection, installModpack, installModpackFromUrl } from '$lib/api/tflApi';
+	import type { InstanceData, Loader, TflSelectionEntry } from '$lib/types/types';
+	import {
+		getTflSelection,
+		installModpack,
+		installModpackFromUrl,
+		createInstance
+	} from '$lib/api/tflApi';
 	import { X, Download, Loader2, Check } from 'lucide-svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
 
-	let { instances, onClose }: { instances: InstanceData[]; onClose: () => void } = $props();
+	let {
+		instances,
+		onClose,
+		onInstanceCreated
+	}: {
+		instances: InstanceData[];
+		onClose: () => void;
+		onInstanceCreated?: (instance: InstanceData) => void;
+	} = $props();
+
+	// Sentinel para las opciones "crear instancia nueva" mezcladas en el
+	// mismo <select> que las instancias existentes — solo tiene sentido
+	// para modpacks comunitarios, que ya traen mc_version/loader exactos
+	// en su manifest (ver tfl_selection.rs). Los de Modrinth no declaran
+	// eso acá (se resuelve contra la instancia elegida en el momento de
+	// instalar), así que para esos se sigue pidiendo una instancia ya
+	// creada — automatizarlo requeriría consultar Modrinth por separado,
+	// queda para otra vuelta si hace falta.
+	const NEW_PREFIX = 'new:';
 
 	let entries = $state<TflSelectionEntry[]>([]);
 	let loading = $state(true);
@@ -28,12 +51,27 @@
 		);
 	}
 
+	// Una opción "crear nueva" por cada build que ofrece el pack — solo
+	// para comunitarios, ver comentario de NEW_PREFIX arriba.
+	function createOptionsFor(entry: TflSelectionEntry): { value: string; label: string }[] {
+		if (entry.source !== 'community') return [];
+		return entry.versions.map((v) => ({
+			value: `${NEW_PREFIX}${v.mc_version}:${v.loader}`,
+			label: `＋ Crear instancia nueva — ${v.mc_version} (${v.loader})`
+		}));
+	}
+
 	onMount(async () => {
 		try {
 			entries = await getTflSelection();
 			for (const e of entries) {
 				const compat = compatibleInstancesFor(e);
-				if (compat[0]) selectedInstance[e.id] = compat[0].uuid;
+				if (compat[0]) {
+					selectedInstance[e.id] = compat[0].uuid;
+				} else {
+					const createOpts = createOptionsFor(e);
+					if (createOpts[0]) selectedInstance[e.id] = createOpts[0].value;
+				}
 			}
 		} finally {
 			loading = false;
@@ -41,13 +79,30 @@
 	});
 
 	async function handleInstall(entry: TflSelectionEntry) {
-		const uuid = selectedInstance[entry.id];
-		const instance = instances.find((i) => i.uuid === uuid);
-		if (!instance) return;
+		const selection = selectedInstance[entry.id];
+		if (!selection) return;
 
 		installingFor = entry.id;
 		errorFor = { ...errorFor, [entry.id]: '' };
 		try {
+			let instance: InstanceData;
+
+			if (selection.startsWith(NEW_PREFIX)) {
+				const [mcVersion, loader] = selection.slice(NEW_PREFIX.length).split(':');
+				const variant = entry.versions.find(
+					(v) => v.mc_version === mcVersion && v.loader === loader
+				);
+				if (!variant) throw new Error('No hay un build de este pack para esa versión');
+				const baseName =
+					entry.versions.length > 1 ? `${entry.title} (${mcVersion})` : entry.title;
+				instance = await createInstance(uniqueInstanceName(baseName), mcVersion, loader as Loader);
+				onInstanceCreated?.(instance);
+			} else {
+				const found = instances.find((i) => i.uuid === selection);
+				if (!found) return;
+				instance = found;
+			}
+
 			if (entry.source === 'modrinth') {
 				await installModpack(instance.name, entry.project_id!, instance.mc_version, instance.loader);
 			} else {
@@ -63,6 +118,17 @@
 		} finally {
 			installingFor = null;
 		}
+	}
+
+	// create_instance rechaza nombres duplicados (InstanceError::AlreadyExists)
+	// — si ya existe una instancia con ese nombre (por ejemplo, creaste este
+	// mismo pack antes), se le suma un sufijo hasta que quede libre.
+	function uniqueInstanceName(base: string): string {
+		const taken = new Set(instances.map((i) => i.name));
+		if (!taken.has(base)) return base;
+		let n = 2;
+		while (taken.has(`${base} (${n})`)) n++;
+		return `${base} (${n})`;
 	}
 </script>
 
@@ -94,22 +160,19 @@
 		</div>
 		<div class="selection-hero">
 			<div class="hero-mark"><Tfl width="28" height="28" /></div>
-			<div><span class="eyebrow">Contenido destacado</span><p class="subtitle">Descubrí packs curados y añadilos a una instancia compatible.</p></div>
+			<div><span class="eyebrow">Contenido destacado</span><p class="subtitle">Descubrí packs curados y añadilos a una instancia compatible, o creá una nueva al toque.</p></div>
 		</div>
 
 		{#if loading}
 			<div class="loading-row"><Loader2 size={18} class="spin" /></div>
 		{:else if entries.length === 0}
 			<p class="empty">Todavía no hay modpacks en la selección.</p>
-		{:else if !instances.some((i) => i.loader !== 'vanilla')}
-			<p class="empty">
-				Necesitás una instancia con Fabric, Forge, NeoForge o Quilt para instalar un modpack —
-				Vanilla no soporta mods.
-			</p>
 		{:else}
 			<div class="entries">
 				{#each entries as entry (entry.id)}
 					{@const compat = compatibleInstancesFor(entry)}
+					{@const createOpts = createOptionsFor(entry)}
+					{@const noOptions = compat.length === 0 && createOpts.length === 0}
 					<div class="entry-card anim-fade-in">
 						<div class="entry-glow"></div>
 						{#if entry.icon_url}
@@ -125,22 +188,29 @@
 									{entry.versions.map((v) => `${v.mc_version} (${v.loader})`).join(' · ')}
 								</p>
 							{/if}
-							{#if compat.length === 0}
-								<p class="entry-error">Ninguna instancia tuya coincide con las versiones de este pack.</p>
+							{#if noOptions}
+								<p class="entry-error">
+									{entry.source === 'modrinth'
+										? 'Necesitás una instancia con Fabric, Forge, NeoForge o Quilt para instalar este pack.'
+										: 'Ninguna instancia tuya coincide con las versiones de este pack.'}
+								</p>
 							{:else if errorFor[entry.id]}
 								<p class="entry-error">{errorFor[entry.id]}</p>
 							{/if}
 						</div>
 						<div class="entry-actions">
-							<select bind:value={selectedInstance[entry.id]} disabled={compat.length === 0}>
+							<select bind:value={selectedInstance[entry.id]} disabled={noOptions}>
 								{#each compat as inst (inst.uuid)}
 									<option value={inst.uuid}>{inst.name}</option>
+								{/each}
+								{#each createOpts as opt (opt.value)}
+									<option value={opt.value}>{opt.label}</option>
 								{/each}
 							</select>
 							<button
 								type="button"
 								class="install-btn"
-								disabled={installingFor === entry.id || compat.length === 0}
+								disabled={installingFor === entry.id || noOptions}
 								onclick={() => handleInstall(entry)}
 							>
 								<span class="install-label">{doneFor.has(entry.id) ? 'Añadido' : 'Añadir'}</span>

@@ -1,0 +1,44 @@
+TFL CLIENT — CHANGELOG: TFL Selection puede crear instancia propia para el modpack
+================================================================================
+
+src/lib/components/library/TflSelection.svelte
+  + Para modpacks comunitarios (los que declaran mc_version/loader exacto
+    en su tfl-modpack.json), el selector de instancia ahora incluye una
+    opción "＋ Crear instancia nueva — {versión} ({loader})" por cada
+    build que ofrece el pack, mezclada con las instancias compatibles
+    que ya tenías. Elegirla crea la instancia (nombrada con el título
+    del pack, o "título (versión)" si el pack tiene varias versiones) y
+    después instala el modpack ahí, todo en un solo click de "Añadir".
+  + uniqueInstanceName(): si ya existe una instancia con ese nombre
+    (por ejemplo, instalaste este mismo pack antes), le suma "(2)",
+    "(3)", etc. hasta encontrar uno libre — create_instance rechaza
+    nombres duplicados.
+  + Se sacó el bloqueo que ocultaba TODO el panel si el usuario no tenía
+    ninguna instancia con loader — ahora cada modpack decide su propio
+    estado (mostrar instancias compatibles, opción de crear nueva, o el
+    aviso de que no hay nada disponible), no todo-o-nada a nivel panel.
+
+src/routes/+page.svelte
+  + onInstanceCreated en <TflSelection> llama a refreshInstances() para
+    que la instancia recién creada aparezca en la biblioteca sin tener
+    que cerrar y reabrir nada.
+
+Fuera de alcance (a propósito)
+--------------------------------------------------------------------------
+Los modpacks de origen Modrinth (source === 'modrinth') siguen
+requiriendo una instancia ya creada — su manifest en TFL Selection no
+trae mc_version/loader fijos (se resuelven en el momento contra la API
+de Modrinth usando la instancia elegida). Automatizarlo también
+requeriría una consulta nueva a Modrinth para saber qué versión/loader
+ofrece el pack antes de crear la instancia — no se hizo en esta pasada.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings
+    preexistentes sin relación.
+  - No se probó instalando un pack real end-to-end en esta sesión
+    (requiere GitHub con un repo tfl-modpack real) — cambio acotado a
+    frontend, reutiliza createInstance/installModpackFromUrl ya
+    probados por el resto de la app, verificable por lectura.
+================================================================================

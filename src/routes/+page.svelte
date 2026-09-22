@@ -259,7 +259,11 @@
 {/if}
 
 {#if showTflSelection}
-	<TflSelection instances={appState.instances} onClose={() => (showTflSelection = false)} />
+	<TflSelection
+		instances={appState.instances}
+		onClose={() => (showTflSelection = false)}
+		onInstanceCreated={() => refreshInstances()}
+	/>
 {/if}
 
 <DownloadProgressBar />
