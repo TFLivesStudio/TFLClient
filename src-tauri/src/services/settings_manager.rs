@@ -110,6 +110,14 @@ pub struct SettingsManager {
     pub disable_blur_effects: bool,
     #[serde(default)]
     pub disable_infinite_animations: bool,
+    /// Si está prendido, el launcher chequea/descarga actualizaciones
+    /// solo al abrir (en segundo plano, sin bloquear nada) y avisa con
+    /// un badge cuando ya está lista para instalar — instalar sigue
+    /// siendo una acción explícita del usuario (click en el badge o en
+    /// Ajustes), nunca se reemplaza el binario sin que lo pida. Ver
+    /// `updateState.svelte.ts` en el frontend.
+    #[serde(default = "default_true")]
+    pub auto_updates: bool,
     #[serde(skip)]
     pub dirty: bool,
 }
@@ -135,6 +143,7 @@ impl Default for SettingsManager {
             reduce_animations: false,
             disable_blur_effects: false,
             disable_infinite_animations: false,
+            auto_updates: true,
             dirty: false,
         }
     }

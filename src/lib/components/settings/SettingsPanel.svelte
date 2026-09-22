@@ -284,6 +284,12 @@
 		await updateSettings(appState.settings);
 	}
 
+	async function toggleAutoUpdates() {
+		if (!appState.settings) return;
+		appState.settings.auto_updates = !appState.settings.auto_updates;
+		await updateSettings(appState.settings);
+	}
+
 	async function handleQuality(profile: QualityProfile) {
 		if (!appState.settings) return;
 		const updated = await setQualityProfile(profile);
@@ -536,6 +542,18 @@
 
 				<section>
 					<span class="section-label">Actualizaciones</span>
+					<button
+						type="button"
+						class="choice auto-update-toggle"
+						class:active={appState.settings?.auto_updates}
+						onclick={toggleAutoUpdates}
+					>
+						{appState.settings?.auto_updates ? 'Auto-actualizar: Activado' : 'Auto-actualizar: Desactivado'}
+					</button>
+					<p class="hint">
+						Con esto activado, el launcher chequea y baja actualizaciones solo al abrir, en
+						segundo plano — vos elegís cuándo instalar con el aviso que aparece.
+					</p>
 					<button
 						type="button"
 						class="save-btn"
@@ -1162,6 +1180,11 @@
 		font-size: 0.7rem;
 		color: var(--text-muted);
 		margin-top: 6px;
+	}
+
+	.auto-update-toggle {
+		flex: none;
+		width: fit-content;
 	}
 
 	.error {

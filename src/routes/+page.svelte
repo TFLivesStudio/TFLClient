@@ -10,6 +10,7 @@
 	import CommandPalette from '$lib/components/layout/CommandPalette.svelte';
 	import WhatsNewTips from '$lib/components/onboarding/WhatsNewTips.svelte';
 	import DownloadProgressBar from '$lib/components/library/DownloadProgressBar.svelte';
+	import UpdateBadge from '$lib/components/library/UpdateBadge.svelte';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 	import TflSelection from '$lib/components/library/TflSelection.svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
@@ -25,6 +26,7 @@
 		getCustomWallpaperPath,
 		logout as apiLogout
 	} from '$lib/api/tflApi';
+	import { checkAndDownloadUpdate } from '$lib/state/updateState.svelte';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
 	import { Plus, Sparkles, PackageOpen, Zap } from 'lucide-svelte';
 
@@ -135,6 +137,10 @@
 			await restoreAppearance();
 			applyQualityVisuals(settings);
 			await refreshInstances();
+			// No await a propósito — chequeo/descarga en segundo plano, no
+			// debe bloquear el arranque del launcher. El badge (si aparece)
+			// lo dispara el store cuando termine, no esto.
+			if (settings.auto_updates) void checkAndDownloadUpdate();
 		} finally {
 			loading = false;
 		}
@@ -267,6 +273,7 @@
 {/if}
 
 <DownloadProgressBar />
+<UpdateBadge />
 
 <style>
 	.app-shell {

@@ -1,0 +1,61 @@
+TFL CLIENT — CHANGELOG: chequeo/descarga de actualización en segundo plano + badge
+================================================================================
+
+Contexto
+--------------------------------------------------------------------------
+Hasta ahora la única forma de actualizar era manual: abrir Ajustes →
+Actualizaciones → "Buscar actualizaciones" → "Descargar e instalar". No
+había ningún chequeo automático al abrir el launcher. Pedido del
+cliente: al abrir, chequear solo en segundo plano; si hay versión
+nueva, descargarla sola; avisar con un ícono/badge cuando ya esté lista
+para instalar, sin bloquear nada mientras tanto. Instalar sigue siendo
+una decisión del usuario (click en el badge), nunca se reemplaza el
+binario sin que lo pida.
+
+src-tauri/src/services/settings_manager.rs
+  + Campo nuevo `auto_updates: bool` (default true) en Settings —
+    prende/apaga todo este flujo. Si está en false, el launcher se
+    comporta como antes (solo manual desde Ajustes).
+
+src/lib/types/types.ts
+  + Settings.auto_updates: boolean.
+
+src/lib/state/updateState.svelte.ts (nuevo)
+  + checkAndDownloadUpdate(): chequea y descarga en segundo plano (usa
+    check()/update.download() de @tauri-apps/plugin-updater), sin
+    avisar nada hasta que termine. Errores de red se tragan en
+    silencio, mismo criterio que el chequeo manual existente.
+  + installDownloadedUpdate(): instala la actualización ya descargada y
+    reinicia el launcher (update.install() + relaunch()).
+  + Store reactivo con el estado (downloaded, installing, error).
+
+src/lib/components/library/UpdateBadge.svelte (nuevo)
+  + Badge flotante, esquina inferior izquierda (la derecha ya la usa
+    DownloadProgressBar para el progreso de descargas de Minecraft/mods
+    — se solapaban en la misma esquina). Aparece solo cuando hay una
+    actualización ya descargada. Un click instala y reinicia; tiene su
+    propio botón de cerrar si el usuario prefiere posponerlo.
+
+src/routes/+page.svelte
+  + Al terminar de cargar (después de traer settings/instancias), si
+    settings.auto_updates está activo, dispara
+    checkAndDownloadUpdate() sin esperarlo (no bloquea el arranque).
+  + <UpdateBadge /> montado siempre, junto a <DownloadProgressBar />.
+
+src/lib/components/settings/SettingsPanel.svelte
+  + Toggle "Auto-actualizar: Activado/Desactivado" en la sección
+    Actualizaciones, arriba del botón manual (que sigue andando igual,
+    esté prendido o apagado el toggle).
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check -p tflclient: limpio (mismo warning preexistente sin
+    relación).
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings
+    preexistentes.
+  - No se probó el flujo real de bajar+instalar en esta sesión (haría
+    falta dos versiones publicadas distintas corriendo en la misma
+    máquina) — reutiliza las mismas llamadas a @tauri-apps/plugin-updater
+    que el botón manual ya probado, solo cambia cuándo se disparan.
+================================================================================

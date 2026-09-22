@@ -28,6 +28,7 @@ export interface Settings {
 	reduce_animations: boolean;
 	disable_blur_effects: boolean;
 	disable_infinite_animations: boolean;
+	auto_updates: boolean;
 }
 
 export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt';
