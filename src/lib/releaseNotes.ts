@@ -26,5 +26,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.9.7': [
 		'En macOS: subir tu propia imagen (ícono de instancia o fondo de pantalla) queda deshabilitado por ahora — seguía crasheando el launcher pese al arreglo anterior. El resto del launcher no se ve afectado, y en Windows/Linux sigue andando normal.'
+	],
+	'0.9.8': [
+		'TFL Selection: los packs curados ahora pueden crear su propia instancia (con la versión y el loader correctos) con un solo click, sin tener que armarla vos antes.'
 	]
 };
