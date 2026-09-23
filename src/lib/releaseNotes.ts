@@ -39,5 +39,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.9.11': [
 		'Arreglado: la cabecera de la instancia (nombre, botón Jugar) se iba achicando cada vez más a medida que instalabas mods — ahora se queda fija.'
+	],
+	'0.9.12': [
+		'El instalador de Windows ahora es en español y con la marca de TFL Client, en vez del asistente genérico en inglés. El instalador de macOS también tiene su propia identidad visual ahora.'
 	]
 };
