@@ -1,4 +1,10 @@
-# sv
+# TFL Client
+
+**[⬇ Descargar para Windows](https://github.com/TFLivesStudio/TFLClient/releases/latest/download/TFLClient-Windows-Setup.exe)** &nbsp;·&nbsp; **[⬇ Descargar para macOS](https://github.com/TFLivesStudio/TFLClient/releases/latest/download/TFLClient-macOS.dmg)** &nbsp;·&nbsp; **[⬇ Descargar para Linux](https://github.com/TFLivesStudio/TFLClient/releases/latest/download/TFLClient-Linux.AppImage)**
+
+Estos links siempre apuntan a la última versión publicada.
+
+---
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 

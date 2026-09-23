@@ -62,7 +62,21 @@
 		},
 		"macOS": {
 			"signingIdentity": "-",
-			"hardenedRuntime": false
+			"hardenedRuntime": false,
+			"dmg": {
+				"background": "installer/dmg-background.png",
+				"windowSize": { "width": 660, "height": 400 },
+				"appPosition": { "x": 180, "y": 150 },
+				"applicationFolderPosition": { "x": 480, "y": 150 }
+			}
+		},
+		"windows": {
+			"nsis": {
+				"headerImage": "installer/nsis-header.bmp",
+				"sidebarImage": "installer/nsis-sidebar.bmp",
+				"installerIcon": "icons/icon.ico",
+				"languages": ["Spanish"]
+			}
 		}
 	},
 	"plugins": {

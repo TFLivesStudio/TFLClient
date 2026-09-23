@@ -1,0 +1,76 @@
+TFL CLIENT — CHANGELOG: instalador personalizado (Windows/macOS) + links de descarga directa
+================================================================================
+
+Contexto
+--------------------------------------------------------------------------
+Pedido del cliente: que el instalador de Windows no sea el asistente
+genérico en inglés, mismo criterio para macOS. Linux no tiene un
+asistente real (se instala por gestor de paquetes o se ejecuta directo
+con AppImage) — confirmado con el cliente que no aplica ahí, no se tocó
+nada de Linux. También pidió enlaces de descarga directa por sistema
+operativo arriba del todo en el README de GitHub.
+
+Nota: la paleta naranja/ámbar usada acá es la misma "placeholder" que
+usa el resto de la app (ver comentario en src/styles/global.css) hasta
+que TFLives entregue la paleta de marca final — cuando eso pase, hay
+que regenerar estos assets con los colores reales, no solo el CSS de la
+app.
+
+src-tauri/installer/ (nuevo)
+  + nsis-header.bmp (150x57) y nsis-sidebar.bmp (164x314): banners con
+    el ícono de TFL Client, generados con Pillow a partir del ícono ya
+    existente en el repo (icons/icon.png) + la tipografía Monocraft que
+    ya usa el resto del launcher. BMP de 24 bits, dimensiones exactas
+    que pide NSIS.
+  + dmg-background.png (660x400): fondo del instalador de macOS (la
+    ventana del .dmg) — ícono de la app, flecha dibujada a mano (no un
+    glifo de fuente, para que se vea bien en cualquier tamaño) y texto
+    "Arrastrá a Aplicaciones", alineado a las posiciones default de
+    Tauri para el ícono de la app y el acceso a Applications.
+
+src-tauri/tauri.conf.json
+  + bundle.macOS.dmg: background apuntando al PNG nuevo, más
+    windowSize/appPosition/applicationFolderPosition explícitos
+    (coinciden con los defaults de Tauri, puestos a propósito para que
+    no dependan de un default que podría cambiar en una versión futura
+    del bundler).
+  + bundle.windows.nsis: headerImage/sidebarImage a los BMP nuevos,
+    installerIcon al .ico ya existente, y languages: ["Spanish"] — el
+    asistente de instalación de Windows arranca en español en vez de
+    en inglés (default de Tauri si no se especifica).
+
+.github/workflows/build.yml
+  + Paso nuevo por plataforma (solo en release real, con tag — no en
+    workflow_dispatch de prueba): copia el instalador principal de cada
+    SO a un nombre FIJO sin número de versión (TFLClient-Windows-
+    Setup.exe, TFLClient-macOS.dmg, TFLClient-Linux.AppImage) y lo sube
+    como asset extra al mismo Release con `gh release upload --clobber`.
+    Sin esto, un link fijo en el README se hubiera roto en cada release
+    (los nombres reales llevan la versión, ej.
+    tflclient_0.9.11_x64-setup.exe).
+
+README.md
+  + Tres links de descarga directa arriba del todo (uno por SO),
+    apuntando a `releases/latest/download/<nombre-fijo>` — siempre
+    resuelven a la última versión publicada sin tocar nada a mano.
+  + Cambié el título de "# sv" (boilerplate de SvelteKit nunca tocado)
+    a "# TFL Client" — hacía falta un H1 real arriba de los links de
+    descarga.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check -p tflclient: limpio (generate_context! valida
+    tauri.conf.json contra el schema real al compilar — no tira error,
+    así que la config es válida).
+  - BMP verificados con Pillow + `file`: 150x57 y 164x314 exactos,
+    24 bits, "Windows 3.x format" (formato que NSIS espera).
+  - No se pudo correr un build NSIS real en esta sesión (necesita un
+    runner Windows, o Wine/makensis configurado — no disponible acá) ni
+    un build de dmg real para ver el resultado final compuesto por el
+    bundler. Los assets en sí están verificados (dimensiones, formato,
+    contenido visual revisado a ojo), pero el ensamblado final (texto
+    del asistente en español, posición exacta de los íconos en el DMG)
+    solo se puede confirmar viendo el instalador real del próximo
+    release — pedirle confirmación visual al usuario.
+================================================================================
