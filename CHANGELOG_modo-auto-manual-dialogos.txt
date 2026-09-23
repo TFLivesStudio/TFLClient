@@ -1,0 +1,67 @@
+TFL CLIENT — CHANGELOG: modo global "Automático / Manual" para diálogos nativos
+================================================================================
+
+Contexto
+--------------------------------------------------------------------------
+El launcher ya bloqueaba en macOS la subida de ícono/wallpaper propio, por
+un bug conocido del diálogo nativo de archivos (hardened runtime + firma
+ad-hoc rompe la XPC del diálogo — ver CHANGELOG_macos-dialog-crash-
+java26.txt). El pedido fue reemplazar ese bloqueo condicionado a la
+plataforma por un modo global elegible por el usuario, ya que la misma
+categoría de riesgo aplica a cualquier función que dependa de ese diálogo
+(por ejemplo, la nueva "agregar mods por archivo" de esta misma
+actualización — ver CHANGELOG_mods-descargar-gestionar.txt).
+
+src-tauri/src/services/settings_manager.rs
+  + Dos campos nuevos en SettingsManager:
+      - native_dialog_mode: "auto" (default) | "manual".
+      - native_dialog_mode_prompted: bool — si ya se le preguntó al
+        usuario, para no repetir el aviso.
+  + Persisten con el mismo mecanismo genérico que el resto de Settings
+    (comando update_settings existente, sin comando nuevo del lado Rust).
+
+src/lib/types/types.ts, src/lib/api/tflApi.ts
+  + Settings.native_dialog_mode / native_dialog_mode_prompted espejados
+    en TS — no hizo falta nueva función de API, se reusa updateSettings().
+
+src/lib/components/onboarding/NativeDialogModePrompt.svelte (nuevo)
+  + Dos variantes del mismo componente:
+      - "modal": bloqueante, se muestra una vez tras el onboarding de
+        cuenta en una instalación nueva (antes de entrar a la Library).
+      - "banner": no bloqueante, esquina superior derecha (no pisa el
+        UpdateBadge en inferior-izquierda ni el DownloadProgressBar en
+        inferior-derecha), para quien actualiza desde una versión sin
+        este campo — se muestra una sola vez.
+  + Cualquier elección (o cerrar el banner, que deja "auto" por default)
+    marca native_dialog_mode_prompted = true.
+
+src/routes/+page.svelte
+  + `justOnboarded` (estado local, no persistido) distingue instalación
+    nueva de usuario existente para elegir la variante del prompt.
+  + `needsDialogModePrompt` deriva de settings — controla ambos casos.
+
+src/lib/components/library/InstanceIconPicker.svelte,
+src/lib/components/settings/SettingsPanel.svelte
+  + El gate de "subir imagen propia" (ícono de instancia, wallpaper) pasa
+    de `isMacOS` a `settings.native_dialog_mode !== 'manual'` — mismo
+    mecanismo, ahora accionable por el usuario en las 3 plataformas en
+    vez de un bloqueo fijo específico de macOS.
+  + SettingsPanel: nueva fila "Diálogos de archivo nativos" con selector
+    Automático/Manual, editable en cualquier momento.
+
+README.md
+  + "Limitaciones conocidas" actualizado para describir el modo en vez
+    de "no disponible en macOS".
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check (src-tauri): sin errores.
+  - bun run check (svelte-check + tsc): 0 errores, mismos 3 warnings
+    preexistentes sin relación a este cambio.
+  - No se corrió el launcher real end-to-end en esta sesión (sin acceso a
+    un entorno gráfico Tauri) — recomendado probar a mano: instalación
+    nueva (modal tras login), usuario existente simulado (banner), y que
+    el toggle de Ajustes habilite/deshabilite los botones de subida al
+    toque, sin reiniciar.
+================================================================================

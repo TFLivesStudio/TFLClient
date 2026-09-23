@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
 	import { pickImageFile, setInstanceIcon } from '$lib/api/tflApi';
+	import { appState } from '$lib/state/state.svelte';
 	import { X, Upload, Check, Loader2 } from 'lucide-svelte';
 
 	let {
@@ -24,11 +25,11 @@
 	let busy = $state<string | null>(null);
 	let error = $state<string | null>(null);
 
-	// Subir imagen propia crashea el launcher entero en macOS (bug conocido
-	// del diálogo nativo de archivos con la firma ad-hoc del build, ver
-	// CHANGELOG_macos-dialog-crash-java26.txt) — bloqueado acá hasta tener
-	// una firma real de Apple Developer. El resto de la app no se toca.
-	const isMacOS = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
+	// Subir imagen propia usa el diálogo nativo de archivos, que crashea el
+	// launcher entero en macOS con la firma ad-hoc del build (ver
+	// CHANGELOG_macos-dialog-crash-java26.txt) — por eso queda detrás del
+	// modo global "Automático/Manual" (Ajustes), no de la plataforma.
+	let dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');
 
 	onMount(async () => {
 		try {
@@ -60,7 +61,7 @@
 	}
 
 	async function uploadOwn() {
-		if (isMacOS) return;
+		if (dialogsBlocked) return;
 		const source = await pickImageFile();
 		if (!source) return;
 		busy = 'upload';
@@ -104,15 +105,15 @@
 		<button
 			type="button"
 			class="upload-btn"
-			disabled={busy === 'upload' || isMacOS}
-			title={isMacOS ? 'No disponible en macOS por ahora' : undefined}
+			disabled={busy === 'upload' || dialogsBlocked}
+			title={dialogsBlocked ? 'Activá el modo Manual en Ajustes para usar esto' : undefined}
 			onclick={uploadOwn}
 		>
 			{#if busy === 'upload'}<Loader2 size={14} class="spin" />{:else}<Upload size={14} />{/if}
 			Subir mi propia imagen
 		</button>
-		{#if isMacOS}
-			<p class="mac-notice">No disponible en macOS por ahora.</p>
+		{#if dialogsBlocked}
+			<p class="mac-notice">Desactivado en modo Automático — activá "Manual" en Ajustes para usarlo.</p>
 		{/if}
 
 		{#if error}<p class="error">{error}</p>{/if}

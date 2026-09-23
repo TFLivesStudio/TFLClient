@@ -125,11 +125,12 @@
 	let customWallpaperBusy = $state(false);
 	let customWallpaperError = $state<string | null>(null);
 
-	// Subir imagen propia crashea el launcher entero en macOS (bug conocido
-	// del diálogo nativo de archivos con la firma ad-hoc del build, ver
-	// CHANGELOG_macos-dialog-crash-java26.txt) — bloqueado acá hasta tener
-	// una firma real de Apple Developer. El resto de la app no se toca.
-	const isMacOS = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
+	// Subir imagen propia usa el diálogo nativo de archivos, que crashea el
+	// launcher entero en macOS con la firma ad-hoc del build (ver
+	// CHANGELOG_macos-dialog-crash-java26.txt) — por eso queda detrás del
+	// modo global "Automático/Manual" definido más abajo, no de la
+	// plataforma.
+	let dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');
 
 	let ramTotal = $state<number | null>(null);
 	let minRam = $state(appState.settings?.min_memory ?? 1024);
@@ -246,7 +247,7 @@
 	}
 
 	async function pickCustomWallpaper() {
-		if (isMacOS) return;
+		if (dialogsBlocked) return;
 		customWallpaperError = null;
 		customWallpaperBusy = true;
 		try {
@@ -287,6 +288,13 @@
 	async function toggleAutoUpdates() {
 		if (!appState.settings) return;
 		appState.settings.auto_updates = !appState.settings.auto_updates;
+		await updateSettings(appState.settings);
+	}
+
+	async function setNativeDialogMode(mode: 'auto' | 'manual') {
+		if (!appState.settings) return;
+		appState.settings.native_dialog_mode = mode;
+		appState.settings.native_dialog_mode_prompted = true;
 		await updateSettings(appState.settings);
 	}
 
@@ -541,6 +549,33 @@
 				</section>
 
 				<section>
+					<span class="section-label">Diálogos de archivo nativos</span>
+					<div class="row">
+						<button
+							type="button"
+							class="choice"
+							class:active={(appState.settings?.native_dialog_mode ?? 'auto') === 'auto'}
+							onclick={() => setNativeDialogMode('auto')}
+						>
+							Automático
+						</button>
+						<button
+							type="button"
+							class="choice"
+							class:active={appState.settings?.native_dialog_mode === 'manual'}
+							onclick={() => setNativeDialogMode('manual')}
+						>
+							Manual
+						</button>
+					</div>
+					<p class="hint">
+						Automático (recomendado): subir tu propio ícono/wallpaper o agregar mods por archivo
+						queda desactivado — no hace falta, todo se instala solo. Manual: lo habilita, pero en
+						algunos casos puede cerrar el launcher de golpe (diálogo nativo de archivos).
+					</p>
+				</section>
+
+				<section>
 					<span class="section-label">Actualizaciones</span>
 					<button
 						type="button"
@@ -641,10 +676,10 @@
 							type="button"
 							class="wallpaper-swatch wallpaper-upload"
 							onclick={pickCustomWallpaper}
-							disabled={customWallpaperBusy || isMacOS}
+							disabled={customWallpaperBusy || dialogsBlocked}
 							aria-label={customWallpaperUrl ? 'Cambiar tu imagen' : 'Subir tu imagen'}
-							title={isMacOS
-								? 'No disponible en macOS por ahora'
+							title={dialogsBlocked
+								? 'Activá el modo Manual (más abajo) para usar esto'
 								: customWallpaperUrl
 									? 'Cambiar tu imagen'
 									: 'Subir tu imagen'}
@@ -652,7 +687,7 @@
 							<Upload size={13} />
 						</button>
 					</div>
-					{#if isMacOS}<p class="mac-notice">Subir tu propia imagen no está disponible en macOS por ahora.</p>{/if}
+					{#if dialogsBlocked}<p class="mac-notice">Desactivado en modo Automático — activá "Manual" en la sección de abajo.</p>{/if}
 					{#if customWallpaperError}<p class="error-text">{customWallpaperError}</p>{/if}
 				</section>
 				<section>

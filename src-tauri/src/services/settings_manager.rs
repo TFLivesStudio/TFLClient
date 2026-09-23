@@ -29,6 +29,9 @@ fn default_theme() -> CompactString {
 fn default_true() -> bool {
     true
 }
+fn default_dialog_mode() -> CompactString {
+    CompactString::from("auto")
+}
 
 /// Perfil de calidad visual (Lite/Balanced/Experience). Maneja defaults para
 /// los flags de performance granulares; esos flags siguen editables
@@ -118,6 +121,21 @@ pub struct SettingsManager {
     /// `updateState.svelte.ts` en el frontend.
     #[serde(default = "default_true")]
     pub auto_updates: bool,
+    /// "auto" (default) oculta/deshabilita en el frontend cualquier función
+    /// que dependa del diálogo nativo de archivos (subir ícono/wallpaper
+    /// propio, agregar mods/shaders/resourcepacks por archivo) — el diálogo
+    /// nativo es lo que rompe el launcher en macOS con hardened runtime +
+    /// firma ad-hoc (ver CHANGELOG_macos-dialog-crash-java26.txt). "manual"
+    /// las habilita, a sabiendas del riesgo. No afecta Java/loader/mods por
+    /// Modrinth, que siguen siendo 100% automáticos siempre.
+    #[serde(default = "default_dialog_mode")]
+    pub native_dialog_mode: CompactString,
+    /// Si ya se le mostró al usuario la elección de modo (modal de
+    /// bienvenida en instalación nueva, banner una vez en actualización) —
+    /// evita volver a preguntar. No afecta el valor de `native_dialog_mode`
+    /// en sí, que sigue editable en Ajustes en cualquier momento.
+    #[serde(default)]
+    pub native_dialog_mode_prompted: bool,
     #[serde(skip)]
     pub dirty: bool,
 }
@@ -144,6 +162,8 @@ impl Default for SettingsManager {
             disable_blur_effects: false,
             disable_infinite_animations: false,
             auto_updates: true,
+            native_dialog_mode: default_dialog_mode(),
+            native_dialog_mode_prompted: false,
             dirty: false,
         }
     }

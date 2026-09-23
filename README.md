@@ -18,7 +18,7 @@ Everything you need to build a Svelte project, powered by [`sv`](https://github.
 
 ## Limitaciones conocidas
 
-- **macOS:** subir una imagen propia (ícono de instancia, fondo de pantalla) no está disponible por ahora — el diálogo nativo de archivos crashea el launcher en esta plataforma (firma ad-hoc sin certificado de Apple Developer). El resto de las funciones no se ve afectado, y esto no aplica a Windows ni Linux. Ver `CHANGELOG_macos-dialog-crash-java26.txt` para el detalle técnico.
+- **Diálogos de archivo nativos (subir ícono/wallpaper propio, agregar mods por archivo):** el launcher tiene un modo "Automático" (default) y uno "Manual", elegible al primer inicio y editable en cualquier momento desde Ajustes. En Automático estas funciones quedan desactivadas — no hace falta usarlas, todo se instala solo. En Manual quedan habilitadas, pero pueden crashear el launcher en macOS (el diálogo nativo de archivos rompe con la firma ad-hoc del build, sin certificado de Apple Developer). Ver `CHANGELOG_macos-dialog-crash-java26.txt` y `CHANGELOG_modo-auto-manual-dialogos.txt` para el detalle técnico.
 
 ## Creating a project
 

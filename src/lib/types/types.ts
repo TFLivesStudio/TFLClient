@@ -29,6 +29,8 @@ export interface Settings {
 	disable_blur_effects: boolean;
 	disable_infinite_animations: boolean;
 	auto_updates: boolean;
+	native_dialog_mode: 'auto' | 'manual';
+	native_dialog_mode_prompted: boolean;
 }
 
 export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt';
@@ -85,6 +87,13 @@ export interface InstalledModInfo {
 	project_id: string | null;
 	title: string | null;
 	version_id: string | null;
+}
+
+export interface ModVersionSummary {
+	id: string;
+	name: string;
+	version_number: string;
+	date_published: string;
 }
 
 export interface ModUpdateAvailable {

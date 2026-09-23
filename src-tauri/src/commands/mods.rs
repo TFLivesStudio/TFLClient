@@ -9,7 +9,8 @@ use crate::core::{AppEvent, PathManager, emit, get_bytes_retrying, get_json_retr
 use crate::services::instance_manager;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use tauri::command;
+use tauri::{AppHandle, command};
+use tauri_plugin_dialog::DialogExt;
 
 const MODRINTH_API: &str = "https://api.modrinth.com/v2";
 const MAX_DEPENDENCY_DEPTH: u8 = 10;
@@ -78,22 +79,26 @@ async fn search_content(
     query: &str,
     mc_version: &str,
     loader: &str,
+    categories: &[String],
     kind: ContentKind,
 ) -> Result<Vec<ModSearchHit>, String> {
-    let facets = if kind.filters_by_loader() {
-        format!(
-            r#"[["project_type:{}"],["categories:{}"],["versions:{}"]]"#,
-            kind.project_type(),
-            loader.to_lowercase(),
-            mc_version
-        )
-    } else {
-        format!(
-            r#"[["project_type:{}"],["versions:{}"]]"#,
-            kind.project_type(),
-            mc_version
-        )
-    };
+    let mut facet_groups = vec![format!(r#"["project_type:{}"]"#, kind.project_type())];
+    if kind.filters_by_loader() {
+        facet_groups.push(format!(r#"["categories:{}"]"#, loader.to_lowercase()));
+    }
+    // Categorías elegidas por el usuario en el filtro de la pestaña
+    // Descargar — se combinan entre sí con OR (cualquiera de las elegidas
+    // sirve) y con AND contra el resto de los facets ya armados.
+    if !categories.is_empty() {
+        let cats = categories
+            .iter()
+            .map(|c| format!(r#""categories:{c}""#))
+            .collect::<Vec<_>>()
+            .join(",");
+        facet_groups.push(format!("[{cats}]"));
+    }
+    facet_groups.push(format!(r#"["versions:{mc_version}"]"#));
+    let facets = format!("[{}]", facet_groups.join(","));
     let url = format!(
         "{MODRINTH_API}/search?query={}&facets={}",
         urlencoding::encode(query),
@@ -120,24 +125,27 @@ pub async fn search_mods(
     query: String,
     mc_version: String,
     loader: String,
+    categories: Vec<String>,
 ) -> Result<Vec<ModSearchHit>, String> {
-    search_content(&query, &mc_version, &loader, ContentKind::Mod).await
+    search_content(&query, &mc_version, &loader, &categories, ContentKind::Mod).await
 }
 
 #[command]
 pub async fn search_shaders(
     query: String,
     mc_version: String,
+    categories: Vec<String>,
 ) -> Result<Vec<ModSearchHit>, String> {
-    search_content(&query, &mc_version, "", ContentKind::Shader).await
+    search_content(&query, &mc_version, "", &categories, ContentKind::Shader).await
 }
 
 #[command]
 pub async fn search_resourcepacks(
     query: String,
     mc_version: String,
+    categories: Vec<String>,
 ) -> Result<Vec<ModSearchHit>, String> {
-    search_content(&query, &mc_version, "", ContentKind::ResourcePack).await
+    search_content(&query, &mc_version, "", &categories, ContentKind::ResourcePack).await
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -145,6 +153,10 @@ pub(crate) struct ModrinthVersion {
     pub(crate) id: String,
     pub(crate) project_id: String,
     pub(crate) name: String,
+    #[serde(default)]
+    pub(crate) version_number: String,
+    #[serde(default)]
+    pub(crate) date_published: String,
     #[serde(default)]
     pub(crate) changelog: Option<String>,
     pub(crate) files: Vec<ModrinthFile>,
@@ -175,12 +187,12 @@ pub(crate) struct ModrinthDependency {
     dependency_type: String,
 }
 
-pub(crate) async fn best_version(
+pub(crate) async fn list_versions(
     project_id: &str,
     mc_version: &str,
     loader: &str,
     filters_by_loader: bool,
-) -> Result<Option<ModrinthVersion>, String> {
+) -> Result<Vec<ModrinthVersion>, String> {
     let game_versions = format!(r#"["{mc_version}"]"#);
     let url = if filters_by_loader {
         let loaders = format!(r#"["{}"]"#, loader.to_lowercase());
@@ -195,9 +207,74 @@ pub(crate) async fn best_version(
             urlencoding::encode(&game_versions)
         )
     };
-    let versions: Vec<ModrinthVersion> = get_json_retrying(&url).await?;
+    get_json_retrying(&url).await
+}
 
+pub(crate) async fn best_version(
+    project_id: &str,
+    mc_version: &str,
+    loader: &str,
+    filters_by_loader: bool,
+) -> Result<Option<ModrinthVersion>, String> {
+    // Modrinth ya devuelve las versiones ordenadas por fecha de publicación
+    // (más nueva primero) — la primera es la que se usa como "instalar
+    // directo" cuando el usuario no eligió una versión puntual del dropdown.
+    let versions = list_versions(project_id, mc_version, loader, filters_by_loader).await?;
     Ok(versions.into_iter().next())
+}
+
+/// Versión liviana de `ModrinthVersion` para el dropdown de "ver versiones"
+/// de la pestaña Descargar — no trae `files`/`dependencies`, que no hacen
+/// falta ahí y solo abultan la respuesta.
+#[derive(Debug, Serialize)]
+pub struct ModrinthVersionSummary {
+    pub id: String,
+    pub name: String,
+    pub version_number: String,
+    pub date_published: String,
+}
+
+async fn list_version_summaries(
+    project_id: &str,
+    mc_version: &str,
+    loader: &str,
+    filters_by_loader: bool,
+) -> Result<Vec<ModrinthVersionSummary>, String> {
+    let versions = list_versions(project_id, mc_version, loader, filters_by_loader).await?;
+    Ok(versions
+        .into_iter()
+        .map(|v| ModrinthVersionSummary {
+            id: v.id,
+            name: v.name,
+            version_number: v.version_number,
+            date_published: v.date_published,
+        })
+        .collect())
+}
+
+#[command]
+pub async fn get_mod_versions(
+    project_id: String,
+    mc_version: String,
+    loader: String,
+) -> Result<Vec<ModrinthVersionSummary>, String> {
+    list_version_summaries(&project_id, &mc_version, &loader, true).await
+}
+
+#[command]
+pub async fn get_shader_versions(
+    project_id: String,
+    mc_version: String,
+) -> Result<Vec<ModrinthVersionSummary>, String> {
+    list_version_summaries(&project_id, &mc_version, "", false).await
+}
+
+#[command]
+pub async fn get_resourcepack_versions(
+    project_id: String,
+    mc_version: String,
+) -> Result<Vec<ModrinthVersionSummary>, String> {
+    list_version_summaries(&project_id, &mc_version, "", false).await
 }
 
 pub(crate) async fn version_by_id(version_id: &str) -> Result<ModrinthVersion, String> {
@@ -361,6 +438,7 @@ pub async fn install_mod(
     project_id: String,
     mc_version: String,
     loader: String,
+    version_id: Option<String>,
 ) -> Result<(), String> {
     let mut seen = HashSet::new();
     install_recursive(
@@ -368,7 +446,7 @@ pub async fn install_mod(
         &mc_version,
         &loader,
         &project_id,
-        None,
+        version_id.as_deref(),
         0,
         &mut seen,
         ContentKind::Mod,
@@ -381,6 +459,7 @@ pub async fn install_shader(
     instance_name: String,
     project_id: String,
     mc_version: String,
+    version_id: Option<String>,
 ) -> Result<(), String> {
     let mut seen = HashSet::new();
     install_recursive(
@@ -388,7 +467,7 @@ pub async fn install_shader(
         &mc_version,
         "",
         &project_id,
-        None,
+        version_id.as_deref(),
         0,
         &mut seen,
         ContentKind::Shader,
@@ -401,6 +480,7 @@ pub async fn install_resourcepack(
     instance_name: String,
     project_id: String,
     mc_version: String,
+    version_id: Option<String>,
 ) -> Result<(), String> {
     let mut seen = HashSet::new();
     install_recursive(
@@ -408,7 +488,7 @@ pub async fn install_resourcepack(
         &mc_version,
         "",
         &project_id,
-        None,
+        version_id.as_deref(),
         0,
         &mut seen,
         ContentKind::ResourcePack,
@@ -502,16 +582,17 @@ fn sha1_hex(bytes: &[u8]) -> String {
         .collect()
 }
 
-/// (filename, sha1) de cada .jar en mods/ — no recursivo, los mods viven
-/// todos sueltos ahí, no en subcarpetas.
-async fn hash_installed_files(dir: &std::path::Path) -> Vec<(String, String)> {
+/// (filename, sha1) de cada archivo con la extensión dada en `dir` — no
+/// recursivo, mods/shaderpacks/resourcepacks viven todos sueltos ahí, no en
+/// subcarpetas.
+async fn hash_installed_files(dir: &std::path::Path, ext: &str) -> Vec<(String, String)> {
     let mut out = Vec::new();
     let Ok(mut entries) = tokio::fs::read_dir(dir).await else {
         return out;
     };
     while let Ok(Some(entry)) = entries.next_entry().await {
         let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("jar") {
+        if path.extension().and_then(|e| e.to_str()) != Some(ext) {
             continue;
         }
         let Ok(bytes) = tokio::fs::read(&path).await else {
@@ -540,14 +621,20 @@ pub struct InstalledModInfo {
     pub version_id: Option<String>,
 }
 
-/// Resuelve cada mod instalado contra Modrinth por hash — funciona con
-/// cualquier .jar que sea una build publicada ahí, se haya instalado desde
-/// este launcher o no. Los que no resuelven (mods de otro lado, builds
-/// custom) quedan con los campos en None, no rompe nada.
-#[command]
-pub async fn get_installed_mods_info(instance_name: String) -> Result<Vec<InstalledModInfo>, String> {
-    let instance = instance_manager::get_instance(&instance_name).await?;
-    let hashed = hash_installed_files(&instance.dir().join("mods")).await;
+/// Resuelve cada archivo instalado (mod/shader/resourcepack) contra
+/// Modrinth por hash — funciona con cualquier build publicada ahí, se haya
+/// instalado desde este launcher o no. Los que no resuelven (de otro lado,
+/// builds custom) quedan con los campos en None, no rompe nada. Usada por
+/// mods (.jar en mods/), shaders (.zip en shaderpacks/) y resourcepacks
+/// (.zip en resourcepacks/) — es lo que permite marcar con check, en la
+/// pestaña Descargar, los resultados que ya están instalados.
+async fn get_installed_content_info(
+    instance_name: &str,
+    subdir: &str,
+    ext: &str,
+) -> Result<Vec<InstalledModInfo>, String> {
+    let instance = instance_manager::get_instance(instance_name).await?;
+    let hashed = hash_installed_files(&instance.dir().join(subdir), ext).await;
     if hashed.is_empty() {
         return Ok(Vec::new());
     }
@@ -580,6 +667,23 @@ pub async fn get_installed_mods_info(instance_name: String) -> Result<Vec<Instal
         .collect())
 }
 
+#[command]
+pub async fn get_installed_mods_info(instance_name: String) -> Result<Vec<InstalledModInfo>, String> {
+    get_installed_content_info(&instance_name, "mods", "jar").await
+}
+
+#[command]
+pub async fn get_installed_shaders_info(instance_name: String) -> Result<Vec<InstalledModInfo>, String> {
+    get_installed_content_info(&instance_name, "shaderpacks", "zip").await
+}
+
+#[command]
+pub async fn get_installed_resourcepacks_info(
+    instance_name: String,
+) -> Result<Vec<InstalledModInfo>, String> {
+    get_installed_content_info(&instance_name, "resourcepacks", "zip").await
+}
+
 #[derive(Debug, Serialize, Clone)]
 pub struct ModUpdateAvailable {
     pub filename: String,
@@ -595,7 +699,7 @@ pub struct ModUpdateAvailable {
 #[command]
 pub async fn check_mod_updates(instance_name: String) -> Result<Vec<ModUpdateAvailable>, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
-    let hashed = hash_installed_files(&instance.dir().join("mods")).await;
+    let hashed = hash_installed_files(&instance.dir().join("mods"), "jar").await;
     if hashed.is_empty() {
         return Ok(Vec::new());
     }
@@ -820,7 +924,7 @@ pub async fn export_instance_as_mrpack(instance_name: String) -> Result<String, 
     let instance_dir = instance.dir();
     let mods_dir = instance_dir.join("mods");
 
-    let hashed = hash_installed_files(&mods_dir).await;
+    let hashed = hash_installed_files(&mods_dir, "jar").await;
     let resolved: std::collections::HashMap<String, ModrinthVersion> = if hashed.is_empty() {
         Default::default()
     } else {
@@ -971,4 +1075,89 @@ pub async fn list_world_backups(instance_name: String) -> Result<Vec<String>, St
     out.sort();
     out.reverse(); // más reciente primero — el timestamp está en el nombre
     Ok(out)
+}
+
+// ── Agregar mods/shaders/resourcepacks por archivo local ───────────────────
+//
+// Usa el mismo diálogo nativo que `pick_image_file` (instance.rs) — por eso
+// el frontend solo ofrece esto cuando `settings.native_dialog_mode ===
+// 'manual'` (ver NativeDialogModePrompt.svelte y CHANGELOG_macos-dialog-
+// crash-java26.txt para el porqué). Acá no hay bloqueo del lado Rust: el
+// gate es una decisión de UX que vive en el frontend/Ajustes.
+
+/// Diálogo nativo de "elegir archivos" con selección múltiple, filtrado a
+/// una extensión — comando separado de la copia en sí para que el bloqueo
+/// del diálogo (síncrono) no retenga nada del lado de la instancia.
+#[command]
+pub fn pick_content_files(app: AppHandle, extension: String, filter_label: String) -> Vec<String> {
+    app.dialog()
+        .file()
+        .add_filter(&filter_label, &[extension.as_str()])
+        .blocking_pick_files()
+        .map(|files| {
+            files
+                .into_iter()
+                .filter_map(|f| f.into_path().ok())
+                .map(|p| p.to_string_lossy().to_string())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Copia cada archivo elegido a `subdir/` dentro de la instancia, filtrando
+/// por extensión y nombre de archivo seguro (mismo criterio que
+/// `download_single_file`). Sigue de largo si un archivo puntual falla, no
+/// aborta el resto — devuelve cuántos se copiaron de verdad.
+async fn add_local_content_files(
+    instance_name: &str,
+    subdir: &str,
+    ext: &str,
+    paths: Vec<String>,
+) -> Result<u32, String> {
+    let instance = instance_manager::get_instance(instance_name).await?;
+    let dest_dir = instance.dir().join(subdir);
+    tokio::fs::create_dir_all(&dest_dir)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut count = 0u32;
+    for path_str in paths {
+        let source = std::path::PathBuf::from(&path_str);
+        let matches_ext = source
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.eq_ignore_ascii_case(ext))
+            .unwrap_or(false);
+        if !matches_ext {
+            continue;
+        }
+        let Some(filename) = source.file_name().and_then(|f| f.to_str()) else {
+            continue;
+        };
+        if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+            continue;
+        }
+        if tokio::fs::copy(&source, dest_dir.join(filename)).await.is_ok() {
+            count += 1;
+        }
+    }
+    Ok(count)
+}
+
+#[command]
+pub async fn add_local_mod_files(instance_name: String, paths: Vec<String>) -> Result<u32, String> {
+    add_local_content_files(&instance_name, "mods", "jar", paths).await
+}
+
+#[command]
+pub async fn add_local_shader_files(instance_name: String, paths: Vec<String>) -> Result<u32, String> {
+    add_local_content_files(&instance_name, "shaderpacks", "zip", paths).await
+}
+
+#[command]
+pub async fn add_local_resourcepack_files(
+    instance_name: String,
+    paths: Vec<String>,
+) -> Result<u32, String> {
+    add_local_content_files(&instance_name, "resourcepacks", "zip", paths).await
 }

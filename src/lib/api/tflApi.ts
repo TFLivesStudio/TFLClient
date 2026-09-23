@@ -14,6 +14,7 @@ import type {
 	ModpackUpdateInfo,
 	InstalledModInfo,
 	ModUpdateAvailable,
+	ModVersionSummary,
 	TflSelectionEntry,
 	ScreenshotInfo
 } from '$lib/types/types';
@@ -96,14 +97,15 @@ export const getNeoforgeVersion = (mcVersion: string) =>
 	invoke<string>('get_neoforge_version', { mcVersion });
 
 // ── Mods ─────────────────────────────────────────────────────────────
-export const searchMods = (query: string, mcVersion: string, loader: Loader) =>
-	invoke<ModSearchHit[]>('search_mods', { query, mcVersion, loader });
+export const searchMods = (query: string, mcVersion: string, loader: Loader, categories: string[] = []) =>
+	invoke<ModSearchHit[]>('search_mods', { query, mcVersion, loader, categories });
 export const installMod = (
 	instanceName: string,
 	projectId: string,
 	mcVersion: string,
-	loader: Loader
-) => invoke<void>('install_mod', { instanceName, projectId, mcVersion, loader });
+	loader: Loader,
+	versionId?: string
+) => invoke<void>('install_mod', { instanceName, projectId, mcVersion, loader, versionId: versionId ?? null });
 export const getInstanceMods = (instanceName: string) =>
 	invoke<string[]>('get_instance_mods', { instanceName });
 export const removeMod = (instanceName: string, filename: string) =>
@@ -117,26 +119,60 @@ export const getModVersionChangelog = (versionId: string) =>
 	invoke<string | null>('get_mod_version_changelog', { versionId });
 export const findDuplicateMods = (instanceName: string) =>
 	invoke<string[][]>('find_duplicate_mods', { instanceName });
+export const getModVersions = (projectId: string, mcVersion: string, loader: Loader) =>
+	invoke<ModVersionSummary[]>('get_mod_versions', { projectId, mcVersion, loader });
 
 // ── Shaders ──────────────────────────────────────────────────────────
-export const searchShaders = (query: string, mcVersion: string) =>
-	invoke<ModSearchHit[]>('search_shaders', { query, mcVersion });
-export const installShader = (instanceName: string, projectId: string, mcVersion: string) =>
-	invoke<void>('install_shader', { instanceName, projectId, mcVersion });
+export const searchShaders = (query: string, mcVersion: string, categories: string[] = []) =>
+	invoke<ModSearchHit[]>('search_shaders', { query, mcVersion, categories });
+export const installShader = (
+	instanceName: string,
+	projectId: string,
+	mcVersion: string,
+	versionId?: string
+) => invoke<void>('install_shader', { instanceName, projectId, mcVersion, versionId: versionId ?? null });
 export const getInstanceShaders = (instanceName: string) =>
 	invoke<string[]>('get_instance_shaders', { instanceName });
 export const removeShader = (instanceName: string, filename: string) =>
 	invoke<void>('remove_shader', { instanceName, filename });
+export const getInstalledShadersInfo = (instanceName: string) =>
+	invoke<InstalledModInfo[]>('get_installed_shaders_info', { instanceName });
+export const getShaderVersions = (projectId: string, mcVersion: string) =>
+	invoke<ModVersionSummary[]>('get_shader_versions', { projectId, mcVersion });
 
 // ── Resource packs ───────────────────────────────────────────────────
-export const searchResourcepacks = (query: string, mcVersion: string) =>
-	invoke<ModSearchHit[]>('search_resourcepacks', { query, mcVersion });
-export const installResourcepack = (instanceName: string, projectId: string, mcVersion: string) =>
-	invoke<void>('install_resourcepack', { instanceName, projectId, mcVersion });
+export const searchResourcepacks = (query: string, mcVersion: string, categories: string[] = []) =>
+	invoke<ModSearchHit[]>('search_resourcepacks', { query, mcVersion, categories });
+export const installResourcepack = (
+	instanceName: string,
+	projectId: string,
+	mcVersion: string,
+	versionId?: string
+) =>
+	invoke<void>('install_resourcepack', {
+		instanceName,
+		projectId,
+		mcVersion,
+		versionId: versionId ?? null
+	});
 export const getInstanceResourcepacks = (instanceName: string) =>
 	invoke<string[]>('get_instance_resourcepacks', { instanceName });
 export const removeResourcepack = (instanceName: string, filename: string) =>
 	invoke<void>('remove_resourcepack', { instanceName, filename });
+export const getInstalledResourcepacksInfo = (instanceName: string) =>
+	invoke<InstalledModInfo[]>('get_installed_resourcepacks_info', { instanceName });
+export const getResourcepackVersions = (projectId: string, mcVersion: string) =>
+	invoke<ModVersionSummary[]>('get_resourcepack_versions', { projectId, mcVersion });
+
+// ── Agregar por archivo local (solo modo Manual, ver Settings) ────────
+export const pickContentFiles = (extension: string, filterLabel: string) =>
+	invoke<string[]>('pick_content_files', { extension, filterLabel });
+export const addLocalModFiles = (instanceName: string, paths: string[]) =>
+	invoke<number>('add_local_mod_files', { instanceName, paths });
+export const addLocalShaderFiles = (instanceName: string, paths: string[]) =>
+	invoke<number>('add_local_shader_files', { instanceName, paths });
+export const addLocalResourcepackFiles = (instanceName: string, paths: string[]) =>
+	invoke<number>('add_local_resourcepack_files', { instanceName, paths });
 
 // ── Modpacks ─────────────────────────────────────────────────────────
 export const searchModpacks = (query: string, mcVersion: string, loader: Loader) =>

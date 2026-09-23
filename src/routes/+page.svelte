@@ -3,6 +3,7 @@
 	import TitleBar from '$lib/components/layout/TitleBar/TitleBar.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar/Sidebar.svelte';
 	import Onboarding from '$lib/components/onboarding/Onboarding.svelte';
+	import NativeDialogModePrompt from '$lib/components/onboarding/NativeDialogModePrompt.svelte';
 	import CreateInstanceModal from '$lib/components/library/CreateInstanceModal.svelte';
 	import InstanceDetail from '$lib/components/library/InstanceDetail.svelte';
 	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
@@ -146,11 +147,24 @@
 		}
 	});
 
+	let justOnboarded = $state(false);
+
 	async function handleOnboardingDone(user: MinecraftUser) {
 		appState.currentUser = user;
 		appState.settings = await getSettings();
 		if (appState.settings) applyQualityVisuals(appState.settings);
+		justOnboarded = true;
 	}
+
+	// Instalación nueva: se pregunta el modo automático/manual como modal
+	// bloqueante justo después del onboarding de cuenta (ver `justOnboarded`).
+	// Usuario existente que actualiza a una versión con este campo (nunca
+	// pasó por `justOnboarded` en esta sesión): mismo aviso pero como banner
+	// no bloqueante — ver NativeDialogModePrompt.svelte. Ambos casos dejan
+	// de mostrarse apenas se elige un modo (marca `native_dialog_mode_prompted`).
+	const needsDialogModePrompt = $derived(
+		appState.settings?.onboarded === true && appState.settings?.native_dialog_mode_prompted !== true
+	);
 
 	async function handleLogout() {
 		await apiLogout();
@@ -188,6 +202,8 @@
 		</div>
 	{:else if needsOnboarding}
 		<Onboarding onDone={handleOnboardingDone} />
+	{:else if justOnboarded && needsDialogModePrompt}
+		<NativeDialogModePrompt variant="modal" onDone={() => (justOnboarded = false)} />
 	{:else}
 		<div class="app-body">
 			<div class="ambient-bg">
@@ -258,6 +274,10 @@
 
 {#if !isLogWindow && !needsOnboarding}
 	<WhatsNewTips />
+{/if}
+
+{#if !isLogWindow && !needsOnboarding && !justOnboarded && needsDialogModePrompt}
+	<NativeDialogModePrompt variant="banner" />
 {/if}
 
 {#if showSettings}

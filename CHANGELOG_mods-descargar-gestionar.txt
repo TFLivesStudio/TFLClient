@@ -1,0 +1,90 @@
+TFL CLIENT — CHANGELOG: pestañas Mods/ResourcePacks/Shaders — Gestionar/Descargar
+================================================================================
+
+Contexto
+--------------------------------------------------------------------------
+Feedback directo del cliente sobre la pestaña de mods: separar "lo que ya
+tengo instalado" de "buscar algo nuevo" (hoy todo se mostraba junto y la
+página crecía mucho), agregar selección múltiple + agregar por .jar +
+"buscar actualizaciones de lo seleccionado" del lado de Gestionar, y del
+lado de Descargar un listado por defecto sin escribir nada, filtros de
+categoría tipo Modrinth, marca de "ya instalado" y poder elegir versión.
+Pedido explícitamente extendido a ResourcePacks y Shaders, no solo Mods.
+
+src-tauri/src/commands/mods.rs
+  + search_content ahora arma el facet de Modrinth con un grupo extra de
+    categorías (OR entre las elegidas, AND con el resto) — search_mods/
+    search_shaders/search_resourcepacks reciben `categories: Vec<String>`.
+  + list_versions (antes solo `best_version`, que tomaba el primer
+    resultado) ahora expone la lista completa — nuevo
+    ModrinthVersionSummary (id/name/version_number/date_published, sin
+    files/dependencies que no hacen falta acá) + get_mod_versions /
+    get_shader_versions / get_resourcepack_versions, para el dropdown de
+    versión de la pestaña Descargar. best_version se refactorizó para
+    reusar list_versions en vez de duplicar la query.
+  + install_mod/install_shader/install_resourcepack reciben
+    `version_id: Option<String>` — ya existía el soporte interno en
+    install_recursive, solo faltaba exponerlo en la firma pública.
+  + hash_installed_files generalizada para recibir la extensión a filtrar
+    (antes hardcodeada a .jar) — get_installed_mods_info se generalizó a
+    get_installed_content_info(subdir, ext), con wrappers
+    get_installed_shaders_info / get_installed_resourcepacks_info
+    (shaderpacks/resourcepacks son .zip). Esto es lo que permite marcar
+    con check, en Descargar, lo que ya está instalado — antes solo mods
+    tenía esta resolución por hash contra Modrinth.
+  + pick_content_files (diálogo nativo multi-select, mismo patrón que
+    pick_image_file de instance.rs) + add_local_mod_files /
+    add_local_shader_files / add_local_resourcepack_files (copian los
+    archivos elegidos a la subcarpeta de la instancia, validando
+    extensión y nombre de archivo seguro). Sin bloqueo del lado Rust — el
+    gate de "solo en modo Manual" es una decisión de UX del frontend, ver
+    CHANGELOG_modo-auto-manual-dialogos.txt.
+  + Los 10 comandos nuevos registrados en src-tauri/src/lib.rs.
+
+src/lib/components/library/ContentManager.svelte (nuevo)
+  + Componente compartido parametrizado por `kind: 'mod' | 'shader' |
+    'resourcepack'` — evita triplicar la lógica en los 3 paneles. Expone
+    las dos sub-pestañas:
+      - Gestionar: selección múltiple (checkbox + "seleccionar todos"),
+        "Añadir por archivo" (gateado por el modo Automático/Manual),
+        "Buscar actualizaciones" (solo mods, es el único tipo con
+        updates hoy) filtrado a la selección con mensaje "todo al día"
+        si no hay, "Quitar" sobre la selección o por fila. Duplicados/
+        changelog/actualizar-todos se mantienen igual que antes (mods).
+      - Descargar: chips de categoría (las categorías reales de Modrinth
+        por tipo, hardcodeadas del lado del frontend), búsqueda con
+        listado por defecto al entrar (antes el `$effect` cortaba si la
+        query estaba vacía), marca de instalado cruzando project_id
+        contra get_installed_*_info, dropdown de versión inline por card
+        (carga lazy, solo al abrirlo).
+  + Favoritos (⭐) se mantiene exclusivo de mods, como ya era.
+
+src/lib/components/library/ModsPanel.svelte,
+ResourcePacksPanel.svelte, ShadersPanel.svelte
+  + Quedan como wrappers delgados sobre ContentManager — Mods conserva el
+    aviso de "vanilla no soporta mods", ResourcePacks su hint informativo,
+    Shaders sus 3 presets de calidad gráfica rápidos (arriba del browse,
+    sin tocar) con un `refreshSignal` que le avisa a ContentManager
+    cuando un preset instala algo, ya que son dos componentes separados.
+
+src/lib/types/types.ts, src/lib/api/tflApi.ts
+  + ModVersionSummary (nuevo tipo). InstalledModInfo se reusa para los 3
+    tipos de contenido (ya traía project_id/title, que es lo que hacía
+    falta). Bindings nuevos para versiones, info de instalados de
+    shaders/resourcepacks, y agregar por archivo local.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check (src-tauri): sin errores.
+  - bun run check (svelte-check + tsc): 0 errores, mismos 3 warnings
+    preexistentes sin relación a este cambio.
+  - No se corrió el launcher real end-to-end en esta sesión (sin acceso a
+    un entorno gráfico Tauri) — recomendado probar a mano con una
+    instancia Fabric: Descargar sin escribir nada trae listado, filtrar
+    por categoría, instalar una versión no-default del dropdown, marcar
+    como instalado al volver a Descargar, seleccionar y remover en
+    Gestionar, "buscar actualizaciones" con y sin selección. Repetir el
+    smoke test en ResourcePacks y Shaders (sin el bloque de updates, que
+    es solo de mods).
+================================================================================
