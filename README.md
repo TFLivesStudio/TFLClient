@@ -10,6 +10,8 @@ Estos links siempre apuntan a la última versión publicada.
 curl -fsSL https://raw.githubusercontent.com/TFLivesStudio/TFLClient/main/install-linux.sh | bash
 ```
 
+Si tu sistema es una instalación mínima (sin `curl`), instalalo primero: `sudo apt install -y curl` (o `sudo dnf install -y curl` en Fedora).
+
 ---
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
