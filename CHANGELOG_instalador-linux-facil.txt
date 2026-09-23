@@ -1,0 +1,51 @@
+TFL CLIENT — CHANGELOG: instalación fácil en Linux (script de un comando)
+================================================================================
+
+Contexto
+--------------------------------------------------------------------------
+Un usuario reportó "Unsupported file... given on commandline" al intentar
+instalar el .deb a mano por terminal — el problema real era ruta
+equivocada (`/archivo.deb` en vez de donde realmente estaba en
+~/Downloads), pero el fondo del asunto es que instalar por terminal con
+apt/dpkg no debería ser lo que un usuario común tenga que hacer para
+correr el launcher. El feedback fue directo: "facilitar la instalación
+en Linux, no hacerla difícil".
+
+install-linux.sh (nuevo, raíz del repo)
+  + Script de un solo comando (`curl ... | bash`) que detecta el sistema
+    y hace todo solo:
+      - apt disponible (Debian/Ubuntu) → baja e instala el .deb.
+      - dnf/rpm disponible (Fedora/RHEL) → baja e instala el .rpm.
+      - ninguno de los dos → baja el AppImage, lo hace ejecutable, y
+        ADEMÁS le arma integración de escritorio real: entrada en
+        ~/.local/share/applications (aparece en el menú de aplicaciones
+        con ícono, como cualquier otra app instalada) y symlink en
+        ~/.local/bin para poder tipear "tflclient" en una terminal.
+        Sin esto, un AppImage suelto es solo un archivo ejecutable sin
+        ícono ni entrada de menú — se siente "incompleto" comparado con
+        instalar algo de verdad.
+  + Todas las descargas usan los nombres fijos del release (ver más
+    abajo), nunca dependen del número de versión.
+
+.github/workflows/build.yml
+  + El paso que sube copias con nombre fijo ahora también genera
+    TFLClient-Linux.deb y TFLClient-Linux.rpm (antes solo el AppImage
+    tenía nombre fijo) — necesario para que install-linux.sh pueda
+    bajar el paquete correcto sin adivinar el número de versión.
+
+README.md
+  + Bloque nuevo debajo de los links de descarga: el comando de
+    instalación de un renglón para Linux, con una frase corta
+    explicando qué hace (detecta el sistema, instala el paquete que
+    corresponda).
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - bash -n install-linux.sh: sintaxis válida.
+  - No se pudo correr el script real en un Linux limpio desde esta
+    sesión (esta Mac no tiene Linux disponible) — la lógica de cada
+    rama (apt/dnf/AppImage) es directa y usa comandos estándar, pero
+    recomendaría probarlo en una VM/Ubuntu real antes de confiar en él
+    a ciegas para el próximo usuario que lo use.
+================================================================================

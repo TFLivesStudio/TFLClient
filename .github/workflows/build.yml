@@ -90,17 +90,20 @@ jobs:
         run: |
           set -e
           if [ "${{ matrix.platform }}" = "macos-latest" ]; then
-            SRC=$(find target/release/bundle/dmg -name '*.dmg' | head -1)
-            DEST="TFLClient-macOS.dmg"
+            cp "$(find target/release/bundle/dmg -name '*.dmg' | head -1)" TFLClient-macOS.dmg
+            gh release upload "${{ github.ref_name }}" TFLClient-macOS.dmg --clobber -R "${{ github.repository }}"
           elif [ "${{ matrix.platform }}" = "windows-latest" ]; then
-            SRC=$(find target/release/bundle/nsis -name '*.exe' | head -1)
-            DEST="TFLClient-Windows-Setup.exe"
+            cp "$(find target/release/bundle/nsis -name '*.exe' | head -1)" TFLClient-Windows-Setup.exe
+            gh release upload "${{ github.ref_name }}" TFLClient-Windows-Setup.exe --clobber -R "${{ github.repository }}"
           else
-            SRC=$(find target/release/bundle/appimage -name '*.AppImage' | head -1)
-            DEST="TFLClient-Linux.AppImage"
+            # Nombres fijos para las tres variantes — install-linux.sh
+            # (ver ese script) elige la que corresponda según el sistema,
+            # sin depender del número de versión en el nombre real.
+            cp "$(find target/release/bundle/appimage -name '*.AppImage' | head -1)" TFLClient-Linux.AppImage
+            cp "$(find target/release/bundle/deb -name '*.deb' | head -1)" TFLClient-Linux.deb
+            cp "$(find target/release/bundle/rpm -name '*.rpm' | head -1)" TFLClient-Linux.rpm
+            gh release upload "${{ github.ref_name }}" TFLClient-Linux.AppImage TFLClient-Linux.deb TFLClient-Linux.rpm --clobber -R "${{ github.repository }}"
           fi
-          cp "$SRC" "$DEST"
-          gh release upload "${{ github.ref_name }}" "$DEST" --clobber -R "${{ github.repository }}"
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 

@@ -4,6 +4,12 @@
 
 Estos links siempre apuntan a la última versión publicada.
 
+**Linux:** para no lidiar con `apt`/`dnf`/permisos a mano, corré esto en una terminal — detecta tu sistema solo e instala el paquete que corresponda (deb, rpm, o AppImage con ícono en el menú de aplicaciones):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/TFLivesStudio/TFLClient/main/install-linux.sh | bash
+```
+
 ---
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
