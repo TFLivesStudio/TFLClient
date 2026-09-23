@@ -36,5 +36,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	'0.9.10': [
 		'El launcher ahora busca y baja actualizaciones solo al abrir, en segundo plano — cuando está lista aparece un aviso abajo a la izquierda, un click instala y reinicia. Podés apagar esto en Ajustes → Actualizaciones.',
 		'Arreglado: en Ajustes → Estilo, el color de acento activo y algunas filas de opciones se veían cortadas/amontonadas.'
+	],
+	'0.9.11': [
+		'Arreglado: la cabecera de la instancia (nombre, botón Jugar) se iba achicando cada vez más a medida que instalabas mods — ahora se queda fija.'
 	]
 };
