@@ -1,0 +1,30 @@
+TFL CLIENT — CHANGELOG: fix cabecera de instancia achicándose con más mods
+================================================================================
+
+src/lib/components/library/InstanceDetail.svelte
+  - BUG REAL (reportado por el cliente): la cabecera de la instancia
+    (ícono, nombre, chips, botón Jugar) y la fila de accesos rápidos
+    (Mods/Carpeta) se veían cada vez más chicas/comprimidas a medida
+    que se instalaban más mods (la lista de resultados de la pestaña
+    Mods crece).
+  - Causa: `.instance-detail` es un contenedor flex-column con
+    `overflow-y: auto` para TODO el contenido (cabecera + accesos
+    rápidos + pestaña activa juntos). `.hero` y `.quick-actions` no
+    tenían `flex-shrink: 0` — en flexbox, el shrink se calcula ANTES
+    que el overflow/scroll entre a jugar, así que cuando la pestaña
+    activa (ej. lista larga de mods) empujaba el contenido total más
+    allá de la altura disponible, flexbox achicaba la cabecera y los
+    accesos rápidos en vez de simplemente scrollear.
+  - Fix: `flex-shrink: 0` en `.hero` y `.quick-actions` — quedan con
+    altura fija siempre, el scroll se encarga de la pestaña que crezca.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - bun run check (svelte-check): 0 errores, mismos 3 warnings
+    preexistentes.
+  - No se pudo reproducir instalando mods reales en esta sesión — fix
+    es un cambio directo de una propiedad flexbox conocida, verificable
+    por lectura y por el comportamiento documentado del algoritmo de
+    flexbox (el shrink corre antes que el overflow).
+================================================================================

@@ -538,6 +538,14 @@
 			),
 			var(--bg-card);
 		overflow: hidden;
+		/* .instance-detail es flex-column + overflow-y:auto — sin esto,
+		   cuando el contenido de abajo (ej. la lista de mods) crece,
+		   flexbox intenta ACHICAR este bloque antes de scrollear (el
+		   shrink por defecto corre antes que el overflow), y la cabecera
+		   se veía cada vez más comprimida a medida que se instalaban más
+		   mods. flex-shrink:0 la deja con altura fija siempre, el scroll
+		   se encarga del resto. */
+		flex-shrink: 0;
 	}
 
 	.hero-icon {
@@ -720,6 +728,7 @@
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
 		gap: 10px;
+		flex-shrink: 0;
 	}
 
 	.quick-card {
