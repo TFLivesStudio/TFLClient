@@ -432,6 +432,7 @@ async fn install_recursive(
     });
     download_content_file(instance_name, &version, kind).await?;
 
+    let mut had_required_dep = false;
     for dep in &version.dependencies {
         if dep.dependency_type != "required" {
             continue;
@@ -444,6 +445,7 @@ async fn install_recursive(
             }
             (None, None) => continue,
         };
+        had_required_dep = true;
         Box::pin(install_recursive(
             instance_name,
             mc_version,
@@ -457,22 +459,33 @@ async fn install_recursive(
         .await?;
     }
 
-    // Complemento del bucle de arriba (ver `required_dependency_project_ids`)
-    // — no rompe nada si falla (red, proyecto sin ese endpoint), simplemente
-    // se queda con lo que ya haya salido de `version.dependencies`.
-    if let Ok(extra_deps) = required_dependency_project_ids(project_id).await {
-        for dep_project in extra_deps {
-            Box::pin(install_recursive(
-                instance_name,
-                mc_version,
-                loader,
-                &dep_project,
-                None,
-                depth + 1,
-                seen,
-                kind,
-            ))
-            .await?;
+    // Complemento SOLO cuando la versión puntual no declaró ninguna
+    // dependencia required utilizable (el caso real que motivó esto:
+    // Create Crafts & Additions con `dependencies` vacío en su build más
+    // reciente, aunque el mod sí depende de Create en la práctica). Si la
+    // versión SÍ trae dependencias, se confía en eso y no se toca este
+    // complemento — `required_dependency_project_ids` junta TODO lo que
+    // el proyecto alguna vez declaró en CUALQUIER versión, sin contexto de
+    // a cuál build aplica cada una. Corriéndolo siempre (como era antes)
+    // causó un caso real: un mod que en el pasado soportaba Canvas y migró
+    // a Sodium instalaba los DOS —Sodium y Canvas son motores de
+    // renderizado mutuamente excluyentes— dejando la instancia rota con
+    // "Incompatible mods found!" aunque el usuario nunca pidió Canvas.
+    if !had_required_dep {
+        if let Ok(extra_deps) = required_dependency_project_ids(project_id).await {
+            for dep_project in extra_deps {
+                Box::pin(install_recursive(
+                    instance_name,
+                    mc_version,
+                    loader,
+                    &dep_project,
+                    None,
+                    depth + 1,
+                    seen,
+                    kind,
+                ))
+                .await?;
+            }
         }
     }
 

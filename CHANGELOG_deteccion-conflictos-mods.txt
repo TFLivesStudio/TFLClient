@@ -1,21 +1,45 @@
-TFL CLIENT — CHANGELOG: detectar mods mutuamente incompatibles antes de instalar
+TFL CLIENT — CHANGELOG: Sodium+Canvas instalándose juntos solos — causa
+raíz real y fix, más detección de respaldo
 ================================================================================
 
 Contexto
 --------------------------------------------------------------------------
-Reporte real: instancia Fabric 1.20.1 con Sodium + Canvas Renderer + Iris
-instalados a la vez — Fabric Loader tira "Incompatible mods found!" al
-abrir, porque Sodium y Canvas son dos motores de renderizado alternativos
-que reemplazan el mismo sistema entero de Minecraft y no pueden convivir
-(Iris sí es compatible, solo con Sodium, y así estaba usado acá). No es un
-problema de dependencias faltantes (ya arreglado en una versión anterior) —
-es un conflicto real entre dos mods que el usuario instaló a mano.
+Reporte real: instancia Fabric 1.20.1 con Sodium + Canvas Renderer + Iris,
+sin que el usuario los haya instalado los tres a mano — Fabric Loader tira
+"Incompatible mods found!" al abrir (Sodium y Canvas son dos motores de
+renderizado alternativos que no pueden convivir; Iris es compatible, pero
+solo con Sodium).
 
-Investigado contra la API real de Modrinth: ni Sodium ni Canvas declaran
-esta incompatibilidad como metadata (dependencies vacío en ambos, y el
-endpoint de dependencias de proyecto tampoco la trae) — Modrinth no tiene
-forma estructurada de expresar "estos dos mods no pueden convivir". No hay
-manera de detectarlo automáticamente sin una lista curada a mano.
+CAUSA RAÍZ REAL (no era el usuario): el propio fix de dependencias de la
+versión anterior (CHANGELOG_fix-dependencias-mods-incompletas.txt) tenía un
+defecto de diseño. `required_dependency_project_ids` consulta
+`GET /project/{id}/dependencies`, que agrega TODO lo que un proyecto alguna
+vez declaró como dependencia en CUALQUIERA de sus versiones históricas, sin
+contexto de a cuál build aplica cada una. El código lo corría SIEMPRE,
+incluso cuando la versión puntual que se estaba instalando ya traía sus
+propias dependencias completas en `version.dependencies`. Resultado real:
+un mod que en el pasado soportó Canvas como motor de render y migró a
+Sodium en versiones más nuevas terminaba instalando LOS DOS — el de antes
+Y el de ahora — porque ambos seguían apareciendo en el agregado histórico
+del proyecto, aunque solo Sodium correspondía a la versión real instalada.
+
+src-tauri/src/commands/mods.rs (install_recursive)
+  + El complemento de `required_dependency_project_ids` ahora SOLO corre
+    cuando la versión puntual no trajo ninguna dependencia `required`
+    utilizable en su propio `version.dependencies` — que es exactamente
+    el caso real que motivó agregarlo (Create Crafts & Additions con ese
+    campo vacío en su build más reciente). Si la versión SÍ declara sus
+    dependencias, se confía en eso tal cual y no se toca el agregado
+    histórico, evitando instalar de más algo que ya no corresponde a esa
+    build.
+
+Investigado también: ni Sodium ni Canvas declaran esta incompatibilidad
+como metadata en Modrinth (dependencies vacío en ambos) — no hay forma
+estructurada de que la API exprese "estos dos mods no pueden convivir".
+
+Detección de respaldo (sigue valiendo la pena aunque ya se arregló la causa
+raíz — cubre el caso de que el usuario instale dos mods incompatibles a
+mano, algo que ningún fix del dependency-walker puede prevenir):
 
 src-tauri/src/commands/mods.rs
   + `KNOWN_CONFLICT_GROUPS`: lista chica y explícita de grupos de mods que
