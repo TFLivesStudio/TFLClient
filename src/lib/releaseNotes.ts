@@ -61,5 +61,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	'0.9.16': [
 		'Arreglado: instalar un mod podía instalar de más, sin que lo pidieras — pasó de verdad con Sodium trayendo también Canvas Renderer (dos motores de renderizado incompatibles), dejando la instancia con "Incompatible mods found!" al abrir. Instancias que ya quedaron así hay que arreglarlas a mano (sacar uno de los dos desde Gestionar → Quitar); los mods que instales de acá en adelante ya no tienen este problema.',
 		'Nuevo, como respaldo: el launcher avisa si intentás instalar a mano un mod que choca con otro ya instalado, antes de que llegues a abrir el juego.'
+	],
+	'0.9.17': [
+		'Arreglado: en Gestionar, algunos mods aparecían con un nombre técnico raro en vez de su nombre real (el caso confuso reportado: Canvas Renderer se mostraba como "fabric-20.0.2625", parecía ser el propio Fabric Loader) — ahora siempre se muestra el nombre real del mod.'
 	]
 };
