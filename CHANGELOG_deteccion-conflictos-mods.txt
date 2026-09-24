@@ -1,0 +1,59 @@
+TFL CLIENT — CHANGELOG: detectar mods mutuamente incompatibles antes de instalar
+================================================================================
+
+Contexto
+--------------------------------------------------------------------------
+Reporte real: instancia Fabric 1.20.1 con Sodium + Canvas Renderer + Iris
+instalados a la vez — Fabric Loader tira "Incompatible mods found!" al
+abrir, porque Sodium y Canvas son dos motores de renderizado alternativos
+que reemplazan el mismo sistema entero de Minecraft y no pueden convivir
+(Iris sí es compatible, solo con Sodium, y así estaba usado acá). No es un
+problema de dependencias faltantes (ya arreglado en una versión anterior) —
+es un conflicto real entre dos mods que el usuario instaló a mano.
+
+Investigado contra la API real de Modrinth: ni Sodium ni Canvas declaran
+esta incompatibilidad como metadata (dependencies vacío en ambos, y el
+endpoint de dependencias de proyecto tampoco la trae) — Modrinth no tiene
+forma estructurada de expresar "estos dos mods no pueden convivir". No hay
+manera de detectarlo automáticamente sin una lista curada a mano.
+
+src-tauri/src/commands/mods.rs
+  + `KNOWN_CONFLICT_GROUPS`: lista chica y explícita de grupos de mods que
+    no pueden convivir (por ahora, un solo grupo: Sodium/Canvas — Iris
+    queda afuera a propósito, es compatible con Sodium). Cada entrada
+    guarda el id corto Y el slug de Modrinth, para no depender de cuál de
+    los dos aparece según el contexto.
+  + `install_mod` ahora chequea, ANTES de instalar, si el mod pedido choca
+    con algo ya instalado en la instancia — si hay conflicto, error claro
+    ("no es compatible con X, que ya tenés instalado") en vez de dejar que
+    recién Fabric Loader lo descubra al lanzar el juego.
+  + El chequeo es solo al nivel del mod que el usuario pide explícitamente
+    (no a dependencias resueltas automáticamente), para no generar falsos
+    positivos en la resolución recursiva.
+
+Nota para ampliar esto después: la lista es chica a propósito (un solo
+caso confirmado). Si aparecen más reportes de conflictos reales conocidos
+(ej. distintos mods de shaders/optimización que compitan entre sí), se
+agregan como una entrada más en `KNOWN_CONFLICT_GROUPS` — no hace falta
+tocar nada más del mecanismo.
+
+Para el usuario que reportó el bug
+--------------------------------------------------------------------------
+La instancia ya armada con Sodium + Canvas + Iris sigue rota — este fix
+solo previene instalarlos juntos de acá en adelante. Hay que sacar uno de
+los dos motores de renderizado (Gestionar → Quitar): dejar Sodium + Iris
+(compatibles entre sí), o dejar solo Canvas sin los otros dos.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check (src-tauri): sin errores.
+  - bun run check: 0 errores, mismos 3 warnings preexistentes.
+  - Verificado contra la API real de Modrinth (curl) que ni Sodium ni
+    Canvas declaran la incompatibilidad como metadata — confirma que no
+    hay forma de detectarlo sin la lista a mano.
+  - No se probó en el launcher real corriendo (sin entorno gráfico Tauri
+    en esta sesión) — recomendado: instalar Sodium en una instancia
+    Fabric y después intentar instalar Canvas (o al revés), confirmar que
+    el mensaje de error aparece y la instalación se cancela.
+================================================================================

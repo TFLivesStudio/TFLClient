@@ -479,6 +479,27 @@ async fn install_recursive(
     Ok(())
 }
 
+// Grupos de mods mutuamente excluyentes conocidos — Modrinth no expone esta
+// relación como metadata estructurada (ni Sodium ni Canvas declaran
+// "incompatible" entre sí en la versión ni a nivel de proyecto, se
+// verificó contra la API real), así que se mantiene a mano. Cada entrada
+// es (id corto canónico, slug) de Modrinth, para no depender de cuál de
+// los dos venga en `project_id` según el contexto.
+const KNOWN_CONFLICT_GROUPS: &[&[(&str, &str)]] = &[
+    // Motores de renderizado alternativos — cada uno reemplaza el
+    // renderer de Minecraft entero, no pueden coexistir. Iris queda
+    // afuera del grupo a propósito: es compatible con Sodium (de hecho lo
+    // requiere), solo Canvas es el que choca.
+    &[("AANobbMI", "sodium"), ("VOYxIjFI", "canvas")],
+];
+
+fn conflicts_with(project_id: &str, installed_project_id: &str) -> bool {
+    KNOWN_CONFLICT_GROUPS.iter().any(|group| {
+        let has = |pid: &str| group.iter().any(|(id, slug)| *id == pid || *slug == pid);
+        has(project_id) && has(installed_project_id) && project_id != installed_project_id
+    })
+}
+
 #[command]
 pub async fn install_mod(
     instance_name: String,
@@ -487,6 +508,22 @@ pub async fn install_mod(
     loader: String,
     version_id: Option<String>,
 ) -> Result<(), String> {
+    // Chequeo de conflictos conocidos ANTES de instalar — antes esto lo
+    // descubría recién Fabric Loader al lanzar el juego ("Incompatible
+    // mods found!"), con el usuario ya instalados los dos a mano sin
+    // ningún aviso previo del launcher.
+    let already_installed = get_installed_content_info(&instance_name, "mods", "jar").await?;
+    if let Some(conflict) = already_installed.iter().find(|i| {
+        i.project_id
+            .as_deref()
+            .is_some_and(|pid| conflicts_with(&project_id, pid))
+    }) {
+        let conflict_name = conflict.title.clone().unwrap_or_else(|| conflict.filename.clone());
+        return Err(format!(
+            "Este mod no es compatible con \"{conflict_name}\", que ya tenés instalado — son motores de renderizado alternativos, no pueden convivir. Sacá uno de los dos antes de instalar el otro."
+        ));
+    }
+
     let mut seen = HashSet::new();
     install_recursive(
         &instance_name,
