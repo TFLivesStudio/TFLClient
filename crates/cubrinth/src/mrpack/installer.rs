@@ -89,12 +89,26 @@ pub async fn install_mrpack(
         })
         .collect();
 
-    // Build DownloadItemSpecs for files that need downloading
+    // Build DownloadItemSpecs for files that need downloading — cualquier
+    // archivo que se descarte acá (sin URL de descarga, o con un path que
+    // no pasa `safe_join`) antes se perdía en silencio: el pack terminaba
+    // instalado "incompleto" sin ningún rastro de qué faltó, indistinguible
+    // de un pack armado mal. Ahora queda logueado.
+    let mut skipped: Vec<String> = Vec::new();
     let items: Vec<aqua::DownloadItemSpec> = applicable_files
         .iter()
         .filter_map(|f| {
-            let url = f.downloads.first()?;
-            let dest = safe_join(instance_dir, &f.path).ok()?;
+            let Some(url) = f.downloads.first() else {
+                skipped.push(format!("{} (sin URL de descarga)", f.path));
+                return None;
+            };
+            let dest = match safe_join(instance_dir, &f.path) {
+                Ok(d) => d,
+                Err(e) => {
+                    skipped.push(format!("{} (path inválido: {e})", f.path));
+                    return None;
+                }
+            };
             let hash = f.hashes.get("sha1").map(|s| s.as_str()).unwrap_or("");
             Some(
                 aqua::DownloadItemSpec::new(url.clone(), dest, &f.path)
@@ -103,6 +117,13 @@ pub async fn install_mrpack(
             )
         })
         .collect();
+    if !skipped.is_empty() {
+        tracing::warn!(
+            "mrpack: {} archivo(s) del índice no se pudieron preparar para descarga, se omiten: {}",
+            skipped.len(),
+            skipped.join(", ")
+        );
+    }
 
     if !items.is_empty() {
         let batch = aqua::GenericBatch::new(format!("mrpack-{}", metadata.version_id), items);

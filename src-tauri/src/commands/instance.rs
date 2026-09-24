@@ -428,3 +428,45 @@ pub async fn open_screenshots_folder(app: AppHandle, name: String) -> Result<(),
         .open_path(dir.to_string_lossy().to_string(), None::<&str>)
         .map_err(|e| e.to_string())
 }
+
+/// Cuando la JVM crashea de forma nativa (segfault, OOM nativo, etc — no un
+/// error normal de Java) escribe un `hs_err_pidNNNN.log` en el directorio
+/// de trabajo del proceso, que es justo el de la instancia (ver
+/// `current_dir` en launchwerk). El log de Minecraft (stdout/stderr, lo que
+/// ve InstanceLogWindow) no tiene ni idea de que ese archivo existe — antes
+/// el usuario se quedaba sin ninguna pista de qué pasó en ese caso. Solo se
+/// devuelve el resumen (las primeras ~40 líneas, donde está la causa: "SIGSEGV",
+/// "Problematic frame", motivo de OOM nativo, etc) — el resto del archivo son
+/// volcados de registros/stack de cada thread, miles de líneas que no
+/// aportan nada a un jugador común.
+#[command]
+pub async fn get_crash_report(name: String) -> Result<Option<String>, String> {
+    let instance = instance_manager::get_instance(&name).await?;
+    let dir = instance.dir();
+
+    let mut newest: Option<(std::path::PathBuf, std::time::SystemTime)> = None;
+    let Ok(mut entries) = tokio::fs::read_dir(&dir).await else {
+        return Ok(None);
+    };
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let file_name = entry.file_name();
+        let Some(name) = file_name.to_str() else { continue };
+        if !name.starts_with("hs_err_pid") || !name.ends_with(".log") {
+            continue;
+        }
+        let Ok(metadata) = entry.metadata().await else { continue };
+        let Ok(modified) = metadata.modified() else { continue };
+        if newest.as_ref().is_none_or(|(_, t)| modified > *t) {
+            newest = Some((entry.path(), modified));
+        }
+    }
+
+    let Some((path, _)) = newest else {
+        return Ok(None);
+    };
+    let content = tokio::fs::read_to_string(&path)
+        .await
+        .map_err(|e| e.to_string())?;
+    let summary: String = content.lines().take(40).collect::<Vec<_>>().join("\n");
+    Ok(Some(summary))
+}

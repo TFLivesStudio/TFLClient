@@ -61,6 +61,7 @@ pub fn run() {
             commands::instance::get_instance_screenshots,
             commands::instance::delete_screenshot,
             commands::instance::open_screenshots_folder,
+            commands::instance::get_crash_report,
             commands::instance::list_instance_icon_presets,
             commands::instance::set_instance_icon_from_preset,
             commands::versions::get_available_versions,

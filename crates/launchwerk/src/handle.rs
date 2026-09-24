@@ -190,7 +190,27 @@ impl InstanceHandle {
         if let Some(child) = rt.process.as_mut() {
             match child.wait().await {
                 Ok(status) => {
-                    let code = status.code().unwrap_or(-1);
+                    // `status.code()` da `None` cuando el proceso terminó por
+                    // señal en vez de salir normalmente — el caso típico es
+                    // el OOM killer del sistema operativo cortándolo
+                    // (SIGKILL), que antes colapsaba a un genérico -1
+                    // indistinguible de cualquier otra salida anómala. En
+                    // Unix se recupera la señal real y se codifica como su
+                    // negativo (mismo criterio que usan los shells POSIX con
+                    // $?), para que quien reciba el código pueda distinguir
+                    // "el sistema mató el proceso por falta de RAM" de otros
+                    // fallos.
+                    let code = status.code().unwrap_or_else(|| {
+                        #[cfg(unix)]
+                        {
+                            use std::os::unix::process::ExitStatusExt;
+                            status.signal().map(|s| -s).unwrap_or(-1)
+                        }
+                        #[cfg(not(unix))]
+                        {
+                            -1
+                        }
+                    });
                     if status.success() {
                         info!("Instance {} exited cleanly", self.inner.uuid);
                     } else {

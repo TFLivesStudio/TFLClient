@@ -285,13 +285,31 @@ async fn launch_inner(app: tauri::AppHandle, instance_name: String) -> Result<()
         tracing::warn!("No se pudieron cargar los tokens del usuario: {e:?}");
     }
 
-    let (min_mem, max_mem) = {
+    // Si la instancia no tiene override explícito de RAM, antes se caía
+    // directo al default global fijo (1024/2048 MB) sin importar cuántos
+    // mods tenga — un modpack grande (80+ mods, frameworks pesados como
+    // Silk/Kotlin) se queda corto ahí y termina en OOM silencioso, sin
+    // ningún error visible más que el proceso terminando de golpe. Se usa
+    // el recomendado según cantidad de mods como piso, sin bajar nunca por
+    // debajo de lo que el usuario ya configuró a mano en Ajustes.
+    let (global_min, global_max) = {
         let settings = SettingsManager::read();
-        (
-            format!("{}M", data.min_memory.unwrap_or(settings.min_memory)),
-            format!("{}M", data.max_memory.unwrap_or(settings.max_memory)),
-        )
+        (settings.min_memory, settings.max_memory)
     };
+    let (min_mem, max_mem) = if data.min_memory.is_none() || data.max_memory.is_none() {
+        let recommended =
+            crate::commands::settings::get_recommended_ram_for_instance(instance_name.to_string())
+                .await;
+        (
+            data.min_memory
+                .unwrap_or_else(|| recommended.recommended_min_mb.max(global_min)),
+            data.max_memory
+                .unwrap_or_else(|| recommended.recommended_max_mb.max(global_max)),
+        )
+    } else {
+        (data.min_memory.unwrap(), data.max_memory.unwrap())
+    };
+    let (min_mem, max_mem) = (format!("{min_mem}M"), format!("{max_mem}M"));
 
     let mut builder = launchwerk::LaunchConfig::builder()
         .java_path(java_path)

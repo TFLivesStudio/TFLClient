@@ -99,6 +99,11 @@
 		{
 			pattern: /DuplicateModsFoundException|duplicate mod/i,
 			message: 'Tenés el mismo mod instalado dos veces — revisá la lista de mods de la instancia.'
+		},
+		{
+			pattern: /A fatal error has been detected by the Java Runtime Environment/i,
+			message:
+				'La JVM crasheó de forma nativa (no es un error de un mod puntual) — puede ser drivers de video desactualizados, o falta de RAM real de la compu. Java dejó un hs_err_pid*.log con el detalle en la carpeta de la instancia.'
 		}
 	];
 
@@ -112,6 +117,34 @@
 				return;
 			}
 		}
+	}
+
+	// Si terminó mal (código distinto de 0, o sin código porque el sistema
+	// operativo mató el proceso) y ningún patrón conocido de stderr avisó
+	// nada — el caso típico es el SO cortando el proceso por falta de RAM
+	// (OOM killer) sin que Java llegue a loguear un OutOfMemoryError propio,
+	// así el log corta de golpe sin ninguna excepción visible. Antes de caer
+	// al mensaje genérico, se intenta el resumen real del hs_err_pid*.log
+	// que la JVM deja al crashear nativo — mucho más útil que adivinar.
+	async function handleExit(code: number | null) {
+		if (code === 0 || friendlyError) return;
+		try {
+			const crashSummary = await invoke<string | null>('get_crash_report', {
+				name: instanceName
+			});
+			if (crashSummary) {
+				friendlyError = `La JVM crasheó de forma nativa — resumen del reporte:\n${crashSummary}`;
+				return;
+			}
+		} catch {
+			// sin acceso al reporte, seguimos con el mensaje genérico de abajo
+		}
+		friendlyError =
+			code === -9
+				? 'El sistema operativo cortó el juego por falta de memoria RAM (no solo la asignada al juego — memoria real de la compu). Cerrá otros programas o bajá la memoria máxima en Ajustes.'
+				: code === null
+					? 'El juego se cerró de golpe sin avisar — normalmente es el sistema operativo cortando el proceso por falta de RAM. Probá subir la memoria máxima en Ajustes.'
+					: `El juego se cerró con código ${code} sin un error reconocible en el log — con varios mods instalados, suele ser falta de RAM. Probá subir la memoria máxima en Ajustes.`;
 	}
 
 	onMount(async () => {
@@ -130,6 +163,7 @@
 				const d = payload.data as { instance: string; code: number | null };
 				if (d.instance !== instanceName) return;
 				exitCode = d.code;
+				void handleExit(d.code);
 			}
 		});
 		pollStats();
@@ -230,7 +264,7 @@
 
 	.friendly-error {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		justify-content: space-between;
 		gap: 10px;
 		padding: 8px 14px;
@@ -238,6 +272,12 @@
 		border-bottom: 1px solid rgba(245, 158, 11, 0.35);
 		color: #f5c518;
 		font-size: 0.74rem;
+	}
+
+	.friendly-error span {
+		white-space: pre-wrap;
+		max-height: 200px;
+		overflow-y: auto;
 	}
 
 	.friendly-error button {

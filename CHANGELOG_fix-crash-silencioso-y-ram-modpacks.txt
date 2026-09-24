@@ -1,0 +1,92 @@
+TFL CLIENT — CHANGELOG: fix — "no inicia el juego" sin ningún error visible
+================================================================================
+
+Contexto
+--------------------------------------------------------------------------
+Reporte real de un usuario con un modpack de 84 mods (Fabric 1.20.1, Silk,
+fabric-language-kotlin, veinminer, etc): el juego no abre, y el latest.log
+que mandó corta de golpe en "Initializing Silk due to init call" sin
+ninguna excepción — ni el usuario ni el propio launcher tenían forma de
+saber qué pasó. Investigación read-only del arranque de instancias reveló
+varios problemas reales en la cadena completa (lanzamiento → captura de
+salida → feedback al usuario), no uno solo.
+
+Causa más probable en este caso puntual
+--------------------------------------------------------------------------
+RAM insuficiente: la instancia no tenía override de memoria propio, así que
+usaba el default global fijo (1024/2048 MB) sin importar que el modpack
+tenga 84 mods con frameworks pesados (Kotlin, Silk). El sistema operativo
+corta el proceso (OOM killer) ANTES de que Java llegue a loguear un
+OutOfMemoryError propio — por eso el log corta sin excepción.
+
+src-tauri/src/services/launcher.rs
+  + Cuando la instancia no tiene override de RAM explícito, ahora usa
+    `get_recommended_ram_for_instance` (ya existía, calcula según cantidad
+    de mods — antes solo se usaba si el usuario abría el picker manual en
+    Ajustes/detalle) como piso, sin bajar nunca por debajo de lo que el
+    usuario ya configuró a mano en Ajustes → Rendimiento. No pisa ninguna
+    preferencia explícita, solo evita el caso "nunca tocó nada + modpack
+    grande = default insuficiente".
+
+Feedback al usuario cuando el juego se cierra mal (antes: silencio total)
+--------------------------------------------------------------------------
+crates/launchwerk/src/handle.rs
+  + `wait()` colapsaba CUALQUIER terminación por señal (típicamente SIGKILL
+    del OOM killer) a un código genérico -1, indistinguible de cualquier
+    otro fallo. Ahora en Unix se recupera la señal real y se codifica como
+    su negativo (-9 = SIGKILL) — mismo criterio que usan los shells POSIX.
+
+src-tauri/src/commands/instance.rs
+  + Nuevo comando `get_crash_report(name)`: busca el `hs_err_pidNNNN.log`
+    más reciente en el directorio de la instancia (ahí es donde la JVM lo
+    escribe cuando crashea nativo — nadie lo estaba leyendo) y devuelve el
+    resumen (primeras ~40 líneas, donde está la causa real: SIGSEGV,
+    "Problematic frame", motivo del fallo nativo).
+
+src/lib/components/library/InstanceLogWindow.svelte
+  + Cuando el proceso termina con código ≠ 0 y ningún patrón conocido de
+    stderr avisó nada: antes no pasaba NADA visible. Ahora se intenta
+    `get_crash_report` primero (más preciso), y si no hay reporte nativo,
+    un mensaje genérico según el código (-9 → "el sistema cortó el juego
+    por falta de RAM", código normal → sugerencia de RAM igual, ya que es
+    la causa más común con modpacks grandes).
+  + Nuevo patrón reconocido: "A fatal error has been detected by the Java
+    Runtime Environment" (crash nativo de la JVM, no un error de mod).
+
+Bug aparte encontrado en el instalador de modpacks (.mrpack)
+--------------------------------------------------------------------------
+crates/cubrinth/src/mrpack/installer.rs
+  + Un archivo del índice del pack sin URL de descarga, o con un path que
+    no pasaba la validación de seguridad, se descartaba en silencio
+    (`filter_map` sin log) — el pack quedaba instalado "incompleto" sin
+    ningún rastro de qué faltó. Ahora queda logueado (tracing::warn) con
+    el nombre del archivo y el motivo.
+  + Aclaración: el instalador de .mrpack en sí NO resuelve dependencias vía
+    Modrinth (a diferencia de instalar un mod suelto, arreglado en
+    CHANGELOG_fix-dependencias-mods-incompletas.txt) — eso es correcto por
+    diseño del formato: un .mrpack bien armado ya trae todo el índice
+    completo, no depende de resolución en tiempo de instalación.
+
+Deliberadamente NO arreglado en esta tanda
+--------------------------------------------------------------------------
+No hay timeout de lanzamiento: si el proceso se cuelga sin salir nunca (no
+crashea, no sale, se queda colgado), el launcher espera indefinidamente sin
+avisar nada. No se implementó un timeout porque el riesgo de falso positivo
+es alto (mundos grandes o modpacks con generación pesada pueden tardar
+minutos en el primer inicio de forma legítima) — necesitaría un umbral bien
+calibrado y probablemente alguna señal más que "no salió todavía" antes de
+avisar. Queda pendiente si se decide encarar.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check (src-tauri, incluye recompilación de cubrinth y
+    launchwerk): sin errores.
+  - bun run check: 0 errores, mismos 3 warnings preexistentes.
+  - No se probó el flujo completo end-to-end con un modpack real de 80+
+    mods en esta sesión (sin entorno gráfico Tauri) — recomendado antes de
+    darlo por cerrado: lanzar una instancia grande con RAM baja a propósito
+    y confirmar que ahora el launcher sube la memoria sola, y que si de
+    todas formas falla, el mensaje en la ventana de log ahora dice algo en
+    vez de quedarse en silencio.
+================================================================================
