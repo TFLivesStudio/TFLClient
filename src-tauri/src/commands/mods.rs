@@ -281,6 +281,34 @@ pub(crate) async fn version_by_id(version_id: &str) -> Result<ModrinthVersion, S
     get_json_retrying(&format!("{MODRINTH_API}/version/{version_id}")).await
 }
 
+#[derive(Debug, Deserialize)]
+struct ProjectDependenciesResponse {
+    projects: Vec<RawDependencyProject>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawDependencyProject {
+    id: String,
+    client_side: String,
+}
+
+/// IDs de proyecto requeridos del lado cliente, según Modrinth — a
+/// diferencia de `version.dependencies` (que es por VERSIÓN puntual y
+/// puede venir vacío si el autor no lo completó en un build reciente,
+/// aunque el mod sí dependa de otro en la práctica), este endpoint agrega
+/// las dependencias declaradas en CUALQUIER versión del proyecto. Se usa
+/// para complementar, no reemplazar, la lista de `version.dependencies`.
+async fn required_dependency_project_ids(project_id: &str) -> Result<Vec<String>, String> {
+    let url = format!("{MODRINTH_API}/project/{project_id}/dependencies");
+    let resp: ProjectDependenciesResponse = get_json_retrying(&url).await?;
+    Ok(resp
+        .projects
+        .into_iter()
+        .filter(|p| p.client_side == "required")
+        .map(|p| p.id)
+        .collect())
+}
+
 async fn download_single_file(
     dest_dir: &std::path::Path,
     file: &ModrinthFile,
@@ -427,6 +455,25 @@ async fn install_recursive(
             kind,
         ))
         .await?;
+    }
+
+    // Complemento del bucle de arriba (ver `required_dependency_project_ids`)
+    // — no rompe nada si falla (red, proyecto sin ese endpoint), simplemente
+    // se queda con lo que ya haya salido de `version.dependencies`.
+    if let Ok(extra_deps) = required_dependency_project_ids(project_id).await {
+        for dep_project in extra_deps {
+            Box::pin(install_recursive(
+                instance_name,
+                mc_version,
+                loader,
+                &dep_project,
+                None,
+                depth + 1,
+                seen,
+                kind,
+            ))
+            .await?;
+        }
     }
 
     Ok(())

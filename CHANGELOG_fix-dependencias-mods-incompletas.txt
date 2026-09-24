@@ -1,0 +1,55 @@
+TFL CLIENT — CHANGELOG: fix — dependencias de mods no se instalaban solas
+================================================================================
+
+Contexto
+--------------------------------------------------------------------------
+Reporte del usuario: instaló "Create Crafts & Additions" y Fabric Loader
+tira "Incompatible mods found!" pidiendo a mano Create, Flywheel, Registrate
+y Fabric API — pasa en modo Automático y en Manual por igual, así que no
+tiene nada que ver con ese modo (ver CHANGELOG_modo-auto-manual-dialogos.txt),
+es un bug real del instalador de dependencias.
+
+Causa raíz (confirmada contra la API real de Modrinth)
+--------------------------------------------------------------------------
+El instalador solo miraba `dependencies` de la VERSIÓN puntual elegida. Para
+"Create Crafts & Additions" la build más nueva (fabric-1.20.1-1.3.4) trae
+ese campo vacío — el autor no lo completó ahí, aunque el mod sí depende de
+Create en la práctica. Versiones más viejas del mismo mod sí lo tenían
+completo. Resultado: se instalaba el mod pedido y nada más, sin avisar.
+
+src-tauri/src/commands/mods.rs
+  + Nuevo `required_dependency_project_ids(project_id)`, que consulta
+    `GET /v2/project/{id}/dependencies` — este endpoint de Modrinth agrega
+    las dependencias declaradas en CUALQUIER versión del proyecto (no solo
+    la punetual), filtradas acá a las que son `client_side == "required"`
+    (evita instalar cosas opcionales como JEI a la fuerza).
+  + `install_recursive` ahora corre esto además del recorrido existente de
+    `version.dependencies` (no lo reemplaza — un pin de versión explícito
+    en `version.dependencies` sigue respetándose tal cual). Recursivo como
+    ya era, así que cubre cadenas de varios niveles (ej. Create Fabric
+    trayendo a su vez Registrate/Flywheel).
+  + Verificado contra la API real: para createaddition, el endpoint de
+    dependencias de proyecto sí trae Create Fabric, Flywheel (Legacy),
+    CC:Tweaked y CC:Restitched como `client_side: required` — exactamente
+    lo que pedía el error de Fabric Loader del reporte.
+
+Nota para el usuario que reportó el bug
+--------------------------------------------------------------------------
+Esto arregla instalaciones NUEVAS de acá en adelante — el mod que ya tenía
+instalado sin sus dependencias no se repara solo. Hay que sacarlo (Gestionar
+→ Quitar) y volver a instalarlo desde Descargar; ahora sí baja todo lo que
+necesita.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check (src-tauri): sin errores.
+  - bun run check: 0 errores (no se tocó frontend).
+  - Confirmado contra la API real de Modrinth (curl) que el endpoint de
+    dependencias de proyecto trae lo que `version.dependencies` no traía
+    para el caso puntual reportado.
+  - No se probó el flujo completo end-to-end en el launcher real en esta
+    sesión (sin entorno gráfico Tauri) — recomendado instalar
+    "Create Crafts & Additions" en una instancia Fabric 1.20.1 y confirmar
+    que Create Fabric/Flywheel/CC:Tweaked/CC:Restitched caen solos.
+================================================================================
