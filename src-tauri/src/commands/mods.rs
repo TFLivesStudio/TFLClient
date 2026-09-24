@@ -725,6 +725,34 @@ pub struct InstalledModInfo {
 /// mods (.jar en mods/), shaders (.zip en shaderpacks/) y resourcepacks
 /// (.zip en resourcepacks/) — es lo que permite marcar con check, en la
 /// pestaña Descargar, los resultados que ya están instalados.
+#[derive(Debug, Deserialize)]
+struct RawProjectTitle {
+    id: String,
+    title: String,
+}
+
+/// Nombre real del MOD (ej. "Canvas Renderer"), no de la build puntual
+/// instalada — algunos autores le ponen a sus versiones un `name` técnico
+/// que no identifica el mod en absoluto (ej. Canvas Renderer nombra sus
+/// builds "fabric-20.0.2625", que a simple vista parece ser el propio
+/// Fabric Loader instalándose solo). Un solo request en bulk
+/// (`/v2/projects`) para todos los project_id resueltos a la vez, en vez
+/// de uno por mod.
+async fn fetch_project_titles(
+    project_ids: &[String],
+) -> std::collections::HashMap<String, String> {
+    if project_ids.is_empty() {
+        return std::collections::HashMap::new();
+    }
+    let ids_json = serde_json::to_string(project_ids).unwrap_or_default();
+    let url = format!(
+        "{MODRINTH_API}/projects?ids={}",
+        urlencoding::encode(&ids_json)
+    );
+    let projects: Vec<RawProjectTitle> = get_json_retrying(&url).await.unwrap_or_default();
+    projects.into_iter().map(|p| (p.id, p.title)).collect()
+}
+
 async fn get_installed_content_info(
     instance_name: &str,
     subdir: &str,
@@ -745,13 +773,30 @@ async fn get_installed_content_info(
             .await
             .unwrap_or_default();
 
+    let project_ids: Vec<String> = resolved
+        .values()
+        .map(|v| v.project_id.clone())
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+    let titles = fetch_project_titles(&project_ids).await;
+
     Ok(hashed
         .into_iter()
         .map(|(filename, hash)| match resolved.get(&hash) {
             Some(v) => InstalledModInfo {
                 filename,
                 project_id: Some(v.project_id.clone()),
-                title: Some(v.name.clone()),
+                // Preferí el título del proyecto (el nombre real del mod)
+                // sobre el `name` de la versión puntual — si el bulk
+                // lookup falla (red, Modrinth caído) se cae al de la
+                // versión como antes, mejor eso que nada.
+                title: Some(
+                    titles
+                        .get(&v.project_id)
+                        .cloned()
+                        .unwrap_or_else(|| v.name.clone()),
+                ),
                 version_id: Some(v.id.clone()),
             },
             None => InstalledModInfo {
