@@ -50,5 +50,12 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.9.14': [
 		'Arreglado: algunos mods (ej. Create y sus addons) se instalaban sin las dependencias que necesitan, y el juego tiraba "Incompatible mods found!" al abrir la instancia — pasaba con Fabric, Forge, NeoForge y Quilt por igual. A los mods que ya tenías instalados así, sacalos y volvé a instalarlos para que bajen completos.'
+	],
+	'0.9.15': [
+		'Arreglado: instancias con muchos mods podían no iniciar sin ningún mensaje de error — el launcher ahora sube la RAM sola según la cantidad de mods, y si el juego igual se cierra de golpe, la ventana de log te dice por qué en vez de quedarse muda.',
+		'Arreglado: las cuentas de Microsoft podían perder la sesión al cerrar y volver a abrir el launcher.',
+		'Arreglado: la configuración guardada (cuentas, RAM, ajustes) ya no se puede perder si el launcher se cierra de golpe justo mientras guarda.',
+		'Arreglado: actualizar un modpack de TFL Selection podía dejar la instancia a medio instalar si se cortaba la conexión — ahora baja el nuevo primero y recién después saca el viejo.',
+		'Varios arreglos chicos en la pestaña de Mods/ResourcePacks/Shaders (selección múltiple más confiable, el dropdown de versiones ya no mezcla mods distintos).'
 	]
 };
