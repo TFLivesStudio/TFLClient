@@ -47,5 +47,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Linux: instalación con un solo comando (sin lidiar con apt/dnf a mano) — el link está en el README del repo.',
 		'Nuevo: podés elegir entre modo Automático (recomendado, sin diálogos de archivo) o Manual (habilita subir tu ícono/fondo propio y agregar mods por archivo) — se pregunta la primera vez y queda siempre editable en Ajustes.',
 		'Mods, ResourcePacks y Shaders: la pestaña ahora se divide en Gestionar (lo instalado, con selección múltiple) y Descargar (mods populares para instalar directo, filtros por categoría, marca de lo ya instalado y poder elegir versión).'
+	],
+	'0.9.14': [
+		'Arreglado: algunos mods (ej. Create y sus addons) se instalaban sin las dependencias que necesitan, y el juego tiraba "Incompatible mods found!" al abrir la instancia — pasaba con Fabric, Forge, NeoForge y Quilt por igual. A los mods que ya tenías instalados así, sacalos y volvé a instalarlos para que bajen completos.'
 	]
 };
