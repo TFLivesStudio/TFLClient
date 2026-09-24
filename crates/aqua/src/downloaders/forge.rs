@@ -499,13 +499,23 @@ impl DownloadBatch for ForgeBatch {
 
                     let actual = compute_sha1_sync(out_path)?;
                     if actual != expected_clean {
-                        warn!(
-                            "Output hash mismatch from processor {proc_name}: {} (expected {}, got {}) - continuing",
+                        // Antes esto solo avisaba y seguía — un output de
+                        // processor corrupto (escritura truncada, Java
+                        // incompatible) quedaba "verificado" en los logs
+                        // sin serlo de verdad, y la instalación de Forge
+                        // seguía con una pieza rota que recién fallaba al
+                        // lanzar el juego, no en un punto accionable.
+                        error!(
+                            "Output hash mismatch from processor {proc_name}: {} (expected {}, got {})",
                             out_path.display(),
                             expected_clean,
                             actual,
                         );
-                        continue;
+                        return Err(AquaError::ForgeOutputVerification {
+                            file: out_path.display().to_string(),
+                            expected: expected_clean.to_string(),
+                            actual,
+                        });
                     }
 
                     info!(

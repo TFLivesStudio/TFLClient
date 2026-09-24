@@ -162,8 +162,15 @@
 	// pasó por `justOnboarded` en esta sesión): mismo aviso pero como banner
 	// no bloqueante — ver NativeDialogModePrompt.svelte. Ambos casos dejan
 	// de mostrarse apenas se elige un modo (marca `native_dialog_mode_prompted`).
+	// Cerrar el banner con la X sin elegir nada (`dialogPromptDismissed`) NO
+	// persiste ningún modo — solo lo oculta por esta sesión; la próxima vez
+	// que se abra el launcher se vuelve a preguntar, en vez de fijar
+	// "Automático" en silencio como pasaba antes.
+	let dialogPromptDismissed = $state(false);
 	const needsDialogModePrompt = $derived(
-		appState.settings?.onboarded === true && appState.settings?.native_dialog_mode_prompted !== true
+		appState.settings?.onboarded === true &&
+			appState.settings?.native_dialog_mode_prompted !== true &&
+			!dialogPromptDismissed
 	);
 
 	async function handleLogout() {
@@ -277,7 +284,7 @@
 {/if}
 
 {#if !isLogWindow && !needsOnboarding && !justOnboarded && needsDialogModePrompt}
-	<NativeDialogModePrompt variant="banner" />
+	<NativeDialogModePrompt variant="banner" onDismiss={() => (dialogPromptDismissed = true)} />
 {/if}
 
 {#if showSettings}

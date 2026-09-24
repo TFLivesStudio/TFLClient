@@ -3,18 +3,33 @@
 	import { updateSettings } from '$lib/api/tflApi';
 	import { Zap, FolderOpen, X } from 'lucide-svelte';
 
-	let { variant, onDone }: { variant: 'modal' | 'banner'; onDone?: () => void } = $props();
+	let {
+		variant,
+		onDone,
+		onDismiss
+	}: { variant: 'modal' | 'banner'; onDone?: () => void; onDismiss?: () => void } = $props();
 
 	let busy = $state<'auto' | 'manual' | null>(null);
+	let error = $state<string | null>(null);
 
 	async function choose(mode: 'auto' | 'manual') {
 		if (!appState.settings) return;
 		busy = mode;
-		appState.settings.native_dialog_mode = mode;
-		appState.settings.native_dialog_mode_prompted = true;
+		error = null;
+		// Mutar `appState.settings` recién cuando el guardado confirma éxito
+		// — antes se mutaba (y por reactividad, el modal/banner desaparecía
+		// vía `needsDialogModePrompt`) ANTES del await. Si `updateSettings`
+		// fallaba (permiso, disco), el usuario veía el prompt cerrarse como
+		// si hubiera elegido algo, sin que quedara persistido ni avisado del
+		// error — al reiniciar volvía a preguntar sin explicación.
+		const next = { ...appState.settings, native_dialog_mode: mode, native_dialog_mode_prompted: true };
 		try {
-			await updateSettings(appState.settings);
+			await updateSettings(next);
+			appState.settings.native_dialog_mode = mode;
+			appState.settings.native_dialog_mode_prompted = true;
 			onDone?.();
+		} catch (e) {
+			error = String(e);
 		} finally {
 			busy = null;
 		}
@@ -48,6 +63,7 @@
 					</span>
 				</button>
 			</div>
+			{#if error}<p class="prompt-error">{error}</p>{/if}
 		</div>
 	</div>
 {:else}
@@ -59,8 +75,16 @@
 				<button type="button" disabled={!!busy} onclick={() => choose('auto')}>Automático</button>
 				<button type="button" disabled={!!busy} onclick={() => choose('manual')}>Manual</button>
 			</div>
+			{#if error}<p class="prompt-error">{error}</p>{/if}
 		</div>
-		<button type="button" class="banner-close" aria-label="Cerrar" disabled={!!busy} onclick={() => choose('auto')}>
+		<button
+			type="button"
+			class="banner-close"
+			aria-label="Cerrar sin elegir todavía"
+			title="Cerrar sin elegir — se vuelve a preguntar la próxima vez"
+			disabled={!!busy}
+			onclick={() => onDismiss?.()}
+		>
 			<X size={12} />
 		</button>
 	</div>
@@ -161,6 +185,12 @@
 		font-size: 0.72rem;
 		color: var(--text-muted);
 		line-height: 1.4;
+	}
+
+	.prompt-error {
+		margin-top: 10px;
+		font-size: 0.74rem;
+		color: var(--color-error);
 	}
 
 	.banner {

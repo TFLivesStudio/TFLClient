@@ -224,7 +224,7 @@ impl MicrosoftAuth {
     ) -> crate::Result<MinecraftUser> {
         let client = reqwest::blocking::Client::new();
         let start = Instant::now();
-        let interval = Duration::from_secs(interval);
+        let mut interval = Duration::from_secs(interval);
         let expires_in = Duration::from_secs(expires_in);
 
         loop {
@@ -247,13 +247,24 @@ impl MicrosoftAuth {
                 let token_res = res.json::<MicrosoftTokenResponse>()?;
                 return Self::complete_login(&token_res.access_token, token_res.refresh_token);
             } else {
-                // Check if we should continue polling
+                // Check if we should continue polling — "slow_down" es una
+                // respuesta válida del RFC 8628 (device authorization
+                // grant), no un error: le pide al cliente bajar el ritmo de
+                // polling, no abortar. Antes se trataba igual que cualquier
+                // otro error y el login fallaba con "Auth failed: slow_down"
+                // en pleno flujo normal.
                 let err_json: serde_json::Value = res.json()?;
-                if err_json["error"] != "authorization_pending" {
-                    return Err(crate::Error::AuthError(format!(
-                        "Auth failed: {}",
-                        err_json["error"]
-                    )));
+                match err_json["error"].as_str() {
+                    Some("authorization_pending") => {}
+                    Some("slow_down") => {
+                        interval += Duration::from_secs(5);
+                    }
+                    _ => {
+                        return Err(crate::Error::AuthError(format!(
+                            "Auth failed: {}",
+                            err_json["error"]
+                        )));
+                    }
                 }
             }
 

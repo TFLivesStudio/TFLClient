@@ -5,6 +5,7 @@
 		searchModpacks,
 		installModpack,
 		installModpackFromUrl,
+		updateCommunityModpack,
 		getInstanceModpacks,
 		checkModpackUpdates,
 		removeModpack
@@ -42,8 +43,12 @@
 		updatingId = pack.version_id;
 		error = null;
 		try {
-			await removeModpack(instance.name, pack.version_id);
-			await installModpackFromUrl(instance.name, pack.project_id, newUrl);
+			// Instala la versión nueva primero y solo si eso funciona borra la
+			// vieja (preservando lo que ambas compartan) — antes se borraba
+			// primero, y si la descarga de la nueva fallaba a mitad de camino
+			// (red cortada), la instancia quedaba sin el pack viejo ni el
+			// nuevo, sin ningún reintento automático.
+			await updateCommunityModpack(instance.name, pack.version_id, pack.project_id, newUrl);
 			await refreshInstalled();
 		} catch (e) {
 			error = String(e);

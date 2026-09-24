@@ -190,6 +190,18 @@ export const removeModpack = (instanceName: string, versionId: string) =>
 	invoke<void>('remove_modpack', { instanceName, versionId });
 export const installModpackFromUrl = (instanceName: string, sourceId: string, mrpackUrl: string) =>
 	invoke<InstalledModpack>('install_modpack_from_url', { instanceName, sourceId, mrpackUrl });
+export const updateCommunityModpack = (
+	instanceName: string,
+	oldVersionId: string,
+	sourceId: string,
+	mrpackUrl: string
+) =>
+	invoke<InstalledModpack>('update_community_modpack', {
+		instanceName,
+		oldVersionId,
+		sourceId,
+		mrpackUrl
+	});
 export const checkModpackUpdates = (instanceName: string) =>
 	invoke<ModpackUpdateInfo[]>('check_modpack_updates', { instanceName });
 export const verifyInstanceIntegrity = (instanceName: string) =>

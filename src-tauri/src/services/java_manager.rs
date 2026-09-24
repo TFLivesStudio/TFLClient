@@ -6,8 +6,19 @@ use crate::services::progress;
 use aqua::{DownloadManager, JreBatch, JreProviderChain};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
+use tokio::sync::Mutex;
 
 const MANAGED_MAJORS: [u8; 4] = [8, 17, 21, 25];
+
+// Dos lanzamientos casi simultáneos que necesitan el mismo Java (o
+// distinto — se serializa toda instalación de Java, no solo por major,
+// no vale la pena la complejidad de un lock por versión para algo que no
+// es frecuente) podían pasar juntos el chequeo `bin.exists() == false` y
+// terminar descargando/extrayendo al mismo directorio a la vez,
+// pisándose entre sí. El resultado observado podía ser un runtime
+// corrupto que fallaba siempre con el mismo error críptico.
+static INSTALL_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 fn runtimes_dir() -> PathBuf {
     PathManager::get().get_shared_dir().join("runtimes")
@@ -52,6 +63,13 @@ pub fn status() -> Vec<JavaStatus> {
 pub async fn ensure_java(major: u8) -> Result<PathBuf, String> {
     let home = jre_home(major);
     let bin = java_bin(&home);
+    if bin.exists() {
+        return Ok(bin);
+    }
+
+    let _guard = INSTALL_LOCK.lock().await;
+    // Re-chequear tras el lock: si otra tarea ya lo instaló mientras
+    // esperábamos acá, no hay nada más que hacer.
     if bin.exists() {
         return Ok(bin);
     }

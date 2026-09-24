@@ -72,6 +72,23 @@ fn manifest_dir(instance_dir: &std::path::Path) -> std::path::PathBuf {
     instance_dir.join(".tfl_modpacks")
 }
 
+/// `version_id` termina siendo el nombre del archivo de manifest
+/// (`{version_id}.json`) — para modpacks de Modrinth es un id corto que la
+/// propia API genera, pero para los comunitarios (`install_from_url_internal`)
+/// sale del `modrinth.index.json` DENTRO del .mrpack, que puede venir de
+/// cualquier repo de GitHub. `remove_modpack` ya validaba esto; acá se
+/// aplica el mismo criterio antes de escribir, no solo antes de borrar.
+fn valid_version_id(version_id: &str) -> Result<(), String> {
+    if version_id.is_empty()
+        || version_id.contains('/')
+        || version_id.contains('\\')
+        || version_id.contains("..")
+    {
+        return Err(format!("Id de versión de modpack inválido: {version_id:?}"));
+    }
+    Ok(())
+}
+
 #[command]
 pub async fn install_modpack(
     instance_name: String,
@@ -111,6 +128,7 @@ pub async fn install_modpack(
 
     let _ = tokio::fs::remove_dir_all(&temp_dir).await;
     let metadata = metadata?;
+    valid_version_id(&metadata.version_id)?;
 
     let installed = InstalledModpack {
         project_id: project_id.clone(),
@@ -145,13 +163,16 @@ pub async fn install_modpack(
 /// tienen project_id de Modrinth, ya viene resuelta la URL exacta desde
 /// el manifest del repo). Mismo motor que install_modpack (cubrinth),
 /// solo cambia de dónde sale el archivo.
-#[command]
-pub async fn install_modpack_from_url(
-    instance_name: String,
-    source_id: String,
-    mrpack_url: String,
-) -> Result<InstalledModpack, String> {
-    let instance = instance_manager::get_instance(&instance_name).await?;
+/// Descarga+instala un .mrpack de una URL directa y escribe su manifest —
+/// compartido por `install_modpack_from_url` y `update_community_modpack`,
+/// que además necesita el `version_id` nuevo y la lista de paths instalados
+/// para poder limpiar el pack viejo sin pisarse con el nuevo.
+async fn install_from_url_internal(
+    instance_name: &str,
+    source_id: &str,
+    mrpack_url: &str,
+) -> Result<(InstalledModpack, Vec<String>), String> {
+    let instance = instance_manager::get_instance(instance_name).await?;
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
     let temp_dir = shared_dir
         .join("temp")
@@ -161,7 +182,7 @@ pub async fn install_modpack_from_url(
         .map_err(|e| e.to_string())?;
     let temp_file = temp_dir.join("pack.mrpack");
 
-    let bytes = get_bytes_retrying(&mrpack_url).await?;
+    let bytes = get_bytes_retrying(mrpack_url).await?;
     tokio::fs::write(&temp_file, &bytes)
         .await
         .map_err(|e| e.to_string())?;
@@ -172,9 +193,10 @@ pub async fn install_modpack_from_url(
 
     let _ = tokio::fs::remove_dir_all(&temp_dir).await;
     let metadata = metadata?;
+    valid_version_id(&metadata.version_id)?;
 
     let installed = InstalledModpack {
-        project_id: source_id.clone(),
+        project_id: source_id.to_string(),
         version_id: metadata.version_id.clone(),
         title: metadata.name.clone(),
         file_count: metadata.installed_paths.len(),
@@ -202,6 +224,39 @@ pub async fn install_modpack_from_url(
     .await
     .map_err(|e| e.to_string())?;
 
+    Ok((installed, metadata.installed_paths))
+}
+
+#[command]
+pub async fn install_modpack_from_url(
+    instance_name: String,
+    source_id: String,
+    mrpack_url: String,
+) -> Result<InstalledModpack, String> {
+    install_from_url_internal(&instance_name, &source_id, &mrpack_url)
+        .await
+        .map(|(installed, _)| installed)
+}
+
+/// Actualiza un modpack comunitario ya instalado a una versión nueva —
+/// instala primero y recién si eso funciona borra el pack viejo (al revés
+/// de simplemente "remove + install", que dejaba la instancia sin el
+/// manifest y sin los mods si la descarga del nuevo fallaba a mitad de
+/// camino). Los archivos que el pack viejo y el nuevo comparten (mismo
+/// path relativo, típico si varios mods no cambiaron de versión) se
+/// preservan — de lo contrario, borrar el pack viejo después de instalar
+/// el nuevo pisaría archivos que el nuevo pack acaba de dejar.
+#[command]
+pub async fn update_community_modpack(
+    instance_name: String,
+    old_version_id: String,
+    source_id: String,
+    mrpack_url: String,
+) -> Result<InstalledModpack, String> {
+    let (installed, new_paths) =
+        install_from_url_internal(&instance_name, &source_id, &mrpack_url).await?;
+    let keep: std::collections::HashSet<String> = new_paths.into_iter().collect();
+    remove_modpack_files(&instance_name, &old_version_id, &keep).await?;
     Ok(installed)
 }
 
@@ -244,10 +299,20 @@ pub async fn get_instance_modpacks(instance_name: String) -> Result<Vec<Installe
 
 #[command]
 pub async fn remove_modpack(instance_name: String, version_id: String) -> Result<(), String> {
-    if version_id.contains('/') || version_id.contains('\\') || version_id.contains("..") {
-        return Err("Id de versión inválido".into());
-    }
-    let instance = instance_manager::get_instance(&instance_name).await?;
+    remove_modpack_files(&instance_name, &version_id, &Default::default()).await
+}
+
+/// Borra los archivos trackeados por el manifest de un modpack, salvo los
+/// que estén en `keep` (paths relativos) — usado tal cual por
+/// `remove_modpack` (keep vacío) y por `update_community_modpack` (keep =
+/// lo que el pack nuevo acaba de instalar, para no pisarlo).
+async fn remove_modpack_files(
+    instance_name: &str,
+    version_id: &str,
+    keep: &std::collections::HashSet<String>,
+) -> Result<(), String> {
+    valid_version_id(version_id)?;
+    let instance = instance_manager::get_instance(instance_name).await?;
     let instance_dir = instance.dir();
     let manifest_path = manifest_dir(&instance_dir).join(format!("{version_id}.json"));
 
@@ -263,6 +328,9 @@ pub async fn remove_modpack(instance_name: String, version_id: String) -> Result
 
     for p in paths {
         let Some(rel) = p.as_str() else { continue };
+        if keep.contains(rel) {
+            continue;
+        }
         let Ok(abs) = cubrinth::utils::path::safe_join(&instance_dir, rel) else {
             continue;
         };

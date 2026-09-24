@@ -136,20 +136,26 @@
 	let changelogText = $state<string | null>(null);
 	let loadingChangelog = $state(false);
 
+	let refreshToken = 0;
 	async function refreshInstalled() {
-		installed = await apiInstalledInfo();
+		const token = ++refreshToken;
+		const freshInstalled = await apiInstalledInfo();
+		if (token !== refreshToken) return; // una llamada más nueva ya ganó
+		installed = freshInstalled;
 		const stillThere = new Set(installed.map((i) => i.filename));
 		selected = new Set([...selected].filter((f) => stillThere.has(f)));
 		if (kind === 'mod') {
 			try {
-				updates = await checkModUpdates(instance.name);
+				const freshUpdates = await checkModUpdates(instance.name);
+				if (token === refreshToken) updates = freshUpdates;
 			} catch {
-				updates = [];
+				if (token === refreshToken) updates = [];
 			}
 			try {
-				duplicateGroups = await findDuplicateMods(instance.name);
+				const freshDupes = await findDuplicateMods(instance.name);
+				if (token === refreshToken) duplicateGroups = freshDupes;
 			} catch {
-				duplicateGroups = [];
+				if (token === refreshToken) duplicateGroups = [];
 			}
 		}
 	}
@@ -176,15 +182,21 @@
 		if (selected.size === 0) return;
 		removingSelected = true;
 		manageError = null;
-		try {
-			for (const filename of selected) await apiRemove(filename);
-			selected = new Set();
-			await refreshInstalled();
-		} catch (e) {
-			manageError = String(e);
-		} finally {
-			removingSelected = false;
+		// Antes esto era un `for...of` que cortaba entero en el primer error
+		// — si el tercero de cinco fallaba, ni se refrescaba la lista ni se
+		// soltaba la selección, dejando la UI mostrando como "instalados y
+		// seleccionados" un par de archivos que ya se habían borrado de
+		// verdad. Ahora se intenta con todos, se refresca siempre, y solo
+		// quedan seleccionados los que de verdad fallaron (para reintentar).
+		const targets = [...selected];
+		const results = await Promise.allSettled(targets.map((filename) => apiRemove(filename)));
+		const failed = targets.filter((_, i) => results[i].status === 'rejected');
+		selected = new Set(failed);
+		if (failed.length > 0) {
+			manageError = `No se pudieron quitar ${failed.length} de ${targets.length}: ${failed.join(', ')}`;
 		}
+		await refreshInstalled();
+		removingSelected = false;
 	}
 
 	async function handleCheckUpdatesSelected() {
@@ -226,6 +238,7 @@
 		}
 	}
 
+	let changelogToken = 0;
 	async function toggleChangelog(update: ModUpdateAvailable) {
 		if (changelogFor === update.new_version_id) {
 			changelogFor = null;
@@ -235,12 +248,14 @@
 		changelogFor = update.new_version_id;
 		changelogText = null;
 		loadingChangelog = true;
+		const token = ++changelogToken;
 		try {
-			changelogText = (await getModVersionChangelog(update.new_version_id)) || 'Sin notas de cambios.';
+			const text = (await getModVersionChangelog(update.new_version_id)) || 'Sin notas de cambios.';
+			if (token === changelogToken) changelogText = text;
 		} catch (e) {
-			changelogText = `No se pudo cargar: ${e}`;
+			if (token === changelogToken) changelogText = `No se pudo cargar: ${e}`;
 		} finally {
-			loadingChangelog = false;
+			if (token === changelogToken) loadingChangelog = false;
 		}
 	}
 
@@ -257,8 +272,14 @@
 		addingLocal = true;
 		manageError = null;
 		try {
-			await apiAddLocal(paths);
+			const added = await apiAddLocal(paths);
 			await refreshInstalled();
+			// El backend sigue de largo con lo que sí puede copiar — si algo
+			// no matcheaba la extensión esperada o falló al copiar, antes no
+			// había ningún aviso de que faltó algo de lo elegido.
+			if (added < paths.length) {
+				manageError = `Se agregaron ${added} de ${paths.length} archivos — el resto no tenía la extensión esperada o no se pudo copiar.`;
+			}
 		} catch (e) {
 			manageError = String(e);
 		} finally {
@@ -330,6 +351,7 @@
 		}
 	}
 
+	let versionsToken = 0;
 	async function toggleVersions(projectId: string) {
 		if (openVersionsFor === projectId) {
 			openVersionsFor = null;
@@ -338,12 +360,14 @@
 		openVersionsFor = projectId;
 		versionOptions = [];
 		loadingVersions = true;
+		const token = ++versionsToken;
 		try {
-			versionOptions = await apiVersions(projectId);
+			const options = await apiVersions(projectId);
+			if (token === versionsToken) versionOptions = options;
 		} catch {
-			versionOptions = [];
+			if (token === versionsToken) versionOptions = [];
 		} finally {
-			loadingVersions = false;
+			if (token === versionsToken) loadingVersions = false;
 		}
 	}
 </script>

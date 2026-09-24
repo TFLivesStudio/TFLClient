@@ -224,7 +224,20 @@ impl SettingsManager {
                     s
                 }
                 Err(e) => {
-                    warn!("Config corrupta, usando defaults: {}", e);
+                    // Antes esto pisaba directo con defaults en la próxima
+                    // `save()` — cuentas, RAM, jvm_args, todo perdido sin
+                    // dejar rastro. Se deja una copia del archivo corrupto
+                    // al lado (best-effort, si falla no bloquea el arranque)
+                    // por si hay algo rescatable a mano.
+                    let backup_path = path.with_extension("tfl.corrupto");
+                    if std::fs::write(&backup_path, &raw).is_ok() {
+                        warn!(
+                            "Config corrupta ({e}), usando defaults — copia guardada en {:?}",
+                            backup_path
+                        );
+                    } else {
+                        warn!("Config corrupta ({e}), usando defaults — no se pudo ni respaldar");
+                    }
                     SettingsManager::default()
                 }
             },
@@ -239,7 +252,16 @@ impl SettingsManager {
         let snapshot = Self::snapshot();
         let path = Self::settings_path();
         let json = serde_json::to_string_pretty(&snapshot).map_err(|e| e.to_string())?;
-        tokio::fs::write(&path, json)
+        // Escritura directa: si el proceso se corta a mitad de camino
+        // (crash, corte de luz, force-quit) el archivo queda truncado y
+        // `load()` lo descarta entero la próxima vez. Escribir a un
+        // temporal y renombrar es atómico en el mismo filesystem — o el
+        // rename se completa entero, o el archivo viejo queda intacto.
+        let tmp_path = path.with_extension("tfl.tmp");
+        tokio::fs::write(&tmp_path, &json)
+            .await
+            .map_err(|e| e.to_string())?;
+        tokio::fs::rename(&tmp_path, &path)
             .await
             .map_err(|e| e.to_string())?;
         SettingsManager::write(|s| s.dirty = false).ok();

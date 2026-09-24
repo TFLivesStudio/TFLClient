@@ -1,0 +1,176 @@
+TFL CLIENT — CHANGELOG: auditoría general del launcher (auth/instancias/
+settings/Java/TFL Selection/modpacks/aqua/UI de mods)
+================================================================================
+
+Contexto
+--------------------------------------------------------------------------
+Pedido explícito: escanear todo el launcher en busca de bugs reales, no
+solo el área puntual que había motivado los arreglos anteriores. Se
+lanzaron 3 auditorías read-only en paralelo (auth+instancias+settings+Java;
+TFL Selection+modpacks+updater+aqua; el código nuevo de esta sesión —
+ContentManager/NativeDialogModePrompt) y se arregló cada hallazgo real
+confirmado leyendo el código, con foco en severidad real de uso, no en
+estilo. Se documentan también los hallazgos NO arreglados y por qué.
+
+── Autenticación y cuentas ─────────────────────────────────────────────────
+
+src-tauri/src/commands/auth.rs
+  + [CRÍTICO] Los tokens de una cuenta Microsoft nunca se guardaban en el
+    almacenamiento seguro del sistema — `save_tokens()` existía en
+    launchwerk pero nada lo llamaba. Al cerrar y reabrir el launcher,
+    `load_tokens()` fallaba en silencio (solo un warn) y el juego se
+    lanzaba con `access_token` vacío: sesión inválida, sin ningún aviso
+    claro. Ahora `authenticate_with_device_code` llama `save_tokens()`
+    tras loguear.
+  + `remove_user`: recalculaba la cuenta activa por POSICIÓN numérica tras
+    borrar una cuenta, no por identidad — borrar la cuenta A de
+    [A,B,C] con B activa (idx 1) dejaba [B,C] con idx 1 apuntando a C: la
+    sesión activa cambiaba sola a una cuenta que el usuario no eligió.
+    Ahora se recuerda el uuid de la cuenta activa y se recalcula su
+    posición real después del borrado. También borra los tokens de la
+    cuenta eliminada del almacenamiento seguro (antes quedaban huérfanos).
+
+crates/launchwerk/src/auth/microsoft.rs
+  + El polling del device code trataba la respuesta OAuth "slow_down"
+    (RFC 8628 — pedido válido de bajar el ritmo, no un error) igual que
+    cualquier error real, abortando el login con "Auth failed: slow_down"
+    en pleno flujo normal. Ahora se reconoce y aumenta el intervalo de
+    polling +5s en vez de abortar.
+
+── Instancias ───────────────────────────────────────────────────────────
+
+src-tauri/src/services/instance_manager.rs
+  + [ALTO] `valid_instance_name` no rechazaba "." ni "..". Un nombre "."
+    hace que `dir()` resuelva a la carpeta `instances/` entera — borrar esa
+    instancia (`remove_dir_all`) habría borrado TODAS las instancias del
+    usuario de un tirón. ".." apunta al directorio padre. Ahora se
+    rechazan explícitamente, y se aplica la misma validación también en
+    `get_instance`/`delete_instance` (antes solo se validaba al crear/
+    renombrar, no en cada operación que reconstruye el path desde el
+    nombre).
+  + `update_instance_memory` guardaba min/max de RAM por instancia tal
+    cual, sin la validación min<=max que `update_settings` sí tiene — un
+    override con mínimo mayor al máximo hace que la JVM rechace los flags
+    y el juego ni arranque. Ahora se valida igual que el global.
+
+── Settings ──────────────────────────────────────────────────────────────
+
+src-tauri/src/services/settings_manager.rs
+  + [CRÍTICO] `save()` escribía `settings.tfl` directo — un corte a mitad
+    de escritura (crash, corte de luz, force-quit) dejaba el archivo
+    truncado, y `load()` descartaba TODO en silencio la próxima vez
+    (cuentas, RAM, jvm_args, todo). Ahora se escribe a un temporal y se
+    renombra (atómico en el mismo filesystem).
+  + Si el JSON está corrupto de otra forma, antes se perdía sin dejar
+    rastro. Ahora se guarda una copia (`settings.tfl.corrupto`) al lado
+    antes de caer a los defaults, por si hay algo rescatable a mano.
+
+── Java manager ──────────────────────────────────────────────────────────
+
+src-tauri/src/services/java_manager.rs
+  + Dos lanzamientos casi simultáneos que necesitaban instalar Java podían
+    pasar juntos el chequeo "¿ya está instalado?" y descargar/extraer al
+    mismo directorio a la vez, pisándose — resultado posible: runtime
+    corrupto que falla siempre con el mismo error críptico. Se agregó un
+    lock que serializa instalaciones de Java (re-chequea si ya quedó
+    instalado tras esperar el lock, para no descargar de más).
+  + Nota: la descarga del JRE en sí YA valida sha256 cuando el proveedor lo
+    da (`crates/aqua/src/jre/client.rs`) — no era una omisión total como
+    parecía a primera vista, solo faltaba la protección de concurrencia.
+
+── aqua (motor de instalación Vanilla/Fabric/Forge/NeoForge/Quilt) ────────
+
+crates/aqua/src/downloaders/forge.rs, neoforge.rs
+  + [MEDIO] Cuando el hash de un archivo generado por un post-processor de
+    Forge/NeoForge no coincidía con el esperado, el código solo avisaba
+    (`warn!` + `continue`) y seguía la instalación con esa pieza corrupta
+    — el problema recién se manifestaba al lanzar el juego, en vez de en
+    el momento accionable (la instalación). Ahora aborta con el mismo
+    error que ya se usaba para "archivo no generado".
+
+Pendiente, documentado y NO arreglado (aqua)
+  - Fabric y Quilt no verifican hash de las librerías de su propio loader
+    (a diferencia de Vanilla/Forge/NeoForge). Investigado: la API de
+    Fabric Meta (perfil del loader) no expone sha1 por librería en
+    absoluto — no es una omisión de "faltó poner `.with_hash()`", el dato
+    simplemente no está en la fuente. Agregarlo requeriría un fetch extra
+    del companion `.jar.sha1` de Maven por cada librería (duplica
+    requests HTTP por instalación); se dejó sin implementar por el
+    trade-off costo/riesgo/beneficio marginal sin poder probarlo
+    end-to-end esta sesión.
+
+── TFL Selection y modpacks comunitarios ──────────────────────────────────
+
+src-tauri/src/commands/modpacks.rs
+  + [ALTO] Actualizar un modpack comunitario instalado (`ModpacksPanel.svelte`
+    → `handleUpdate`) borraba el pack viejo ANTES de descargar el nuevo —
+    si la descarga fallaba a mitad de camino (red cortada), la instancia
+    quedaba sin el pack viejo ni el nuevo, sin registro ni reintento
+    automático. Nuevo comando `update_community_modpack`: instala primero,
+    y solo si eso funciona borra el viejo — preservando los archivos que
+    viejo y nuevo comparten (mismo path relativo), para no pisar algo que
+    el pack nuevo acaba de dejar. `ModpacksPanel.svelte` migrado a usarlo.
+  + `version_id` (sale del `modrinth.index.json` DENTRO de un .mrpack, que
+    para modpacks comunitarios puede venir de cualquier repo de GitHub) se
+    usaba tal cual para nombrar el archivo de manifest, sin la misma
+    validación que `remove_modpack` sí tenía. Ahora se valida en los 3
+    puntos donde se escribe, no solo al borrar.
+
+src-tauri/src/commands/tfl_selection.rs
+  + La búsqueda de repos comunitarios en GitHub no pedía `per_page`,
+    quedando limitada a los 30 resultados por default de la API — si la
+    org publica más de 30 repos con el topic correspondiente, el resto
+    desaparecía de la lista sin ningún aviso. Ahora pide el máximo (100).
+
+── UI de Mods/ResourcePacks/Shaders (código nuevo de esta misma sesión) ───
+
+src/lib/components/library/ContentManager.svelte
+  + [ALTO] "Quitar" sobre una selección múltiple cortaba en el primer
+    fallo (`for...of` con `await` secuencial) sin refrescar la lista ni
+    soltar la selección — la UI seguía mostrando como instalados archivos
+    que ya se habían borrado de disco, y reintentar volvía a trabarse en
+    el mismo primero (ya inexistente). Ahora se intenta con todos
+    (`Promise.allSettled`), se refresca siempre, y solo quedan
+    seleccionados los que de verdad fallaron.
+  + [ALTO] El dropdown de "ver versiones" no tenía protección contra
+    respuestas fuera de orden — abrir el de un mod y después el de otro
+    antes de que resuelva el primero podía terminar mostrando las
+    versiones del primero bajo la tarjeta del segundo. Igual en el
+    changelog de actualizaciones. Ambos con token de concurrencia ahora
+    (mismo patrón que ya tenía la búsqueda).
+  + "Añadir por archivo" ignoraba cuántos de los archivos elegidos
+    realmente se habían copiado (el backend sigue de largo con los que no
+    matchean extensión o fallan) — ahora avisa si agregó menos de los
+    elegidos.
+  + `refreshInstalled` sin token de concurrencia (inconsistente con el
+    resto del componente) — agregado por las dudas, riesgo bajo en la
+    práctica.
+
+src/lib/components/onboarding/NativeDialogModePrompt.svelte, +page.svelte
+  + Elegir un modo mutaba `appState.settings` (y por reactividad, cerraba
+    el prompt) ANTES de que `updateSettings` confirmara el guardado — si
+    fallaba, el usuario veía el prompt desaparecer creyendo que había
+    elegido algo que en realidad no quedó persistido, sin ningún aviso de
+    error. Ahora se muta recién tras el éxito, y se muestra el error si
+    falla (el prompt sigue visible para reintentar).
+  + El botón "X" del banner llamaba a `choose('auto')` — cerrarlo sin
+    elegir fijaba "Automático" para siempre en silencio, en vez de posponer
+    la decisión. Ahora es un dismiss real (`onDismiss`, estado local de
+    sesión): se vuelve a preguntar la próxima vez que se abra el launcher.
+
+
+VERIFICACIÓN APLICADA
+================================================================================
+  - cargo check (src-tauri, recompila aqua/launchwerk/cubrinth): sin
+    errores en cada tanda de cambios.
+  - bun run check: 0 errores, mismos 3 warnings preexistentes sin relación.
+  - No se probó end-to-end en un launcher real corriendo esta sesión (sin
+    entorno gráfico Tauri) — recomendado antes de dar por cerrado este
+    lote: login con Microsoft real (cerrar y reabrir el launcher,
+    confirmar que la sesión sigue viva), crear una instancia con nombre
+    "." o ".." (debe rechazarse), actualizar un modpack comunitario
+    simulando un corte de red a mitad de la descarga del nuevo (el viejo
+    debe seguir intacto), y remover una selección múltiple de mods donde
+    alguno falle a propósito (permisos de archivo) para confirmar que el
+    resto sí se borra y la lista se refresca.
+================================================================================

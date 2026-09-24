@@ -5,7 +5,7 @@ use launchwerk::auth::MinecraftUser;
 use launchwerk::auth::microsoft::MicrosoftAuth;
 use serde::Serialize;
 use tauri::command;
-use tracing::info;
+use tracing::{info, warn};
 
 #[derive(Serialize)]
 pub struct DeviceCode {
@@ -49,6 +49,16 @@ pub async fn authenticate_with_device_code(
     })
     .await
     .map_err(|e| e.to_string())??;
+
+    // El token de acceso/refresh vive en `#[serde(skip)]` — nunca queda en
+    // settings.tfl a propósito (no es un lugar seguro para credenciales).
+    // Sin este `save_tokens()` se perdía sin que nada lo mostrara: la
+    // cuenta quedaba guardada, pero `access_token` volvía a "" en el
+    // próximo arranque (ver `load_tokens()` en launcher.rs), y el juego se
+    // lanzaba igual con una sesión inválida en vez de fallar visiblemente.
+    if let Err(e) = user.save_tokens() {
+        warn!("No se pudieron guardar los tokens de \"{}\": {e}", user.username);
+    }
 
     SettingsManager::write(|s| {
         s.add_user(user.clone());
@@ -150,14 +160,31 @@ pub async fn switch_user(uuid: String) -> Result<MinecraftUser, String> {
 
 #[command]
 pub async fn remove_user(uuid: String) -> Result<(), String> {
+    // Si la cuenta activa era otra (no la que se está borrando), reindexar
+    // por posición numérica después de un `retain` la puede cambiar sola
+    // sin que el usuario elija nada — ej. [A,B,C] activa=B(idx1), se borra
+    // A(idx0) → queda [B,C] y el idx1 ahora apunta a C. Se recuerda el
+    // uuid de la cuenta activa y se recalcula su posición real después.
+    let active_uuid = {
+        let s = SettingsManager::read();
+        s.user.get(s.active_user_idx).map(|u| u.uuid.clone())
+    };
+
+    if let Some(removed) = SettingsManager::read().user.iter().find(|u| u.uuid == uuid) {
+        if let Err(e) = removed.delete_tokens() {
+            tracing::warn!("No se pudieron borrar los tokens de \"{}\": {e}", removed.username);
+        }
+    }
+
     SettingsManager::write(|s| {
         s.user.retain(|u| u.uuid != uuid);
         if s.user.is_empty() {
             s.user.push(MinecraftUser::cracked("Steve"));
         }
-        if s.active_user_idx >= s.user.len() {
-            s.active_user_idx = 0;
-        }
+        s.active_user_idx = active_uuid
+            .as_deref()
+            .and_then(|au| s.user.iter().position(|u| u.uuid == au))
+            .unwrap_or(0);
     })
     .map_err(|e| e.to_string())?;
     SettingsManager::save().await?;

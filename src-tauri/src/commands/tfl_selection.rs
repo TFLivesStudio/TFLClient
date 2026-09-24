@@ -76,8 +76,13 @@ struct GhContentResponse {
 }
 
 async fn discover_community_modpacks() -> Result<Vec<TflSelectionEntry>, String> {
+    // Sin per_page, la API de GitHub devuelve como mucho 30 resultados por
+    // default (no hay lógica de paginación acá) — si la org publica más de
+    // 100 repos con este topic, el resto se pierde sin ningún aviso. 100
+    // es el máximo que permite la API en una sola página; alcanza con
+    // margen para el uso real de este proyecto.
     let search_url = format!(
-        "https://api.github.com/search/repositories?q=org:{GITHUB_ORG}+topic:{TOPIC}"
+        "https://api.github.com/search/repositories?q=org:{GITHUB_ORG}+topic:{TOPIC}&per_page=100"
     );
     let search: GhSearchResponse = get_json_retrying(&search_url).await?;
 

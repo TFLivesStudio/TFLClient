@@ -74,6 +74,14 @@ fn valid_instance_name(name: &str) -> Result<(), String> {
     if trimmed.chars().any(|c| "/\\:*?\"<>|".contains(c)) {
         return Err("El nombre de la instancia tiene caracteres inválidos".into());
     }
+    // "." y ".." no tienen separadores de path, así que pasaban el chequeo
+    // de arriba — pero `dir()` los junta directo a `instances/` sin
+    // resolverlos, y `delete_instance` corre `remove_dir_all` sobre eso: un
+    // nombre "." apunta a la carpeta `instances/` entera (borraría TODAS
+    // las instancias), y ".." a su directorio padre.
+    if trimmed == "." || trimmed == ".." {
+        return Err("El nombre de la instancia no puede ser \".\" ni \"..\"".into());
+    }
     Ok(())
 }
 
@@ -121,6 +129,7 @@ pub async fn list_instances() -> Vec<InstanceData> {
 }
 
 pub async fn get_instance(name: &str) -> Result<InstanceData, String> {
+    valid_instance_name(name)?;
     let manifest = PathManager::get()
         .get_instance_dir()
         .join(name)
@@ -132,6 +141,7 @@ pub async fn get_instance(name: &str) -> Result<InstanceData, String> {
 }
 
 pub async fn delete_instance(name: &str) -> Result<(), String> {
+    valid_instance_name(name)?;
     let dir = PathManager::get().get_instance_dir().join(name);
     tokio::fs::remove_dir_all(&dir)
         .await
@@ -214,6 +224,15 @@ pub async fn update_instance_memory(
     min_memory: Option<u32>,
     max_memory: Option<u32>,
 ) -> Result<InstanceData, String> {
+    // A diferencia de `update_settings` (que sí corrige min>max), esto
+    // guardaba lo que llegara tal cual — un override por instancia con
+    // min > max hace que la JVM rechace `-Xms` mayor que `-Xmx` y el juego
+    // ni arranca, sin ningún mensaje claro de por qué.
+    if let (Some(mn), Some(mx)) = (min_memory, max_memory) {
+        if mn > mx {
+            return Err("La memoria mínima no puede ser mayor que la máxima".into());
+        }
+    }
     let mut data = get_instance(name).await?;
     data.min_memory = min_memory;
     data.max_memory = max_memory;
