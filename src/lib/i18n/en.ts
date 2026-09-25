@@ -27,7 +27,149 @@ export const en: Dictionary = {
 		copyCodeFailed: 'Could not copy. Select the code and copy it manually.'
 	},
 	settings: {
-		language: 'Language'
+		language: 'Language',
+		title: 'Settings',
+		close: 'Close',
+		tabs: {
+			appearance: 'Style',
+			general: 'General',
+			accounts: 'Accounts',
+			java: 'Java'
+		},
+		theme: {
+			label: 'Theme',
+			dark: 'Dark',
+			light: 'Light',
+			lightDisabledTitle: 'Light mode not compatible with OLED surface'
+		},
+		quality: {
+			label: 'Quality profile'
+		},
+		ram: {
+			label: 'Global memory (RAM)',
+			detected: '— {{gb}} GB detected',
+			min: 'Minimum (MB)',
+			max: 'Maximum (MB)',
+			save: 'Save'
+		},
+		storage: {
+			label: 'Storage',
+			clearCache: 'Clear temp cache',
+			cacheCleared: 'Freed {{mb}} MB.',
+			clearCacheFailed: 'Could not clear: {{error}}'
+		},
+		dialogs: {
+			label: 'Native file dialogs',
+			auto: 'Automatic',
+			manual: 'Manual',
+			hint: 'Automatic (recommended): uploading your own icon/wallpaper or adding mods from a file stays disabled — no need, everything installs itself. Manual: enables it, but in some cases it can close the launcher abruptly (native file dialog).'
+		},
+		updates: {
+			label: 'Updates',
+			autoEnabled: 'Auto-update: On',
+			autoDisabled: 'Auto-update: Off',
+			hint: 'With this on, the launcher checks for and downloads updates by itself on startup, in the background — you choose when to install with the notice that appears.',
+			check: 'Check for updates',
+			upToDate: "You're on the latest version.",
+			available: 'Update available: v{{version}}',
+			download: 'Download and install'
+		},
+		accent: {
+			label: 'Accent color',
+			orange: 'Orange',
+			violet: 'Violet',
+			teal: 'Teal',
+			blue: 'Electric blue',
+			rose: 'Plasma pink',
+			lime: 'Lime',
+			iris: 'Iris',
+			jade: 'Jade',
+			crimson: 'Crimson',
+			cyan: 'Cyan',
+			grass: 'Grass',
+			plum: 'Plum'
+		},
+		surface: {
+			label: 'Surface',
+			incompatibleTitle: 'OLED surface not compatible with light mode',
+			obsidian: 'Obsidian',
+			midnight: 'Midnight',
+			slate: 'Slate',
+			oled: 'OLED'
+		},
+		ambience: {
+			label: 'Ambient effect',
+			aurora: 'Aurora',
+			cosmic: 'Cosmic',
+			minimal: 'Minimal',
+			particles: 'Particles'
+		},
+		wallpaper: {
+			label: 'Wallpaper',
+			yourImage: 'Your image',
+			change: 'Change your image',
+			upload: 'Upload your image',
+			uploadDisabledTitle: 'Enable Manual mode (below) to use this',
+			autoModeDisabled: 'Disabled in Automatic mode — enable "Manual" in the section below.',
+			items: {
+				none: 'None',
+				voidNight: 'Void night',
+				nether: 'Nether',
+				end: 'The End',
+				deepOcean: 'Ocean',
+				auroraGradient: 'Aurora',
+				animatedAurora: 'Animated aurora',
+				obsidianSolid: 'Obsidian',
+				charcoal: 'Charcoal',
+				savanna: 'Savanna',
+				goldenSunset: 'Golden sunset',
+				lakeNight: 'Night at the lake',
+				neonArcade: 'Night arcade',
+				redCanyon: 'Red canyon',
+				enchantedValley: 'Enchanted valley',
+				snowyPeak: 'Snowy peak',
+				stoneBridge: 'Stone bridge',
+				mistyFortress: 'Misty fortress',
+				villageTower: 'Village tower',
+				deepCave: 'Deep cave',
+				sunsetCoast: 'Sunset coast',
+				abstractBlocks: 'Abstract blocks'
+			}
+		},
+		density: {
+			label: 'Interface density',
+			comfortable: 'Comfortable',
+			compact: 'Compact'
+		},
+		cardStyle: {
+			label: 'Card style',
+			rich: 'Rich',
+			minimal: 'Minimal'
+		},
+		font: {
+			label: 'Fonts',
+			system: 'System',
+			hint: 'Applies instantly, no need to restart the launcher.'
+		},
+		accounts: {
+			saved: 'Saved accounts',
+			use: 'Use',
+			active: 'Active',
+			remove: 'Remove account',
+			addMicrosoft: 'Add Microsoft account',
+			microsoftEnter: 'and enter:',
+			waitingConfirmation: 'Waiting for confirmation…',
+			copyCode: 'Copy code',
+			startMicrosoft: 'Sign in with Microsoft',
+			addOffline: 'Add offline account'
+		},
+		java: {
+			label: 'Java runtimes',
+			hint: 'They install automatically the first time an instance needs them — no need to install Java by hand.',
+			major: 'Java {{major}}',
+			installed: 'Installed',
+			notInstalled: 'Not installed'
+		}
 	},
 	sidebar: {
 		offline: 'No connection — play what you already have installed',

@@ -24,7 +24,149 @@ export const es = {
 		copyCodeFailed: 'No se pudo copiar. Seleccioná el código y copialo manualmente.'
 	},
 	settings: {
-		language: 'Idioma'
+		language: 'Idioma',
+		title: 'Ajustes',
+		close: 'Cerrar',
+		tabs: {
+			appearance: 'Estilo',
+			general: 'General',
+			accounts: 'Cuentas',
+			java: 'Java'
+		},
+		theme: {
+			label: 'Tema',
+			dark: 'Oscuro',
+			light: 'Claro',
+			lightDisabledTitle: 'Modo claro no compatible con superficie OLED'
+		},
+		quality: {
+			label: 'Perfil de calidad'
+		},
+		ram: {
+			label: 'Memoria (RAM) global',
+			detected: '— {{gb}} GB detectados',
+			min: 'Mínima (MB)',
+			max: 'Máxima (MB)',
+			save: 'Guardar'
+		},
+		storage: {
+			label: 'Almacenamiento',
+			clearCache: 'Limpiar caché temporal',
+			cacheCleared: 'Liberados {{mb}} MB.',
+			clearCacheFailed: 'No se pudo limpiar: {{error}}'
+		},
+		dialogs: {
+			label: 'Diálogos de archivo nativos',
+			auto: 'Automático',
+			manual: 'Manual',
+			hint: 'Automático (recomendado): subir tu propio ícono/wallpaper o agregar mods por archivo queda desactivado — no hace falta, todo se instala solo. Manual: lo habilita, pero en algunos casos puede cerrar el launcher de golpe (diálogo nativo de archivos).'
+		},
+		updates: {
+			label: 'Actualizaciones',
+			autoEnabled: 'Auto-actualizar: Activado',
+			autoDisabled: 'Auto-actualizar: Desactivado',
+			hint: 'Con esto activado, el launcher chequea y baja actualizaciones solo al abrir, en segundo plano — vos elegís cuándo instalar con el aviso que aparece.',
+			check: 'Buscar actualizaciones',
+			upToDate: 'Ya tenés la última versión.',
+			available: 'Actualización disponible: v{{version}}',
+			download: 'Descargar e instalar'
+		},
+		accent: {
+			label: 'Color de acento',
+			orange: 'Naranja',
+			violet: 'Violeta',
+			teal: 'Verde azulado',
+			blue: 'Azul eléctrico',
+			rose: 'Rosa plasma',
+			lime: 'Lima',
+			iris: 'Iris',
+			jade: 'Jade',
+			crimson: 'Carmesí',
+			cyan: 'Cian',
+			grass: 'Césped',
+			plum: 'Ciruela'
+		},
+		surface: {
+			label: 'Superficie',
+			incompatibleTitle: 'Superficie OLED no compatible con modo claro',
+			obsidian: 'Obsidiana',
+			midnight: 'Medianoche',
+			slate: 'Pizarra',
+			oled: 'OLED'
+		},
+		ambience: {
+			label: 'Efecto ambiental',
+			aurora: 'Aurora',
+			cosmic: 'Cósmico',
+			minimal: 'Minimal',
+			particles: 'Partículas'
+		},
+		wallpaper: {
+			label: 'Fondo de pantalla',
+			yourImage: 'Tu imagen',
+			change: 'Cambiar tu imagen',
+			upload: 'Subir tu imagen',
+			uploadDisabledTitle: 'Activá el modo Manual (más abajo) para usar esto',
+			autoModeDisabled: 'Desactivado en modo Automático — activá "Manual" en la sección de abajo.',
+			items: {
+				none: 'Ninguno',
+				voidNight: 'Noche vacía',
+				nether: 'Nether',
+				end: 'El End',
+				deepOcean: 'Océano',
+				auroraGradient: 'Aurora',
+				animatedAurora: 'Aurora animada',
+				obsidianSolid: 'Obsidiana',
+				charcoal: 'Carbón',
+				savanna: 'Sabana',
+				goldenSunset: 'Atardecer dorado',
+				lakeNight: 'Noche en el lago',
+				neonArcade: 'Arcade nocturno',
+				redCanyon: 'Cañón rojo',
+				enchantedValley: 'Valle encantado',
+				snowyPeak: 'Cumbre nevada',
+				stoneBridge: 'Puente de piedra',
+				mistyFortress: 'Fortaleza en la niebla',
+				villageTower: 'Torre del pueblo',
+				deepCave: 'Cueva profunda',
+				sunsetCoast: 'Costa al atardecer',
+				abstractBlocks: 'Cubos abstractos'
+			}
+		},
+		density: {
+			label: 'Densidad de interfaz',
+			comfortable: 'Cómoda',
+			compact: 'Compacta'
+		},
+		cardStyle: {
+			label: 'Estilo de tarjeta',
+			rich: 'Rica',
+			minimal: 'Minimal'
+		},
+		font: {
+			label: 'Fuentes',
+			system: 'Sistema',
+			hint: 'Se aplica al instante, sin reiniciar el launcher.'
+		},
+		accounts: {
+			saved: 'Cuentas guardadas',
+			use: 'Usar',
+			active: 'Activa',
+			remove: 'Quitar cuenta',
+			addMicrosoft: 'Agregar cuenta Microsoft',
+			microsoftEnter: 'e ingresá:',
+			waitingConfirmation: 'Esperando confirmación…',
+			copyCode: 'Copiar código',
+			startMicrosoft: 'Iniciar con Microsoft',
+			addOffline: 'Agregar cuenta offline'
+		},
+		java: {
+			label: 'Runtimes de Java',
+			hint: 'Se instalan solos la primera vez que una instancia los necesita — no hace falta instalar Java a mano.',
+			major: 'Java {{major}}',
+			installed: 'Instalado',
+			notInstalled: 'No instalado'
+		}
 	},
 	sidebar: {
 		offline: 'Sin conexión — jugá lo que ya tenés instalado',

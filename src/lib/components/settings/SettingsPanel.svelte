@@ -5,7 +5,7 @@
 	import { check as checkForUpdate, type Update } from '@tauri-apps/plugin-updater';
 	import { relaunch } from '@tauri-apps/plugin-process';
 	import { appState } from '$lib/state/state.svelte';
-	import { t, i18nState, setLocale } from '$lib/i18n/index.svelte';
+	import { t, i18nState, setLocale, type TranslationKey } from '$lib/i18n/index.svelte';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { MASCOTS, getMascotFor, setMascotFor, type MascotId } from '$lib/mascots';
 	import {
@@ -49,70 +49,134 @@
 	let { onClose }: { onClose: () => void } = $props();
 
 	const QUALITY: QualityProfile[] = ['Lite', 'Balanced', 'Experience'];
-	const ACCENTS = [
-		{ id: 'orange', label: 'Naranja', color: '#ff7a2e' },
-		{ id: 'violet', label: 'Violeta', color: '#8b5cf6' },
-		{ id: 'teal', label: 'Verde azulado', color: '#14b8a6' },
-		{ id: 'blue', label: 'Azul eléctrico', color: '#3b82f6' },
-		{ id: 'rose', label: 'Rosa plasma', color: '#f43f5e' },
-		{ id: 'lime', label: 'Lima', color: '#84cc16' },
-		{ id: 'iris', label: 'Iris', color: '#5b5bd6' },
-		{ id: 'jade', label: 'Jade', color: '#29a383' },
-		{ id: 'crimson', label: 'Carmesí', color: '#e93d82' },
-		{ id: 'cyan', label: 'Cian', color: '#00a2c7' },
-		{ id: 'grass', label: 'Césped', color: '#46a758' },
-		{ id: 'plum', label: 'Ciruela', color: '#ab4aba' }
+	const ACCENTS: { id: string; key: TranslationKey; color: string }[] = [
+		{ id: 'orange', key: 'settings.accent.orange', color: '#ff7a2e' },
+		{ id: 'violet', key: 'settings.accent.violet', color: '#8b5cf6' },
+		{ id: 'teal', key: 'settings.accent.teal', color: '#14b8a6' },
+		{ id: 'blue', key: 'settings.accent.blue', color: '#3b82f6' },
+		{ id: 'rose', key: 'settings.accent.rose', color: '#f43f5e' },
+		{ id: 'lime', key: 'settings.accent.lime', color: '#84cc16' },
+		{ id: 'iris', key: 'settings.accent.iris', color: '#5b5bd6' },
+		{ id: 'jade', key: 'settings.accent.jade', color: '#29a383' },
+		{ id: 'crimson', key: 'settings.accent.crimson', color: '#e93d82' },
+		{ id: 'cyan', key: 'settings.accent.cyan', color: '#00a2c7' },
+		{ id: 'grass', key: 'settings.accent.grass', color: '#46a758' },
+		{ id: 'plum', key: 'settings.accent.plum', color: '#ab4aba' }
 	];
-	const SURFACES = [
-		{ id: 'obsidian', label: 'Obsidiana' },
-		{ id: 'midnight', label: 'Medianoche' },
-		{ id: 'slate', label: 'Pizarra' },
-		{ id: 'oled', label: 'OLED' }
+	const SURFACES: { id: string; key: TranslationKey }[] = [
+		{ id: 'obsidian', key: 'settings.surface.obsidian' },
+		{ id: 'midnight', key: 'settings.surface.midnight' },
+		{ id: 'slate', key: 'settings.surface.slate' },
+		{ id: 'oled', key: 'settings.surface.oled' }
 	];
-	const AMBIENCES = [
-		{ id: 'aurora', label: 'Aurora' },
-		{ id: 'cosmic', label: 'Cósmico' },
-		{ id: 'minimal', label: 'Minimal' },
-		{ id: 'particles', label: 'Partículas' }
+	const AMBIENCES: { id: string; key: TranslationKey }[] = [
+		{ id: 'aurora', key: 'settings.ambience.aurora' },
+		{ id: 'cosmic', key: 'settings.ambience.cosmic' },
+		{ id: 'minimal', key: 'settings.ambience.minimal' },
+		{ id: 'particles', key: 'settings.ambience.particles' }
 	];
-	const FONTS = [
-		{ id: 'system', label: 'Sistema', family: 'inherit' },
+	const FONTS: { id: string; key?: TranslationKey; label?: string; family: string }[] = [
+		{ id: 'system', key: 'settings.font.system', family: 'inherit' },
 		{ id: 'nunito', label: 'Nunito', family: "'Nunito', sans-serif" },
 		{ id: 'inter', label: 'Inter', family: "'Inter', sans-serif" },
 		{ id: 'poppins', label: 'Poppins', family: "'Poppins', sans-serif" },
 		{ id: 'jetbrains-mono', label: 'JetBrains Mono', family: "'JetBrains Mono', monospace" }
 	];
-	const WALLPAPERS = [
-		{ id: 'none', label: 'Ninguno', preview: 'transparent' },
-		{ id: 'void-night', label: 'Noche vacía', preview: 'linear-gradient(135deg, #02040a, #050d1a, #030810)' },
-		{ id: 'nether', label: 'Nether', preview: 'linear-gradient(135deg, #140202, #250808, #0e0101)' },
-		{ id: 'end', label: 'El End', preview: 'linear-gradient(135deg, #070212, #0e0520, #040110)' },
-		{ id: 'deep-ocean', label: 'Océano', preview: 'linear-gradient(135deg, #010f1a, #021a2e, #010c14)' },
+	const WALLPAPERS: { id: string; key: TranslationKey; preview: string }[] = [
+		{ id: 'none', key: 'settings.wallpaper.items.none', preview: 'transparent' },
+		{
+			id: 'void-night',
+			key: 'settings.wallpaper.items.voidNight',
+			preview: 'linear-gradient(135deg, #02040a, #050d1a, #030810)'
+		},
+		{
+			id: 'nether',
+			key: 'settings.wallpaper.items.nether',
+			preview: 'linear-gradient(135deg, #140202, #250808, #0e0101)'
+		},
+		{
+			id: 'end',
+			key: 'settings.wallpaper.items.end',
+			preview: 'linear-gradient(135deg, #070212, #0e0520, #040110)'
+		},
+		{
+			id: 'deep-ocean',
+			key: 'settings.wallpaper.items.deepOcean',
+			preview: 'linear-gradient(135deg, #010f1a, #021a2e, #010c14)'
+		},
 		{
 			id: 'aurora-gradient',
-			label: 'Aurora',
+			key: 'settings.wallpaper.items.auroraGradient',
 			preview: 'linear-gradient(135deg, #040d10, #041410 40%, #0a0420 80%, #04100d)'
 		},
 		{
 			id: 'animated-aurora',
-			label: 'Aurora animada',
+			key: 'settings.wallpaper.items.animatedAurora',
 			preview: 'linear-gradient(135deg, #040d10, #041410 40%, #0a0420 80%, #04100d)'
 		},
-		{ id: 'obsidian-solid', label: 'Obsidiana', preview: '#08090c' },
-		{ id: 'charcoal', label: 'Carbón', preview: '#0f1115' },
-		{ id: 'savanna', label: 'Sabana', preview: 'url(/wallpapers/mc-wallpaper-1.jpg)' },
-		{ id: 'golden-sunset', label: 'Atardecer dorado', preview: 'url(/wallpapers/mc-wallpaper-2.jpg)' },
-		{ id: 'lake-night', label: 'Noche en el lago', preview: 'url(/wallpapers/mc-wallpaper-3.jpg)' },
-		{ id: 'neon-arcade', label: 'Arcade nocturno', preview: 'url(/wallpapers/mc-wallpaper-4.jpg)' },
-		{ id: 'red-canyon', label: 'Cañón rojo', preview: 'url(/wallpapers/mc-wallpaper-5.jpg)' },
-		{ id: 'enchanted-valley', label: 'Valle encantado', preview: 'url(/wallpapers/mc-wallpaper-6.jpg)' },
-		{ id: 'snowy-peak', label: 'Cumbre nevada', preview: 'url(/wallpapers/mc-wallpaper-7.jpg)' },
-		{ id: 'stone-bridge', label: 'Puente de piedra', preview: 'url(/wallpapers/mc-wallpaper-8.jpg)' },
-		{ id: 'misty-fortress', label: 'Fortaleza en la niebla', preview: 'url(/wallpapers/mc-wallpaper-9.jpg)' },
-		{ id: 'village-tower', label: 'Torre del pueblo', preview: 'url(/wallpapers/mc-wallpaper-10.jpg)' },
-		{ id: 'deep-cave', label: 'Cueva profunda', preview: 'url(/wallpapers/mc-wallpaper-11.jpg)' },
-		{ id: 'sunset-coast', label: 'Costa al atardecer', preview: 'url(/wallpapers/mc-wallpaper-12.jpg)' },
-		{ id: 'abstract-blocks', label: 'Cubos abstractos', preview: 'url(/wallpapers/mc-wallpaper-13.jpg)' }
+		{ id: 'obsidian-solid', key: 'settings.wallpaper.items.obsidianSolid', preview: '#08090c' },
+		{ id: 'charcoal', key: 'settings.wallpaper.items.charcoal', preview: '#0f1115' },
+		{ id: 'savanna', key: 'settings.wallpaper.items.savanna', preview: 'url(/wallpapers/mc-wallpaper-1.jpg)' },
+		{
+			id: 'golden-sunset',
+			key: 'settings.wallpaper.items.goldenSunset',
+			preview: 'url(/wallpapers/mc-wallpaper-2.jpg)'
+		},
+		{
+			id: 'lake-night',
+			key: 'settings.wallpaper.items.lakeNight',
+			preview: 'url(/wallpapers/mc-wallpaper-3.jpg)'
+		},
+		{
+			id: 'neon-arcade',
+			key: 'settings.wallpaper.items.neonArcade',
+			preview: 'url(/wallpapers/mc-wallpaper-4.jpg)'
+		},
+		{
+			id: 'red-canyon',
+			key: 'settings.wallpaper.items.redCanyon',
+			preview: 'url(/wallpapers/mc-wallpaper-5.jpg)'
+		},
+		{
+			id: 'enchanted-valley',
+			key: 'settings.wallpaper.items.enchantedValley',
+			preview: 'url(/wallpapers/mc-wallpaper-6.jpg)'
+		},
+		{
+			id: 'snowy-peak',
+			key: 'settings.wallpaper.items.snowyPeak',
+			preview: 'url(/wallpapers/mc-wallpaper-7.jpg)'
+		},
+		{
+			id: 'stone-bridge',
+			key: 'settings.wallpaper.items.stoneBridge',
+			preview: 'url(/wallpapers/mc-wallpaper-8.jpg)'
+		},
+		{
+			id: 'misty-fortress',
+			key: 'settings.wallpaper.items.mistyFortress',
+			preview: 'url(/wallpapers/mc-wallpaper-9.jpg)'
+		},
+		{
+			id: 'village-tower',
+			key: 'settings.wallpaper.items.villageTower',
+			preview: 'url(/wallpapers/mc-wallpaper-10.jpg)'
+		},
+		{
+			id: 'deep-cave',
+			key: 'settings.wallpaper.items.deepCave',
+			preview: 'url(/wallpapers/mc-wallpaper-11.jpg)'
+		},
+		{
+			id: 'sunset-coast',
+			key: 'settings.wallpaper.items.sunsetCoast',
+			preview: 'url(/wallpapers/mc-wallpaper-12.jpg)'
+		},
+		{
+			id: 'abstract-blocks',
+			key: 'settings.wallpaper.items.abstractBlocks',
+			preview: 'url(/wallpapers/mc-wallpaper-13.jpg)'
+		}
 	];
 
 	let tab = $state<'general' | 'appearance' | 'accounts' | 'java'>('general');
@@ -333,7 +397,7 @@
 			codeCopied = true;
 			window.setTimeout(() => (codeCopied = false), 1800);
 		} catch {
-			msError = 'No se pudo copiar. Seleccioná el código y copialo manualmente.';
+			msError = t('onboarding.copyCodeFailed');
 		}
 	}
 
@@ -357,9 +421,9 @@
 		try {
 			const freedBytes = await clearTempCache();
 			const freedMb = (freedBytes / 1024 / 1024).toFixed(1);
-			cacheClearedMsg = `Liberados ${freedMb} MB.`;
+			cacheClearedMsg = t('settings.storage.cacheCleared', { mb: freedMb });
 		} catch (e) {
-			cacheClearedMsg = `No se pudo limpiar: ${e}`;
+			cacheClearedMsg = t('settings.storage.clearCacheFailed', { error: String(e) });
 		} finally {
 			clearingCache = false;
 		}
@@ -453,8 +517,8 @@
 		tabindex="-1"
 	>
 		<div class="panel-header">
-			<h2>Ajustes</h2>
-			<button type="button" class="close-btn" onclick={onClose} aria-label="Cerrar">
+			<h2>{t('settings.title')}</h2>
+			<button type="button" class="close-btn" onclick={onClose} aria-label={t('settings.close')}>
 				<X size={16} />
 			</button>
 		</div>
@@ -466,7 +530,7 @@
 				class:active={tab === 'appearance'}
 				onclick={() => selectTab('appearance')}
 			>
-				<Palette size={14} /> Estilo
+				<Palette size={14} /> {t('settings.tabs.appearance')}
 			</button>
 			<button
 				type="button"
@@ -474,7 +538,7 @@
 				class:active={tab === 'general'}
 				onclick={() => selectTab('general')}
 			>
-				<SlidersHorizontal size={14} /> General
+				<SlidersHorizontal size={14} /> {t('settings.tabs.general')}
 			</button>
 			<button
 				type="button"
@@ -482,7 +546,7 @@
 				class:active={tab === 'accounts'}
 				onclick={() => selectTab('accounts')}
 			>
-				<Users size={14} /> Cuentas
+				<Users size={14} /> {t('settings.tabs.accounts')}
 			</button>
 			<button
 				type="button"
@@ -490,7 +554,7 @@
 				class:active={tab === 'java'}
 				onclick={() => selectTab('java')}
 			>
-				<Coffee size={14} /> Java
+				<Coffee size={14} /> {t('settings.tabs.java')}
 			</button>
 		</div>
 
@@ -505,27 +569,27 @@
 				</section>
 
 				<section>
-					<span class="section-label">Tema</span>
+					<span class="section-label">{t('settings.theme.label')}</span>
 					<div class="row">
 						<button
 							type="button"
 							class="choice"
 							class:active={appState.settings?.theme === 'dark'}
-							onclick={() => setTheme('dark')}>Oscuro</button
+							onclick={() => setTheme('dark')}>{t('settings.theme.dark')}</button
 						>
 						<button
 							type="button"
 							class="choice"
 							class:active={appState.settings?.theme === 'light'}
 							disabled={surface === 'oled'}
-							title={surface === 'oled' ? 'Modo claro no compatible con superficie OLED' : undefined}
-							onclick={() => setTheme('light')}>Claro</button
+							title={surface === 'oled' ? t('settings.theme.lightDisabledTitle') : undefined}
+							onclick={() => setTheme('light')}>{t('settings.theme.light')}</button
 						>
 					</div>
 				</section>
 
 				<section>
-					<span class="section-label">Perfil de calidad</span>
+					<span class="section-label">{t('settings.quality.label')}</span>
 					<div class="row">
 						{#each QUALITY as q (q)}
 							<button
@@ -540,37 +604,37 @@
 
 				<section>
 					<span class="section-label">
-						Memoria (RAM) global
+						{t('settings.ram.label')}
 						{#if ramTotal}<span class="ram-total"
-								>— {Math.round(ramTotal / 1024)} GB detectados</span
+								>{t('settings.ram.detected', { gb: Math.round(ramTotal / 1024) })}</span
 							>{/if}
 					</span>
 					<div class="ram-row">
 						<label>
-							Mínima (MB)
+							{t('settings.ram.min')}
 							<input type="number" bind:value={minRam} min="512" step="256" />
 						</label>
 						<label>
-							Máxima (MB)
+							{t('settings.ram.max')}
 							<input type="number" bind:value={maxRam} min="512" step="256" />
 						</label>
 					</div>
 					<button type="button" class="save-btn" disabled={savingRam} onclick={saveRam}>
-						<Check size={13} /> Guardar
+						<Check size={13} /> {t('settings.ram.save')}
 					</button>
 				</section>
 
 				<section>
-					<span class="section-label">Almacenamiento</span>
+					<span class="section-label">{t('settings.storage.label')}</span>
 					<button type="button" class="save-btn" disabled={clearingCache} onclick={handleClearCache}>
 						{#if clearingCache}<Loader2 size={13} class="spin" />{:else}<Trash2 size={13} />{/if}
-						Limpiar caché temporal
+						{t('settings.storage.clearCache')}
 					</button>
 					{#if cacheClearedMsg}<p class="hint">{cacheClearedMsg}</p>{/if}
 				</section>
 
 				<section>
-					<span class="section-label">Diálogos de archivo nativos</span>
+					<span class="section-label">{t('settings.dialogs.label')}</span>
 					<div class="row">
 						<button
 							type="button"
@@ -578,7 +642,7 @@
 							class:active={(appState.settings?.native_dialog_mode ?? 'auto') === 'auto'}
 							onclick={() => setNativeDialogMode('auto')}
 						>
-							Automático
+							{t('settings.dialogs.auto')}
 						</button>
 						<button
 							type="button"
@@ -586,29 +650,26 @@
 							class:active={appState.settings?.native_dialog_mode === 'manual'}
 							onclick={() => setNativeDialogMode('manual')}
 						>
-							Manual
+							{t('settings.dialogs.manual')}
 						</button>
 					</div>
 					<p class="hint">
-						Automático (recomendado): subir tu propio ícono/wallpaper o agregar mods por archivo
-						queda desactivado — no hace falta, todo se instala solo. Manual: lo habilita, pero en
-						algunos casos puede cerrar el launcher de golpe (diálogo nativo de archivos).
+						{t('settings.dialogs.hint')}
 					</p>
 				</section>
 
 				<section>
-					<span class="section-label">Actualizaciones</span>
+					<span class="section-label">{t('settings.updates.label')}</span>
 					<button
 						type="button"
 						class="choice auto-update-toggle"
 						class:active={appState.settings?.auto_updates}
 						onclick={toggleAutoUpdates}
 					>
-						{appState.settings?.auto_updates ? 'Auto-actualizar: Activado' : 'Auto-actualizar: Desactivado'}
+						{appState.settings?.auto_updates ? t('settings.updates.autoEnabled') : t('settings.updates.autoDisabled')}
 					</button>
 					<p class="hint">
-						Con esto activado, el launcher chequea y baja actualizaciones solo al abrir, en
-						segundo plano — vos elegís cuándo instalar con el aviso que aparece.
+						{t('settings.updates.hint')}
 					</p>
 					<button
 						type="button"
@@ -621,15 +682,15 @@
 						{:else}
 							<RefreshCw size={13} />
 						{/if}
-						Buscar actualizaciones
+						{t('settings.updates.check')}
 					</button>
 
 					{#if updateChecked && !updateInfo && !updateError}
-						<p class="hint">Ya tenés la última versión.</p>
+						<p class="hint">{t('settings.updates.upToDate')}</p>
 					{/if}
 
 					{#if updateInfo}
-						<p class="hint">Actualización disponible: v{updateInfo.version}</p>
+						<p class="hint">{t('settings.updates.available', { version: updateInfo.version })}</p>
 						<button
 							type="button"
 							class="save-btn"
@@ -641,7 +702,7 @@
 							{:else}
 								<Download size={13} />
 							{/if}
-							Descargar e instalar
+							{t('settings.updates.download')}
 						</button>
 					{/if}
 
@@ -649,23 +710,23 @@
 				</section>
 			{:else if tab === 'appearance'}
 				<section>
-					<span class="section-label">Color de acento</span>
+					<span class="section-label">{t('settings.accent.label')}</span>
 					<div class="swatches">
 						{#each ACCENTS as a (a.id)}
-							<button type="button" class="swatch" class:active={accent === a.id} style="background: {a.color}; color: {a.color}" onclick={() => applyAccent(a.id)} aria-label={a.label}></button>
+							<button type="button" class="swatch" class:active={accent === a.id} style="background: {a.color}; color: {a.color}" onclick={() => applyAccent(a.id)} aria-label={t(a.key)}></button>
 						{/each}
 					</div>
 				</section>
 				<section>
-					<span class="section-label"><PanelLeft size={13} /> Superficie</span>
-					<div class="row">{#each SURFACES as item (item.id)}<button type="button" class="choice" class:active={surface === item.id} disabled={item.id === 'oled' && appState.settings?.theme === 'light'} title={item.id === 'oled' && appState.settings?.theme === 'light' ? 'Superficie OLED no compatible con modo claro' : undefined} onclick={() => applySurface(item.id)}>{item.label}</button>{/each}</div>
+					<span class="section-label"><PanelLeft size={13} /> {t('settings.surface.label')}</span>
+					<div class="row">{#each SURFACES as item (item.id)}<button type="button" class="choice" class:active={surface === item.id} disabled={item.id === 'oled' && appState.settings?.theme === 'light'} title={item.id === 'oled' && appState.settings?.theme === 'light' ? t('settings.surface.incompatibleTitle') : undefined} onclick={() => applySurface(item.id)}>{t(item.key)}</button>{/each}</div>
 				</section>
 				<section>
-					<span class="section-label"><WandSparkles size={13} /> Efecto ambiental</span>
-					<div class="row">{#each AMBIENCES as item (item.id)}<button type="button" class="choice" class:active={ambience === item.id} onclick={() => applyAmbience(item.id)}>{item.label}</button>{/each}</div>
+					<span class="section-label"><WandSparkles size={13} /> {t('settings.ambience.label')}</span>
+					<div class="row">{#each AMBIENCES as item (item.id)}<button type="button" class="choice" class:active={ambience === item.id} onclick={() => applyAmbience(item.id)}>{t(item.key)}</button>{/each}</div>
 				</section>
 				<section>
-					<span class="section-label"><WandSparkles size={13} /> Fondo de pantalla</span>
+					<span class="section-label"><WandSparkles size={13} /> {t('settings.wallpaper.label')}</span>
 					<div class="wallpaper-grid">
 						{#each WALLPAPERS as item (item.id)}
 							<button
@@ -674,8 +735,8 @@
 								class:active={wallpaper === item.id}
 								style="background: {item.preview}; background-size: cover; background-position: center;"
 								onclick={() => applyWallpaper(item.id)}
-								aria-label={item.label}
-								title={item.label}
+								aria-label={t(item.key)}
+								title={t(item.key)}
 							>
 								{#if wallpaper === item.id}<Check size={12} />{/if}
 							</button>
@@ -687,8 +748,8 @@
 								class:active={wallpaper === 'custom'}
 								style="background-image: url('{customWallpaperUrl}'); background-size: cover; background-position: center;"
 								onclick={selectCustomWallpaper}
-								aria-label="Tu imagen"
-								title="Tu imagen"
+								aria-label={t('settings.wallpaper.yourImage')}
+								title={t('settings.wallpaper.yourImage')}
 							>
 								{#if wallpaper === 'custom'}<Check size={12} />{/if}
 							</button>
@@ -698,32 +759,32 @@
 							class="wallpaper-swatch wallpaper-upload"
 							onclick={pickCustomWallpaper}
 							disabled={customWallpaperBusy || dialogsBlocked}
-							aria-label={customWallpaperUrl ? 'Cambiar tu imagen' : 'Subir tu imagen'}
+							aria-label={customWallpaperUrl ? t('settings.wallpaper.change') : t('settings.wallpaper.upload')}
 							title={dialogsBlocked
-								? 'Activá el modo Manual (más abajo) para usar esto'
+								? t('settings.wallpaper.uploadDisabledTitle')
 								: customWallpaperUrl
-									? 'Cambiar tu imagen'
-									: 'Subir tu imagen'}
+									? t('settings.wallpaper.change')
+									: t('settings.wallpaper.upload')}
 						>
 							<Upload size={13} />
 						</button>
 					</div>
-					{#if dialogsBlocked}<p class="mac-notice">Desactivado en modo Automático — activá "Manual" en la sección de abajo.</p>{/if}
+					{#if dialogsBlocked}<p class="mac-notice">{t('settings.wallpaper.autoModeDisabled')}</p>{/if}
 					{#if customWallpaperError}<p class="error-text">{customWallpaperError}</p>{/if}
 				</section>
 				<section>
-					<span class="section-label">Densidad de interfaz</span>
-					<div class="row"><button type="button" class="choice" class:active={density === 'comfortable'} onclick={() => applyDensity('comfortable')}>Cómoda</button><button type="button" class="choice" class:active={density === 'compact'} onclick={() => applyDensity('compact')}>Compacta</button></div>
+					<span class="section-label">{t('settings.density.label')}</span>
+					<div class="row"><button type="button" class="choice" class:active={density === 'comfortable'} onclick={() => applyDensity('comfortable')}>{t('settings.density.comfortable')}</button><button type="button" class="choice" class:active={density === 'compact'} onclick={() => applyDensity('compact')}>{t('settings.density.compact')}</button></div>
 				</section>
 				<section>
-					<span class="section-label">Estilo de tarjeta</span>
+					<span class="section-label">{t('settings.cardStyle.label')}</span>
 					<div class="row">
-						<button type="button" class="choice" class:active={cardStyle === 'rich'} onclick={() => applyCardStyle('rich')}>Rica</button>
-						<button type="button" class="choice" class:active={cardStyle === 'minimal'} onclick={() => applyCardStyle('minimal')}>Minimal</button>
+						<button type="button" class="choice" class:active={cardStyle === 'rich'} onclick={() => applyCardStyle('rich')}>{t('settings.cardStyle.rich')}</button>
+						<button type="button" class="choice" class:active={cardStyle === 'minimal'} onclick={() => applyCardStyle('minimal')}>{t('settings.cardStyle.minimal')}</button>
 					</div>
 				</section>
 				<section>
-					<span class="section-label">Fuentes</span>
+					<span class="section-label">{t('settings.font.label')}</span>
 					<div class="row">
 						{#each FONTS as f (f.id)}
 							<button
@@ -733,15 +794,15 @@
 								style="font-family: {f.family}"
 								onclick={() => applyFont(f.id)}
 							>
-								{f.label}
+								{f.key ? t(f.key) : f.label}
 							</button>
 						{/each}
 					</div>
-					<p class="hint">Se aplica al instante, sin reiniciar el launcher.</p>
+					<p class="hint">{t('settings.font.hint')}</p>
 				</section>
 			{:else if tab === 'accounts'}
 				<section>
-					<span class="section-label">Cuentas guardadas</span>
+					<span class="section-label">{t('settings.accounts.saved')}</span>
 					<div class="accounts-list">
 						{#each users as u (u.uuid)}
 							<div class="account-row" class:active={appState.currentUser?.uuid === u.uuid}>
@@ -763,17 +824,17 @@
 										disabled={accountBusy}
 										onclick={() => handleSwitch(u.uuid)}
 									>
-										Usar
+										{t('settings.accounts.use')}
 									</button>
 								{:else}
-									<span class="active-tag">Activa</span>
+									<span class="active-tag">{t('settings.accounts.active')}</span>
 								{/if}
 								<button
 									type="button"
 									class="mini-icon-btn"
 									disabled={accountBusy}
 									onclick={() => handleRemove(u.uuid)}
-									aria-label="Quitar cuenta"
+									aria-label={t('settings.accounts.remove')}
 								>
 									<Trash2 size={13} />
 								</button>
@@ -801,34 +862,34 @@
 				</section>
 
 				<section>
-					<span class="section-label">Agregar cuenta Microsoft</span>
+					<span class="section-label">{t('settings.accounts.addMicrosoft')}</span>
 					{#if msCode}
 						<div class="ms-pending">
-							<p>Andá a <a href={msVerificationUri} target="_blank" rel="noreferrer">{msVerificationUri}</a> e ingresá:</p>
+							<p>{t('onboarding.goTo')} <a href={msVerificationUri} target="_blank" rel="noreferrer">{msVerificationUri}</a> {t('settings.accounts.microsoftEnter')}</p>
 						<div class="ms-code-row">
 							<code class="ms-code" tabindex="0">{msCode}</code>
-							<button type="button" class="copy-code-btn" onclick={copyMicrosoftCode} aria-label="Copiar código">
-								{#if codeCopied}<CheckCircle2 size={14} /> Copiado{:else}<Copy size={14} /> Copiar{/if}
+							<button type="button" class="copy-code-btn" onclick={copyMicrosoftCode} aria-label={t('settings.accounts.copyCode')}>
+								{#if codeCopied}<CheckCircle2 size={14} /> {t('common.copied')}{:else}<Copy size={14} /> {t('common.copy')}{/if}
 							</button>
 						</div>
-							<p class="hint">Esperando confirmación…</p>
+							<p class="hint">{t('settings.accounts.waitingConfirmation')}</p>
 						</div>
 					{:else}
 						<button type="button" class="mini-btn ms-btn" disabled={msBusy} onclick={handleAddMicrosoft}>
 							{#if msBusy}<Loader2 size={13} class="spin" />{:else}<Gamepad2 size={13} />{/if}
-							Iniciar con Microsoft
+							{t('settings.accounts.startMicrosoft')}
 						</button>
 					{/if}
 					{#if msError}<p class="error">{msError}</p>{/if}
 				</section>
 
 				<section>
-					<span class="section-label">Agregar cuenta offline</span>
+					<span class="section-label">{t('settings.accounts.addOffline')}</span>
 					<div class="add-account-row">
 						<input
 							type="text"
 							bind:value={newOfflineName}
-							placeholder="Nombre de usuario"
+							placeholder={t('onboarding.usernameLabel')}
 							maxlength="16"
 						/>
 						<button
@@ -840,24 +901,23 @@
 							<Plus size={13} />
 						</button>
 					</div>
-					<p class="hint">Las cuentas offline solo pueden jugar en singleplayer.</p>
+					<p class="hint">{t('onboarding.offlineHint')}</p>
 				</section>
 			{:else if tab === 'java'}
 				<section>
-					<span class="section-label">Runtimes de Java</span>
+					<span class="section-label">{t('settings.java.label')}</span>
 					<p class="hint">
-						Se instalan solos la primera vez que una instancia los necesita — no hace falta instalar
-						Java a mano.
+						{t('settings.java.hint')}
 					</p>
 					<div class="java-list">
 						{#each javaStatuses as j (j.major)}
 							<div class="java-row">
 								<Coffee size={14} />
-								<span class="java-major">Java {j.major}</span>
+								<span class="java-major">{t('settings.java.major', { major: j.major })}</span>
 								{#if j.installed}
-									<span class="java-tag installed">Instalado</span>
+									<span class="java-tag installed">{t('settings.java.installed')}</span>
 								{:else}
-									<span class="java-tag">No instalado</span>
+									<span class="java-tag">{t('settings.java.notInstalled')}</span>
 								{/if}
 							</div>
 						{/each}
