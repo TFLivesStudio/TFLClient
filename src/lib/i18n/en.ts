@@ -190,6 +190,8 @@ export const en: Dictionary = {
 		customDesc: 'Create your own instance with the mods you choose.',
 		modpackTitle: 'Modpack',
 		modpackDesc: 'Download an instance already built from TFL Selection.',
+		serverTitle: 'Server',
+		serverDesc: 'Create your own Minecraft server to play with others.',
 		nameLabel: 'Name',
 		namePlaceholder: 'My world',
 		versionLabel: 'Minecraft version',
@@ -199,6 +201,18 @@ export const en: Dictionary = {
 			"The loader version (Fabric/Forge/NeoForge/Quilt) resolves itself — the latest/recommended one for this Minecraft version.",
 		experimentalToggle: 'Show experimental versions (snapshots, pre-releases, release candidates)',
 		create: 'Create'
+	},
+	createServer: {
+		title: 'New server',
+		serverTypeLabel: 'Server type',
+		vanillaDesc: "Mojang's official server, no plugins.",
+		paperDesc: 'The most used — fast and with plugin support.',
+		purpurDesc: 'Based on Paper, with more customization options.',
+		versionLabel: 'Minecraft version',
+		noVersionsForType: 'No versions available for this server type yet.',
+		loadingVersions: 'Loading versions…',
+		create: 'Create server',
+		creating: 'Downloading the server…'
 	},
 	contentManager: {
 		manageTab: 'Manage',

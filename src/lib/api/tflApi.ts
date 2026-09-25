@@ -16,7 +16,10 @@ import type {
 	ModUpdateAvailable,
 	ModVersionSummary,
 	TflSelectionEntry,
-	ScreenshotInfo
+	ScreenshotInfo,
+	ServerType,
+	WorldInfo,
+	FileEntry
 } from '$lib/types/types';
 
 // ── Auth ─────────────────────────────────────────────────────────────
@@ -164,6 +167,38 @@ export const getInstalledResourcepacksInfo = (instanceName: string) =>
 export const getResourcepackVersions = (projectId: string, mcVersion: string) =>
 	invoke<ModVersionSummary[]>('get_resourcepack_versions', { projectId, mcVersion });
 
+// ── Plugins (instancias de servidor) ────────────────────────────────
+export const searchPlugins = (
+	query: string,
+	mcVersion: string,
+	serverType: ServerType,
+	categories: string[] = []
+) => invoke<ModSearchHit[]>('search_plugins', { query, mcVersion, serverType, categories });
+export const installPlugin = (
+	instanceName: string,
+	projectId: string,
+	mcVersion: string,
+	serverType: ServerType,
+	versionId?: string
+) =>
+	invoke<void>('install_plugin', {
+		instanceName,
+		projectId,
+		mcVersion,
+		serverType,
+		versionId: versionId ?? null
+	});
+export const getInstancePlugins = (instanceName: string) =>
+	invoke<string[]>('get_instance_plugins', { instanceName });
+export const removePlugin = (instanceName: string, filename: string) =>
+	invoke<void>('remove_plugin', { instanceName, filename });
+export const getInstalledPluginsInfo = (instanceName: string) =>
+	invoke<InstalledModInfo[]>('get_installed_plugins_info', { instanceName });
+export const getPluginVersions = (projectId: string, mcVersion: string, serverType: ServerType) =>
+	invoke<ModVersionSummary[]>('get_plugin_versions', { projectId, mcVersion, serverType });
+export const addLocalPluginFiles = (instanceName: string, paths: string[]) =>
+	invoke<number>('add_local_plugin_files', { instanceName, paths });
+
 // ── Agregar por archivo local (solo modo Manual, ver Settings) ────────
 export const pickContentFiles = (extension: string, filterLabel: string) =>
 	invoke<string[]>('pick_content_files', { extension, filterLabel });
@@ -213,3 +248,31 @@ export const listWorldBackups = (instanceName: string) =>
 
 // ── TFL Selection ────────────────────────────────────────────────────
 export const getTflSelection = () => invoke<TflSelectionEntry[]>('get_tfl_selection');
+
+// ── Servidores ───────────────────────────────────────────────────────
+export const getServerVersions = (serverType: ServerType) =>
+	invoke<string[]>('get_server_versions', { serverType });
+export const createServerInstance = (name: string, mcVersion: string, serverType: ServerType) =>
+	invoke<InstanceData>('create_server_instance', { name, mcVersion, serverType });
+export const launchServer = (instanceName: string) => invoke<void>('launch_server', { instanceName });
+export const stopServer = (instanceName: string) => invoke<void>('stop_server', { instanceName });
+export const sendServerCommand = (instanceName: string, command: string) =>
+	invoke<void>('send_server_command', { instanceName, command });
+export const isServerRunning = (instanceName: string) =>
+	invoke<boolean>('is_server_running', { instanceName });
+export const listServerWorlds = (instanceName: string) =>
+	invoke<WorldInfo[]>('list_server_worlds', { instanceName });
+export const deleteServerWorld = (instanceName: string, worldName: string) =>
+	invoke<void>('delete_server_world', { instanceName, worldName });
+
+// ── File manager de instancia (servidores) ──────────────────────────
+export const listInstanceDir = (instanceName: string, subpath: string) =>
+	invoke<FileEntry[]>('list_instance_dir', { instanceName, subpath });
+export const readInstanceTextFile = (instanceName: string, subpath: string) =>
+	invoke<string>('read_instance_text_file', { instanceName, subpath });
+export const writeInstanceTextFile = (instanceName: string, subpath: string, content: string) =>
+	invoke<void>('write_instance_text_file', { instanceName, subpath, content });
+export const deleteInstancePath = (instanceName: string, subpath: string) =>
+	invoke<void>('delete_instance_path', { instanceName, subpath });
+export const createInstanceDir = (instanceName: string, subpath: string) =>
+	invoke<void>('create_instance_dir', { instanceName, subpath });

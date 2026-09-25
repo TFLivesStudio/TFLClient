@@ -187,6 +187,8 @@ export const es = {
 		customDesc: 'Creá tu propia instancia con los mods que vos elijas.',
 		modpackTitle: 'Modpack',
 		modpackDesc: 'Descargá una instancia ya armada de TFL Selection.',
+		serverTitle: 'Servidor',
+		serverDesc: 'Creá tu propio servidor de Minecraft para jugar con otros.',
 		nameLabel: 'Nombre',
 		namePlaceholder: 'Mi mundo',
 		versionLabel: 'Versión de Minecraft',
@@ -196,6 +198,18 @@ export const es = {
 			'La versión del loader (Fabric/Forge/NeoForge/Quilt) se resuelve sola — la más reciente/recomendada para esta versión de Minecraft.',
 		experimentalToggle: 'Mostrar versiones experimentales (snapshots, pre-releases, release candidates)',
 		create: 'Crear'
+	},
+	createServer: {
+		title: 'Nuevo servidor',
+		serverTypeLabel: 'Tipo de servidor',
+		vanillaDesc: 'El servidor oficial de Mojang, sin plugins.',
+		paperDesc: 'El más usado — rápido y con soporte de plugins.',
+		purpurDesc: 'Basado en Paper, con más opciones de personalización.',
+		versionLabel: 'Versión de Minecraft',
+		noVersionsForType: 'No hay versiones disponibles para este tipo de servidor todavía.',
+		loadingVersions: 'Cargando versiones…',
+		create: 'Crear servidor',
+		creating: 'Descargando el servidor…'
 	},
 	contentManager: {
 		manageTab: 'Gestionar',

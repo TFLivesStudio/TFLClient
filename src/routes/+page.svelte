@@ -6,6 +6,7 @@
 	import NativeDialogModePrompt from '$lib/components/onboarding/NativeDialogModePrompt.svelte';
 	import CreateInstanceModal from '$lib/components/library/CreateInstanceModal.svelte';
 	import CreateInstanceChooser from '$lib/components/library/CreateInstanceChooser.svelte';
+	import CreateServerModal from '$lib/components/library/CreateServerModal.svelte';
 	import InstanceDetail from '$lib/components/library/InstanceDetail.svelte';
 	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
 	import ParticlesBackground from '$lib/components/layout/ParticlesBackground.svelte';
@@ -47,6 +48,7 @@
 	let loading = $state(true);
 	let showCreateChooser = $state(false);
 	let showCreateModal = $state(false);
+	let showCreateServerModal = $state(false);
 	let showSettings = $state(false);
 	let showTflSelection = $state(false);
 
@@ -193,6 +195,12 @@
 		appState.selectedInstance = instance;
 	}
 
+	async function handleServerCreated(instance: InstanceData) {
+		showCreateServerModal = false;
+		await refreshInstances();
+		appState.selectedInstance = instance;
+	}
+
 	async function handleInstanceChanged(instance: InstanceData | null) {
 		await refreshInstances();
 		appState.selectedInstance = instance;
@@ -279,6 +287,10 @@
 			showCreateChooser = false;
 			showTflSelection = true;
 		}}
+		onChooseServer={() => {
+			showCreateChooser = false;
+			showCreateServerModal = true;
+		}}
 	/>
 {/if}
 
@@ -286,10 +298,14 @@
 	<CreateInstanceModal onClose={() => (showCreateModal = false)} onCreated={handleCreated} />
 {/if}
 
+{#if showCreateServerModal}
+	<CreateServerModal onClose={() => (showCreateServerModal = false)} onCreated={handleServerCreated} />
+{/if}
+
 {#if !isLogWindow}
 	<CommandPalette
 		instances={appState.instances}
-		blocked={showCreateChooser || showCreateModal || showSettings || showTflSelection}
+		blocked={showCreateChooser || showCreateModal || showCreateServerModal || showSettings || showTflSelection}
 		onSelectInstance={handleSelect}
 		onCreate={() => (showCreateChooser = true)}
 		onOpenSettings={() => (showSettings = true)}

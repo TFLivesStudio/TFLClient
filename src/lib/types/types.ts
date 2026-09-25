@@ -34,6 +34,7 @@ export interface Settings {
 }
 
 export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt';
+export type ServerType = 'vanilla' | 'paper' | 'purpur';
 
 export interface InstanceData {
 	uuid: string;
@@ -45,6 +46,20 @@ export interface InstanceData {
 	last_played: number;
 	min_memory: number | null;
 	max_memory: number | null;
+	server_type: ServerType | null;
+	server_jar: string | null;
+	server_build: string | null;
+}
+
+export interface WorldInfo {
+	name: string;
+	size_bytes: number;
+}
+
+export interface FileEntry {
+	name: string;
+	is_dir: boolean;
+	size_bytes: number;
 }
 
 export interface MinecraftVersion {
