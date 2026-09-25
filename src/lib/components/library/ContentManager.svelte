@@ -28,10 +28,16 @@
 		getInstalledResourcepacksInfo,
 		removeResourcepack,
 		getResourcepackVersions,
+		searchPlugins,
+		installPlugin,
+		getInstalledPluginsInfo,
+		removePlugin,
+		getPluginVersions,
 		pickContentFiles,
 		addLocalModFiles,
 		addLocalShaderFiles,
-		addLocalResourcepackFiles
+		addLocalResourcepackFiles,
+		addLocalPluginFiles
 	} from '$lib/api/tflApi';
 	import { favoriteMods, isFavoriteMod, toggleFavoriteMod } from '$lib/state/modFavorites.svelte';
 	import { t } from '$lib/i18n/index.svelte';
@@ -49,7 +55,7 @@
 		ChevronDown
 	} from 'lucide-svelte';
 
-	type Kind = 'mod' | 'shader' | 'resourcepack';
+	type Kind = 'mod' | 'shader' | 'resourcepack' | 'plugin';
 
 	let {
 		instance,
@@ -77,46 +83,86 @@
 			'foliage', 'high', 'low', 'medium', 'path-tracing', 'pbr', 'potato',
 			'realistic', 'reflections', 'screenshot', 'semi-realistic', 'shadows',
 			'vanilla-like'
+		],
+		// Modrinth trata plugins como un sub-tipo de mod (mismo taxonomy de
+		// categorías, confirmado contra la API real) — se reusa la misma
+		// lista en vez de mantener una copia aparte.
+		plugin: [
+			'adventure', 'cursed', 'decoration', 'economy', 'equipment', 'food',
+			'game-mechanics', 'library', 'magic', 'management', 'minigame', 'mobs',
+			'optimization', 'social', 'storage', 'technology', 'transportation',
+			'utility', 'worldgen'
 		]
 	};
 
-	const EXTENSION: Record<Kind, string> = { mod: 'jar', shader: 'zip', resourcepack: 'zip' };
+	const EXTENSION: Record<Kind, string> = { mod: 'jar', shader: 'zip', resourcepack: 'zip', plugin: 'jar' };
 	const FILTER_LABEL: Record<Kind, string> = {
 		mod: 'Mod (.jar)',
 		shader: 'Shader pack (.zip)',
-		resourcepack: 'Resource pack (.zip)'
+		resourcepack: 'Resource pack (.zip)',
+		plugin: 'Plugin (.jar)'
 	};
-	const NOUN: Record<Kind, string> = { mod: 'mods', shader: 'shaders', resourcepack: 'resource packs' };
+	const NOUN: Record<Kind, string> = {
+		mod: 'mods',
+		shader: 'shaders',
+		resourcepack: 'resource packs',
+		plugin: 'plugins'
+	};
+	const SINGULAR_NOUN: Record<Kind, string> = {
+		mod: 'mod',
+		shader: 'shader',
+		resourcepack: 'resource pack',
+		plugin: 'plugin'
+	};
+
+	// Plugins filtran por software de servidor (paper/purpur) en vez de
+	// loader de cliente — "vanilla" no soporta plugins en absoluto
+	// (ContentManager ni se monta para ese caso, ver PluginsPanel.svelte).
+	const serverTypeForPlugins = $derived(instance.server_type ?? 'paper');
 
 	function apiSearch(q: string, categories: string[]) {
 		if (kind === 'mod') return searchMods(q, instance.mc_version, instance.loader, categories);
 		if (kind === 'shader') return searchShaders(q, instance.mc_version, categories);
+		if (kind === 'plugin')
+			return searchPlugins(q, instance.mc_version, serverTypeForPlugins, categories);
 		return searchResourcepacks(q, instance.mc_version, categories);
 	}
 	function apiInstall(projectId: string, versionId?: string) {
 		if (kind === 'mod')
 			return installMod(instance.name, projectId, instance.mc_version, instance.loader, versionId);
 		if (kind === 'shader') return installShader(instance.name, projectId, instance.mc_version, versionId);
+		if (kind === 'plugin')
+			return installPlugin(
+				instance.name,
+				projectId,
+				instance.mc_version,
+				serverTypeForPlugins,
+				versionId
+			);
 		return installResourcepack(instance.name, projectId, instance.mc_version, versionId);
 	}
 	function apiInstalledInfo() {
 		if (kind === 'mod') return getInstalledModsInfo(instance.name);
 		if (kind === 'shader') return getInstalledShadersInfo(instance.name);
+		if (kind === 'plugin') return getInstalledPluginsInfo(instance.name);
 		return getInstalledResourcepacksInfo(instance.name);
 	}
 	function apiRemove(filename: string) {
 		if (kind === 'mod') return removeMod(instance.name, filename);
 		if (kind === 'shader') return removeShader(instance.name, filename);
+		if (kind === 'plugin') return removePlugin(instance.name, filename);
 		return removeResourcepack(instance.name, filename);
 	}
 	function apiVersions(projectId: string) {
 		if (kind === 'mod') return getModVersions(projectId, instance.mc_version, instance.loader);
 		if (kind === 'shader') return getShaderVersions(projectId, instance.mc_version);
+		if (kind === 'plugin') return getPluginVersions(projectId, instance.mc_version, serverTypeForPlugins);
 		return getResourcepackVersions(projectId, instance.mc_version);
 	}
 	function apiAddLocal(paths: string[]) {
 		if (kind === 'mod') return addLocalModFiles(instance.name, paths);
 		if (kind === 'shader') return addLocalShaderFiles(instance.name, paths);
+		if (kind === 'plugin') return addLocalPluginFiles(instance.name, paths);
 		return addLocalResourcepackFiles(instance.name, paths);
 	}
 
@@ -530,9 +576,9 @@
 		{/if}
 
 		{#if installed.length === 0}
-			<p class="hint">{t('contentManager.notInstalledYet', { kind: kind === 'mod' ? 'mod' : kind === 'shader' ? 'shader' : 'resource pack' })}</p>
+			<p class="hint">{t('contentManager.notInstalledYet', { kind: SINGULAR_NOUN[kind] })}</p>
 		{:else if installedFiltered.length === 0}
-			<p class="hint">{t('contentManager.noneMatchCategories', { kind: kind === 'mod' ? 'mod' : kind === 'shader' ? 'shader' : 'resource pack' })}</p>
+			<p class="hint">{t('contentManager.noneMatchCategories', { kind: SINGULAR_NOUN[kind] })}</p>
 		{:else}
 			<div class="installed">
 				{#each installedFiltered as item (item.filename)}

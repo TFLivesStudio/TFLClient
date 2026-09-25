@@ -20,6 +20,7 @@
 	import { appState } from '$lib/state/state.svelte';
 	import { initDownloadListener } from '$lib/state/downloadState.svelte';
 	import { initGameSessionListener } from '$lib/state/gameSession.svelte';
+	import { initServerSessionListener } from '$lib/state/serverSessions.svelte';
 	import { initNetworkListener } from '$lib/state/network.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import {
@@ -133,6 +134,7 @@
 
 		initDownloadListener();
 		initGameSessionListener();
+		initServerSessionListener();
 		initNetworkListener();
 		try {
 			const [user, settings] = await Promise.all([getCurrentUser(), getSettings()]);

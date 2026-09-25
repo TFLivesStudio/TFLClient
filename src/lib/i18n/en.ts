@@ -425,5 +425,38 @@ export const en: Dictionary = {
 	},
 	resourcePacksPanel: {
 		hint: "Resource packs work on any instance, with or without mods — you don't need anything extra installed. Enable them from Minecraft's menu (Options → Resource Packs)."
+	},
+	pluginsPanel: {
+		vanillaHint: "Vanilla doesn't support plugins — pick Paper or Purpur when creating the server."
+	},
+	serverConsole: {
+		notRunning: 'The server is not running.',
+		waitingOutput: 'Waiting for server output…',
+		commandPlaceholder: 'Type a command and press Enter…',
+		send: 'Send'
+	},
+	serverWorlds: {
+		hint: "Worlds detected in the server's folder.",
+		empty: "No world generated yet — it's created automatically the first time the server starts.",
+		delete: 'Delete world',
+		confirmDelete: 'Sure? Delete'
+	},
+	serverFileManager: {
+		newFolder: 'New folder',
+		newFolderPrompt: 'Folder name',
+		up: 'Go up one level',
+		empty: 'This folder is empty.',
+		save: 'Save'
+	},
+	serverInstance: {
+		start: 'Start server',
+		starting: 'Starting…',
+		stop: 'Stop server',
+		stopping: 'Stopping…',
+		build: 'Build',
+		tabPlugins: 'Plugins',
+		tabWorlds: 'Worlds',
+		tabFiles: 'Files',
+		tabConsole: 'Console'
 	}
 };

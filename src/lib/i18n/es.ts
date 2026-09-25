@@ -422,6 +422,39 @@ export const es = {
 	},
 	resourcePacksPanel: {
 		hint: 'Los resource packs funcionan en cualquier instancia, con o sin mods — no necesitás nada extra instalado. Se activan desde el menú de Minecraft (Opciones → Paquetes de recursos).'
+	},
+	pluginsPanel: {
+		vanillaHint: 'Vanilla no soporta plugins — elegí Paper o Purpur al crear el servidor.'
+	},
+	serverConsole: {
+		notRunning: 'El servidor no está corriendo.',
+		waitingOutput: 'Esperando salida del servidor…',
+		commandPlaceholder: 'Escribí un comando y presioná Enter…',
+		send: 'Enviar'
+	},
+	serverWorlds: {
+		hint: 'Mundos detectados en la carpeta del servidor.',
+		empty: 'Todavía no hay ningún mundo generado — se crea solo al iniciar el servidor por primera vez.',
+		delete: 'Borrar mundo',
+		confirmDelete: '¿Seguro? Borrar'
+	},
+	serverFileManager: {
+		newFolder: 'Nueva carpeta',
+		newFolderPrompt: 'Nombre de la carpeta',
+		up: 'Subir un nivel',
+		empty: 'Esta carpeta está vacía.',
+		save: 'Guardar'
+	},
+	serverInstance: {
+		start: 'Iniciar servidor',
+		starting: 'Iniciando…',
+		stop: 'Detener servidor',
+		stopping: 'Deteniendo…',
+		build: 'Build',
+		tabPlugins: 'Plugins',
+		tabWorlds: 'Mundos',
+		tabFiles: 'Archivos',
+		tabConsole: 'Consola'
 	}
 };
 
