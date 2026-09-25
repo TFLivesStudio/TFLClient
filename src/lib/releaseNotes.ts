@@ -70,5 +70,17 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.9.19': [
 		'Prolijo: el .deb dejó de listar dos dependencias repetidas (quedó igual de funcional, solo se veía feo con "apt show").'
+	],
+	'0.10.0': [
+		'El logo del launcher se mudó a la barra de título, junto a minimizar/maximizar/cerrar.',
+		'Los filtros de categoría en Descargar ahora son un desplegable "Categorías" en vez de ~19 chips siempre visibles.',
+		'Gestionar ahora muestra el ícono de cada mod/shader/resourcepack, y sumó su propio filtro por categoría.',
+		'Las pestañas de la instancia quedan fijas arriba al scrollear una lista larga en Descargar.',
+		'Capturas de pantalla: botón para copiar la imagen al portapapeles, previsualización más chica por defecto con zoom a la rueda del mouse.',
+		'Al crear una instancia, ahora elegís primero entre Personalizada, Modpack o Servidor.',
+		'Nueva casilla para mostrar versiones experimentales (snapshots, pre-releases) al crear una instancia Vanilla.',
+		'Nueva sección "Fuentes" en Ajustes > Estilos (Sistema, Nunito, Inter, Poppins, JetBrains Mono), se aplica al instante.',
+		'Nuevo: selector de idioma (Español/English) en Ajustes > General — todo el launcher está traducido.',
+		'MEGA: nueva categoría "Servidor" al crear una instancia — Vanilla, Paper o Purpur. Pestañas propias (Detalles, Plugins, Mundos, Archivos, Consola con comandos) y botón de Iniciar/Detener. Correr un servidor ya no bloquea jugar en el cliente al mismo tiempo, ni viceversa.'
 	]
 };
