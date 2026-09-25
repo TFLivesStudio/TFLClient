@@ -54,6 +54,38 @@ export const es = {
 			'La versión del loader (Fabric/Forge/NeoForge/Quilt) se resuelve sola — la más reciente/recomendada para esta versión de Minecraft.',
 		experimentalToggle: 'Mostrar versiones experimentales (snapshots, pre-releases, release candidates)',
 		create: 'Crear'
+	},
+	contentManager: {
+		manageTab: 'Gestionar',
+		downloadTab: 'Descargar',
+		categories: 'Categorías',
+		selectNone: 'Ninguno',
+		selectAll: 'Seleccionar todos',
+		manualModeRequired: 'Activá el modo Manual en Ajustes para usar esto',
+		addByFile: 'Añadir por archivo',
+		checkUpdates: 'Buscar actualizaciones',
+		remove: 'Quitar',
+		autoModeDisablesAddByFile: 'Añadir por archivo está desactivado en modo Automático — activá "Manual" en Ajustes.',
+		allUpToDate: 'Todo al día — no hay actualizaciones.',
+		noChangelogNotes: 'Sin notas de cambios.',
+		changelogLoadFailed: 'No se pudo cargar: {{error}}',
+		partialLocalAdd: 'Se agregaron {{added}} de {{total}} archivos — el resto no tenía la extensión esperada o no se pudo copiar.',
+		removeFailedPartial: 'No se pudieron quitar {{failed}} de {{total}}: {{names}}',
+		duplicateOne: 'Hay un mod',
+		duplicateMany: 'Hay {{count}} mods',
+		duplicateWarning: 'instalado dos veces (versiones distintas del mismo mod a la vez) — puede causar crashes. Revisá: {{list}}',
+		updateAll: 'Actualizar todos',
+		notInstalledYet: 'Todavía no instalaste ningún {{kind}} acá.',
+		noneMatchCategories: 'Ningún {{kind}} instalado coincide con esas categorías.',
+		select: 'Seleccionar',
+		changelogButton: 'Novedades',
+		searchPlaceholder: 'Buscar {{noun}} en Modrinth…',
+		favorites: 'Favoritos',
+		results: 'Resultados',
+		favorite: 'Favorito',
+		viewVersions: 'Ver versiones',
+		alreadyInstalled: 'Ya instalado',
+		noCompatibleVersions: 'No hay versiones compatibles con esta instancia.'
 	}
 };
 

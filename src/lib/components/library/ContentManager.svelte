@@ -34,6 +34,7 @@
 		addLocalResourcepackFiles
 	} from '$lib/api/tflApi';
 	import { favoriteMods, isFavoriteMod, toggleFavoriteMod } from '$lib/state/modFavorites.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 	import {
 		Search,
 		Download,
@@ -222,7 +223,11 @@
 		const failed = targets.filter((_, i) => results[i].status === 'rejected');
 		selected = new Set(failed);
 		if (failed.length > 0) {
-			manageError = `No se pudieron quitar ${failed.length} de ${targets.length}: ${failed.join(', ')}`;
+			manageError = t('contentManager.removeFailedPartial', {
+				failed: failed.length,
+				total: targets.length,
+				names: failed.join(', ')
+			});
 		}
 		await refreshInstalled();
 		removingSelected = false;
@@ -236,7 +241,7 @@
 			const fresh = await checkModUpdates(instance.name);
 			updates = fresh;
 			const relevant = selected.size > 0 ? fresh.filter((u) => selected.has(u.filename)) : fresh;
-			updateMsg = relevant.length === 0 ? 'Todo al día — no hay actualizaciones.' : null;
+			updateMsg = relevant.length === 0 ? t('contentManager.allUpToDate') : null;
 		} catch (e) {
 			manageError = String(e);
 		} finally {
@@ -279,10 +284,11 @@
 		loadingChangelog = true;
 		const token = ++changelogToken;
 		try {
-			const text = (await getModVersionChangelog(update.new_version_id)) || 'Sin notas de cambios.';
+			const text = (await getModVersionChangelog(update.new_version_id)) || t('contentManager.noChangelogNotes');
 			if (token === changelogToken) changelogText = text;
 		} catch (e) {
-			if (token === changelogToken) changelogText = `No se pudo cargar: ${e}`;
+			if (token === changelogToken)
+				changelogText = t('contentManager.changelogLoadFailed', { error: String(e) });
 		} finally {
 			if (token === changelogToken) loadingChangelog = false;
 		}
@@ -307,7 +313,7 @@
 			// no matcheaba la extensión esperada o falló al copiar, antes no
 			// había ningún aviso de que faltó algo de lo elegido.
 			if (added < paths.length) {
-				manageError = `Se agregaron ${added} de ${paths.length} archivos — el resto no tenía la extensión esperada o no se pudo copiar.`;
+				manageError = t('contentManager.partialLocalAdd', { added, total: paths.length });
 			}
 		} catch (e) {
 			manageError = String(e);
@@ -428,10 +434,10 @@
 <div class="content-manager">
 	<div class="subtabs">
 		<button type="button" class="subtab" class:active={subtab === 'manage'} onclick={() => (subtab = 'manage')}>
-			Gestionar {#if installed.length > 0}<span class="count">{installed.length}</span>{/if}
+			{t('contentManager.manageTab')} {#if installed.length > 0}<span class="count">{installed.length}</span>{/if}
 		</button>
 		<button type="button" class="subtab" class:active={subtab === 'download'} onclick={() => (subtab = 'download')}>
-			Descargar
+			{t('contentManager.downloadTab')}
 		</button>
 	</div>
 
@@ -444,7 +450,7 @@
 					class:active={manageSelectedCategories.size > 0}
 					onclick={() => (manageCategoriesOpen = !manageCategoriesOpen)}
 				>
-					Categorías{manageSelectedCategories.size > 0 ? ` (${manageSelectedCategories.size})` : ''}
+					{t('contentManager.categories')}{manageSelectedCategories.size > 0 ? ` (${manageSelectedCategories.size})` : ''}
 					<ChevronDown size={13} />
 				</button>
 				{#if manageCategoriesOpen}
@@ -466,22 +472,24 @@
 		{/if}
 		<div class="manage-toolbar">
 			<button type="button" class="tool-btn" onclick={toggleSelectAll} disabled={installedFiltered.length === 0}>
-				{selected.size === installedFiltered.length && installedFiltered.length > 0 ? 'Ninguno' : 'Seleccionar todos'}
+				{selected.size === installedFiltered.length && installedFiltered.length > 0
+					? t('contentManager.selectNone')
+					: t('contentManager.selectAll')}
 			</button>
 			<button
 				type="button"
 				class="tool-btn"
 				disabled={addingLocal || dialogsBlocked}
-				title={dialogsBlocked ? 'Activá el modo Manual en Ajustes para usar esto' : undefined}
+				title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
 				onclick={handleAddLocal}
 			>
 				{#if addingLocal}<Loader2 size={13} class="spin" />{:else}<Upload size={13} />{/if}
-				Añadir por archivo
+				{t('contentManager.addByFile')}
 			</button>
 			{#if kind === 'mod'}
 				<button type="button" class="tool-btn" disabled={checkingUpdates} onclick={handleCheckUpdatesSelected}>
 					{#if checkingUpdates}<Loader2 size={13} class="spin" />{:else}<RefreshCw size={13} />{/if}
-					Buscar actualizaciones{selected.size > 0 ? ` (${selected.size})` : ''}
+					{t('contentManager.checkUpdates')}{selected.size > 0 ? ` (${selected.size})` : ''}
 				</button>
 			{/if}
 			<button
@@ -491,11 +499,11 @@
 				onclick={handleRemoveSelected}
 			>
 				{#if removingSelected}<Loader2 size={13} class="spin" />{:else}<Trash2 size={13} />{/if}
-				Quitar{selected.size > 0 ? ` (${selected.size})` : ''}
+				{t('contentManager.remove')}{selected.size > 0 ? ` (${selected.size})` : ''}
 			</button>
 		</div>
 		{#if dialogsBlocked}
-			<p class="hint">Añadir por archivo está desactivado en modo Automático — activá "Manual" en Ajustes.</p>
+			<p class="hint">{t('contentManager.autoModeDisablesAddByFile')}</p>
 		{/if}
 		{#if updateMsg}<p class="hint">{updateMsg}</p>{/if}
 		{#if manageError}<p class="error">{manageError}</p>{/if}
@@ -504,9 +512,12 @@
 			<div class="duplicate-warning">
 				<AlertTriangle size={13} />
 				<span>
-					{duplicateGroups.length === 1 ? 'Hay un mod' : `Hay ${duplicateGroups.length} mods`}
-					instalado dos veces (versiones distintas del mismo mod a la vez) — puede causar crashes.
-					Revisá: {duplicateGroups.map((g) => g.join(' + ')).join(' · ')}
+					{duplicateGroups.length === 1
+						? t('contentManager.duplicateOne')
+						: t('contentManager.duplicateMany', { count: duplicateGroups.length })}
+					{t('contentManager.duplicateWarning', {
+						list: duplicateGroups.map((g) => g.join(' + ')).join(' · ')
+					})}
 				</span>
 			</div>
 		{/if}
@@ -514,14 +525,14 @@
 		{#if updates.length > 0}
 			<button type="button" class="update-all-btn" disabled={updatingAll} onclick={handleUpdateAll}>
 				{#if updatingAll}<Loader2 size={12} class="spin" />{:else}<RefreshCw size={12} />{/if}
-				Actualizar todos ({updates.length})
+				{t('contentManager.updateAll')} ({updates.length})
 			</button>
 		{/if}
 
 		{#if installed.length === 0}
-			<p class="hint">Todavía no instalaste ningún {kind === 'mod' ? 'mod' : kind === 'shader' ? 'shader' : 'resource pack'} acá.</p>
+			<p class="hint">{t('contentManager.notInstalledYet', { kind: kind === 'mod' ? 'mod' : kind === 'shader' ? 'shader' : 'resource pack' })}</p>
 		{:else if installedFiltered.length === 0}
-			<p class="hint">Ningún {kind === 'mod' ? 'mod' : kind === 'shader' ? 'shader' : 'resource pack'} instalado coincide con esas categorías.</p>
+			<p class="hint">{t('contentManager.noneMatchCategories', { kind: kind === 'mod' ? 'mod' : kind === 'shader' ? 'shader' : 'resource pack' })}</p>
 		{:else}
 			<div class="installed">
 				{#each installedFiltered as item (item.filename)}
@@ -532,7 +543,7 @@
 							class="checkbox"
 							class:checked={selected.has(item.filename)}
 							onclick={() => toggleSelect(item.filename)}
-							aria-label="Seleccionar"
+							aria-label={t('contentManager.select')}
 						>
 							{#if selected.has(item.filename)}<Check size={11} />{/if}
 						</button>
@@ -544,10 +555,10 @@
 						<span class="filename">{item.title ?? item.filename}</span>
 						{#if update}
 							<button type="button" class="changelog-toggle" onclick={() => toggleChangelog(update)}>
-								<FileText size={11} /> Novedades
+								<FileText size={11} /> {t('contentManager.changelogButton')}
 							</button>
 						{/if}
-						<button type="button" class="icon-btn" onclick={() => handleRemoveOne(item.filename)} aria-label="Quitar">
+						<button type="button" class="icon-btn" onclick={() => handleRemoveOne(item.filename)} aria-label={t('contentManager.remove')}>
 							<Trash2 size={13} />
 						</button>
 					</div>
@@ -567,7 +578,7 @@
 				class:active={selectedCategories.size > 0}
 				onclick={() => (categoriesOpen = !categoriesOpen)}
 			>
-				Categorías{selectedCategories.size > 0 ? ` (${selectedCategories.size})` : ''}
+				{t('contentManager.categories')}{selectedCategories.size > 0 ? ` (${selectedCategories.size})` : ''}
 				<ChevronDown size={13} />
 			</button>
 			{#if categoriesOpen}
@@ -593,14 +604,14 @@
 			{:else}
 				<Search size={14} class="search-icon" />
 			{/if}
-			<input type="text" bind:value={query} placeholder={`Buscar ${NOUN[kind]} en Modrinth…`} />
+			<input type="text" bind:value={query} placeholder={t('contentManager.searchPlaceholder', { noun: NOUN[kind] })} />
 		</div>
 
 		{#if downloadError}<p class="error">{downloadError}</p>{/if}
 
 		{#if kind === 'mod' && !query.trim() && favoriteMods.length > 0}
 			<div class="results">
-				<span class="section-label">Favoritos</span>
+				<span class="section-label">{t('contentManager.favorites')}</span>
 				{#each favoriteMods as mod (mod.projectId)}
 					<div class="mod-card anim-fade-in">
 						{#if mod.iconUrl}<img src={mod.iconUrl} alt={mod.title} />{:else}<div class="mod-icon-fallback"></div>{/if}
@@ -616,7 +627,7 @@
 		{/if}
 
 		<div class="results">
-			{#if results.length > 0}<span class="section-label">Resultados</span>{/if}
+			{#if results.length > 0}<span class="section-label">{t('contentManager.results')}</span>{/if}
 			{#each results as item (item.project_id)}
 				{@const alreadyInstalled = installedProjectIds.has(item.project_id)}
 				<div class="mod-card anim-fade-in">
@@ -631,7 +642,7 @@
 							class="favorite-btn"
 							class:active={isFavoriteMod(item.project_id)}
 							onclick={() => toggleFavoriteMod({ projectId: item.project_id, title: item.title, iconUrl: item.icon_url })}
-							aria-label="Favorito"
+							aria-label={t('contentManager.favorite')}
 						>
 							<Star size={14} fill={isFavoriteMod(item.project_id) ? 'currentColor' : 'none'} />
 						</button>
@@ -640,13 +651,13 @@
 						type="button"
 						class="version-toggle"
 						onclick={() => toggleVersions(item.project_id)}
-						aria-label="Ver versiones"
-						title="Ver versiones"
+						aria-label={t('contentManager.viewVersions')}
+						title={t('contentManager.viewVersions')}
 					>
 						<ChevronDown size={13} />
 					</button>
 					{#if alreadyInstalled}
-						<span class="installed-badge" title="Ya instalado"><Check size={13} /></span>
+						<span class="installed-badge" title={t('contentManager.alreadyInstalled')}><Check size={13} /></span>
 					{:else}
 						<button type="button" class="install-btn" disabled={installingId === item.project_id} onclick={() => handleInstall(item.project_id)}>
 							{#if installingId === item.project_id}<Loader2 size={14} class="spin" />{:else}<Download size={14} />{/if}
@@ -658,7 +669,7 @@
 						{#if loadingVersions}
 							<Loader2 size={13} class="spin" />
 						{:else if versionOptions.length === 0}
-							<span class="hint">No hay versiones compatibles con esta instancia.</span>
+							<span class="hint">{t('contentManager.noCompatibleVersions')}</span>
 						{:else}
 							{#each versionOptions as v (v.id)}
 								<button
