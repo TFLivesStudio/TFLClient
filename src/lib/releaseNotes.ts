@@ -82,5 +82,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Nueva sección "Fuentes" en Ajustes > Estilos (Sistema, Nunito, Inter, Poppins, JetBrains Mono), se aplica al instante.',
 		'Nuevo: selector de idioma (Español/English) en Ajustes > General — todo el launcher está traducido.',
 		'MEGA: nueva categoría "Servidor" al crear una instancia — Vanilla, Paper o Purpur. Pestañas propias (Detalles, Plugins, Mundos, Archivos, Consola con comandos) y botón de Iniciar/Detener. Correr un servidor ya no bloquea jugar en el cliente al mismo tiempo, ni viceversa.'
+	],
+	'0.10.1': [
+		'Arreglado de verdad: las pestañas de la instancia (Detalles/Mods/Shaders/...) seguían desapareciendo al scrollear en Descargar — el intento anterior no funcionaba en la práctica. Ahora sí quedan fijas.'
 	]
 };
