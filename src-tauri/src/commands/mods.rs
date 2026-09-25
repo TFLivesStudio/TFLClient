@@ -717,6 +717,7 @@ pub struct InstalledModInfo {
     pub title: Option<String>,
     pub version_id: Option<String>,
     pub icon_url: Option<String>,
+    pub categories: Vec<String>,
 }
 
 /// Resuelve cada archivo instalado (mod/shader/resourcepack) contra
@@ -731,6 +732,8 @@ struct RawProjectInfo {
     id: String,
     title: String,
     icon_url: Option<String>,
+    #[serde(default)]
+    categories: Vec<String>,
 }
 
 /// Nombre e ícono reales del MOD (ej. "Canvas Renderer"), no de la build
@@ -801,6 +804,7 @@ async fn get_installed_content_info(
                     ),
                     version_id: Some(v.id.clone()),
                     icon_url: info.and_then(|i| i.icon_url.clone()),
+                    categories: info.map(|i| i.categories.clone()).unwrap_or_default(),
                 }
             }
             None => InstalledModInfo {
@@ -808,6 +812,7 @@ async fn get_installed_content_info(
                 project_id: None,
                 title: None,
                 version_id: None,
+                categories: Vec::new(),
                 icon_url: None,
             },
         })

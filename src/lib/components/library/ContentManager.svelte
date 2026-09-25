@@ -123,6 +123,31 @@
 
 	// ── Gestionar ──────────────────────────────────────────────────────
 	let installed = $state<InstalledModInfo[]>([]);
+	let manageSelectedCategories = $state<Set<string>>(new Set());
+	let manageCategoriesOpen = $state(false);
+	let manageCategoryDropdownEl = $state<HTMLDivElement | undefined>(undefined);
+
+	// Solo las categorías que de verdad aparecen entre lo instalado — a
+	// diferencia de Descargar, acá no tiene sentido ofrecer las ~19
+	// categorías completas de Modrinth cuando el mod instalado puede ser
+	// de solo 2 o 3 distintas.
+	const manageAvailableCategories = $derived(
+		[...new Set(installed.flatMap((i) => i.categories))].sort()
+	);
+
+	const installedFiltered = $derived(
+		manageSelectedCategories.size === 0
+			? installed
+			: installed.filter((i) => i.categories.some((c) => manageSelectedCategories.has(c)))
+	);
+
+	function toggleManageCategory(cat: string) {
+		const next = new Set(manageSelectedCategories);
+		if (next.has(cat)) next.delete(cat);
+		else next.add(cat);
+		manageSelectedCategories = next;
+	}
+
 	let selected = $state<Set<string>>(new Set());
 	let updates = $state<ModUpdateAvailable[]>([]);
 	let duplicateGroups = $state<string[][]>([]);
@@ -164,6 +189,7 @@
 		instance.name;
 		kind;
 		refreshSignal;
+		manageSelectedCategories = new Set();
 		refreshInstalled();
 	});
 
@@ -175,7 +201,10 @@
 	}
 
 	function toggleSelectAll() {
-		selected = selected.size === installed.length ? new Set() : new Set(installed.map((i) => i.filename));
+		selected =
+			selected.size === installedFiltered.length
+				? new Set()
+				: new Set(installedFiltered.map((i) => i.filename));
 	}
 
 	async function handleRemoveSelected() {
@@ -304,6 +333,13 @@
 		if (categoriesOpen && categoryDropdownEl && !categoryDropdownEl.contains(e.target as Node)) {
 			categoriesOpen = false;
 		}
+		if (
+			manageCategoriesOpen &&
+			manageCategoryDropdownEl &&
+			!manageCategoryDropdownEl.contains(e.target as Node)
+		) {
+			manageCategoriesOpen = false;
+		}
 	}
 
 	// Modrinth usa slugs kebab-case como valor real del filtro (ej.
@@ -400,9 +436,37 @@
 	</div>
 
 	{#if subtab === 'manage'}
+		{#if manageAvailableCategories.length > 1}
+			<div class="category-dropdown" bind:this={manageCategoryDropdownEl}>
+				<button
+					type="button"
+					class="category-trigger"
+					class:active={manageSelectedCategories.size > 0}
+					onclick={() => (manageCategoriesOpen = !manageCategoriesOpen)}
+				>
+					Categorías{manageSelectedCategories.size > 0 ? ` (${manageSelectedCategories.size})` : ''}
+					<ChevronDown size={13} />
+				</button>
+				{#if manageCategoriesOpen}
+					<div class="category-panel">
+						{#each manageAvailableCategories as cat (cat)}
+							<button
+								type="button"
+								class="category-option"
+								class:active={manageSelectedCategories.has(cat)}
+								onclick={() => toggleManageCategory(cat)}
+							>
+								{#if manageSelectedCategories.has(cat)}<Check size={12} />{:else}<span class="option-spacer"></span>{/if}
+								{categoryLabel(cat)}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
 		<div class="manage-toolbar">
-			<button type="button" class="tool-btn" onclick={toggleSelectAll} disabled={installed.length === 0}>
-				{selected.size === installed.length && installed.length > 0 ? 'Ninguno' : 'Seleccionar todos'}
+			<button type="button" class="tool-btn" onclick={toggleSelectAll} disabled={installedFiltered.length === 0}>
+				{selected.size === installedFiltered.length && installedFiltered.length > 0 ? 'Ninguno' : 'Seleccionar todos'}
 			</button>
 			<button
 				type="button"
@@ -456,9 +520,11 @@
 
 		{#if installed.length === 0}
 			<p class="hint">Todavía no instalaste ningún {kind === 'mod' ? 'mod' : kind === 'shader' ? 'shader' : 'resource pack'} acá.</p>
+		{:else if installedFiltered.length === 0}
+			<p class="hint">Ningún {kind === 'mod' ? 'mod' : kind === 'shader' ? 'shader' : 'resource pack'} instalado coincide con esas categorías.</p>
 		{:else}
 			<div class="installed">
-				{#each installed as item (item.filename)}
+				{#each installedFiltered as item (item.filename)}
 					{@const update = updates.find((u) => u.filename === item.filename)}
 					<div class="installed-row">
 						<button

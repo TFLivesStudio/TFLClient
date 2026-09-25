@@ -88,6 +88,7 @@ export interface InstalledModInfo {
 	title: string | null;
 	version_id: string | null;
 	icon_url: string | null;
+	categories: string[];
 }
 
 export interface ModVersionSummary {
