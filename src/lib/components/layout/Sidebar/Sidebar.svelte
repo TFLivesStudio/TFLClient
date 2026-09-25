@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { invoke } from '@tauri-apps/api/core';
-	import Tfl from '$lib/icons/Tfl.svelte';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { getMascotFor } from '$lib/mascots';
 	import { network } from '$lib/state/network.svelte';
@@ -71,13 +70,6 @@
 </script>
 
 <aside class="sidebar">
-	<div class="sidebar-header">
-		<div class="brand-mark">
-			<Tfl width="18" height="18" />
-			<h1>TFL Client</h1>
-		</div>
-	</div>
-
 	<button type="button" class="tfl-selection-btn" onclick={onOpenTflSelection}>
 		<Sparkles size={15} />
 		TFL Selection
@@ -188,11 +180,6 @@
 		gap: 12px;
 	}
 
-	.sidebar-header {
-		padding-bottom: 10px;
-		border-bottom: 1px solid var(--border);
-	}
-
 	.tfl-selection-btn {
 		display: flex;
 		align-items: center;
@@ -230,22 +217,6 @@
 
 	.offline-badge :global(svg) {
 		flex-shrink: 0;
-	}
-
-	.brand-mark {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.brand-mark :global(svg) {
-		color: var(--accent);
-	}
-
-	.sidebar-header h1 {
-		font-family: var(--font-brand);
-		font-size: 0.78rem;
-		color: var(--text-primary);
 	}
 
 	.instances {

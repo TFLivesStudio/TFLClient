@@ -297,6 +297,21 @@
 	let openVersionsFor = $state<string | null>(null);
 	let versionOptions = $state<ModVersionSummary[]>([]);
 	let loadingVersions = $state(false);
+	let categoriesOpen = $state(false);
+	let categoryDropdownEl = $state<HTMLDivElement | undefined>(undefined);
+
+	function handleWindowClick(e: MouseEvent) {
+		if (categoriesOpen && categoryDropdownEl && !categoryDropdownEl.contains(e.target as Node)) {
+			categoriesOpen = false;
+		}
+	}
+
+	// Modrinth usa slugs kebab-case como valor real del filtro (ej.
+	// "game-mechanics") — esto solo arma la etiqueta legible para mostrar.
+	function categoryLabel(cat: string): string {
+		const words = cat.split('-');
+		return words.map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+	}
 
 	let searchToken = 0;
 	async function runSearch() {
@@ -371,6 +386,8 @@
 		}
 	}
 </script>
+
+<svelte:window onclick={handleWindowClick} />
 
 <div class="content-manager">
 	<div class="subtabs">
@@ -453,6 +470,11 @@
 						>
 							{#if selected.has(item.filename)}<Check size={11} />{/if}
 						</button>
+						{#if item.icon_url}
+							<img class="installed-icon" src={item.icon_url} alt="" />
+						{:else}
+							<div class="installed-icon installed-icon-fallback"></div>
+						{/if}
 						<span class="filename">{item.title ?? item.filename}</span>
 						{#if update}
 							<button type="button" class="changelog-toggle" onclick={() => toggleChangelog(update)}>
@@ -472,12 +494,31 @@
 			</div>
 		{/if}
 	{:else}
-		<div class="category-chips">
-			{#each CATEGORIES[kind] as cat (cat)}
-				<button type="button" class="chip" class:active={selectedCategories.has(cat)} onclick={() => toggleCategory(cat)}>
-					{cat}
-				</button>
-			{/each}
+		<div class="category-dropdown" bind:this={categoryDropdownEl}>
+			<button
+				type="button"
+				class="category-trigger"
+				class:active={selectedCategories.size > 0}
+				onclick={() => (categoriesOpen = !categoriesOpen)}
+			>
+				Categorías{selectedCategories.size > 0 ? ` (${selectedCategories.size})` : ''}
+				<ChevronDown size={13} />
+			</button>
+			{#if categoriesOpen}
+				<div class="category-panel">
+					{#each CATEGORIES[kind] as cat (cat)}
+						<button
+							type="button"
+							class="category-option"
+							class:active={selectedCategories.has(cat)}
+							onclick={() => toggleCategory(cat)}
+						>
+							{#if selectedCategories.has(cat)}<Check size={12} />{:else}<span class="option-spacer"></span>{/if}
+							{categoryLabel(cat)}
+						</button>
+					{/each}
+				</div>
+			{/if}
 		</div>
 
 		<div class="search-row">
@@ -787,6 +828,20 @@
 		margin-bottom: 4px;
 	}
 
+	.installed-icon {
+		width: 20px;
+		height: 20px;
+		border-radius: 4px;
+		flex-shrink: 0;
+		background: var(--bg-card);
+		object-fit: cover;
+	}
+
+	.installed-icon-fallback {
+		background: var(--bg-card);
+		border: 1px solid var(--border);
+	}
+
 	.filename {
 		flex: 1;
 		min-width: 0;
@@ -814,27 +869,81 @@
 		color: var(--color-error);
 	}
 
-	.category-chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 5px;
+	.category-dropdown {
+		position: relative;
 	}
 
-	.chip {
-		padding: 3px 9px;
-		border-radius: 999px;
+	.category-trigger {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 10px;
+		border-radius: var(--border-radius-sm);
 		border: 1px solid var(--border);
 		background: var(--bg-input);
 		color: var(--text-muted);
-		font-size: 0.66rem;
+		font-size: 0.72rem;
 		font-weight: 600;
 		cursor: pointer;
 	}
 
-	.chip.active {
+	.category-trigger.active {
 		border-color: var(--accent);
 		background: color-mix(in srgb, var(--accent) 16%, var(--bg-input));
 		color: var(--accent);
+	}
+
+	.category-panel {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
+		z-index: 20;
+		display: grid;
+		grid-template-columns: repeat(2, minmax(140px, 1fr));
+		gap: 2px;
+		max-height: 220px;
+		overflow-y: auto;
+		padding: 6px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-card);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+	}
+
+	.category-option {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 8px;
+		border-radius: var(--border-radius-sm);
+		border: none;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.72rem;
+		text-align: left;
+		cursor: pointer;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.category-option:hover {
+		background: var(--bg-input);
+	}
+
+	.category-option.active {
+		color: var(--accent);
+		font-weight: 600;
+	}
+
+	.category-option :global(svg) {
+		flex-shrink: 0;
+		color: var(--accent);
+	}
+
+	.option-spacer {
+		width: 12px;
+		flex-shrink: 0;
 	}
 
 	.search-row {
