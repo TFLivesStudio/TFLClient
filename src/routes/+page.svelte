@@ -69,7 +69,8 @@
 			['tfl-ambience', 'data-ambience', 'aurora'],
 			['tfl-density', 'data-density', 'comfortable'],
 			['tfl-wallpaper', 'data-wallpaper', 'none'],
-			['tfl-card-style', 'data-card-style', 'rich']
+			['tfl-card-style', 'data-card-style', 'rich'],
+			['tfl-font', 'data-font', 'system']
 		] as const;
 		for (const [storageKey, attribute, defaultValue] of preferences) {
 			let value = localStorage.getItem(storageKey) ?? defaultValue;

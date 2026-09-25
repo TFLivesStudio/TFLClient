@@ -17,6 +17,83 @@
 	font-display: swap;
 }
 
+/* Fuentes alternativas para Ajustes → Estilos → Fuentes — subset latin
+   descargado de Google Fonts y servido local (el launcher tiene que andar
+   sin internet también; Monocraft ya se sirve así). Solo 3 pesos por
+   fuente (400/600/700), es lo único que usa la interfaz. */
+@font-face {
+	font-family: 'Nunito';
+	src: url('/fonts/nunito-400.woff2') format('woff2');
+	font-weight: 400;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Nunito';
+	src: url('/fonts/nunito-600.woff2') format('woff2');
+	font-weight: 600;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Nunito';
+	src: url('/fonts/nunito-700.woff2') format('woff2');
+	font-weight: 700;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Inter';
+	src: url('/fonts/inter-400.woff2') format('woff2');
+	font-weight: 400;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Inter';
+	src: url('/fonts/inter-600.woff2') format('woff2');
+	font-weight: 600;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Inter';
+	src: url('/fonts/inter-700.woff2') format('woff2');
+	font-weight: 700;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Poppins';
+	src: url('/fonts/poppins-400.woff2') format('woff2');
+	font-weight: 400;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Poppins';
+	src: url('/fonts/poppins-600.woff2') format('woff2');
+	font-weight: 600;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Poppins';
+	src: url('/fonts/poppins-700.woff2') format('woff2');
+	font-weight: 700;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('/fonts/jetbrains-mono-400.woff2') format('woff2');
+	font-weight: 400;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('/fonts/jetbrains-mono-600.woff2') format('woff2');
+	font-weight: 600;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('/fonts/jetbrains-mono-700.woff2') format('woff2');
+	font-weight: 700;
+	font-display: swap;
+}
+
 :root {
 	/* Crudos — obsidiana/oscuro (default). */
 	--raw-main: #0a0a0a;
@@ -118,6 +195,24 @@
 	--bg-overlay: rgba(0, 0, 0, 0.4);
 
 	color-scheme: light;
+}
+
+/* Fuentes alternativas para el texto general de la interfaz — no toca
+   --font-brand (Monocraft, solo el logo). "Sistema" (default, sin
+   data-font) usa la fuente nativa del SO; las demás vienen de Google
+   Fonts (cargadas en app.html) con el mismo fallback nativo como red de
+   seguridad si tardan en cargar. */
+:root[data-font='nunito'] {
+	--font-family: 'Nunito', -apple-system, 'Segoe UI Variable', 'Segoe UI', Cantarell, sans-serif;
+}
+:root[data-font='inter'] {
+	--font-family: 'Inter', -apple-system, 'Segoe UI Variable', 'Segoe UI', Cantarell, sans-serif;
+}
+:root[data-font='poppins'] {
+	--font-family: 'Poppins', -apple-system, 'Segoe UI Variable', 'Segoe UI', Cantarell, sans-serif;
+}
+:root[data-font='jetbrains-mono'] {
+	--font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
 }
 
 /* Acentos alternativos — mismo esquema de tokens, otro color de marca. */

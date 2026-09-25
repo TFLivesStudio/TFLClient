@@ -74,6 +74,13 @@
 		{ id: 'minimal', label: 'Minimal' },
 		{ id: 'particles', label: 'Partículas' }
 	];
+	const FONTS = [
+		{ id: 'system', label: 'Sistema', family: 'inherit' },
+		{ id: 'nunito', label: 'Nunito', family: "'Nunito', sans-serif" },
+		{ id: 'inter', label: 'Inter', family: "'Inter', sans-serif" },
+		{ id: 'poppins', label: 'Poppins', family: "'Poppins', sans-serif" },
+		{ id: 'jetbrains-mono', label: 'JetBrains Mono', family: "'JetBrains Mono', monospace" }
+	];
 	const WALLPAPERS = [
 		{ id: 'none', label: 'Ninguno', preview: 'transparent' },
 		{ id: 'void-night', label: 'Noche vacía', preview: 'linear-gradient(135deg, #02040a, #050d1a, #030810)' },
@@ -116,6 +123,7 @@
 	);
 	let surface = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-surface') ?? 'obsidian') : 'obsidian');
 	let ambience = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-ambience') ?? 'aurora') : 'aurora');
+	let font = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-font') ?? 'system') : 'system');
 	let density = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-density') ?? 'comfortable') : 'comfortable');
 	let wallpaper = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-wallpaper') ?? 'none') : 'none');
 	let cardStyle = $state(
@@ -225,6 +233,10 @@
 	function applyAmbience(id: string) {
 		ambience = id;
 		applyPreference('tfl-ambience', 'data-ambience', id, 'aurora');
+	}
+	function applyFont(id: string) {
+		font = id;
+		applyPreference('tfl-font', 'data-font', id, 'system');
 	}
 	function applyWallpaper(id: string) {
 		wallpaper = id;
@@ -700,6 +712,23 @@
 						<button type="button" class="choice" class:active={cardStyle === 'rich'} onclick={() => applyCardStyle('rich')}>Rica</button>
 						<button type="button" class="choice" class:active={cardStyle === 'minimal'} onclick={() => applyCardStyle('minimal')}>Minimal</button>
 					</div>
+				</section>
+				<section>
+					<span class="section-label">Fuentes</span>
+					<div class="row">
+						{#each FONTS as f (f.id)}
+							<button
+								type="button"
+								class="choice"
+								class:active={font === f.id}
+								style="font-family: {f.family}"
+								onclick={() => applyFont(f.id)}
+							>
+								{f.label}
+							</button>
+						{/each}
+					</div>
+					<p class="hint">Se aplica al instante, sin reiniciar el launcher.</p>
 				</section>
 			{:else if tab === 'accounts'}
 				<section>
