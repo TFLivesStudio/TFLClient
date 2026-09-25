@@ -67,5 +67,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.9.18': [
 		'Arreglado: en Linux, instalar el .deb o .rpm no traía todas las dependencias que el launcher necesita para arrancar — el paquete solo pedía WebKitGTK y GTK, pero el programa también necesita otras librerías del sistema que no estaban declaradas, y sin ellas fallaba al abrir aunque el paquete se hubiera instalado bien. Si ya lo instalaste y no abre, borrá el paquete viejo y volvé a instalar esta versión (o corré install-linux.sh de nuevo).'
+	],
+	'0.9.19': [
+		'Prolijo: el .deb dejó de listar dos dependencias repetidas (quedó igual de funcional, solo se veía feo con "apt show").'
 	]
 };
