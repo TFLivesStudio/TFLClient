@@ -795,6 +795,14 @@
 		border-bottom: 1px solid var(--border);
 		overflow-x: auto;
 		scrollbar-width: none;
+		/* .instance-detail es el único contenedor con scroll (ver nota en
+		   .hero) — sin esto, scrollear una lista larga en Descargar se
+		   lleva puesta la barra de pestañas, y para volver a Detalles hay
+		   que scrollear todo hasta arriba de nuevo. */
+		position: sticky;
+		top: 0;
+		z-index: 2;
+		background: var(--bg-main);
 	}
 
 	.tabs::-webkit-scrollbar {

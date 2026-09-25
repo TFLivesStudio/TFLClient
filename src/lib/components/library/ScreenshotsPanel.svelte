@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
+	import { Image } from '@tauri-apps/api/image';
+	import { writeImage } from '@tauri-apps/plugin-clipboard-manager';
 	import type { InstanceData, ScreenshotInfo } from '$lib/types/types';
 	import { getInstanceScreenshots, deleteScreenshot, openScreenshotsFolder } from '$lib/api/tflApi';
-	import { FolderOpen, Trash2, X, ImageOff } from 'lucide-svelte';
+	import { FolderOpen, Trash2, X, ImageOff, Copy, Check } from 'lucide-svelte';
 
 	let { instance }: { instance: InstanceData } = $props();
 
@@ -11,6 +13,19 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let preview = $state<ScreenshotInfo | null>(null);
+	let copiedFilename = $state<string | null>(null);
+	let copyTimer: ReturnType<typeof setTimeout> | undefined;
+	let zoom = $state(1);
+
+	function openPreview(shot: ScreenshotInfo) {
+		preview = shot;
+		zoom = 1;
+	}
+
+	function handleWheel(e: WheelEvent) {
+		e.preventDefault();
+		zoom = Math.min(4, Math.max(1, zoom - e.deltaY * 0.0015));
+	}
 
 	async function refresh() {
 		loading = true;
@@ -25,6 +40,19 @@
 	}
 
 	onMount(refresh);
+
+	async function handleCopy(shot: ScreenshotInfo, e: MouseEvent) {
+		e.stopPropagation();
+		try {
+			const img = await Image.fromPath(shot.path);
+			await writeImage(img);
+			copiedFilename = shot.filename;
+			clearTimeout(copyTimer);
+			copyTimer = setTimeout(() => (copiedFilename = null), 1500);
+		} catch (err) {
+			error = String(err);
+		}
+	}
 
 	async function handleDelete(shot: ScreenshotInfo, e: MouseEvent) {
 		e.stopPropagation();
@@ -72,21 +100,31 @@
 			{#each shots as shot (shot.filename)}
 				<div
 					class="thumb anim-fade-in"
-					onclick={() => (preview = shot)}
-					onkeydown={(e) => e.key === 'Enter' && (preview = shot)}
+					onclick={() => openPreview(shot)}
+					onkeydown={(e) => e.key === 'Enter' && openPreview(shot)}
 					role="button"
 					tabindex="0"
 				>
 					<img src={convertFileSrc(shot.path)} alt={shot.filename} loading="lazy" />
 					<span class="thumb-date">{fmtDate(shot.modified_ms)}</span>
-					<button
-						type="button"
-						class="thumb-delete"
-						onclick={(e) => handleDelete(shot, e)}
-						aria-label="Borrar"
-					>
-						<Trash2 size={12} />
-					</button>
+					<div class="thumb-actions">
+						<button
+							type="button"
+							class="thumb-action-btn"
+							onclick={(e) => handleCopy(shot, e)}
+							aria-label="Copiar imagen"
+						>
+							{#if copiedFilename === shot.filename}<Check size={12} />{:else}<Copy size={12} />{/if}
+						</button>
+						<button
+							type="button"
+							class="thumb-action-btn thumb-action-danger"
+							onclick={(e) => handleDelete(shot, e)}
+							aria-label="Borrar"
+						>
+							<Trash2 size={12} />
+						</button>
+					</div>
 				</div>
 			{/each}
 		</div>
@@ -101,18 +139,28 @@
 		role="button"
 		tabindex="-1"
 	>
-		<button type="button" class="lightbox-close" onclick={() => (preview = null)} aria-label="Cerrar">
-			<X size={18} />
-		</button>
+		<div class="lightbox-actions">
+			<button type="button" class="lightbox-btn" onclick={(e) => handleCopy(preview!, e)} aria-label="Copiar imagen">
+				{#if copiedFilename === preview.filename}<Check size={16} />{:else}<Copy size={16} />{/if}
+			</button>
+			<button type="button" class="lightbox-btn" onclick={() => (preview = null)} aria-label="Cerrar">
+				<X size={18} />
+			</button>
+		</div>
 		<div
 			class="lightbox-frame"
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => e.stopPropagation()}
+			onwheel={handleWheel}
 			role="dialog"
 			aria-modal="true"
 			tabindex="-1"
 		>
-			<img src={convertFileSrc(preview.path)} alt={preview.filename} />
+			<img
+				src={convertFileSrc(preview.path)}
+				alt={preview.filename}
+				style="transform: scale({zoom})"
+			/>
 		</div>
 	</div>
 {/if}
@@ -219,10 +267,21 @@
 		opacity: 1;
 	}
 
-	.thumb-delete {
+	.thumb-actions {
 		position: absolute;
 		top: 4px;
 		right: 4px;
+		display: flex;
+		gap: 4px;
+		opacity: 0;
+		transition: opacity 0.15s;
+	}
+
+	.thumb:hover .thumb-actions {
+		opacity: 1;
+	}
+
+	.thumb-action-btn {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -233,15 +292,13 @@
 		background: rgba(0, 0, 0, 0.55);
 		color: #ffffff;
 		cursor: pointer;
-		opacity: 0;
-		transition: opacity 0.15s;
 	}
 
-	.thumb:hover .thumb-delete {
-		opacity: 1;
+	.thumb-action-btn:hover {
+		background: rgba(0, 0, 0, 0.8);
 	}
 
-	.thumb-delete:hover {
+	.thumb-action-danger:hover {
 		background: var(--color-error);
 	}
 
@@ -253,13 +310,16 @@
 		align-items: center;
 		justify-content: center;
 		z-index: 400;
-		padding: 40px;
+		padding: 80px;
+		overflow: hidden;
 	}
 
 	.lightbox-frame {
-		max-width: 100%;
-		max-height: 100%;
+		max-width: 78vw;
+		max-height: 78vh;
 		display: flex;
+		overflow: visible;
+		cursor: zoom-in;
 	}
 
 	.lightbox-frame img {
@@ -267,12 +327,18 @@
 		max-height: 100%;
 		border-radius: var(--border-radius);
 		box-shadow: var(--shadow-lg);
+		transition: transform 0.05s linear;
 	}
 
-	.lightbox-close {
+	.lightbox-actions {
 		position: absolute;
 		top: 16px;
 		right: 16px;
+		display: flex;
+		gap: 8px;
+	}
+
+	.lightbox-btn {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -283,5 +349,9 @@
 		background: rgba(255, 255, 255, 0.1);
 		color: #ffffff;
 		cursor: pointer;
+	}
+
+	.lightbox-btn:hover {
+		background: rgba(255, 255, 255, 0.2);
 	}
 </style>
