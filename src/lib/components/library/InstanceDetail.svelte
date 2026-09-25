@@ -16,6 +16,7 @@
 		getInstanceIconPath
 	} from '$lib/api/tflApi';
 	import { gameSession } from '$lib/state/gameSession.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 	import ModsPanel from './ModsPanel.svelte';
 	import ShadersPanel from './ShadersPanel.svelte';
 	import ModpacksPanel from './ModpacksPanel.svelte';
@@ -93,12 +94,12 @@
 	const loaderMeta = $derived(LOADER_META[instance.loader]);
 
 	const lastPlayedLabel = $derived.by(() => {
-		if (!instance.last_played) return 'Nunca jugada';
+		if (!instance.last_played) return t('instanceDetail.neverPlayed');
 		const diffMs = Date.now() - instance.last_played * 1000;
 		const days = Math.floor(diffMs / 86_400_000);
-		if (days <= 0) return 'Hoy';
-		if (days === 1) return 'Ayer';
-		return `Hace ${days} días`;
+		if (days <= 0) return t('instanceDetail.playedToday');
+		if (days === 1) return t('instanceDetail.playedYesterday');
+		return t('instanceDetail.playedDaysAgo', { days });
 	});
 
 	async function handlePlay() {
@@ -227,7 +228,7 @@
 			class="hero-icon"
 			style="--loader-color: {loaderMeta.color}"
 			onclick={() => (showIconPicker = true)}
-			aria-label="Cambiar ícono de la instancia"
+			aria-label={t('instanceDetail.changeIcon')}
 		>
 			{#if iconUrl}
 				<img src={iconUrl} alt="" class="hero-icon-img" />
@@ -254,7 +255,7 @@
 						}}
 						{@attach (el) => el.focus()}
 					/>
-					<button type="button" class="icon-btn" onclick={confirmRename} aria-label="Guardar">
+					<button type="button" class="icon-btn" onclick={confirmRename} aria-label={t('settings.ram.save')}>
 						<Check size={15} />
 					</button>
 					<button
@@ -264,7 +265,7 @@
 							editingName = false;
 							nameDraft = instance.name;
 						}}
-						aria-label="Cancelar"
+						aria-label={t('common.cancel')}
 					>
 						<X size={15} />
 					</button>
@@ -276,7 +277,7 @@
 						type="button"
 						class="icon-btn"
 						onclick={() => (editingName = true)}
-						aria-label="Renombrar"
+						aria-label={t('instanceDetail.rename')}
 					>
 						<Pencil size={13} />
 					</button>
@@ -285,8 +286,8 @@
 						class="icon-btn"
 						disabled={duplicating}
 						onclick={handleDuplicate}
-						aria-label="Duplicar"
-						title="Duplicar instancia"
+						aria-label={t('instanceDetail.duplicate')}
+						title={t('instanceDetail.duplicateTitle')}
 					>
 						{#if duplicating}<Loader2 size={13} class="spin" />{:else}<Copy size={13} />{/if}
 					</button>
@@ -295,8 +296,8 @@
 						class="icon-btn"
 						disabled={exporting}
 						onclick={handleExport}
-						aria-label="Exportar como .mrpack"
-						title="Exportar como .mrpack"
+						aria-label={t('instanceDetail.exportMrpack')}
+						title={t('instanceDetail.exportMrpack')}
 					>
 						{#if exporting}<Loader2 size={13} class="spin" />{:else}<FileOutput size={13} />{/if}
 					</button>
@@ -305,8 +306,8 @@
 						class="icon-btn"
 						disabled={verifying}
 						onclick={handleVerifyIntegrity}
-						aria-label="Verificar integridad"
-						title="Verificar integridad"
+						aria-label={t('instanceDetail.verifyIntegrity')}
+						title={t('instanceDetail.verifyIntegrity')}
 					>
 						{#if verifying}<Loader2 size={13} class="spin" />{:else}<ShieldCheck size={13} />{/if}
 					</button>
@@ -314,21 +315,24 @@
 						type="button"
 						class="icon-btn danger"
 						onclick={() => (showDeleteConfirm = true)}
-						aria-label="Eliminar"
+						aria-label={t('instanceDetail.delete')}
 					>
 						<Trash2 size={13} />
 					</button>
 				</div>
 				{#if exportedPath}
-					<p class="hint">Exportado: {exportedPath}</p>
+					<p class="hint">{t('instanceDetail.exported', { path: exportedPath })}</p>
 				{/if}
 				{#if integrityIssues !== null}
 					{#if integrityIssues.length === 0}
-						<p class="hint">Todo en orden — no falta ningún archivo instalado.</p>
+						<p class="hint">{t('instanceDetail.integrityOk')}</p>
 					{:else}
 						<p class="error">
-							Faltan {integrityIssues.length} archivo{integrityIssues.length === 1 ? '' : 's'} que
-							un modpack instaló: {integrityIssues.join(', ')}
+							{t('instanceDetail.integrityMissing', {
+								count: integrityIssues.length,
+								plural: integrityIssues.length === 1 ? '' : 's',
+								list: integrityIssues.join(', ')
+							})}
 						</p>
 					{/if}
 				{/if}
@@ -349,13 +353,13 @@
 		<button type="button" class="play-btn" disabled={launching || blockedByOther} onclick={handlePlay}>
 			{#if launching}
 				<Loader2 size={16} class="spin" />
-				Preparando…
+				{t('instanceDetail.preparing')}
 			{:else if blockedByOther}
 				<Play size={16} fill="currentColor" />
-				"{gameSession.running}" está corriendo
+				{t('instanceDetail.instanceRunning', { name: gameSession.running ?? '' })}
 			{:else}
 				<Play size={16} fill="currentColor" />
-				Jugar
+				{t('instanceDetail.play')}
 			{/if}
 		</button>
 	</div>
@@ -368,13 +372,13 @@
 		<button type="button" class="quick-card" onclick={() => (tab = 'mods')}>
 			<div class="quick-icon"><Puzzle size={16} /></div>
 			<div class="quick-text">
-				<span class="quick-title">Mods</span>
+				<span class="quick-title">{t('instanceDetail.tabs.mods')}</span>
 				<span class="quick-sub">
 					{instance.loader === 'vanilla'
-						? 'No soportado en Vanilla'
+						? t('instanceDetail.modsNotSupportedVanilla')
 						: modCount === null
-							? 'Cargando…'
-							: `${modCount} instalados`}
+							? t('instanceDetail.loading')
+							: t('instanceDetail.modsInstalledCount', { count: modCount })}
 				</span>
 			</div>
 			<ChevronRight size={14} class="quick-arrow" />
@@ -383,8 +387,8 @@
 		<button type="button" class="quick-card" onclick={handleOpenFolder}>
 			<div class="quick-icon"><FolderOpen size={16} /></div>
 			<div class="quick-text">
-				<span class="quick-title">Carpeta</span>
-				<span class="quick-sub">Archivos de la instancia</span>
+				<span class="quick-title">{t('instanceDetail.folder')}</span>
+				<span class="quick-sub">{t('instanceDetail.instanceFiles')}</span>
 			</div>
 			<ChevronRight size={14} class="quick-arrow" />
 		</button>
@@ -397,7 +401,7 @@
 			class:active={tab === 'details'}
 			onclick={() => (tab = 'details')}
 		>
-			Detalles
+			{t('instanceDetail.tabs.details')}
 		</button>
 		<button
 			type="button"
@@ -405,7 +409,7 @@
 			class:active={tab === 'mods'}
 			onclick={() => (tab = 'mods')}
 		>
-			Mods
+			{t('instanceDetail.tabs.mods')}
 		</button>
 		<button
 			type="button"
@@ -413,7 +417,7 @@
 			class:active={tab === 'shaders'}
 			onclick={() => (tab = 'shaders')}
 		>
-			Shaders
+			{t('instanceDetail.tabs.shaders')}
 		</button>
 		<button
 			type="button"
@@ -421,7 +425,7 @@
 			class:active={tab === 'resourcepacks'}
 			onclick={() => (tab = 'resourcepacks')}
 		>
-			Resource Packs
+			{t('instanceDetail.tabs.resourcePacks')}
 		</button>
 		<button
 			type="button"
@@ -429,7 +433,7 @@
 			class:active={tab === 'modpacks'}
 			onclick={() => (tab = 'modpacks')}
 		>
-			Modpacks
+			{t('instanceDetail.tabs.modpacks')}
 		</button>
 		<button
 			type="button"
@@ -437,25 +441,27 @@
 			class:active={tab === 'screenshots'}
 			onclick={() => (tab = 'screenshots')}
 		>
-			Capturas
+			{t('instanceDetail.tabs.screenshots')}
 		</button>
 	</div>
 
 	{#if tab === 'details'}
 		<section class="ram-section">
-			<span class="section-label">Memoria (esta instancia)</span>
+			<span class="section-label">{t('instanceDetail.ram.sectionLabel')}</span>
 			<p class="hint">
-				Vacío usa el valor global de Ajustes{ramRecommended
-					? ` (recomendado: ${ramRecommended} MB)`
-					: ''}.
+				{t('instanceDetail.ram.hint', {
+					recommended: ramRecommended
+						? t('instanceDetail.ram.recommendedSuffix', { mb: ramRecommended })
+						: ''
+				})}
 			</p>
 			<div class="ram-row">
 				<label>
-					Mínima (MB)
+					{t('settings.ram.min')}
 					<input
 						type="number"
 						value={instance.min_memory ?? ''}
-						placeholder="Global"
+						placeholder={t('instanceDetail.ram.globalPlaceholder')}
 						min="512"
 						step="256"
 						onchange={(e) => {
@@ -465,11 +471,11 @@
 					/>
 				</label>
 				<label>
-					Máxima (MB)
+					{t('settings.ram.max')}
 					<input
 						type="number"
 						value={instance.max_memory ?? ''}
-						placeholder="Global"
+						placeholder={t('instanceDetail.ram.globalPlaceholder')}
 						min="512"
 						step="256"
 						onchange={(e) => {
@@ -495,9 +501,9 @@
 
 {#if showDeleteConfirm}
 	<ConfirmDialog
-		title="Eliminar instancia"
-		message={`"${instance.name}" y todos sus archivos (mundos, mods, configs) se van a borrar. No se puede deshacer.`}
-		confirmLabel="Eliminar"
+		title={t('instanceDetail.deleteTitle')}
+		message={t('instanceDetail.deleteMessage', { name: instance.name })}
+		confirmLabel={t('instanceDetail.delete')}
 		danger
 		onConfirm={handleDelete}
 		onCancel={() => (showDeleteConfirm = false)}

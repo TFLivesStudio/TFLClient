@@ -3,6 +3,7 @@
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { invoke } from '@tauri-apps/api/core';
+	import { t, type TranslationKey } from '$lib/i18n/index.svelte';
 	import { Square, X, Loader2 } from 'lucide-svelte';
 
 	const instanceName =
@@ -52,7 +53,7 @@
 		try {
 			await invoke('stop_running_instance');
 		} catch (e) {
-			lines = [...lines, { stream: 'stderr', line: `No se pudo detener: ${e}` }];
+			lines = [...lines, { stream: 'stderr', line: t('instanceLogWindow.stopFailed', { error: String(e) }) }];
 		} finally {
 			stopping = false;
 		}
@@ -71,39 +72,42 @@
 	// abajo para quien lo necesite, esto es un cartel arriba con la
 	// explicación en criollo para los casos más comunes. Best-effort, no
 	// cubre absolutamente todo lo que puede fallar.
-	const KNOWN_ERRORS: { pattern: RegExp; message: string }[] = [
+	// Guarda la key de traducción (no el texto resuelto) para que, sin
+	// importar cuándo dispare el patrón, el mensaje salga en el idioma
+	// activo en ese momento — no en el que estaba activo cuando se montó
+	// el componente.
+	const KNOWN_ERRORS: { pattern: RegExp; key: TranslationKey }[] = [
 		{
 			pattern: /OutOfMemoryError|Java heap space/i,
-			message: 'Se quedó sin memoria RAM asignada — probá subir la RAM máxima en Ajustes.'
+			key: 'instanceLogWindow.errors.outOfMemory'
 		},
 		{
 			pattern: /UnsupportedClassVersionError/i,
-			message: 'Esta versión de Minecraft necesita una versión de Java más nueva que la instalada.'
+			key: 'instanceLogWindow.errors.unsupportedJavaVersion'
 		},
 		{
 			pattern: /Could not reserve enough space for( the)? object heap/i,
-			message: 'Le pediste más RAM de la que tiene disponible tu compu — bajá el máximo en Ajustes.'
+			key: 'instanceLogWindow.errors.insufficientSystemRam'
 		},
 		{
 			pattern: /A JNI error has occurred/i,
-			message: 'Conflicto entre mods, o una versión de Java incompatible con esta instancia.'
+			key: 'instanceLogWindow.errors.jniError'
 		},
 		{
 			pattern: /Mixin apply .*failed|MixinApplicatorStandard/i,
-			message: 'Un mod (mixin) chocó con otro — probá sacar el último mod que instalaste.'
+			key: 'instanceLogWindow.errors.mixinConflict'
 		},
 		{
 			pattern: /NoClassDefFoundError|ClassNotFoundException/i,
-			message: 'Falta una dependencia que un mod necesita — revisá si instalaste todo lo que pedía.'
+			key: 'instanceLogWindow.errors.missingDependency'
 		},
 		{
 			pattern: /DuplicateModsFoundException|duplicate mod/i,
-			message: 'Tenés el mismo mod instalado dos veces — revisá la lista de mods de la instancia.'
+			key: 'instanceLogWindow.errors.duplicateMod'
 		},
 		{
 			pattern: /A fatal error has been detected by the Java Runtime Environment/i,
-			message:
-				'La JVM crasheó de forma nativa (no es un error de un mod puntual) — puede ser drivers de video desactualizados, o falta de RAM real de la compu. Java dejó un hs_err_pid*.log con el detalle en la carpeta de la instancia.'
+			key: 'instanceLogWindow.errors.nativeCrash'
 		}
 	];
 
@@ -111,9 +115,9 @@
 
 	function checkForKnownError(line: string) {
 		if (friendlyError) return; // ya hay uno mostrado, no lo piso con otro
-		for (const { pattern, message } of KNOWN_ERRORS) {
+		for (const { pattern, key } of KNOWN_ERRORS) {
 			if (pattern.test(line)) {
-				friendlyError = message;
+				friendlyError = t(key);
 				return;
 			}
 		}
@@ -133,7 +137,7 @@
 				name: instanceName
 			});
 			if (crashSummary) {
-				friendlyError = `La JVM crasheó de forma nativa — resumen del reporte:\n${crashSummary}`;
+				friendlyError = t('instanceLogWindow.crashSummary', { summary: crashSummary });
 				return;
 			}
 		} catch {
@@ -141,10 +145,10 @@
 		}
 		friendlyError =
 			code === -9
-				? 'El sistema operativo cortó el juego por falta de memoria RAM (no solo la asignada al juego — memoria real de la compu). Cerrá otros programas o bajá la memoria máxima en Ajustes.'
+				? t('instanceLogWindow.exitOom')
 				: code === null
-					? 'El juego se cerró de golpe sin avisar — normalmente es el sistema operativo cortando el proceso por falta de RAM. Probá subir la memoria máxima en Ajustes.'
-					: `El juego se cerró con código ${code} sin un error reconocible en el log — con varios mods instalados, suele ser falta de RAM. Probá subir la memoria máxima en Ajustes.`;
+					? t('instanceLogWindow.exitNullCode')
+					: t('instanceLogWindow.exitOtherCode', { code });
 	}
 
 	onMount(async () => {
@@ -182,28 +186,30 @@
 			<h1>{instanceName}</h1>
 			<span class="status" class:exited={exitCode !== undefined}>
 				{#if exitCode === undefined}
-					Corriendo…
+					{t('instanceLogWindow.running')}
 				{:else}
-					Proceso finalizado{exitCode !== null ? ` (código ${exitCode})` : ''}
+					{t('instanceLogWindow.exited', {
+						codeSuffix: exitCode !== null ? t('instanceLogWindow.exitedCodeSuffix', { code: exitCode }) : ''
+					})}
 				{/if}
 				{#if stats}
-					· CPU {stats.cpu_percent.toFixed(0)}% · RAM {stats.memory_mb} MB
+					{t('instanceLogWindow.stats', { cpu: stats.cpu_percent.toFixed(0), ram: stats.memory_mb })}
 				{/if}
 			</span>
 		</div>
 		<div class="actions">
 			<button type="button" disabled={exitCode !== undefined || stopping} onclick={handleStop}>
 				{#if stopping}<Loader2 size={13} class="spin" />{:else}<Square size={13} />{/if}
-				Detener
+				{t('instanceLogWindow.stop')}
 			</button>
-			<button type="button" onclick={handleClose}><X size={13} /> Cerrar</button>
+			<button type="button" onclick={handleClose}><X size={13} /> {t('settings.close')}</button>
 		</div>
 	</header>
 
 	{#if friendlyError}
 		<div class="friendly-error">
 			<span>{friendlyError}</span>
-			<button type="button" onclick={() => (friendlyError = null)} aria-label="Cerrar aviso">✕</button>
+			<button type="button" onclick={() => (friendlyError = null)} aria-label={t('instanceLogWindow.closeNotice')}>✕</button>
 		</div>
 	{/if}
 
@@ -212,7 +218,7 @@
 			<div class="line" class:err={l.stream === 'stderr'}>{l.line}</div>
 		{/each}
 		{#if lines.length === 0}
-			<p class="empty">Esperando salida del juego…</p>
+			<p class="empty">{t('instanceLogWindow.waitingOutput')}</p>
 		{/if}
 	</div>
 </div>

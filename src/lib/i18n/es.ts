@@ -228,6 +228,83 @@ export const es = {
 		viewVersions: 'Ver versiones',
 		alreadyInstalled: 'Ya instalado',
 		noCompatibleVersions: 'No hay versiones compatibles con esta instancia.'
+	},
+	instanceDetail: {
+		changeIcon: 'Cambiar ícono de la instancia',
+		rename: 'Renombrar',
+		duplicate: 'Duplicar',
+		duplicateTitle: 'Duplicar instancia',
+		exportMrpack: 'Exportar como .mrpack',
+		verifyIntegrity: 'Verificar integridad',
+		delete: 'Eliminar',
+		deleteTitle: 'Eliminar instancia',
+		deleteMessage:
+			'"{{name}}" y todos sus archivos (mundos, mods, configs) se van a borrar. No se puede deshacer.',
+		exported: 'Exportado: {{path}}',
+		integrityOk: 'Todo en orden — no falta ningún archivo instalado.',
+		integrityMissing: 'Faltan {{count}} archivo{{plural}} que un modpack instaló: {{list}}',
+		neverPlayed: 'Nunca jugada',
+		playedToday: 'Hoy',
+		playedYesterday: 'Ayer',
+		playedDaysAgo: 'Hace {{days}} días',
+		preparing: 'Preparando…',
+		instanceRunning: '"{{name}}" está corriendo',
+		play: 'Jugar',
+		modsNotSupportedVanilla: 'No soportado en Vanilla',
+		loading: 'Cargando…',
+		modsInstalledCount: '{{count}} instalados',
+		folder: 'Carpeta',
+		instanceFiles: 'Archivos de la instancia',
+		tabs: {
+			details: 'Detalles',
+			mods: 'Mods',
+			shaders: 'Shaders',
+			resourcePacks: 'Resource Packs',
+			modpacks: 'Modpacks',
+			screenshots: 'Capturas'
+		},
+		ram: {
+			sectionLabel: 'Memoria (esta instancia)',
+			hint: 'Vacío usa el valor global de Ajustes{{recommended}}.',
+			recommendedSuffix: ' (recomendado: {{mb}} MB)',
+			globalPlaceholder: 'Global'
+		}
+	},
+	instanceIconPicker: {
+		title: 'Ícono de la instancia',
+		uploadOwn: 'Subir mi propia imagen',
+		autoModeNotice: 'Desactivado en modo Automático — activá "Manual" en Ajustes para usarlo.'
+	},
+	instanceLogWindow: {
+		stopFailed: 'No se pudo detener: {{error}}',
+		running: 'Corriendo…',
+		exited: 'Proceso finalizado{{codeSuffix}}',
+		exitedCodeSuffix: ' (código {{code}})',
+		stats: '· CPU {{cpu}}% · RAM {{ram}} MB',
+		stop: 'Detener',
+		closeNotice: 'Cerrar aviso',
+		waitingOutput: 'Esperando salida del juego…',
+		errors: {
+			outOfMemory: 'Se quedó sin memoria RAM asignada — probá subir la RAM máxima en Ajustes.',
+			unsupportedJavaVersion:
+				'Esta versión de Minecraft necesita una versión de Java más nueva que la instalada.',
+			insufficientSystemRam:
+				'Le pediste más RAM de la que tiene disponible tu compu — bajá el máximo en Ajustes.',
+			jniError: 'Conflicto entre mods, o una versión de Java incompatible con esta instancia.',
+			mixinConflict: 'Un mod (mixin) chocó con otro — probá sacar el último mod que instalaste.',
+			missingDependency:
+				'Falta una dependencia que un mod necesita — revisá si instalaste todo lo que pedía.',
+			duplicateMod: 'Tenés el mismo mod instalado dos veces — revisá la lista de mods de la instancia.',
+			nativeCrash:
+				'La JVM crasheó de forma nativa (no es un error de un mod puntual) — puede ser drivers de video desactualizados, o falta de RAM real de la compu. Java dejó un hs_err_pid*.log con el detalle en la carpeta de la instancia.'
+		},
+		crashSummary: 'La JVM crasheó de forma nativa — resumen del reporte:\n{{summary}}',
+		exitOom:
+			'El sistema operativo cortó el juego por falta de memoria RAM (no solo la asignada al juego — memoria real de la compu). Cerrá otros programas o bajá la memoria máxima en Ajustes.',
+		exitNullCode:
+			'El juego se cerró de golpe sin avisar — normalmente es el sistema operativo cortando el proceso por falta de RAM. Probá subir la memoria máxima en Ajustes.',
+		exitOtherCode:
+			'El juego se cerró con código {{code}} sin un error reconocible en el log — con varios mods instalados, suele ser falta de RAM. Probá subir la memoria máxima en Ajustes.'
 	}
 };
 

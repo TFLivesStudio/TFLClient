@@ -231,5 +231,82 @@ export const en: Dictionary = {
 		viewVersions: 'View versions',
 		alreadyInstalled: 'Already installed',
 		noCompatibleVersions: 'No versions compatible with this instance.'
+	},
+	instanceDetail: {
+		changeIcon: 'Change instance icon',
+		rename: 'Rename',
+		duplicate: 'Duplicate',
+		duplicateTitle: 'Duplicate instance',
+		exportMrpack: 'Export as .mrpack',
+		verifyIntegrity: 'Verify integrity',
+		delete: 'Delete',
+		deleteTitle: 'Delete instance',
+		deleteMessage:
+			'"{{name}}" and all its files (worlds, mods, configs) will be deleted. This cannot be undone.',
+		exported: 'Exported: {{path}}',
+		integrityOk: 'Everything is fine — no installed file is missing.',
+		integrityMissing: 'Missing {{count}} file{{plural}} installed by a modpack: {{list}}',
+		neverPlayed: 'Never played',
+		playedToday: 'Today',
+		playedYesterday: 'Yesterday',
+		playedDaysAgo: '{{days}} days ago',
+		preparing: 'Preparing…',
+		instanceRunning: '"{{name}}" is running',
+		play: 'Play',
+		modsNotSupportedVanilla: 'Not supported in Vanilla',
+		loading: 'Loading…',
+		modsInstalledCount: '{{count}} installed',
+		folder: 'Folder',
+		instanceFiles: 'Instance files',
+		tabs: {
+			details: 'Details',
+			mods: 'Mods',
+			shaders: 'Shaders',
+			resourcePacks: 'Resource Packs',
+			modpacks: 'Modpacks',
+			screenshots: 'Screenshots'
+		},
+		ram: {
+			sectionLabel: 'Memory (this instance)',
+			hint: 'Empty uses the global value from Settings{{recommended}}.',
+			recommendedSuffix: ' (recommended: {{mb}} MB)',
+			globalPlaceholder: 'Global'
+		}
+	},
+	instanceIconPicker: {
+		title: 'Instance icon',
+		uploadOwn: 'Upload my own image',
+		autoModeNotice: 'Disabled in Automatic mode — enable "Manual" in Settings to use it.'
+	},
+	instanceLogWindow: {
+		stopFailed: 'Could not stop: {{error}}',
+		running: 'Running…',
+		exited: 'Process finished{{codeSuffix}}',
+		exitedCodeSuffix: ' (code {{code}})',
+		stats: '· CPU {{cpu}}% · RAM {{ram}} MB',
+		stop: 'Stop',
+		closeNotice: 'Close notice',
+		waitingOutput: 'Waiting for game output…',
+		errors: {
+			outOfMemory: 'Ran out of allocated RAM — try raising the maximum RAM in Settings.',
+			unsupportedJavaVersion:
+				'This Minecraft version needs a newer Java version than the one installed.',
+			insufficientSystemRam:
+				'You asked for more RAM than your computer has available — lower the maximum in Settings.',
+			jniError: 'A conflict between mods, or a Java version incompatible with this instance.',
+			mixinConflict: 'A mod (mixin) clashed with another — try removing the last mod you installed.',
+			missingDependency:
+				'A mod is missing a dependency it needs — check whether you installed everything it required.',
+			duplicateMod: "You have the same mod installed twice — check the instance's mod list.",
+			nativeCrash:
+				'The JVM crashed natively (not a specific mod error) — could be outdated video drivers, or not enough real RAM on the computer. Java left an hs_err_pid*.log with details in the instance folder.'
+		},
+		crashSummary: 'The JVM crashed natively — report summary:\n{{summary}}',
+		exitOom:
+			"The operating system cut off the game due to lack of RAM (not just what's assigned to the game — the computer's actual memory). Close other programs or lower the maximum memory in Settings.",
+		exitNullCode:
+			'The game closed abruptly without warning — usually the operating system cutting off the process due to lack of RAM. Try raising the maximum memory in Settings.',
+		exitOtherCode:
+			'The game closed with code {{code}} without a recognizable error in the log — with several mods installed, this is usually a lack of RAM. Try raising the maximum memory in Settings.'
 	}
 };

@@ -3,6 +3,7 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { pickImageFile, setInstanceIcon } from '$lib/api/tflApi';
 	import { appState } from '$lib/state/state.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 	import { X, Upload, Check, Loader2 } from 'lucide-svelte';
 
 	let {
@@ -96,8 +97,8 @@
 		tabindex="-1"
 	>
 		<div class="panel-header">
-			<h2>Ícono de la instancia</h2>
-			<button type="button" class="close-btn" onclick={onClose} aria-label="Cerrar">
+			<h2>{t('instanceIconPicker.title')}</h2>
+			<button type="button" class="close-btn" onclick={onClose} aria-label={t('settings.close')}>
 				<X size={16} />
 			</button>
 		</div>
@@ -106,14 +107,14 @@
 			type="button"
 			class="upload-btn"
 			disabled={busy === 'upload' || dialogsBlocked}
-			title={dialogsBlocked ? 'Activá el modo Manual en Ajustes para usar esto' : undefined}
+			title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
 			onclick={uploadOwn}
 		>
 			{#if busy === 'upload'}<Loader2 size={14} class="spin" />{:else}<Upload size={14} />{/if}
-			Subir mi propia imagen
+			{t('instanceIconPicker.uploadOwn')}
 		</button>
 		{#if dialogsBlocked}
-			<p class="mac-notice">Desactivado en modo Automático — activá "Manual" en Ajustes para usarlo.</p>
+			<p class="mac-notice">{t('instanceIconPicker.autoModeNotice')}</p>
 		{/if}
 
 		{#if error}<p class="error">{error}</p>{/if}
