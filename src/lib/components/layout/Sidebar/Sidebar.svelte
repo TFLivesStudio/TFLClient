@@ -289,6 +289,17 @@
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
+		/* Mejor hipótesis para la "barra que parpadea arriba de cuentas" al
+		   pasar el cursor rápido por varias instancias, sin poder confirmar
+		   con una captura: la scrollbar nativa de esta lista (justo arriba
+		   de .user-chip) aparece/desaparece en el hover del contenedor en
+		   algunos navegadores/SO. Se oculta visualmente, el scroll sigue
+		   andando igual — mismo patrón que .tabs en InstanceDetail.svelte. */
+		scrollbar-width: none;
+	}
+
+	.instance-list::-webkit-scrollbar {
+		display: none;
 	}
 
 	.empty {
