@@ -2,6 +2,7 @@
 	import { appState } from '$lib/state/state.svelte';
 	import { updateSettings } from '$lib/api/tflApi';
 	import { Zap, FolderOpen, X } from 'lucide-svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let {
 		variant,
@@ -39,26 +40,24 @@
 {#if variant === 'modal'}
 	<div class="overlay">
 		<div class="card" role="dialog" aria-modal="true">
-			<h1>¿Cómo querés instalar contenido propio?</h1>
+			<h1>{t('nativeDialogModePrompt.title')}</h1>
 			<p class="lead">
-				Esto define si vas a poder subir tu propio ícono/wallpaper o agregar mods por archivo a
-				mano. Lo podés cambiar cuando quieras desde Ajustes.
+				{t('nativeDialogModePrompt.lead')}
 			</p>
 			<div class="options">
 				<button type="button" class="option primary" disabled={!!busy} onclick={() => choose('auto')}>
 					<span class="option-icon"><Zap size={18} /></span>
 					<span class="option-text">
-						<span class="option-title">Automático (recomendado)</span>
-						<span class="option-sub">Todo se instala solo — sin diálogos de archivo, sin riesgo de crash.</span>
+						<span class="option-title">{t('nativeDialogModePrompt.autoRecommended')}</span>
+						<span class="option-sub">{t('nativeDialogModePrompt.autoSub')}</span>
 					</span>
 				</button>
 				<button type="button" class="option" disabled={!!busy} onclick={() => choose('manual')}>
 					<span class="option-icon"><FolderOpen size={18} /></span>
 					<span class="option-text">
-						<span class="option-title">Manual</span>
+						<span class="option-title">{t('settings.dialogs.manual')}</span>
 						<span class="option-sub">
-							Habilita subir tu propio ícono/wallpaper y mods por archivo — en algunos casos
-							puede cerrar el launcher de golpe.
+							{t('nativeDialogModePrompt.manualSub')}
 						</span>
 					</span>
 				</button>
@@ -69,19 +68,19 @@
 {:else}
 	<div class="banner">
 		<div class="banner-body">
-			<span class="banner-title">¿Cómo querés instalar contenido propio?</span>
-			<span class="banner-sub">Automático: sin diálogos de archivo. Manual: los habilita, con riesgo de crash.</span>
+			<span class="banner-title">{t('nativeDialogModePrompt.title')}</span>
+			<span class="banner-sub">{t('nativeDialogModePrompt.bannerSub')}</span>
 			<div class="banner-actions">
-				<button type="button" disabled={!!busy} onclick={() => choose('auto')}>Automático</button>
-				<button type="button" disabled={!!busy} onclick={() => choose('manual')}>Manual</button>
+				<button type="button" disabled={!!busy} onclick={() => choose('auto')}>{t('settings.dialogs.auto')}</button>
+				<button type="button" disabled={!!busy} onclick={() => choose('manual')}>{t('settings.dialogs.manual')}</button>
 			</div>
 			{#if error}<p class="prompt-error">{error}</p>{/if}
 		</div>
 		<button
 			type="button"
 			class="banner-close"
-			aria-label="Cerrar sin elegir todavía"
-			title="Cerrar sin elegir — se vuelve a preguntar la próxima vez"
+			aria-label={t('nativeDialogModePrompt.dismissAriaLabel')}
+			title={t('nativeDialogModePrompt.dismissTitle')}
 			disabled={!!busy}
 			onclick={() => onDismiss?.()}
 		>

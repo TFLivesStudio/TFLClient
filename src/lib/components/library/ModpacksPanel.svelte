@@ -11,6 +11,7 @@
 		removeModpack
 	} from '$lib/api/tflApi';
 	import { Search, Download, Trash2, Loader2, Package, RefreshCw } from 'lucide-svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let { instance }: { instance: InstanceData } = $props();
 
@@ -114,12 +115,11 @@
 <div class="modpacks-panel">
 	{#if instance.loader === 'vanilla'}
 		<p class="hint">
-			Vanilla no soporta modpacks — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.
+			{t('modpacksPanel.vanillaNotSupported')}
 		</p>
 	{:else}
 		<p class="hint">
-			Instalar un modpack agrega sus mods y configuración a esta instancia — no reemplaza lo que
-			ya tenías. Quitarlo borra exactamente lo que trajo, nada más.
+			{t('modpacksPanel.hint')}
 		</p>
 
 		<div class="search-row">
@@ -128,7 +128,7 @@
 			{:else}
 				<Search size={14} class="search-icon" />
 			{/if}
-			<input type="text" bind:value={query} placeholder="Buscar modpacks en Modrinth…" />
+			<input type="text" bind:value={query} placeholder={t('contentManager.searchPlaceholder', { noun: 'modpacks' })} />
 		</div>
 
 		{#if error}
@@ -137,7 +137,7 @@
 
 		{#if installed.length > 0}
 			<div class="installed">
-				<span class="section-label">Instalados ({installed.length})</span>
+				<span class="section-label">{t('modpacksPanel.installedCount', { count: installed.length })}</span>
 				{#each installed as pack (pack.version_id)}
 					<div class="installed-row">
 						<Package size={13} class="pack-icon" />
@@ -154,7 +154,7 @@
 								{:else}
 									<RefreshCw size={12} />
 								{/if}
-								Actualizar
+								{t('modpacksPanel.update')}
 							</button>
 						{/if}
 						<button
@@ -162,7 +162,7 @@
 							class="icon-btn"
 							disabled={removingId === pack.version_id}
 							onclick={() => handleRemove(pack.version_id)}
-							aria-label="Quitar"
+							aria-label={t('contentManager.remove')}
 						>
 							{#if removingId === pack.version_id}
 								<Loader2 size={13} class="spin" />
@@ -177,7 +177,7 @@
 
 		{#if results.length > 0}
 			<div class="results">
-				<span class="section-label">Resultados</span>
+				<span class="section-label">{t('contentManager.results')}</span>
 				{#each results as pack (pack.project_id)}
 					<div class="mod-card anim-fade-in">
 						{#if pack.icon_url}

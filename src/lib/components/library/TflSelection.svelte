@@ -9,6 +9,7 @@
 	} from '$lib/api/tflApi';
 	import { X, Download, Loader2, Check } from 'lucide-svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let {
 		instances,
@@ -61,11 +62,20 @@
 			}
 			if (!labels.has(key)) labels.set(key, e.category!.trim());
 		}
-		const result = [{ key: 'all', label: 'Todos' }];
+		const result: { key: string; label: string }[] = [{ key: 'all', label: '' }];
 		for (const [key, label] of labels) result.push({ key, label });
-		if (hasGeneral) result.push({ key: GENERAL_TAB, label: 'General' });
+		if (hasGeneral) result.push({ key: GENERAL_TAB, label: '' });
 		return result;
 	});
+
+	// "all" y "general" son pestañas sintéticas del propio launcher (su
+	// etiqueta se traduce con t()); el resto viene de `entry.category`, texto
+	// libre puesto por quien publica el repo — eso nunca se traduce.
+	function tabLabel(tab: { key: string; label: string }): string {
+		if (tab.key === 'all') return t('tflSelection.allTab');
+		if (tab.key === GENERAL_TAB) return t('settings.tabs.general');
+		return tab.label;
+	}
 
 	const visibleEntries = $derived(
 		activeTab === 'all' ? entries : entries.filter((e) => categoryKey(e) === activeTab)
@@ -91,7 +101,7 @@
 		if (entry.source !== 'community') return [];
 		return entry.versions.map((v) => ({
 			value: `${NEW_PREFIX}${v.mc_version}:${v.loader}`,
-			label: `＋ Crear instancia nueva — ${v.mc_version} (${v.loader})`
+			label: t('tflSelection.createNewOption', { mcVersion: v.mc_version, loader: v.loader })
 		}));
 	}
 
@@ -126,7 +136,7 @@
 				const variant = entry.versions.find(
 					(v) => v.mc_version === mcVersion && v.loader === loader
 				);
-				if (!variant) throw new Error('No hay un build de este pack para esa versión');
+				if (!variant) throw new Error(t('tflSelection.noVersionBuild'));
 				const baseName =
 					entry.versions.length > 1 ? `${entry.title} (${mcVersion})` : entry.title;
 				instance = await createInstance(uniqueInstanceName(baseName), mcVersion, loader as Loader);
@@ -143,7 +153,7 @@
 				const variant = entry.versions.find(
 					(v) => v.loader === instance.loader && v.mc_version === instance.mc_version
 				);
-				if (!variant) throw new Error('No hay un build de este pack para esa instancia');
+				if (!variant) throw new Error(t('tflSelection.noInstanceBuild'));
 				await installModpackFromUrl(instance.name, entry.id, variant.mrpack_url);
 			}
 			doneFor = new Set(doneFor).add(entry.id);
@@ -188,19 +198,19 @@
 				<Tfl width="18" height="18" />
 				<h2>TFL Selection</h2>
 			</div>
-			<button type="button" class="close-btn" onclick={onClose} aria-label="Cerrar">
+			<button type="button" class="close-btn" onclick={onClose} aria-label={t('settings.close')}>
 				<X size={16} />
 			</button>
 		</div>
 		<div class="selection-hero">
 			<div class="hero-mark"><Tfl width="28" height="28" /></div>
-			<div><span class="eyebrow">Contenido destacado</span><p class="subtitle">Descubrí packs curados y añadilos a una instancia compatible, o creá una nueva al toque.</p></div>
+			<div><span class="eyebrow">{t('tflSelection.eyebrow')}</span><p class="subtitle">{t('tflSelection.subtitle')}</p></div>
 		</div>
 
 		{#if loading}
 			<div class="loading-row"><Loader2 size={18} class="spin" /></div>
 		{:else if entries.length === 0}
-			<p class="empty">Todavía no hay modpacks en la selección.</p>
+			<p class="empty">{t('tflSelection.empty')}</p>
 		{:else}
 			{#if tabs.length > 2}
 				<div class="tabs">
@@ -211,7 +221,7 @@
 							class:active={activeTab === tab.key}
 							onclick={() => (activeTab = tab.key)}
 						>
-							{tab.label}
+							{tabLabel(tab)}
 						</button>
 					{/each}
 				</div>
@@ -239,8 +249,8 @@
 							{#if noOptions}
 								<p class="entry-error">
 									{entry.source === 'modrinth'
-										? 'Necesitás una instancia con Fabric, Forge, NeoForge o Quilt para instalar este pack.'
-										: 'Ninguna instancia tuya coincide con las versiones de este pack.'}
+										? t('tflSelection.needsLoaderInstance')
+										: t('tflSelection.noMatchingInstance')}
 								</p>
 							{:else if errorFor[entry.id]}
 								<p class="entry-error">{errorFor[entry.id]}</p>
@@ -261,7 +271,7 @@
 								disabled={installingFor === entry.id || noOptions}
 								onclick={() => handleInstall(entry)}
 							>
-								<span class="install-label">{doneFor.has(entry.id) ? 'Añadido' : 'Añadir'}</span>
+								<span class="install-label">{doneFor.has(entry.id) ? t('tflSelection.added') : t('tflSelection.add')}</span>
 								{#if installingFor === entry.id}
 									<Loader2 size={14} class="spin" />
 								{:else if doneFor.has(entry.id)}

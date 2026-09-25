@@ -6,6 +6,7 @@
 	import type { InstanceData, ScreenshotInfo } from '$lib/types/types';
 	import { getInstanceScreenshots, deleteScreenshot, openScreenshotsFolder } from '$lib/api/tflApi';
 	import { FolderOpen, Trash2, X, ImageOff, Copy, Check } from 'lucide-svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let { instance }: { instance: InstanceData } = $props();
 
@@ -76,11 +77,10 @@
 <div class="screenshots-panel">
 	<div class="toolbar">
 		<p class="hint">
-			Capturas de esta instancia (F2 en el juego las guarda acá). El launcher no saca capturas por
-			sí mismo, solo las muestra y las administra.
+			{t('screenshotsPanel.hint')}
 		</p>
 		<button type="button" class="folder-btn" onclick={() => openScreenshotsFolder(instance.name)}>
-			<FolderOpen size={13} /> Abrir carpeta
+			<FolderOpen size={13} /> {t('screenshotsPanel.openFolder')}
 		</button>
 	</div>
 
@@ -89,11 +89,11 @@
 	{/if}
 
 	{#if loading}
-		<p class="hint">Cargando…</p>
+		<p class="hint">{t('instanceDetail.loading')}</p>
 	{:else if shots.length === 0}
 		<div class="empty">
 			<ImageOff size={22} />
-			<p>Sin capturas todavía. Jugá y presioná F2 para guardar una.</p>
+			<p>{t('screenshotsPanel.empty')}</p>
 		</div>
 	{:else}
 		<div class="grid">
@@ -112,7 +112,7 @@
 							type="button"
 							class="thumb-action-btn"
 							onclick={(e) => handleCopy(shot, e)}
-							aria-label="Copiar imagen"
+							aria-label={t('screenshotsPanel.copyImage')}
 						>
 							{#if copiedFilename === shot.filename}<Check size={12} />{:else}<Copy size={12} />{/if}
 						</button>
@@ -120,7 +120,7 @@
 							type="button"
 							class="thumb-action-btn thumb-action-danger"
 							onclick={(e) => handleDelete(shot, e)}
-							aria-label="Borrar"
+							aria-label={t('screenshotsPanel.delete')}
 						>
 							<Trash2 size={12} />
 						</button>
@@ -140,10 +140,10 @@
 		tabindex="-1"
 	>
 		<div class="lightbox-actions">
-			<button type="button" class="lightbox-btn" onclick={(e) => handleCopy(preview!, e)} aria-label="Copiar imagen">
+			<button type="button" class="lightbox-btn" onclick={(e) => handleCopy(preview!, e)} aria-label={t('screenshotsPanel.copyImage')}>
 				{#if copiedFilename === preview.filename}<Check size={16} />{:else}<Copy size={16} />{/if}
 			</button>
-			<button type="button" class="lightbox-btn" onclick={() => (preview = null)} aria-label="Cerrar">
+			<button type="button" class="lightbox-btn" onclick={() => (preview = null)} aria-label={t('settings.close')}>
 				<X size={18} />
 			</button>
 		</div>

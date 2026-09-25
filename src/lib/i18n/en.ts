@@ -308,5 +308,48 @@ export const en: Dictionary = {
 			'The game closed abruptly without warning — usually the operating system cutting off the process due to lack of RAM. Try raising the maximum memory in Settings.',
 		exitOtherCode:
 			'The game closed with code {{code}} without a recognizable error in the log — with several mods installed, this is usually a lack of RAM. Try raising the maximum memory in Settings.'
+	},
+	nativeDialogModePrompt: {
+		title: 'How do you want to install your own content?',
+		lead: 'This determines whether you can upload your own icon/wallpaper or add mods from a file by hand. You can change it anytime from Settings.',
+		autoRecommended: 'Automatic (recommended)',
+		autoSub: 'Everything installs itself — no file dialogs, no crash risk.',
+		manualSub:
+			'Enables uploading your own icon/wallpaper and mods from a file — in some cases it can close the launcher abruptly.',
+		bannerSub: 'Automatic: no file dialogs. Manual: enables them, with crash risk.',
+		dismissAriaLabel: 'Close without choosing yet',
+		dismissTitle: 'Close without choosing — you will be asked again next time'
+	},
+	screenshotsPanel: {
+		hint: "Screenshots for this instance (F2 in-game saves them here). The launcher doesn't take screenshots on its own, it only shows and manages them.",
+		openFolder: 'Open folder',
+		empty: 'No screenshots yet. Play and press F2 to save one.',
+		copyImage: 'Copy image',
+		delete: 'Delete'
+	},
+	tflSelection: {
+		eyebrow: 'Featured content',
+		subtitle: 'Discover curated packs and add them to a compatible instance, or create a new one on the spot.',
+		allTab: 'All',
+		empty: 'No modpacks in the selection yet.',
+		createNewOption: '＋ Create new instance — {{mcVersion}} ({{loader}})',
+		needsLoaderInstance: 'You need an instance with Fabric, Forge, NeoForge or Quilt to install this pack.',
+		noMatchingInstance: "None of your instances match this pack's versions.",
+		added: 'Added',
+		add: 'Add',
+		noVersionBuild: 'There is no build of this pack for that version',
+		noInstanceBuild: 'There is no build of this pack for that instance'
+	},
+	modpacksPanel: {
+		vanillaNotSupported: 'Vanilla does not support modpacks — choose Fabric, Forge, NeoForge or Quilt when creating the instance.',
+		hint: 'Installing a modpack adds its mods and configuration to this instance — it does not replace what you already had. Removing it deletes exactly what it brought, nothing more.',
+		installedCount: 'Installed ({{count}})',
+		update: 'Update'
+	},
+	shadersPanel: {
+		qualityLabel: 'Graphics quality (quick)',
+		presetLow: 'Low',
+		presetMedium: 'Medium',
+		presetHigh: 'High'
 	}
 };

@@ -3,17 +3,20 @@
 	import { installShader } from '$lib/api/tflApi';
 	import ContentManager from './ContentManager.svelte';
 	import { Loader2 } from 'lucide-svelte';
+	import { t, type TranslationKey } from '$lib/i18n/index.svelte';
 
 	let { instance }: { instance: InstanceData } = $props();
 
 	// 3 opciones fijas en vez de tener que buscar y elegir un shader pack a
 	// mano — project_id reales de Modrinth, verificados en vivo, no
 	// inventados. Cada uno queda instalado como cualquier otro shader (se
-	// puede sacar desde "Gestionar" como siempre).
-	const GRAPHICS_PRESETS = [
-		{ label: 'Bajo', projectId: 'izsIPI7a' }, // MakeUp - Ultra Fast
-		{ label: 'Medio', projectId: 'HVnmMxH1' }, // Complementary Shaders - Reimagined
-		{ label: 'Alto', projectId: 'R6NEzAwj' } // Complementary Shaders - Unbound
+	// puede sacar desde "Gestionar" como siempre). `labelKey` se resuelve con
+	// t() recién en el {#each} para no romper la reactividad al cambiar de
+	// idioma en vivo.
+	const GRAPHICS_PRESETS: { labelKey: TranslationKey; projectId: string }[] = [
+		{ labelKey: 'shadersPanel.presetLow', projectId: 'izsIPI7a' }, // MakeUp - Ultra Fast
+		{ labelKey: 'shadersPanel.presetMedium', projectId: 'HVnmMxH1' }, // Complementary Shaders - Reimagined
+		{ labelKey: 'shadersPanel.presetHigh', projectId: 'R6NEzAwj' } // Complementary Shaders - Unbound
 	];
 
 	let installingPreset = $state<string | null>(null);
@@ -39,7 +42,7 @@
 
 <div class="shaders-panel">
 	<div class="presets-row">
-		<span class="section-label">Calidad gráfica (rápido)</span>
+		<span class="section-label">{t('shadersPanel.qualityLabel')}</span>
 		<div class="presets">
 			{#each GRAPHICS_PRESETS as preset (preset.projectId)}
 				<button
@@ -49,7 +52,7 @@
 					onclick={() => installPreset(preset.projectId)}
 				>
 					{#if installingPreset === preset.projectId}<Loader2 size={13} class="spin" />{/if}
-					{preset.label}
+					{t(preset.labelKey)}
 				</button>
 			{/each}
 		</div>

@@ -305,6 +305,49 @@ export const es = {
 			'El juego se cerró de golpe sin avisar — normalmente es el sistema operativo cortando el proceso por falta de RAM. Probá subir la memoria máxima en Ajustes.',
 		exitOtherCode:
 			'El juego se cerró con código {{code}} sin un error reconocible en el log — con varios mods instalados, suele ser falta de RAM. Probá subir la memoria máxima en Ajustes.'
+	},
+	nativeDialogModePrompt: {
+		title: '¿Cómo querés instalar contenido propio?',
+		lead: 'Esto define si vas a poder subir tu propio ícono/wallpaper o agregar mods por archivo a mano. Lo podés cambiar cuando quieras desde Ajustes.',
+		autoRecommended: 'Automático (recomendado)',
+		autoSub: 'Todo se instala solo — sin diálogos de archivo, sin riesgo de crash.',
+		manualSub:
+			'Habilita subir tu propio ícono/wallpaper y mods por archivo — en algunos casos puede cerrar el launcher de golpe.',
+		bannerSub: 'Automático: sin diálogos de archivo. Manual: los habilita, con riesgo de crash.',
+		dismissAriaLabel: 'Cerrar sin elegir todavía',
+		dismissTitle: 'Cerrar sin elegir — se vuelve a preguntar la próxima vez'
+	},
+	screenshotsPanel: {
+		hint: 'Capturas de esta instancia (F2 en el juego las guarda acá). El launcher no saca capturas por sí mismo, solo las muestra y las administra.',
+		openFolder: 'Abrir carpeta',
+		empty: 'Sin capturas todavía. Jugá y presioná F2 para guardar una.',
+		copyImage: 'Copiar imagen',
+		delete: 'Borrar'
+	},
+	tflSelection: {
+		eyebrow: 'Contenido destacado',
+		subtitle: 'Descubrí packs curados y añadilos a una instancia compatible, o creá una nueva al toque.',
+		allTab: 'Todos',
+		empty: 'Todavía no hay modpacks en la selección.',
+		createNewOption: '＋ Crear instancia nueva — {{mcVersion}} ({{loader}})',
+		needsLoaderInstance: 'Necesitás una instancia con Fabric, Forge, NeoForge o Quilt para instalar este pack.',
+		noMatchingInstance: 'Ninguna instancia tuya coincide con las versiones de este pack.',
+		added: 'Añadido',
+		add: 'Añadir',
+		noVersionBuild: 'No hay un build de este pack para esa versión',
+		noInstanceBuild: 'No hay un build de este pack para esa instancia'
+	},
+	modpacksPanel: {
+		vanillaNotSupported: 'Vanilla no soporta modpacks — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.',
+		hint: 'Instalar un modpack agrega sus mods y configuración a esta instancia — no reemplaza lo que ya tenías. Quitarlo borra exactamente lo que trajo, nada más.',
+		installedCount: 'Instalados ({{count}})',
+		update: 'Actualizar'
+	},
+	shadersPanel: {
+		qualityLabel: 'Calidad gráfica (rápido)',
+		presetLow: 'Bajo',
+		presetMedium: 'Medio',
+		presetHigh: 'Alto'
 	}
 };
 
