@@ -3,6 +3,7 @@
 	import { getAvailableVersions, createInstance } from '$lib/api/tflApi';
 	import type { InstanceData, MinecraftVersion, Loader } from '$lib/types/types';
 	import { Loader2 } from 'lucide-svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let {
 		onClose,
@@ -89,21 +90,21 @@
 		aria-modal="true"
 		tabindex="-1"
 	>
-		<h2>Nueva instancia</h2>
+		<h2>{t('createInstance.title')}</h2>
 
-		<label for="instance-name">Nombre</label>
+		<label for="instance-name">{t('createInstance.nameLabel')}</label>
 		<input
 			id="instance-name"
 			type="text"
 			bind:value={name}
-			placeholder="Mi mundo"
+			placeholder={t('createInstance.namePlaceholder')}
 			autocomplete="off"
 		/>
 
-		<label for="instance-version">Versión de Minecraft</label>
+		<label for="instance-version">{t('createInstance.versionLabel')}</label>
 		{#if loadingVersions}
 			<div class="loading">
-				<Loader2 size={16} class="spin" /> Cargando versiones…
+				<Loader2 size={16} class="spin" /> {t('createInstance.loadingVersions')}
 			</div>
 		{:else}
 			<select id="instance-version" bind:value={selectedVersion}>
@@ -116,11 +117,11 @@
 		{#if selectedLoader === 'vanilla'}
 			<label class="checkbox-row">
 				<input type="checkbox" bind:checked={showExperimental} />
-				Mostrar versiones experimentales (snapshots, pre-releases, release candidates)
+				{t('createInstance.experimentalToggle')}
 			</label>
 		{/if}
 
-		<label for="instance-loader">Loader</label>
+		<label for="instance-loader">{t('createInstance.loaderLabel')}</label>
 		<div class="loader-grid" id="instance-loader">
 			{#each LOADERS as l (l.id)}
 				<button
@@ -136,17 +137,14 @@
 			{/each}
 		</div>
 
-		<p class="hint">
-			La versión del loader (Fabric/Forge/NeoForge/Quilt) se resuelve sola — la más
-			reciente/recomendada para esta versión de Minecraft.
-		</p>
+		<p class="hint">{t('createInstance.loaderHint')}</p>
 
 		{#if error}
 			<p class="error">{error}</p>
 		{/if}
 
 		<div class="actions">
-			<button type="button" class="btn" onclick={onClose}>Cancelar</button>
+			<button type="button" class="btn" onclick={onClose}>{t('common.cancel')}</button>
 			<button
 				type="button"
 				class="btn primary"
@@ -154,7 +152,7 @@
 				onclick={handleCreate}
 			>
 				{#if creating}<Loader2 size={16} class="spin" />{/if}
-				Crear
+				{t('createInstance.create')}
 			</button>
 		</div>
 	</div>

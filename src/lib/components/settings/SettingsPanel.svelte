@@ -5,6 +5,7 @@
 	import { check as checkForUpdate, type Update } from '@tauri-apps/plugin-updater';
 	import { relaunch } from '@tauri-apps/plugin-process';
 	import { appState } from '$lib/state/state.svelte';
+	import { t, i18nState, setLocale } from '$lib/i18n/index.svelte';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { MASCOTS, getMascotFor, setMascotFor, type MascotId } from '$lib/mascots';
 	import {
@@ -495,6 +496,14 @@
 
 		<div class="panel-body">
 			{#if tab === 'general'}
+				<section>
+					<span class="section-label">{t('settings.language')}</span>
+					<div class="row">
+						<button type="button" class="choice" class:active={i18nState.locale === 'es'} onclick={() => setLocale('es')}>Español</button>
+						<button type="button" class="choice" class:active={i18nState.locale === 'en'} onclick={() => setLocale('en')}>English</button>
+					</div>
+				</section>
+
 				<section>
 					<span class="section-label">Tema</span>
 					<div class="row">

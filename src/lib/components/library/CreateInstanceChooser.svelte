@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { SlidersHorizontal, PackageOpen, ChevronRight } from 'lucide-svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let {
 		onClose,
@@ -29,29 +30,29 @@
 		aria-modal="true"
 		tabindex="-1"
 	>
-		<h2>Nueva instancia</h2>
-		<p class="subtitle">¿Cómo la querés armar?</p>
+		<h2>{t('createInstance.title')}</h2>
+		<p class="subtitle">{t('createInstance.chooserSubtitle')}</p>
 
 		<div class="choices">
 			<button type="button" class="choice-card" onclick={onChooseCustom}>
 				<span class="choice-icon"><SlidersHorizontal size={22} /></span>
 				<span class="choice-text">
-					<span class="choice-title">Personalizada</span>
-					<span class="choice-desc">Creá tu propia instancia con los mods que vos elijas.</span>
+					<span class="choice-title">{t('createInstance.customTitle')}</span>
+					<span class="choice-desc">{t('createInstance.customDesc')}</span>
 				</span>
 				<ChevronRight size={16} class="choice-arrow" />
 			</button>
 			<button type="button" class="choice-card" onclick={onChooseModpack}>
 				<span class="choice-icon"><PackageOpen size={22} /></span>
 				<span class="choice-text">
-					<span class="choice-title">Modpack</span>
-					<span class="choice-desc">Descargá una instancia ya armada de TFL Selection.</span>
+					<span class="choice-title">{t('createInstance.modpackTitle')}</span>
+					<span class="choice-desc">{t('createInstance.modpackDesc')}</span>
 				</span>
 				<ChevronRight size={16} class="choice-arrow" />
 			</button>
 		</div>
 
-		<button type="button" class="cancel-btn" onclick={onClose}>Cancelar</button>
+		<button type="button" class="cancel-btn" onclick={onClose}>{t('common.cancel')}</button>
 	</div>
 </div>
 

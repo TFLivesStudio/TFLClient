@@ -3,6 +3,7 @@
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { getMascotFor } from '$lib/mascots';
 	import { network } from '$lib/state/network.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
 	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes, Sparkles, WifiOff } from 'lucide-svelte';
 
@@ -78,14 +79,14 @@
 	{#if !network.online}
 		<div class="offline-badge">
 			<WifiOff size={12} />
-			<span>Sin conexión — jugá lo que ya tenés instalado</span>
+			<span>{t('sidebar.offline')}</span>
 		</div>
 	{/if}
 
 	<div class="instances">
 		<div class="section-label">
-			<span>Tus instancias</span>
-			<button type="button" class="create-btn" onclick={onCreate} aria-label="Crear instancia">
+			<span>{t('sidebar.yourInstances')}</span>
+			<button type="button" class="create-btn" onclick={onCreate} aria-label={t('sidebar.createInstance')}>
 				<Plus size={14} strokeWidth={2.25} />
 			</button>
 		</div>
@@ -93,7 +94,7 @@
 		{#if instances.length > 0}
 			<div class="search-box">
 				<Search size={13} />
-				<input type="text" placeholder="Buscar…" bind:value={query} />
+				<input type="text" placeholder={t('sidebar.search')} bind:value={query} />
 				<kbd class="shortcut-hint">{shortcutLabel}</kbd>
 			</div>
 		{/if}
@@ -102,13 +103,13 @@
 			{#if instances.length === 0}
 				<div class="empty">
 					<Boxes size={28} />
-					<p>Todavía no creaste ninguna instancia</p>
+					<p>{t('sidebar.noInstancesYet')}</p>
 					<button type="button" class="empty-create" onclick={onCreate}>
-						<Plus size={13} strokeWidth={2.5} /> Crear la primera
+						<Plus size={13} strokeWidth={2.5} /> {t('sidebar.createFirst')}
 					</button>
 				</div>
 			{:else if filtered.length === 0}
-				<p class="empty-search">Sin resultados para "{query}"</p>
+				<p class="empty-search">{t('sidebar.noResultsFor', { query })}</p>
 			{:else}
 				{#each filtered as instance (instance.uuid)}
 					<button
@@ -153,13 +154,13 @@
 			<div class="user-info">
 				<span class="user-name">{user.username}</span>
 				<span class="user-type"
-					>{user.user_type === 'Cracked' ? 'Offline — solo singleplayer' : user.user_type}</span
+					>{user.user_type === 'Cracked' ? t('sidebar.offlineAccountType') : user.user_type}</span
 				>
 			</div>
-			<button type="button" class="logout-btn" onclick={onOpenSettings} aria-label="Ajustes">
+			<button type="button" class="logout-btn" onclick={onOpenSettings} aria-label={t('sidebar.openSettings')}>
 				<Settings size={14} />
 			</button>
-			<button type="button" class="logout-btn" onclick={onLogout} aria-label="Cerrar sesión">
+			<button type="button" class="logout-btn" onclick={onLogout} aria-label={t('sidebar.logout')}>
 				<LogOut size={14} />
 			</button>
 		</div>

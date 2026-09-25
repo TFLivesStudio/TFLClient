@@ -4,6 +4,7 @@
 	import { getDeviceCode, authenticateWithDeviceCode, addOfflineAccount } from '$lib/api/tflApi';
 	import type { MinecraftUser } from '$lib/types/types';
 	import { User, Gamepad2, Loader2, Copy, CheckCircle2 } from 'lucide-svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let { onDone }: { onDone: (user: MinecraftUser) => void } = $props();
 
@@ -52,7 +53,7 @@
 			codeCopied = true;
 			window.setTimeout(() => (codeCopied = false), 1800);
 		} catch {
-			msError = 'No se pudo copiar. Seleccioná el código y copialo manualmente.';
+			msError = t('onboarding.copyCodeFailed');
 		}
 	}
 </script>
@@ -63,7 +64,7 @@
 		<div class="brand">
 			<div class="brand-mark"><Tfl width="34" height="34" /></div>
 			<h1>TFL Client</h1>
-			<p>Iniciá sesión para empezar a jugar</p>
+			<p>{t('onboarding.tagline')}</p>
 		</div>
 
 		{#if mode === 'choose'}
@@ -71,15 +72,15 @@
 				<button type="button" class="option-card primary" onclick={handleMicrosoft}>
 					<span class="option-icon"><Gamepad2 size={20} /></span>
 					<span class="option-text">
-						<span class="option-title">Cuenta Microsoft</span>
-						<span class="option-sub">Acceso completo, multijugador incluido</span>
+						<span class="option-title">{t('onboarding.microsoftTitle')}</span>
+						<span class="option-sub">{t('onboarding.microsoftSub')}</span>
 					</span>
 				</button>
 				<button type="button" class="option-card" onclick={() => (mode = 'offline')}>
 					<span class="option-icon"><User size={20} /></span>
 					<span class="option-text">
-						<span class="option-title">Cuenta offline</span>
-						<span class="option-sub">Solo singleplayer</span>
+						<span class="option-title">{t('onboarding.offlineTitle')}</span>
+						<span class="option-sub">{t('onboarding.offlineSub')}</span>
 					</span>
 				</button>
 			</div>
@@ -91,7 +92,7 @@
 					handleOffline();
 				}}
 			>
-				<label for="offline-username">Nombre de usuario</label>
+				<label for="offline-username">{t('onboarding.usernameLabel')}</label>
 				<input
 					id="offline-username"
 					type="text"
@@ -100,14 +101,14 @@
 					maxlength="16"
 					autocomplete="off"
 				/>
-				<p class="hint">Las cuentas offline solo pueden jugar en singleplayer.</p>
+				<p class="hint">{t('onboarding.offlineHint')}</p>
 				<div class="form-actions">
 					<button type="button" class="option-btn" onclick={() => (mode = 'choose')}>
-						Volver
+						{t('common.back')}
 					</button>
 					<button type="submit" class="option-btn primary" disabled={busy || !offlineName.trim()}>
 						{#if busy}<Loader2 size={16} class="spin" />{/if}
-						Continuar
+						{t('common.continue')}
 					</button>
 				</div>
 			</form>
@@ -115,18 +116,18 @@
 			<div class="ms-flow">
 				{#if busy && !msCode}
 					<Loader2 size={24} class="spin" />
-					<p>Obteniendo código...</p>
+					<p>{t('onboarding.fetchingCode')}</p>
 				{:else if msCode}
-					<p>Andá a</p>
+					<p>{t('onboarding.goTo')}</p>
 					<a href={msVerificationUri} target="_blank" rel="noreferrer">{msVerificationUri}</a>
-					<p>e ingresá el código:</p>
+					<p>{t('onboarding.enterCode')}</p>
 					<div class="code-row">
 						<code class="code" tabindex="0">{msCode}</code>
 						<button type="button" class="copy-code" onclick={copyMicrosoftCode}>
-							{#if codeCopied}<CheckCircle2 size={15} /> Copiado{:else}<Copy size={15} /> Copiar{/if}
+							{#if codeCopied}<CheckCircle2 size={15} /> {t('common.copied')}{:else}<Copy size={15} /> {t('common.copy')}{/if}
 						</button>
 					</div>
-					<p class="hint">Esperando confirmación...</p>
+					<p class="hint">{t('onboarding.waitingConfirmation')}</p>
 				{/if}
 				{#if msError}
 					<p class="error">{msError}</p>
@@ -140,7 +141,7 @@
 						msError = null;
 					}}
 				>
-					Cancelar
+					{t('common.cancel')}
 				</button>
 			</div>
 		{/if}
