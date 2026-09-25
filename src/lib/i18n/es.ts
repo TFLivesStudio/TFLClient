@@ -348,6 +348,47 @@ export const es = {
 		presetLow: 'Bajo',
 		presetMedium: 'Medio',
 		presetHigh: 'Alto'
+	},
+	home: {
+		exploreTflSelection: 'Explorar TFL Selection',
+		title: 'Tu biblioteca Minecraft,\nbien organizada.',
+		subtitle: 'Creá una instancia para jugar, instalar contenido y ajustar cada perfil.',
+		modsCardTitle: 'Mods y modpacks',
+		modsCardHint: 'Por instancia',
+		javaCardTitle: 'Java automático',
+		javaCardHint: 'Sin configuración manual'
+	},
+	whatsNewTips: {
+		welcomeTitle: 'Bienvenido a TFL Client',
+		updatesTitle: 'Novedades en v{{version}}',
+		tip1: 'Ctrl+K (⌘K en Mac) abre una paleta para saltar entre instancias o acciones sin tocar el mouse.',
+		tip2: '"TFL Selection" trae modpacks curados y los que publique el equipo — un click y quedan listos.',
+		tip3: 'Cada instancia tiene su propia pestaña de Mods, Shaders y Modpacks — nada se mezcla entre instancias.',
+		tip4: 'En Ajustes → Estilo podés cambiar acento, superficie, densidad y hasta el fondo animado.',
+		updatedToVersionWithNotes: 'Se actualizó solo a la versión {{version}}:',
+		viewTechnicalDetail: 'Ver el detalle técnico en GitHub',
+		updatedToVersionNoNotes:
+			'Se actualizó solo a la versión {{version}}. El detalle completo de qué cambió está en el Release de GitHub.',
+		viewFullRelease: 'Ver el Release completo',
+		gotIt: 'Entendido'
+	},
+	titleBar: {
+		minimize: 'Minimizar',
+		maximize: 'Maximizar',
+		restore: 'Restaurar'
+	},
+	updateBadge: {
+		available: 'Actualización disponible',
+		installing: 'Instalando…',
+		clickToInstall: 'v{{version}} — click para instalar'
+	},
+	commandPalette: {
+		action: 'Acción',
+		searchPlaceholder: 'Buscar instancias o acciones…',
+		noResults: 'Sin resultados'
+	},
+	confirmDialog: {
+		confirm: 'Confirmar'
 	}
 };
 

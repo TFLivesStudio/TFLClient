@@ -351,5 +351,46 @@ export const en: Dictionary = {
 		presetLow: 'Low',
 		presetMedium: 'Medium',
 		presetHigh: 'High'
+	},
+	home: {
+		exploreTflSelection: 'Explore TFL Selection',
+		title: 'Your Minecraft library,\nnicely organized.',
+		subtitle: 'Create an instance to play, install content, and tweak each profile.',
+		modsCardTitle: 'Mods and modpacks',
+		modsCardHint: 'Per instance',
+		javaCardTitle: 'Automatic Java',
+		javaCardHint: 'No manual setup'
+	},
+	whatsNewTips: {
+		welcomeTitle: 'Welcome to TFL Client',
+		updatesTitle: "What's new in v{{version}}",
+		tip1: 'Ctrl+K (⌘K on Mac) opens a palette to jump between instances or actions without touching the mouse.',
+		tip2: '"TFL Selection" brings curated modpacks and whatever the team publishes — one click and they\'re ready.',
+		tip3: 'Each instance has its own Mods, Shaders and Modpacks tab — nothing mixes between instances.',
+		tip4: 'In Settings → Style you can change accent, surface, density, and even the animated background.',
+		updatedToVersionWithNotes: 'It auto-updated to version {{version}}:',
+		viewTechnicalDetail: 'View the technical details on GitHub',
+		updatedToVersionNoNotes:
+			'It auto-updated to version {{version}}. The full details of what changed are in the GitHub Release.',
+		viewFullRelease: 'View the full Release',
+		gotIt: 'Got it'
+	},
+	titleBar: {
+		minimize: 'Minimize',
+		maximize: 'Maximize',
+		restore: 'Restore'
+	},
+	updateBadge: {
+		available: 'Update available',
+		installing: 'Installing…',
+		clickToInstall: 'v{{version}} — click to install'
+	},
+	commandPalette: {
+		action: 'Action',
+		searchPlaceholder: 'Search instances or actions…',
+		noResults: 'No results'
+	},
+	confirmDialog: {
+		confirm: 'Confirm'
 	}
 };

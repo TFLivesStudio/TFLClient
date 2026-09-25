@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { InstanceData } from '$lib/types/types';
+	import { t } from '$lib/i18n/index.svelte';
 	import { Search, Boxes, Plus, Settings as SettingsIcon, Sparkles, CornerDownLeft } from 'lucide-svelte';
 
 	let {
@@ -48,8 +49,8 @@
 	const actionItems = $derived<PaletteItem[]>([
 		{
 			id: 'action:create',
-			label: 'Crear instancia',
-			hint: 'Acción',
+			label: t('sidebar.createInstance'),
+			hint: t('commandPalette.action'),
 			icon: Plus,
 			run: () => {
 				onCreate();
@@ -59,7 +60,7 @@
 		{
 			id: 'action:tfl-selection',
 			label: 'TFL Selection',
-			hint: 'Acción',
+			hint: t('commandPalette.action'),
 			icon: Sparkles,
 			run: () => {
 				onOpenTflSelection();
@@ -68,8 +69,8 @@
 		},
 		{
 			id: 'action:settings',
-			label: 'Ajustes',
-			hint: 'Acción',
+			label: t('sidebar.openSettings'),
+			hint: t('commandPalette.action'),
 			icon: SettingsIcon,
 			run: () => {
 				onOpenSettings();
@@ -165,7 +166,7 @@
 					bind:this={inputEl}
 					bind:value={query}
 					onkeydown={handleInputKeydown}
-					placeholder="Buscar instancias o acciones…"
+					placeholder={t('commandPalette.searchPlaceholder')}
 					type="text"
 					autocomplete="off"
 					spellcheck="false"
@@ -174,7 +175,7 @@
 			</div>
 			<div class="items">
 				{#if items.length === 0}
-					<p class="empty">Sin resultados</p>
+					<p class="empty">{t('commandPalette.noResults')}</p>
 				{/if}
 				{#each items as item, i (item.id)}
 					<button

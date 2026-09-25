@@ -29,6 +29,7 @@
 		logout as apiLogout
 	} from '$lib/api/tflApi';
 	import { checkAndDownloadUpdate } from '$lib/state/updateState.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
 	import { Plus, Sparkles, PackageOpen, Zap } from 'lucide-svelte';
 
@@ -244,20 +245,20 @@
 						<div class="welcome-orb"><Tfl width="42" height="42" /></div>
 						<div class="welcome-copy">
 							<span class="eyebrow">TFL Client</span>
-							<h2>Tu biblioteca Minecraft,<br />bien organizada.</h2>
-							<p>Creá una instancia para jugar, instalar contenido y ajustar cada perfil.</p>
+							<h2>{t('home.title')}</h2>
+							<p>{t('home.subtitle')}</p>
 						</div>
 						<div class="welcome-actions">
 							<button type="button" class="empty-cta" onclick={() => (showCreateChooser = true)}>
-								<Plus size={16} strokeWidth={2.5} /> Crear instancia
+								<Plus size={16} strokeWidth={2.5} /> {t('sidebar.createInstance')}
 							</button>
 							<button type="button" class="secondary-cta" onclick={() => (showTflSelection = true)}>
-								<Sparkles size={15} /> Explorar TFL Selection
+								<Sparkles size={15} /> {t('home.exploreTflSelection')}
 							</button>
 						</div>
 						<div class="welcome-grid">
-							<div class="welcome-card"><PackageOpen size={16} /><span>Mods y modpacks</span><small>Por instancia</small></div>
-							<div class="welcome-card"><Zap size={16} /><span>Java automático</span><small>Sin configuración manual</small></div>
+							<div class="welcome-card"><PackageOpen size={16} /><span>{t('home.modsCardTitle')}</span><small>{t('home.modsCardHint')}</small></div>
+							<div class="welcome-card"><Zap size={16} /><span>{t('home.javaCardTitle')}</span><small>{t('home.javaCardHint')}</small></div>
 						</div>
 					</div>
 				{/if}
@@ -410,6 +411,7 @@
 		font-size: clamp(1.7rem, 4vw, 2.5rem);
 		line-height: 1.08;
 		letter-spacing: -0.045em;
+		white-space: pre-line;
 		/* El scrim de --wallpaper-scrim ya normaliza el fondo hacia el tono
 		   del tema, pero acá el texto flota sin ningún panel/--bg-card
 		   detrás — una sombra extra ata el contraste al fondo real de

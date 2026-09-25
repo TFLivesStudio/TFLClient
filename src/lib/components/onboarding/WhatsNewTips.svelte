@@ -14,6 +14,7 @@
 	// Si coincide, no muestra nada — no molesta en cada apertura.
 	import { openExternalUrl } from '$lib/api/tflApi';
 	import { RELEASE_NOTES } from '$lib/releaseNotes';
+	import { t, type TranslationKey } from '$lib/i18n/index.svelte';
 	import { Sparkles, X, ExternalLink } from 'lucide-svelte';
 
 	const STORAGE_KEY = 'tfl-last-seen-version';
@@ -41,11 +42,11 @@
 		openExternalUrl(`https://github.com/TFLivesStudio/TFLClient/releases/tag/v${__APP_VERSION__}`);
 	}
 
-	const TIPS = [
-		'Ctrl+K (⌘K en Mac) abre una paleta para saltar entre instancias o acciones sin tocar el mouse.',
-		'"TFL Selection" trae modpacks curados y los que publique el equipo — un click y quedan listos.',
-		'Cada instancia tiene su propia pestaña de Mods, Shaders y Modpacks — nada se mezcla entre instancias.',
-		'En Ajustes → Estilo podés cambiar acento, superficie, densidad y hasta el fondo animado.'
+	const TIP_KEYS: TranslationKey[] = [
+		'whatsNewTips.tip1',
+		'whatsNewTips.tip2',
+		'whatsNewTips.tip3',
+		'whatsNewTips.tip4'
 	];
 
 	const updateNotes = RELEASE_NOTES[__APP_VERSION__] ?? [];
@@ -57,37 +58,36 @@
 	<div class="overlay" onclick={dismiss} onkeydown={(e) => e.key === 'Escape' && dismiss()} role="button" tabindex="-1">
 		<div class="panel anim-fade-in" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
 			<div class="panel-header">
-				<div class="title-row"><Sparkles size={16} /><h2>{mode === 'first-run' ? 'Bienvenido a TFL Client' : `Novedades en v${__APP_VERSION__}`}</h2></div>
-				<button type="button" class="close-btn" onclick={dismiss} aria-label="Cerrar"><X size={16} /></button>
+				<div class="title-row"><Sparkles size={16} /><h2>{mode === 'first-run' ? t('whatsNewTips.welcomeTitle') : t('whatsNewTips.updatesTitle', { version: __APP_VERSION__ })}</h2></div>
+				<button type="button" class="close-btn" onclick={dismiss} aria-label={t('settings.close')}><X size={16} /></button>
 			</div>
 
 			{#if mode === 'first-run'}
 				<ul class="tips">
-					{#each TIPS as tip}
-						<li>{tip}</li>
+					{#each TIP_KEYS as tipKey}
+						<li>{t(tipKey)}</li>
 					{/each}
 				</ul>
 			{:else if updateNotes.length > 0}
-				<p class="update-text">Se actualizó solo a la versión <strong>{__APP_VERSION__}</strong>:</p>
+				<p class="update-text">{t('whatsNewTips.updatedToVersionWithNotes', { version: __APP_VERSION__ })}</p>
 				<ul class="tips">
 					{#each updateNotes as note}
 						<li>{note}</li>
 					{/each}
 				</ul>
 				<button type="button" class="release-link" onclick={openRelease}>
-					<ExternalLink size={13} /> Ver el detalle técnico en GitHub
+					<ExternalLink size={13} /> {t('whatsNewTips.viewTechnicalDetail')}
 				</button>
 			{:else}
 				<p class="update-text">
-					Se actualizó solo a la versión <strong>{__APP_VERSION__}</strong>. El detalle completo de
-					qué cambió está en el Release de GitHub.
+					{t('whatsNewTips.updatedToVersionNoNotes', { version: __APP_VERSION__ })}
 				</p>
 				<button type="button" class="release-link" onclick={openRelease}>
-					<ExternalLink size={13} /> Ver el Release completo
+					<ExternalLink size={13} /> {t('whatsNewTips.viewFullRelease')}
 				</button>
 			{/if}
 
-			<button type="button" class="got-it-btn" onclick={dismiss}>Entendido</button>
+			<button type="button" class="got-it-btn" onclick={dismiss}>{t('whatsNewTips.gotIt')}</button>
 		</div>
 	</div>
 {/if}

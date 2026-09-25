@@ -3,6 +3,7 @@
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { Minus, Square, Copy, X } from 'lucide-svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	const win = getCurrentWindow();
 	let maximized = $state(false);
@@ -31,7 +32,7 @@
 		<button
 			type="button"
 			class="titlebar-btn"
-			aria-label="Minimizar"
+			aria-label={t('titleBar.minimize')}
 			onclick={() => win.minimize()}
 		>
 			<Minus size={14} strokeWidth={1.75} />
@@ -39,7 +40,7 @@
 		<button
 			type="button"
 			class="titlebar-btn"
-			aria-label={maximized ? 'Restaurar' : 'Maximizar'}
+			aria-label={maximized ? t('titleBar.restore') : t('titleBar.maximize')}
 			onclick={() => win.toggleMaximize()}
 		>
 			{#if maximized}
@@ -51,7 +52,7 @@
 		<button
 			type="button"
 			class="titlebar-btn titlebar-btn-close"
-			aria-label="Cerrar"
+			aria-label={t('settings.close')}
 			onclick={() => win.close()}
 		>
 			<X size={14} strokeWidth={1.75} />

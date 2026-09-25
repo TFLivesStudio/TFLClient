@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { AlertTriangle } from 'lucide-svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let {
 		title,
 		message,
-		confirmLabel = 'Confirmar',
+		confirmLabel = t('confirmDialog.confirm'),
 		danger = false,
 		onConfirm,
 		onCancel
@@ -41,7 +42,7 @@
 		<h3>{title}</h3>
 		<p>{message}</p>
 		<div class="actions">
-			<button type="button" class="btn" onclick={onCancel}>Cancelar</button>
+			<button type="button" class="btn" onclick={onCancel}>{t('common.cancel')}</button>
 			<button type="button" class="btn" class:danger onclick={onConfirm}>
 				{confirmLabel}
 			</button>

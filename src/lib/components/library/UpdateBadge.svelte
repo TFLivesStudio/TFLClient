@@ -4,6 +4,7 @@
 		installDownloadedUpdate,
 		dismissUpdateBadge
 	} from '$lib/state/updateState.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 	import { Download, X, Loader2 } from 'lucide-svelte';
 </script>
 
@@ -22,11 +23,11 @@
 					<Download size={16} />
 				{/if}
 				<span class="badge-text">
-					<span class="badge-title">Actualización disponible</span>
+					<span class="badge-title">{t('updateBadge.available')}</span>
 					<span class="badge-sub">
 						{updateState.installing
-							? 'Instalando…'
-							: `v${updateState.update.version} — click para instalar`}
+							? t('updateBadge.installing')
+							: t('updateBadge.clickToInstall', { version: updateState.update.version })}
 					</span>
 				</span>
 			</button>
@@ -36,7 +37,7 @@
 			type="button"
 			class="badge-close"
 			onclick={dismissUpdateBadge}
-			aria-label="Cerrar"
+			aria-label={t('settings.close')}
 			disabled={updateState.installing}
 		>
 			<X size={12} />
