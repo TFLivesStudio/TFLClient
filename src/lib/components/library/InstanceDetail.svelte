@@ -556,6 +556,7 @@
 		{/if}
 	</div>
 
+	<div class="tab-content">
 	{#if tab === 'details'}
 		<section class="ram-section">
 			<span class="section-label">{t('instanceDetail.ram.sectionLabel')}</span>
@@ -616,6 +617,7 @@
 	{:else if tab === 'console'}
 		<ServerConsole {instance} />
 	{/if}
+	</div>
 </div>
 
 {#if showDeleteConfirm}
@@ -639,12 +641,29 @@
 
 <style>
 	.instance-detail {
-		padding: 32px;
+		padding: 32px 32px 0;
 		display: flex;
 		flex-direction: column;
 		gap: 18px;
 		height: 100%;
+		/* El hero, el aviso de error, las quick-actions y la barra de
+		   pestañas quedan SIEMPRE visibles, sin scroll propio — solo
+		   .tab-content (el contenido de la pestaña activa) scrollea, en su
+		   propio contenedor acotado. Antes esto era overflow-y:auto acá +
+		   position:sticky en .tabs, pero .instance-detail vive dentro de
+		   .main-content (+page.svelte), que TAMBIÉN tiene overflow-y:auto —
+		   con dos ancestros con overflow ambiguos así, sticky terminaba
+		   ANCLÁNDOSE AL SCROLL EQUIVOCADO y las pestañas se perdían igual
+		   al entrar a Descargar. Separar el scroll a un hijo explícito
+		   saca esa ambigüedad de raíz. */
+		overflow: hidden;
+	}
+
+	.tab-content {
+		flex: 1;
+		min-height: 0;
 		overflow-y: auto;
+		padding-bottom: 32px;
 	}
 
 	.hero {
@@ -663,13 +682,9 @@
 			),
 			var(--bg-card);
 		overflow: hidden;
-		/* .instance-detail es flex-column + overflow-y:auto — sin esto,
-		   cuando el contenido de abajo (ej. la lista de mods) crece,
-		   flexbox intenta ACHICAR este bloque antes de scrollear (el
-		   shrink por defecto corre antes que el overflow), y la cabecera
-		   se veía cada vez más comprimida a medida que se instalaban más
-		   mods. flex-shrink:0 la deja con altura fija siempre, el scroll
-		   se encarga del resto. */
+		/* Sin esto, cuando el contenido de .tab-content (ej. la lista de
+		   mods) crece, flexbox intenta ACHICAR este bloque en vez de
+		   dejarlo fijo — flex-shrink:0 lo deja con altura fija siempre. */
 		flex-shrink: 0;
 	}
 
@@ -924,17 +939,10 @@
 	.tabs {
 		display: flex;
 		gap: 4px;
+		flex-shrink: 0;
 		border-bottom: 1px solid var(--border);
 		overflow-x: auto;
 		scrollbar-width: none;
-		/* .instance-detail es el único contenedor con scroll (ver nota en
-		   .hero) — sin esto, scrollear una lista larga en Descargar se
-		   lleva puesta la barra de pestañas, y para volver a Detalles hay
-		   que scrollear todo hasta arriba de nuevo. */
-		position: sticky;
-		top: 0;
-		z-index: 2;
-		background: var(--bg-main);
 	}
 
 	.tabs::-webkit-scrollbar {
