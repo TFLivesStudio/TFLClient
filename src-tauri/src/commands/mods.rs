@@ -20,6 +20,11 @@ pub enum ContentKind {
     Mod,
     Shader,
     ResourcePack,
+    /// Plugin de servidor (Paper/Purpur/Spigot/Bukkit) — Modrinth los
+    /// modela con `project_type=plugin`, filtrando por software de
+    /// servidor con el mismo mecanismo de "categories:x" que ya usan los
+    /// loaders de cliente (ver `filters_by_loader`).
+    Plugin,
 }
 
 impl ContentKind {
@@ -28,6 +33,7 @@ impl ContentKind {
             ContentKind::Mod => "mod",
             ContentKind::Shader => "shader",
             ContentKind::ResourcePack => "resourcepack",
+            ContentKind::Plugin => "plugin",
         }
     }
 
@@ -37,6 +43,7 @@ impl ContentKind {
             ContentKind::Mod => "mods",
             ContentKind::Shader => "shaderpacks",
             ContentKind::ResourcePack => "resourcepacks",
+            ContentKind::Plugin => "plugins",
         }
     }
 
@@ -44,9 +51,12 @@ impl ContentKind {
     /// (Fabric/Forge/…) en Modrinth — son compatibles con vanilla o vía un
     /// mod aparte (Iris/OptiFine para shaders), no por loader propio.
     /// Filtrar por loader ahí no tendría sentido y dejaría la búsqueda
-    /// vacía.
+    /// vacía. Los plugins sí filtran, pero por software de SERVIDOR
+    /// (paper/purpur/spigot/bukkit) en el mismo parámetro `loader` — es el
+    /// mismo facet `categories:x` de Modrinth, solo cambia qué valor
+    /// llega ahí desde el frontend.
     fn filters_by_loader(self) -> bool {
-        matches!(self, ContentKind::Mod)
+        matches!(self, ContentKind::Mod | ContentKind::Plugin)
     }
 }
 
@@ -146,6 +156,16 @@ pub async fn search_resourcepacks(
     categories: Vec<String>,
 ) -> Result<Vec<ModSearchHit>, String> {
     search_content(&query, &mc_version, "", &categories, ContentKind::ResourcePack).await
+}
+
+#[command]
+pub async fn search_plugins(
+    query: String,
+    mc_version: String,
+    server_type: String,
+    categories: Vec<String>,
+) -> Result<Vec<ModSearchHit>, String> {
+    search_content(&query, &mc_version, &server_type, &categories, ContentKind::Plugin).await
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -267,6 +287,15 @@ pub async fn get_shader_versions(
     mc_version: String,
 ) -> Result<Vec<ModrinthVersionSummary>, String> {
     list_version_summaries(&project_id, &mc_version, "", false).await
+}
+
+#[command]
+pub async fn get_plugin_versions(
+    project_id: String,
+    mc_version: String,
+    server_type: String,
+) -> Result<Vec<ModrinthVersionSummary>, String> {
+    list_version_summaries(&project_id, &mc_version, &server_type, true).await
 }
 
 #[command]
@@ -593,6 +622,28 @@ pub async fn install_resourcepack(
     .await
 }
 
+#[command]
+pub async fn install_plugin(
+    instance_name: String,
+    project_id: String,
+    mc_version: String,
+    server_type: String,
+    version_id: Option<String>,
+) -> Result<(), String> {
+    let mut seen = HashSet::new();
+    install_recursive(
+        &instance_name,
+        &mc_version,
+        &server_type,
+        &project_id,
+        version_id.as_deref(),
+        0,
+        &mut seen,
+        ContentKind::Plugin,
+    )
+    .await
+}
+
 async fn list_dir_names(instance_name: &str, subdir: &str) -> Result<Vec<String>, String> {
     let instance = instance_manager::get_instance(instance_name).await?;
     let dir = instance.dir().join(subdir);
@@ -642,6 +693,16 @@ pub async fn remove_shader(instance_name: String, filename: String) -> Result<()
 #[command]
 pub async fn get_instance_resourcepacks(instance_name: String) -> Result<Vec<String>, String> {
     list_dir_names(&instance_name, "resourcepacks").await
+}
+
+#[command]
+pub async fn get_instance_plugins(instance_name: String) -> Result<Vec<String>, String> {
+    list_dir_names(&instance_name, "plugins").await
+}
+
+#[command]
+pub async fn remove_plugin(instance_name: String, filename: String) -> Result<(), String> {
+    remove_file_in(&instance_name, "plugins", &filename).await
 }
 
 #[command]
@@ -834,6 +895,13 @@ pub async fn get_installed_resourcepacks_info(
     instance_name: String,
 ) -> Result<Vec<InstalledModInfo>, String> {
     get_installed_content_info(&instance_name, "resourcepacks", "zip").await
+}
+
+#[command]
+pub async fn get_installed_plugins_info(
+    instance_name: String,
+) -> Result<Vec<InstalledModInfo>, String> {
+    get_installed_content_info(&instance_name, "plugins", "jar").await
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -1312,4 +1380,9 @@ pub async fn add_local_resourcepack_files(
     paths: Vec<String>,
 ) -> Result<u32, String> {
     add_local_content_files(&instance_name, "resourcepacks", "zip", paths).await
+}
+
+#[command]
+pub async fn add_local_plugin_files(instance_name: String, paths: Vec<String>) -> Result<u32, String> {
+    add_local_content_files(&instance_name, "plugins", "jar", paths).await
 }

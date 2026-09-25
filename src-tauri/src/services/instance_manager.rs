@@ -13,6 +13,28 @@ pub enum LoaderKind {
     Quilt,
 }
 
+/// Software de servidor Minecraft — distinto de `LoaderKind`, que es sobre
+/// el lado *cliente* (mods). Una instancia de servidor nunca tiene mods de
+/// Fabric/Forge/etc, así que no comparte el mismo enum.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ServerType {
+    Vanilla,
+    Paper,
+    Purpur,
+}
+
+impl ServerType {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "vanilla" => Some(Self::Vanilla),
+            "paper" => Some(Self::Paper),
+            "purpur" => Some(Self::Purpur),
+            _ => None,
+        }
+    }
+}
+
 impl LoaderKind {
     pub fn parse(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
@@ -48,6 +70,23 @@ pub struct InstanceData {
     pub min_memory: Option<u32>,
     #[serde(default)]
     pub max_memory: Option<u32>,
+    /// `Some` marca esta instancia como servidor Minecraft, no cliente —
+    /// cambia qué pestañas muestra el frontend (Plugins/Worlds/Archivos/
+    /// Consola con comandos en vez de Mods/Shaders/Capturas) y qué se
+    /// lanza (java -jar server.jar directo, sin auth ni assets de cliente).
+    /// `None` para instancias normales, el caso de siempre — instancias
+    /// creadas antes de esto quedan como cliente por default.
+    #[serde(default)]
+    pub server_type: Option<ServerType>,
+    /// Nombre del jar del servidor ya descargado en la carpeta de la
+    /// instancia (ej. "paper-1.21.1-133.jar") — solo con `server_type`
+    /// `Some`, es lo que se lanza con `java -jar`.
+    #[serde(default)]
+    pub server_jar: Option<String>,
+    /// Build/versión específica descargada — solo informativo para
+    /// mostrar en Detalles (ej. "Paper build 133"), no afecta el launch.
+    #[serde(default)]
+    pub server_build: Option<String>,
 }
 
 impl InstanceData {
@@ -92,6 +131,31 @@ pub async fn create_instance(
     loader_version: Option<String>,
     launch_version_id: String,
 ) -> Result<InstanceData, String> {
+    create_instance_full(
+        name,
+        mc_version,
+        loader,
+        loader_version,
+        launch_version_id,
+        None,
+        None,
+        None,
+    )
+    .await
+}
+
+/// Variante completa usada por instancias de servidor — `create_instance`
+/// sigue existiendo tal cual para no tocar todos sus call-sites de cliente.
+pub async fn create_instance_full(
+    name: String,
+    mc_version: String,
+    loader: LoaderKind,
+    loader_version: Option<String>,
+    launch_version_id: String,
+    server_type: Option<ServerType>,
+    server_jar: Option<String>,
+    server_build: Option<String>,
+) -> Result<InstanceData, String> {
     valid_instance_name(&name)?;
     let data = InstanceData {
         uuid: Uuid::new_v4().to_string(),
@@ -103,6 +167,9 @@ pub async fn create_instance(
         last_played: 0,
         min_memory: None,
         max_memory: None,
+        server_type,
+        server_jar,
+        server_build,
     };
     if data.dir().exists() {
         return Err("Ya existe una instancia con ese nombre".into());
