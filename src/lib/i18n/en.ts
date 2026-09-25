@@ -214,7 +214,7 @@ export const en: Dictionary = {
 		allUpToDate: 'Everything up to date — no updates.',
 		noChangelogNotes: 'No changelog notes.',
 		changelogLoadFailed: 'Could not load: {{error}}',
-		partialLocalAdd: 'Added {{added}} of {{total}} files — the rest did not have the expected extension or could not be copied.',
+		partialLocalAdd: "Added {{added}} of {{total}} files — the rest didn't have the expected extension or couldn't be copied.",
 		removeFailedPartial: 'Could not remove {{failed}} of {{total}}: {{names}}',
 		duplicateOne: 'There is one mod',
 		duplicateMany: 'There are {{count}} mods',
@@ -242,7 +242,7 @@ export const en: Dictionary = {
 		delete: 'Delete',
 		deleteTitle: 'Delete instance',
 		deleteMessage:
-			'"{{name}}" and all its files (worlds, mods, configs) will be deleted. This cannot be undone.',
+			'"{{name}}" and all its files (worlds, mods, configs) will be deleted. This can\'t be undone.',
 		exported: 'Exported: {{path}}',
 		integrityOk: 'Everything is fine — no installed file is missing.',
 		integrityMissing: 'Missing {{count}} file{{plural}} installed by a modpack: {{list}}',
@@ -341,8 +341,8 @@ export const en: Dictionary = {
 		noInstanceBuild: 'There is no build of this pack for that instance'
 	},
 	modpacksPanel: {
-		vanillaNotSupported: 'Vanilla does not support modpacks — choose Fabric, Forge, NeoForge or Quilt when creating the instance.',
-		hint: 'Installing a modpack adds its mods and configuration to this instance — it does not replace what you already had. Removing it deletes exactly what it brought, nothing more.',
+		vanillaNotSupported: "Vanilla doesn't support modpacks — choose Fabric, Forge, NeoForge or Quilt when creating the instance.",
+		hint: "Installing a modpack adds its mods and configuration to this instance — it doesn't replace what you already had. Removing it deletes exactly what it brought, nothing more.",
 		installedCount: 'Installed ({{count}})',
 		update: 'Update'
 	},
