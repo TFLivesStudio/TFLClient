@@ -39,6 +39,6 @@
 		"@tauri-apps/plugin-updater": "^2.11.0",
 		"@tsparticles/slim": "^4.4.0",
 		"@tsparticles/svelte": "^4.4.0",
-		"lucide-svelte": "^1.0.1"
+		"lucide-svelte": "0.564.0"
 	}
 }
