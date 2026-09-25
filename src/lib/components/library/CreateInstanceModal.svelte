@@ -21,18 +21,35 @@
 	];
 
 	let name = $state('');
-	let versions = $state<MinecraftVersion[]>([]);
+	let allVersions = $state<MinecraftVersion[]>([]);
 	let selectedVersion = $state('');
 	let selectedLoader = $state<Loader>('vanilla');
 	let loadingVersions = $state(true);
 	let creating = $state(false);
 	let error = $state<string | null>(null);
 
+	// Snapshots, pre-releases y release candidates vienen todas mezcladas
+	// bajo type !== "release" en el manifest de Mojang — no tiene sentido
+	// subdividirlas en más filtros, un solo toggle alcanza. Solo aplica a
+	// Vanilla: los loaders raramente sueltan build para versiones que
+	// todavía ni son release.
+	let showExperimental = $state(false);
+	const versions = $derived(
+		selectedLoader === 'vanilla' && showExperimental
+			? allVersions
+			: allVersions.filter((v) => v.type === 'release')
+	);
+
+	$effect(() => {
+		if (versions.length > 0 && !versions.some((v) => v.id === selectedVersion)) {
+			selectedVersion = versions[0].id;
+		}
+	});
+
 	onMount(async () => {
 		try {
-			const all = await getAvailableVersions();
-			versions = all.filter((v) => v.type === 'release');
-			selectedVersion = versions[0]?.id ?? '';
+			allVersions = await getAvailableVersions();
+			selectedVersion = allVersions.find((v) => v.type === 'release')?.id ?? '';
 		} catch (e) {
 			error = String(e);
 		} finally {
@@ -94,6 +111,13 @@
 					<option value={v.id}>{v.id}</option>
 				{/each}
 			</select>
+		{/if}
+
+		{#if selectedLoader === 'vanilla'}
+			<label class="checkbox-row">
+				<input type="checkbox" bind:checked={showExperimental} />
+				Mostrar versiones experimentales (snapshots, pre-releases, release candidates)
+			</label>
 		{/if}
 
 		<label for="instance-loader">Loader</label>
@@ -232,6 +256,24 @@
 		font-size: 0.7rem;
 		color: var(--text-muted);
 		margin-top: 4px;
+	}
+
+	.checkbox-row {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		margin-top: 10px;
+		font-size: 0.74rem;
+		color: var(--text-secondary);
+		cursor: pointer;
+	}
+
+	.checkbox-row input {
+		padding: 0;
+		width: 14px;
+		height: 14px;
+		flex-shrink: 0;
+		cursor: pointer;
 	}
 
 	.error {
