@@ -5,6 +5,7 @@
 	import Onboarding from '$lib/components/onboarding/Onboarding.svelte';
 	import NativeDialogModePrompt from '$lib/components/onboarding/NativeDialogModePrompt.svelte';
 	import CreateInstanceModal from '$lib/components/library/CreateInstanceModal.svelte';
+	import CreateInstanceChooser from '$lib/components/library/CreateInstanceChooser.svelte';
 	import InstanceDetail from '$lib/components/library/InstanceDetail.svelte';
 	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
 	import ParticlesBackground from '$lib/components/layout/ParticlesBackground.svelte';
@@ -43,6 +44,7 @@
 		typeof (window as unknown as { __TFL_LOG_INSTANCE__?: string }).__TFL_LOG_INSTANCE__ === 'string';
 
 	let loading = $state(true);
+	let showCreateChooser = $state(false);
 	let showCreateModal = $state(false);
 	let showSettings = $state(false);
 	let showTflSelection = $state(false);
@@ -223,7 +225,7 @@
 				selected={appState.selectedInstance}
 				user={appState.currentUser}
 				onSelect={handleSelect}
-				onCreate={() => (showCreateModal = true)}
+				onCreate={() => (showCreateChooser = true)}
 				onLogout={handleLogout}
 				onOpenSettings={() => (showSettings = true)}
 				onOpenTflSelection={() => (showTflSelection = true)}
@@ -245,7 +247,7 @@
 							<p>Creá una instancia para jugar, instalar contenido y ajustar cada perfil.</p>
 						</div>
 						<div class="welcome-actions">
-							<button type="button" class="empty-cta" onclick={() => (showCreateModal = true)}>
+							<button type="button" class="empty-cta" onclick={() => (showCreateChooser = true)}>
 								<Plus size={16} strokeWidth={2.5} /> Crear instancia
 							</button>
 							<button type="button" class="secondary-cta" onclick={() => (showTflSelection = true)}>
@@ -264,6 +266,20 @@
 </div>
 {/if}
 
+{#if showCreateChooser}
+	<CreateInstanceChooser
+		onClose={() => (showCreateChooser = false)}
+		onChooseCustom={() => {
+			showCreateChooser = false;
+			showCreateModal = true;
+		}}
+		onChooseModpack={() => {
+			showCreateChooser = false;
+			showTflSelection = true;
+		}}
+	/>
+{/if}
+
 {#if showCreateModal}
 	<CreateInstanceModal onClose={() => (showCreateModal = false)} onCreated={handleCreated} />
 {/if}
@@ -271,9 +287,9 @@
 {#if !isLogWindow}
 	<CommandPalette
 		instances={appState.instances}
-		blocked={showCreateModal || showSettings || showTflSelection}
+		blocked={showCreateChooser || showCreateModal || showSettings || showTflSelection}
 		onSelectInstance={handleSelect}
-		onCreate={() => (showCreateModal = true)}
+		onCreate={() => (showCreateChooser = true)}
 		onOpenSettings={() => (showSettings = true)}
 		onOpenTflSelection={() => (showTflSelection = true)}
 	/>
