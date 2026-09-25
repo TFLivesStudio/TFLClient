@@ -64,5 +64,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.9.17': [
 		'Arreglado: en Gestionar, algunos mods aparecían con un nombre técnico raro en vez de su nombre real (el caso confuso reportado: Canvas Renderer se mostraba como "fabric-20.0.2625", parecía ser el propio Fabric Loader) — ahora siempre se muestra el nombre real del mod.'
+	],
+	'0.9.18': [
+		'Arreglado: en Linux, instalar el .deb o .rpm no traía todas las dependencias que el launcher necesita para arrancar — el paquete solo pedía WebKitGTK y GTK, pero el programa también necesita otras librerías del sistema que no estaban declaradas, y sin ellas fallaba al abrir aunque el paquete se hubiera instalado bien. Si ya lo instalaste y no abre, borrá el paquete viejo y volvé a instalar esta versión (o corré install-linux.sh de nuevo).'
 	]
 };
