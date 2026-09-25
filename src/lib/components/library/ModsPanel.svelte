@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { InstanceData } from '$lib/types/types';
 	import ContentManager from './ContentManager.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let { instance }: { instance: InstanceData } = $props();
 </script>
@@ -8,7 +9,7 @@
 <div class="mods-panel">
 	{#if instance.loader === 'vanilla'}
 		<p class="hint">
-			Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.
+			{t('modsPanel.vanillaHint')}
 		</p>
 	{:else}
 		<ContentManager kind="mod" {instance} />

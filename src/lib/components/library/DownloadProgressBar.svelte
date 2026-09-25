@@ -1,19 +1,22 @@
 <script lang="ts">
 	import { downloadTasks } from '$lib/state/downloadState.svelte';
 	import { Download, AlertTriangle } from 'lucide-svelte';
+	import { t as tr, type TranslationKey } from '$lib/i18n/index.svelte';
 
-	const STAGE_LABEL: Record<string, string> = {
-		resolving: 'Resolviendo…',
-		library: 'Descargando librerías',
-		asset: 'Descargando assets',
-		native: 'Descargando nativos',
-		client: 'Descargando cliente',
-		verifying: 'Verificando',
-		extracting: 'Extrayendo',
-		processing: 'Procesando',
-		jre: 'Descargando Java',
-		downloading: 'Descargando',
-		generic: 'Trabajando…'
+	// Alias `tr` para la función de traducción — la variable de loop de abajo
+	// ya se llama `t` (de "task"), shadowearía la importada.
+	const STAGE_LABEL_KEY: Record<string, TranslationKey> = {
+		resolving: 'downloadProgressBar.resolving',
+		library: 'downloadProgressBar.library',
+		asset: 'downloadProgressBar.asset',
+		native: 'downloadProgressBar.native',
+		client: 'downloadProgressBar.client',
+		verifying: 'downloadProgressBar.verifying',
+		extracting: 'downloadProgressBar.extracting',
+		processing: 'downloadProgressBar.processing',
+		jre: 'downloadProgressBar.jre',
+		downloading: 'downloadProgressBar.downloading',
+		generic: 'downloadProgressBar.generic'
 	};
 
 	const tasks = $derived(Object.values(downloadTasks));
@@ -35,7 +38,7 @@
 					<p class="progress-error">{t.failed}</p>
 				{:else}
 					<p class="progress-sub">
-						{STAGE_LABEL[t.stage] ?? t.stage}
+						{STAGE_LABEL_KEY[t.stage] ? tr(STAGE_LABEL_KEY[t.stage]) : t.stage}
 						{#if t.currentItem}
 							— {t.currentItem}
 						{/if}

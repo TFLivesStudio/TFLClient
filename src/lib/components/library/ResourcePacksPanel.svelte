@@ -1,14 +1,14 @@
 <script lang="ts">
 	import type { InstanceData } from '$lib/types/types';
 	import ContentManager from './ContentManager.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 
 	let { instance }: { instance: InstanceData } = $props();
 </script>
 
 <div class="resourcepacks-panel">
 	<p class="hint">
-		Los resource packs funcionan en cualquier instancia, con o sin mods — no necesitás nada extra
-		instalado. Se activan desde el menú de Minecraft (Opciones → Paquetes de recursos).
+		{t('resourcePacksPanel.hint')}
 	</p>
 	<ContentManager kind="resourcepack" {instance} />
 </div>

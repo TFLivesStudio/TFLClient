@@ -392,5 +392,24 @@ export const en: Dictionary = {
 	},
 	confirmDialog: {
 		confirm: 'Confirm'
+	},
+	downloadProgressBar: {
+		resolving: 'Resolving…',
+		library: 'Downloading libraries',
+		asset: 'Downloading assets',
+		native: 'Downloading natives',
+		client: 'Downloading client',
+		verifying: 'Verifying',
+		extracting: 'Extracting',
+		processing: 'Processing',
+		jre: 'Downloading Java',
+		downloading: 'Downloading',
+		generic: 'Working…'
+	},
+	modsPanel: {
+		vanillaHint: "Vanilla doesn't support mods — pick Fabric, Forge, NeoForge or Quilt when creating the instance."
+	},
+	resourcePacksPanel: {
+		hint: "Resource packs work on any instance, with or without mods — you don't need anything extra installed. Enable them from Minecraft's menu (Options → Resource Packs)."
 	}
 };

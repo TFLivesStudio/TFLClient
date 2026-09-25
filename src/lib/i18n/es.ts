@@ -389,6 +389,25 @@ export const es = {
 	},
 	confirmDialog: {
 		confirm: 'Confirmar'
+	},
+	downloadProgressBar: {
+		resolving: 'Resolviendo…',
+		library: 'Descargando librerías',
+		asset: 'Descargando assets',
+		native: 'Descargando nativos',
+		client: 'Descargando cliente',
+		verifying: 'Verificando',
+		extracting: 'Extrayendo',
+		processing: 'Procesando',
+		jre: 'Descargando Java',
+		downloading: 'Descargando',
+		generic: 'Trabajando…'
+	},
+	modsPanel: {
+		vanillaHint: 'Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.'
+	},
+	resourcePacksPanel: {
+		hint: 'Los resource packs funcionan en cualquier instancia, con o sin mods — no necesitás nada extra instalado. Se activan desde el menú de Minecraft (Opciones → Paquetes de recursos).'
 	}
 };
 
