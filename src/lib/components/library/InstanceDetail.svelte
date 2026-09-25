@@ -13,19 +13,27 @@
 		getRecommendedRamForInstance,
 		openInstanceFolder,
 		getInstanceMods,
-		getInstanceIconPath
+		getInstanceIconPath,
+		launchServer,
+		stopServer
 	} from '$lib/api/tflApi';
 	import { gameSession } from '$lib/state/gameSession.svelte';
+	import { serverSessions } from '$lib/state/serverSessions.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import ModsPanel from './ModsPanel.svelte';
 	import ShadersPanel from './ShadersPanel.svelte';
 	import ModpacksPanel from './ModpacksPanel.svelte';
 	import ResourcePacksPanel from './ResourcePacksPanel.svelte';
 	import ScreenshotsPanel from './ScreenshotsPanel.svelte';
+	import PluginsPanel from './PluginsPanel.svelte';
+	import ServerWorlds from './ServerWorlds.svelte';
+	import ServerFileManager from './ServerFileManager.svelte';
+	import ServerConsole from './ServerConsole.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import InstanceIconPicker from './InstanceIconPicker.svelte';
 	import {
 		Play,
+		Square,
 		Loader2,
 		Pencil,
 		Trash2,
@@ -53,9 +61,20 @@
 
 	let launching = $state(false);
 	const blockedByOther = $derived(!!gameSession.running && gameSession.running !== instance.name);
+	const isServer = $derived(!!instance.server_type);
+	const serverRunning = $derived(serverSessions.running.has(instance.name));
 	let error = $state<string | null>(null);
 	let tab = $state<
-		'details' | 'mods' | 'shaders' | 'resourcepacks' | 'modpacks' | 'screenshots'
+		| 'details'
+		| 'mods'
+		| 'shaders'
+		| 'resourcepacks'
+		| 'modpacks'
+		| 'screenshots'
+		| 'plugins'
+		| 'worlds'
+		| 'files'
+		| 'console'
 	>('details');
 	let showDeleteConfirm = $state(false);
 	let editingName = $state(false);
@@ -84,6 +103,13 @@
 		loadIcon();
 	});
 
+	const SERVER_META: Record<string, { label: string; color: string }> = {
+		vanilla: { label: 'Vanilla', color: 'var(--loader-vanilla)' },
+		paper: { label: 'Paper', color: '#3b82f6' },
+		purpur: { label: 'Purpur', color: '#8b5cf6' }
+	};
+	const serverMeta = $derived(instance.server_type ? SERVER_META[instance.server_type] : null);
+
 	const LOADER_META: Record<string, { label: string; color: string }> = {
 		vanilla: { label: 'Vanilla', color: 'var(--loader-vanilla)' },
 		fabric: { label: 'Fabric', color: 'var(--loader-fabric)' },
@@ -91,7 +117,7 @@
 		neoforge: { label: 'NeoForge', color: 'var(--loader-neoforge)' },
 		quilt: { label: 'Quilt', color: 'var(--loader-quilt)' }
 	};
-	const loaderMeta = $derived(LOADER_META[instance.loader]);
+	const loaderMeta = $derived(serverMeta ?? LOADER_META[instance.loader]);
 
 	const lastPlayedLabel = $derived.by(() => {
 		if (!instance.last_played) return t('instanceDetail.neverPlayed');
@@ -111,6 +137,20 @@
 			error = String(e);
 		} finally {
 			launching = false;
+		}
+	}
+
+	let serverToggling = $state(false);
+	async function handleServerToggle() {
+		serverToggling = true;
+		error = null;
+		try {
+			if (serverRunning) await stopServer(instance.name);
+			else await launchServer(instance.name);
+		} catch (e) {
+			error = String(e);
+		} finally {
+			serverToggling = false;
 		}
 	}
 
@@ -350,18 +390,39 @@
 			</div>
 		</div>
 
-		<button type="button" class="play-btn" disabled={launching || blockedByOther} onclick={handlePlay}>
-			{#if launching}
-				<Loader2 size={16} class="spin" />
-				{t('instanceDetail.preparing')}
-			{:else if blockedByOther}
-				<Play size={16} fill="currentColor" />
-				{t('instanceDetail.instanceRunning', { name: gameSession.running ?? '' })}
-			{:else}
-				<Play size={16} fill="currentColor" />
-				{t('instanceDetail.play')}
-			{/if}
-		</button>
+		{#if isServer}
+			<button
+				type="button"
+				class="play-btn"
+				class:stop-btn={serverRunning}
+				disabled={serverToggling}
+				onclick={handleServerToggle}
+			>
+				{#if serverToggling}
+					<Loader2 size={16} class="spin" />
+					{serverRunning ? t('serverInstance.stopping') : t('serverInstance.starting')}
+				{:else if serverRunning}
+					<Square size={16} fill="currentColor" />
+					{t('serverInstance.stop')}
+				{:else}
+					<Play size={16} fill="currentColor" />
+					{t('serverInstance.start')}
+				{/if}
+			</button>
+		{:else}
+			<button type="button" class="play-btn" disabled={launching || blockedByOther} onclick={handlePlay}>
+				{#if launching}
+					<Loader2 size={16} class="spin" />
+					{t('instanceDetail.preparing')}
+				{:else if blockedByOther}
+					<Play size={16} fill="currentColor" />
+					{t('instanceDetail.instanceRunning', { name: gameSession.running ?? '' })}
+				{:else}
+					<Play size={16} fill="currentColor" />
+					{t('instanceDetail.play')}
+				{/if}
+			</button>
+		{/if}
 	</div>
 
 	{#if error}
@@ -369,20 +430,35 @@
 	{/if}
 
 	<div class="quick-actions">
-		<button type="button" class="quick-card" onclick={() => (tab = 'mods')}>
-			<div class="quick-icon"><Puzzle size={16} /></div>
-			<div class="quick-text">
-				<span class="quick-title">{t('instanceDetail.tabs.mods')}</span>
-				<span class="quick-sub">
-					{instance.loader === 'vanilla'
-						? t('instanceDetail.modsNotSupportedVanilla')
-						: modCount === null
-							? t('instanceDetail.loading')
-							: t('instanceDetail.modsInstalledCount', { count: modCount })}
-				</span>
-			</div>
-			<ChevronRight size={14} class="quick-arrow" />
-		</button>
+		{#if isServer}
+			<button type="button" class="quick-card" onclick={() => (tab = 'plugins')}>
+				<div class="quick-icon"><Puzzle size={16} /></div>
+				<div class="quick-text">
+					<span class="quick-title">{t('serverInstance.tabPlugins')}</span>
+					<span class="quick-sub">
+						{instance.server_type === 'vanilla'
+							? t('pluginsPanel.vanillaHint')
+							: instance.server_build}
+					</span>
+				</div>
+				<ChevronRight size={14} class="quick-arrow" />
+			</button>
+		{:else}
+			<button type="button" class="quick-card" onclick={() => (tab = 'mods')}>
+				<div class="quick-icon"><Puzzle size={16} /></div>
+				<div class="quick-text">
+					<span class="quick-title">{t('instanceDetail.tabs.mods')}</span>
+					<span class="quick-sub">
+						{instance.loader === 'vanilla'
+							? t('instanceDetail.modsNotSupportedVanilla')
+							: modCount === null
+								? t('instanceDetail.loading')
+								: t('instanceDetail.modsInstalledCount', { count: modCount })}
+					</span>
+				</div>
+				<ChevronRight size={14} class="quick-arrow" />
+			</button>
+		{/if}
 
 		<button type="button" class="quick-card" onclick={handleOpenFolder}>
 			<div class="quick-icon"><FolderOpen size={16} /></div>
@@ -403,46 +479,81 @@
 		>
 			{t('instanceDetail.tabs.details')}
 		</button>
-		<button
-			type="button"
-			class="tab-btn"
-			class:active={tab === 'mods'}
-			onclick={() => (tab = 'mods')}
-		>
-			{t('instanceDetail.tabs.mods')}
-		</button>
-		<button
-			type="button"
-			class="tab-btn"
-			class:active={tab === 'shaders'}
-			onclick={() => (tab = 'shaders')}
-		>
-			{t('instanceDetail.tabs.shaders')}
-		</button>
-		<button
-			type="button"
-			class="tab-btn"
-			class:active={tab === 'resourcepacks'}
-			onclick={() => (tab = 'resourcepacks')}
-		>
-			{t('instanceDetail.tabs.resourcePacks')}
-		</button>
-		<button
-			type="button"
-			class="tab-btn"
-			class:active={tab === 'modpacks'}
-			onclick={() => (tab = 'modpacks')}
-		>
-			{t('instanceDetail.tabs.modpacks')}
-		</button>
-		<button
-			type="button"
-			class="tab-btn"
-			class:active={tab === 'screenshots'}
-			onclick={() => (tab = 'screenshots')}
-		>
-			{t('instanceDetail.tabs.screenshots')}
-		</button>
+		{#if isServer}
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'plugins'}
+				onclick={() => (tab = 'plugins')}
+			>
+				{t('serverInstance.tabPlugins')}
+			</button>
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'worlds'}
+				onclick={() => (tab = 'worlds')}
+			>
+				{t('serverInstance.tabWorlds')}
+			</button>
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'files'}
+				onclick={() => (tab = 'files')}
+			>
+				{t('serverInstance.tabFiles')}
+			</button>
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'console'}
+				onclick={() => (tab = 'console')}
+			>
+				{t('serverInstance.tabConsole')}
+			</button>
+		{:else}
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'mods'}
+				onclick={() => (tab = 'mods')}
+			>
+				{t('instanceDetail.tabs.mods')}
+			</button>
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'shaders'}
+				onclick={() => (tab = 'shaders')}
+			>
+				{t('instanceDetail.tabs.shaders')}
+			</button>
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'resourcepacks'}
+				onclick={() => (tab = 'resourcepacks')}
+			>
+				{t('instanceDetail.tabs.resourcePacks')}
+			</button>
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'modpacks'}
+				onclick={() => (tab = 'modpacks')}
+			>
+				{t('instanceDetail.tabs.modpacks')}
+			</button>
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'screenshots'}
+				onclick={() => (tab = 'screenshots')}
+			>
+				{t('instanceDetail.tabs.screenshots')}
+			</button>
+		{/if}
 	</div>
 
 	{#if tab === 'details'}
@@ -494,8 +605,16 @@
 		<ResourcePacksPanel {instance} />
 	{:else if tab === 'modpacks'}
 		<ModpacksPanel {instance} />
-	{:else}
+	{:else if tab === 'screenshots'}
 		<ScreenshotsPanel {instance} />
+	{:else if tab === 'plugins'}
+		<PluginsPanel {instance} />
+	{:else if tab === 'worlds'}
+		<ServerWorlds {instance} />
+	{:else if tab === 'files'}
+		<ServerFileManager {instance} />
+	{:else if tab === 'console'}
+		<ServerConsole {instance} />
 	{/if}
 </div>
 
@@ -711,6 +830,13 @@
 		transition:
 			transform 0.12s ease,
 			box-shadow 0.12s ease;
+	}
+
+	.play-btn.stop-btn {
+		background: linear-gradient(155deg, var(--color-error), color-mix(in srgb, var(--color-error) 80%, black));
+		box-shadow:
+			var(--shadow-md),
+			0 0 24px color-mix(in srgb, var(--color-error) 35%, transparent);
 	}
 
 	.play-btn:hover:not(:disabled) {
