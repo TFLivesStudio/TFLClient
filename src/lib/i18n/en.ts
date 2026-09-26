@@ -464,6 +464,10 @@ export const en: Dictionary = {
 		connectionPublicManual:
 			"This address works for anyone, but your router didn't let TFL Client open it automatically: you'll need to port forward {{port}} manually — search \"port forwarding\" plus your router model.",
 		connectionLanFallback: 'On the same Wi-Fi, {{address}} also works directly.',
-		connectionUnavailable: "Couldn't detect a network address — check that you have internet or a local network connection."
+		connectionUnavailable: "Couldn't detect a network address — check that you have internet or a local network connection.",
+		connectionTunnelReady: 'This address works for anyone, anywhere — it doesn\'t depend on your router.',
+		playitPitch: "Still fighting with the connection? Link a free playit.gg account (one click, no card) and the address will always work, no router needed.",
+		playitLinkButton: 'Link playit.gg',
+		playitLinking: 'Waiting for confirmation in the browser…'
 	}
 };

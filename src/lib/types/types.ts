@@ -67,6 +67,12 @@ export interface ServerConnectionInfo {
 	public_ip: string | null;
 	port: number;
 	port_forwarded: boolean;
+	tunnel_address: string | null;
+}
+
+export interface PlayitClaimInfo {
+	code: string;
+	url: string;
 }
 
 export interface MinecraftVersion {

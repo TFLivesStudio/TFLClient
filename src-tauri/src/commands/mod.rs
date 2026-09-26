@@ -3,6 +3,7 @@ pub mod instance;
 pub mod loaders;
 pub mod mods;
 pub mod modpacks;
+pub mod playit;
 pub mod servers;
 pub mod settings;
 pub mod tfl_selection;

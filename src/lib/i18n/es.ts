@@ -461,7 +461,11 @@ export const es = {
 		connectionPublicManual:
 			'Esta dirección sirve para cualquiera, pero tu router no dejó abrirla sola: hay que abrir (port forward) el puerto {{port}} a mano — buscá "port forwarding" + el modelo de tu router.',
 		connectionLanFallback: 'Si están en la misma red Wi-Fi, también pueden usar {{address}} directamente.',
-		connectionUnavailable: 'No se pudo detectar la dirección de red — revisá que tengas conexión a internet o red local.'
+		connectionUnavailable: 'No se pudo detectar la dirección de red — revisá que tengas conexión a internet o red local.',
+		connectionTunnelReady: 'Esta dirección ya sirve para cualquiera, esté donde esté — no depende de tu router.',
+		playitPitch: '¿Se sigue complicando la conexión? Vinculá una cuenta gratis de playit.gg (un click, sin tarjeta) y la dirección va a andar siempre, sin depender del router.',
+		playitLinkButton: 'Vincular playit.gg',
+		playitLinking: 'Esperando confirmación en el navegador…'
 	}
 };
 

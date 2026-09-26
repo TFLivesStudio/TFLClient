@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 	import type { InstanceData, ServerConnectionInfo } from '$lib/types/types';
@@ -17,7 +17,11 @@
 		getInstanceIconPath,
 		launchServer,
 		stopServer,
-		getServerConnectionInfo
+		getServerConnectionInfo,
+		playitIsLinked,
+		playitStartClaim,
+		playitPollClaim,
+		playitOpenClaimUrl
 	} from '$lib/api/tflApi';
 	import { gameSession } from '$lib/state/gameSession.svelte';
 	import { serverSessions } from '$lib/state/serverSessions.svelte';
@@ -103,8 +107,12 @@
 		loadRamHint();
 		loadModCount();
 		loadIcon();
-		if (instance.server_type) loadConnectionInfo();
+		if (instance.server_type) {
+			loadConnectionInfo();
+			playitIsLinked().then((v) => (playitLinked = v));
+		}
 	});
+	onDestroy(() => stopPlayitPolling());
 
 	let connectionInfo = $state<ServerConnectionInfo | null>(null);
 	let copiedConnection = $state(false);
@@ -115,12 +123,47 @@
 			// sin IP local disponible (ej. sin red) — se oculta la sección
 		}
 	}
+	function bestConnectionAddress(): string | null {
+		if (!connectionInfo) return null;
+		if (connectionInfo.tunnel_address) return connectionInfo.tunnel_address;
+		if (connectionInfo.public_ip) return `${connectionInfo.public_ip}:${connectionInfo.port}`;
+		if (connectionInfo.local_ip) return `${connectionInfo.local_ip}:${connectionInfo.port}`;
+		return null;
+	}
 	async function copyConnectionAddress() {
-		const ip = connectionInfo?.public_ip ?? connectionInfo?.local_ip;
-		if (!ip) return;
-		await writeText(`${ip}:${connectionInfo!.port}`);
+		const address = bestConnectionAddress();
+		if (!address) return;
+		await writeText(address);
 		copiedConnection = true;
 		setTimeout(() => (copiedConnection = false), 1500);
+	}
+
+	// playit.gg — vinculación opcional, una sola vez. Con esto vinculado la
+	// dirección de conexión anda siempre, sin depender de UPnP ni del router.
+	let playitLinked = $state<boolean | null>(null);
+	let playitLinking = $state(false);
+	let playitPollTimer: ReturnType<typeof setInterval> | undefined;
+	function stopPlayitPolling() {
+		if (playitPollTimer) clearInterval(playitPollTimer);
+		playitPollTimer = undefined;
+	}
+	async function startPlayitLink() {
+		playitLinking = true;
+		const claim = await playitStartClaim();
+		await playitOpenClaimUrl(claim.code);
+		stopPlayitPolling();
+		playitPollTimer = setInterval(async () => {
+			const status = await playitPollClaim(claim.code).catch(() => 'error');
+			if (status === 'accepted') {
+				stopPlayitPolling();
+				playitLinking = false;
+				playitLinked = true;
+				if (serverRunning) loadConnectionInfo();
+			} else if (status === 'rejected' || status === 'error') {
+				stopPlayitPolling();
+				playitLinking = false;
+			}
+		}, 2000);
 	}
 
 	// server.properties (con el puerto real) recién existe después del
@@ -591,7 +634,15 @@
 		{#if isServer}
 			<section class="connection-section">
 				<span class="section-label">{t('serverInstance.connectionLabel')}</span>
-				{#if connectionInfo?.public_ip}
+				{#if connectionInfo?.tunnel_address}
+					<div class="connection-row">
+						<code class="connection-address">{connectionInfo.tunnel_address}</code>
+						<button type="button" class="icon-btn" onclick={copyConnectionAddress} aria-label={t('common.copy')}>
+							{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
+						</button>
+					</div>
+					<p class="hint">{t('serverInstance.connectionTunnelReady')}</p>
+				{:else if connectionInfo?.public_ip}
 					<div class="connection-row">
 						<code class="connection-address">{connectionInfo.public_ip}:{connectionInfo.port}</code>
 						<button type="button" class="icon-btn" onclick={copyConnectionAddress} aria-label={t('common.copy')}>
@@ -620,6 +671,20 @@
 					<p class="hint">{t('serverInstance.connectionLanHint')}</p>
 				{:else}
 					<p class="hint">{t('serverInstance.connectionUnavailable')}</p>
+				{/if}
+
+				{#if playitLinked === false}
+					<div class="playit-prompt">
+						<p class="hint">{t('serverInstance.playitPitch')}</p>
+						<button type="button" class="playit-link-btn" onclick={startPlayitLink} disabled={playitLinking}>
+							{#if playitLinking}
+								<Loader2 size={14} class="spin" />
+								{t('serverInstance.playitLinking')}
+							{:else}
+								{t('serverInstance.playitLinkButton')}
+							{/if}
+						</button>
+					</div>
 				{/if}
 			</section>
 		{/if}
@@ -1083,6 +1148,36 @@
 		color: var(--text-muted);
 		margin-top: 4px;
 		margin-bottom: 12px;
+	}
+
+	.playit-prompt {
+		border-top: 1px solid var(--border);
+		padding-top: 10px;
+		margin-top: 2px;
+	}
+
+	.playit-link-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 12px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-input);
+		color: var(--text-primary);
+		font-size: 0.78rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.playit-link-btn:hover:not(:disabled) {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.playit-link-btn:disabled {
+		opacity: 0.6;
+		cursor: default;
 	}
 
 	.ram-row {

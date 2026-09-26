@@ -20,7 +20,8 @@ import type {
 	ServerType,
 	WorldInfo,
 	FileEntry,
-	ServerConnectionInfo
+	ServerConnectionInfo,
+	PlayitClaimInfo
 } from '$lib/types/types';
 
 // ── Auth ─────────────────────────────────────────────────────────────
@@ -279,3 +280,10 @@ export const deleteInstancePath = (instanceName: string, subpath: string) =>
 	invoke<void>('delete_instance_path', { instanceName, subpath });
 export const createInstanceDir = (instanceName: string, subpath: string) =>
 	invoke<void>('create_instance_dir', { instanceName, subpath });
+
+// ── playit.gg (túnel automático) ─────────────────────────────────────
+export const playitIsLinked = () => invoke<boolean>('playit_is_linked');
+export const playitStartClaim = () => invoke<PlayitClaimInfo>('playit_start_claim');
+export const playitPollClaim = (code: string) => invoke<string>('playit_poll_claim', { code });
+export const playitUnlink = () => invoke<void>('playit_unlink');
+export const playitOpenClaimUrl = (code: string) => invoke<void>('playit_open_claim_url', { code });

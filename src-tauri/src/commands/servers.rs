@@ -6,7 +6,7 @@
 //! frontend invoca.
 use crate::core::{HTTP, get_bytes_retrying};
 use crate::services::instance_manager::{self, InstanceData, LoaderKind, ServerType};
-use crate::services::{server_downloads, server_process};
+use crate::services::{playit_tunnel, server_downloads, server_process};
 use aqua::path_security::safe_join;
 use serde::Serialize;
 use std::time::Duration;
@@ -28,6 +28,10 @@ pub struct ServerConnectionInfo {
     /// si es false, `public_ip` funciona igual pero quien se conecte desde
     /// afuera de la red va a necesitar que se abra el puerto a mano.
     pub port_forwarded: bool,
+    /// Dirección de un túnel playit.gg (si el usuario vinculó su cuenta) —
+    /// funciona siempre, sin depender de UPnP ni del router. Cuando está
+    /// presente, la UI la muestra como opción preferida sobre la IP pública.
+    pub tunnel_address: Option<String>,
 }
 
 /// IP pública de esta conexión a internet — la única forma real de que
@@ -84,11 +88,25 @@ pub async fn get_server_connection_info(instance_name: String) -> Result<ServerC
     let instance = instance_manager::get_instance(&instance_name).await?;
     let port = read_server_port(&instance.dir()).await;
     let public_ip = fetch_public_ip().await;
+
+    let tunnel_address = if server_process::is_server_running(&instance_name) && playit_tunnel::is_linked().await {
+        match playit_tunnel::ensure_tunnel_address(port).await {
+            Ok(addr) => Some(addr),
+            Err(e) => {
+                tracing::warn!("playit.gg: no se pudo obtener la dirección del túnel: {e}");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     Ok(ServerConnectionInfo {
         local_ip: detect_local_ip(),
         public_ip,
         port,
         port_forwarded: server_process::is_port_forwarded(&instance_name),
+        tunnel_address,
     })
 }
 

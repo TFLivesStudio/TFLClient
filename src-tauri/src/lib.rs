@@ -127,6 +127,11 @@ pub fn run() {
             commands::servers::write_instance_text_file,
             commands::servers::delete_instance_path,
             commands::servers::create_instance_dir,
+            commands::playit::playit_is_linked,
+            commands::playit::playit_start_claim,
+            commands::playit::playit_poll_claim,
+            commands::playit::playit_unlink,
+            commands::playit::playit_open_claim_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
