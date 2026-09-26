@@ -91,5 +91,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.3': [
 		'Arreglado: la dirección de conexión del servidor mostraba solo la IP local (solo servía en la misma red Wi-Fi). Ahora se muestra la IP pública y el launcher intenta abrir el puerto en el router solo — si el router lo permite, cualquiera se puede conectar con esa dirección sin configurar nada más.'
+	],
+	'0.10.4': [
+		'Nuevo: cuando el router no deja abrir el puerto solo, ahora se puede vincular una cuenta gratis de playit.gg (un click, sin tarjeta) desde Detalles del servidor — con eso vinculado, la dirección de conexión anda siempre, para cualquiera, sin depender del router.'
 	]
 };
