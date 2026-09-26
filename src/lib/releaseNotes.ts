@@ -88,5 +88,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.2': [
 		'Nuevo: en Detalles de una instancia de servidor, ahora se ve la dirección (IP:puerto) para conectarse, con botón de copiar — antes el servidor arrancaba pero no había forma de saber qué pasarle a otro jugador.'
+	],
+	'0.10.3': [
+		'Arreglado: la dirección de conexión del servidor mostraba solo la IP local (solo servía en la misma red Wi-Fi). Ahora se muestra la IP pública y el launcher intenta abrir el puerto en el router solo — si el router lo permite, cualquiera se puede conectar con esa dirección sin configurar nada más.'
 	]
 };
