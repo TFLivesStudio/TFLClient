@@ -94,5 +94,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.4': [
 		'Nuevo: cuando el router no deja abrir el puerto solo, ahora se puede vincular una cuenta gratis de playit.gg (un click, sin tarjeta) desde Detalles del servidor — con eso vinculado, la dirección de conexión anda siempre, para cualquiera, sin depender del router.'
+	],
+	'0.10.5': [
+		'Nuevo: botón "Unirse a servidor" (barra lateral y Ctrl/Cmd+K) para conectarte pegando la dirección — elegís entre una instancia tuya ya creada o "Quick Join" (crea o reusa una Vanilla de la versión que quieras), y el juego arranca ya conectado, sin pasar por el menú de Multijugador.'
 	]
 };
