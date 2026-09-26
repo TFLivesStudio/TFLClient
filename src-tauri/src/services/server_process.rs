@@ -5,17 +5,24 @@
 //! bloquee) tener un cliente abierto al mismo tiempo. Este registro admite
 //! múltiples servidores corriendo a la vez, uno por nombre de instancia.
 use crate::core::event_bus::{AppEvent, emit};
+use crate::services::port_forward;
 use crate::services::{instance_manager, java_manager};
 use std::collections::HashMap;
 use std::process::Stdio;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::ChildStdin;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 struct RunningServer {
     stdin: Arc<tokio::sync::Mutex<Option<ChildStdin>>>,
     pid: Option<u32>,
+    port_forwarded: Arc<AtomicBool>,
+    /// Puerto mapeado por UPnP, para poder cerrarlo al parar el servidor —
+    /// `None` hasta que el intento de mapeo (asincrónico, corre en paralelo
+    /// al arranque) termina con éxito.
+    mapped_port: Arc<Mutex<Option<u16>>>,
 }
 
 static RUNNING_SERVERS: LazyLock<Mutex<HashMap<String, RunningServer>>> =
@@ -27,6 +34,17 @@ pub fn is_server_running(instance_name: &str) -> bool {
 
 pub fn running_server_pid(instance_name: &str) -> Option<u32> {
     RUNNING_SERVERS.lock().unwrap().get(instance_name).and_then(|r| r.pid)
+}
+
+/// Si el UPnP del router aceptó el mapeo automático del puerto — la UI usa
+/// esto para decirle al usuario si ya puede compartir la IP pública tal
+/// cual o si el router no lo dejó (y hace falta port forwarding manual).
+pub fn is_port_forwarded(instance_name: &str) -> bool {
+    RUNNING_SERVERS
+        .lock()
+        .unwrap()
+        .get(instance_name)
+        .is_some_and(|r| r.port_forwarded.load(Ordering::Relaxed))
 }
 
 /// Minecraft requiere aceptar el EULA para que el server arranque —
@@ -98,11 +116,15 @@ pub async fn launch_server(instance_name: String) -> Result<(), String> {
     let stderr = child.stderr.take();
 
     let stdin_arc = Arc::new(tokio::sync::Mutex::new(stdin));
+    let port_forwarded = Arc::new(AtomicBool::new(false));
+    let mapped_port = Arc::new(Mutex::new(None));
     RUNNING_SERVERS.lock().unwrap().insert(
         instance_name.clone(),
         RunningServer {
             stdin: stdin_arc,
             pid,
+            port_forwarded: port_forwarded.clone(),
+            mapped_port: mapped_port.clone(),
         },
     );
 
@@ -110,6 +132,31 @@ pub async fn launch_server(instance_name: String) -> Result<(), String> {
         name: instance_name.clone(),
         status: "running".into(),
     });
+
+    // Abrir el puerto en el router es best-effort y no debería demorar el
+    // arranque del servidor — corre en paralelo, no se espera acá.
+    {
+        let instance_dir = instance_dir.clone();
+        let server_name = instance_name.clone();
+        tokio::spawn(async move {
+            let port = crate::commands::servers::read_server_port(&instance_dir).await;
+            let Some(local_ip) = port_forward::detect_local_ipv4() else {
+                warn!("UPnP: no se pudo detectar la IP LAN para \"{server_name}\", se omite el port forward automático");
+                return;
+            };
+            match port_forward::try_open_port(local_ip, port).await {
+                Ok(()) => {
+                    port_forwarded.store(true, Ordering::Relaxed);
+                    *mapped_port.lock().unwrap() = Some(port);
+                }
+                Err(e) => {
+                    warn!(
+                        "UPnP: no se pudo abrir el puerto {port} automáticamente para \"{server_name}\" ({e}) — va a hacer falta port forwarding manual en el router"
+                    );
+                }
+            }
+        });
+    }
 
     if let Some(stdout) = stdout {
         let name = instance_name.clone();
@@ -182,5 +229,15 @@ pub async fn send_command(instance_name: String, command: String) -> Result<(), 
 /// Apagado limpio vía el comando estándar de Minecraft (`stop`) — guarda el
 /// mundo antes de cerrar, a diferencia de matar el proceso a la fuerza.
 pub async fn stop_server(instance_name: String) -> Result<(), String> {
-    write_stdin_line(&instance_name, "stop").await
+    write_stdin_line(&instance_name, "stop").await?;
+
+    let mapped_port = RUNNING_SERVERS
+        .lock()
+        .unwrap()
+        .get(&instance_name)
+        .and_then(|r| *r.mapped_port.lock().unwrap());
+    if let Some(port) = mapped_port {
+        port_forward::close_port(port).await;
+    }
+    Ok(())
 }

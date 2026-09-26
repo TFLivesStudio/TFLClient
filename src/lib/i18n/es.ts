@@ -457,8 +457,10 @@ export const es = {
 		tabConsole: 'Consola',
 		connectionLabel: 'Cómo conectarse',
 		connectionLanHint: 'Para jugar con otra PC en tu misma red Wi-Fi, pasales esa dirección tal cual.',
-		connectionInternetHint:
-			'Para que alguien se conecte desde fuera de tu red, hay que abrir (port forward) el puerto {{port}} en el router — buscá "port forwarding" + el modelo de tu router.',
+		connectionPublicReady: 'Esta dirección ya sirve para cualquiera, esté donde esté — TFL Client abrió el puerto solo en tu router.',
+		connectionPublicManual:
+			'Esta dirección sirve para cualquiera, pero tu router no dejó abrirla sola: hay que abrir (port forward) el puerto {{port}} a mano — buscá "port forwarding" + el modelo de tu router.',
+		connectionLanFallback: 'Si están en la misma red Wi-Fi, también pueden usar {{address}} directamente.',
 		connectionUnavailable: 'No se pudo detectar la dirección de red — revisá que tengas conexión a internet o red local.'
 	}
 };

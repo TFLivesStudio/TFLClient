@@ -64,7 +64,9 @@ export interface FileEntry {
 
 export interface ServerConnectionInfo {
 	local_ip: string | null;
+	public_ip: string | null;
 	port: number;
+	port_forwarded: boolean;
 }
 
 export interface MinecraftVersion {

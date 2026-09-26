@@ -4,11 +4,12 @@
 //! `services::server_downloads`, el ciclo de vida del proceso en
 //! `services::server_process` — este archivo es la capa fina que el
 //! frontend invoca.
-use crate::core::get_bytes_retrying;
+use crate::core::{HTTP, get_bytes_retrying};
 use crate::services::instance_manager::{self, InstanceData, LoaderKind, ServerType};
 use crate::services::{server_downloads, server_process};
 use aqua::path_security::safe_join;
 use serde::Serialize;
+use std::time::Duration;
 use tauri::command;
 
 #[command]
@@ -21,7 +22,32 @@ pub async fn get_server_versions(server_type: String) -> Result<Vec<String>, Str
 #[derive(Debug, Serialize)]
 pub struct ServerConnectionInfo {
     pub local_ip: Option<String>,
+    pub public_ip: Option<String>,
     pub port: u16,
+    /// true si TFL Client logró abrir el puerto solo en el router (UPnP) —
+    /// si es false, `public_ip` funciona igual pero quien se conecte desde
+    /// afuera de la red va a necesitar que se abra el puerto a mano.
+    pub port_forwarded: bool,
+}
+
+/// IP pública de esta conexión a internet — la única forma real de que
+/// alguien fuera de la red local sepa a qué dirección conectarse. Se le
+/// pregunta a un servicio externo porque no hay forma de "leerla" del
+/// sistema operativo (a diferencia de la LAN, que sí sale de una interfaz
+/// local). Timeout corto y sin reintento: si no hay internet o el servicio
+/// no responde, se muestra solo la LAN en vez de trabar la UI.
+async fn fetch_public_ip() -> Option<String> {
+    let resp = HTTP
+        .get("https://api.ipify.org")
+        .timeout(Duration::from_secs(4))
+        .send()
+        .await
+        .ok()?
+        .error_for_status()
+        .ok()?;
+    let ip = resp.text().await.ok()?;
+    let ip = ip.trim();
+    (!ip.is_empty()).then(|| ip.to_string())
 }
 
 /// IP de la máquina en la red local — no hay forma portable de "preguntarle
@@ -41,7 +67,7 @@ fn detect_local_ip() -> Option<String> {
 /// descargar el jar), así que hasta ese momento no existe — se devuelve el
 /// default real de Mojang (25565) en vez de fallar, es lo que igual va a
 /// terminar usando la primera vez que se inicie.
-async fn read_server_port(instance_dir: &std::path::Path) -> u16 {
+pub(crate) async fn read_server_port(instance_dir: &std::path::Path) -> u16 {
     let path = instance_dir.join("server.properties");
     let Ok(content) = tokio::fs::read_to_string(&path).await else {
         return 25565;
@@ -56,9 +82,13 @@ async fn read_server_port(instance_dir: &std::path::Path) -> u16 {
 #[command]
 pub async fn get_server_connection_info(instance_name: String) -> Result<ServerConnectionInfo, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
+    let port = read_server_port(&instance.dir()).await;
+    let public_ip = fetch_public_ip().await;
     Ok(ServerConnectionInfo {
         local_ip: detect_local_ip(),
-        port: read_server_port(&instance.dir()).await,
+        public_ip,
+        port,
+        port_forwarded: server_process::is_port_forwarded(&instance_name),
     })
 }
 

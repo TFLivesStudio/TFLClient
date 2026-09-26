@@ -460,8 +460,10 @@ export const en: Dictionary = {
 		tabConsole: 'Console',
 		connectionLabel: 'How to connect',
 		connectionLanHint: 'For another PC on the same Wi-Fi, give them this address as is.',
-		connectionInternetHint:
-			'For someone outside your network to connect, you need to port forward {{port}} on your router — search "port forwarding" plus your router model.',
+		connectionPublicReady: "This address works for anyone, anywhere — TFL Client opened the port on your router automatically.",
+		connectionPublicManual:
+			"This address works for anyone, but your router didn't let TFL Client open it automatically: you'll need to port forward {{port}} manually — search \"port forwarding\" plus your router model.",
+		connectionLanFallback: 'On the same Wi-Fi, {{address}} also works directly.',
 		connectionUnavailable: "Couldn't detect a network address — check that you have internet or a local network connection."
 	}
 };

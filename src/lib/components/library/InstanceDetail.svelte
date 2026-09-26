@@ -116,8 +116,9 @@
 		}
 	}
 	async function copyConnectionAddress() {
-		if (!connectionInfo?.local_ip) return;
-		await writeText(`${connectionInfo.local_ip}:${connectionInfo.port}`);
+		const ip = connectionInfo?.public_ip ?? connectionInfo?.local_ip;
+		if (!ip) return;
+		await writeText(`${ip}:${connectionInfo!.port}`);
 		copiedConnection = true;
 		setTimeout(() => (copiedConnection = false), 1500);
 	}
@@ -590,7 +591,26 @@
 		{#if isServer}
 			<section class="connection-section">
 				<span class="section-label">{t('serverInstance.connectionLabel')}</span>
-				{#if connectionInfo?.local_ip}
+				{#if connectionInfo?.public_ip}
+					<div class="connection-row">
+						<code class="connection-address">{connectionInfo.public_ip}:{connectionInfo.port}</code>
+						<button type="button" class="icon-btn" onclick={copyConnectionAddress} aria-label={t('common.copy')}>
+							{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
+						</button>
+					</div>
+					{#if connectionInfo.port_forwarded}
+						<p class="hint">{t('serverInstance.connectionPublicReady')}</p>
+					{:else}
+						<p class="hint">{t('serverInstance.connectionPublicManual', { port: connectionInfo.port })}</p>
+					{/if}
+					{#if connectionInfo.local_ip}
+						<p class="hint">
+							{t('serverInstance.connectionLanFallback', {
+								address: `${connectionInfo.local_ip}:${connectionInfo.port}`
+							})}
+						</p>
+					{/if}
+				{:else if connectionInfo?.local_ip}
 					<div class="connection-row">
 						<code class="connection-address">{connectionInfo.local_ip}:{connectionInfo.port}</code>
 						<button type="button" class="icon-btn" onclick={copyConnectionAddress} aria-label={t('common.copy')}>
@@ -598,7 +618,6 @@
 						</button>
 					</div>
 					<p class="hint">{t('serverInstance.connectionLanHint')}</p>
-					<p class="hint">{t('serverInstance.connectionInternetHint', { port: connectionInfo.port })}</p>
 				{:else}
 					<p class="hint">{t('serverInstance.connectionUnavailable')}</p>
 				{/if}
