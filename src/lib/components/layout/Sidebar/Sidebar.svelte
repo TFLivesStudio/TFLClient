@@ -17,7 +17,8 @@
 		onOpenSettings,
 		onOpenTflSelection,
 		onJoinServer,
-		onOpenSkinManager
+		onOpenSkinManager,
+		onInstanceContextMenu
 	}: {
 		instances: InstanceData[];
 		selected: InstanceData | null;
@@ -29,6 +30,7 @@
 		onOpenTflSelection: () => void;
 		onJoinServer: () => void;
 		onOpenSkinManager: () => void;
+		onInstanceContextMenu: (instance: InstanceData, x: number, y: number) => void;
 	} = $props();
 
 	const LOADER_COLOR: Record<string, string> = {
@@ -127,6 +129,10 @@
 						class:active={selected?.uuid === instance.uuid}
 						style="--loader-color: {LOADER_COLOR[instance.loader]}"
 						onclick={() => onSelect(instance)}
+						oncontextmenu={(e) => {
+							e.preventDefault();
+							onInstanceContextMenu(instance, e.clientX, e.clientY);
+						}}
 					>
 						<span class="instance-avatar">
 							{instance.name.charAt(0).toUpperCase()}

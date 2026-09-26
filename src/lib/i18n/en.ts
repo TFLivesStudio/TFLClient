@@ -182,7 +182,8 @@ export const en: Dictionary = {
 		offlineAccountType: 'Offline — singleplayer only',
 		openSettings: 'Settings',
 		logout: 'Log out',
-		joinServer: 'Join server'
+		joinServer: 'Join server',
+		contextOpen: 'Open'
 	},
 	joinServer: {
 		title: 'Join server',
@@ -495,6 +496,7 @@ export const en: Dictionary = {
 		uploadSkin: 'Upload skin',
 		resetSkin: 'Reset to default',
 		noCapes: "This account has no capes — they come from Mojang events/promotions.",
-		noCape: 'No cape'
+		noCape: 'No cape',
+		viewerHint: 'Drag to rotate, scroll to zoom'
 	}
 };

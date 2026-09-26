@@ -7,6 +7,10 @@ use serde::Serialize;
 use tauri::command;
 use tracing::{info, warn};
 
+fn tfl_microsoft_auth() -> MicrosoftAuth {
+    MicrosoftAuth::new(crate::core::TFL_MICROSOFT_CLIENT_ID.to_string())
+}
+
 #[derive(Serialize)]
 pub struct DeviceCode {
     pub user_code: String,
@@ -20,7 +24,7 @@ pub struct DeviceCode {
 pub async fn get_device_code() -> Result<DeviceCode, String> {
     info!("Obteniendo código de dispositivo de Microsoft");
     let res = tokio::task::spawn_blocking(|| {
-        MicrosoftAuth::default()
+        tfl_microsoft_auth()
             .get_device_code()
             .map_err(|e| e.to_string())
     })
@@ -43,7 +47,7 @@ pub async fn authenticate_with_device_code(
     expires_in: u64,
 ) -> Result<MinecraftUser, String> {
     let user = tokio::task::spawn_blocking(move || {
-        MicrosoftAuth::default()
+        tfl_microsoft_auth()
             .authenticate_with_device_code(&device_code, interval, expires_in)
             .map_err(|e| e.to_string())
     })

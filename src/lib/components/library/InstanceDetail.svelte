@@ -59,20 +59,7 @@
 		Rocket
 	} from 'lucide-svelte';
 
-	let {
-		instance,
-		onChanged
-	}: {
-		instance: InstanceData;
-		onChanged: (instance: InstanceData | null) => void;
-	} = $props();
-
-	let launching = $state(false);
-	const blockedByOther = $derived(!!gameSession.running && gameSession.running !== instance.name);
-	const isServer = $derived(!!instance.server_type);
-	const serverRunning = $derived(serverSessions.running.has(instance.name));
-	let error = $state<string | null>(null);
-	let tab = $state<
+	type TabKey =
 		| 'details'
 		| 'mods'
 		| 'shaders'
@@ -82,8 +69,29 @@
 		| 'plugins'
 		| 'worlds'
 		| 'files'
-		| 'console'
-	>('details');
+		| 'console';
+
+	let {
+		instance,
+		onChanged,
+		initialTab
+	}: {
+		instance: InstanceData;
+		onChanged: (instance: InstanceData | null) => void;
+		/** Pestaña con la que abrir — la usa el menú contextual de la barra
+		 * lateral ("Ir a Mods" salta directo en vez de abrir en Detalles).
+		 * String suelto (no `TabKey`) porque lo pasa +page.svelte, que no
+		 * tiene ese tipo interno — se valida acá nomás. */
+		initialTab?: string;
+	} = $props();
+
+	let launching = $state(false);
+	const blockedByOther = $derived(!!gameSession.running && gameSession.running !== instance.name);
+	const isServer = $derived(!!instance.server_type);
+	const serverRunning = $derived(serverSessions.running.has(instance.name));
+	let error = $state<string | null>(null);
+	const validTabs: TabKey[] = ['details', 'mods', 'shaders', 'resourcepacks', 'modpacks', 'screenshots', 'plugins', 'worlds', 'files', 'console'];
+	let tab = $state<TabKey>((validTabs as string[]).includes(initialTab ?? '') ? (initialTab as TabKey) : 'details');
 	let showDeleteConfirm = $state(false);
 	let editingName = $state(false);
 	let nameDraft = $state(instance.name);

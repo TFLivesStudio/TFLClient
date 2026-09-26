@@ -18,6 +18,8 @@
 	import UpdateBadge from '$lib/components/library/UpdateBadge.svelte';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 	import TflSelection from '$lib/components/library/TflSelection.svelte';
+	import ContextMenu from '$lib/components/ui/ContextMenu.svelte';
+	import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import { initDownloadListener } from '$lib/state/downloadState.svelte';
@@ -30,12 +32,15 @@
 		getInstances,
 		getSettings,
 		getCustomWallpaperPath,
-		logout as apiLogout
+		logout as apiLogout,
+		createInstanceShortcut,
+		exportInstanceAsMrpack,
+		openInstanceFolder
 	} from '$lib/api/tflApi';
 	import { checkAndDownloadUpdate } from '$lib/state/updateState.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
-	import { Plus, Sparkles, PackageOpen, Zap } from 'lucide-svelte';
+	import { Plus, Sparkles, PackageOpen, Zap, Play, Blocks, Rocket, FileOutput, FolderOpen } from 'lucide-svelte';
 
 	// Esta misma index.html también se usa para la ventana emergente del log
 	// en vivo — Tauri la abre con un initialization_script que setea esta
@@ -195,6 +200,65 @@
 		appState.selectedInstance = instance;
 	}
 
+	// Menú contextual (click derecho en una instancia de la barra lateral) —
+	// pedido del cliente: accesos rápidos sin tener que abrir la instancia y
+	// buscar el botón a mano. `navNonce` fuerza un remount de InstanceDetail
+	// incluso si ya estaba seleccionada (ej. click derecho en la misma
+	// instancia → "Ir a Mods"), donde el cambio de uuid solo no alcanzaría.
+	let contextMenu = $state<{ x: number; y: number; instance: InstanceData } | null>(null);
+	let pendingInitialTab = $state<string | undefined>(undefined);
+	let navNonce = $state(0);
+
+	function openInstanceContextMenu(instance: InstanceData, x: number, y: number) {
+		contextMenu = { x, y, instance };
+	}
+
+	function buildContextMenuItems(instance: InstanceData): ContextMenuItem[] {
+		const items: ContextMenuItem[] = [
+			{
+				id: 'open',
+				label: t('sidebar.contextOpen'),
+				icon: Play,
+				run: () => {
+					pendingInitialTab = 'details';
+					navNonce++;
+					appState.selectedInstance = instance;
+				}
+			}
+		];
+		if (!instance.server_type) {
+			items.push({
+				id: 'mods',
+				label: t('instanceDetail.tabs.mods'),
+				icon: Blocks,
+				run: () => {
+					pendingInitialTab = 'mods';
+					navNonce++;
+					appState.selectedInstance = instance;
+				}
+			});
+			items.push({
+				id: 'shortcut',
+				label: t('instanceDetail.createShortcut'),
+				icon: Rocket,
+				run: () => createInstanceShortcut(instance.name)
+			});
+			items.push({
+				id: 'export',
+				label: t('instanceDetail.exportMrpack'),
+				icon: FileOutput,
+				run: () => exportInstanceAsMrpack(instance.name)
+			});
+		}
+		items.push({
+			id: 'folder',
+			label: t('instanceDetail.folder'),
+			icon: FolderOpen,
+			run: () => openInstanceFolder(instance.name)
+		});
+		return items;
+	}
+
 	async function handleCreated(instance: InstanceData) {
 		showCreateModal = false;
 		await refreshInstances();
@@ -247,13 +311,15 @@
 				onOpenTflSelection={() => (showTflSelection = true)}
 				onJoinServer={() => (showJoinServerModal = true)}
 				onOpenSkinManager={() => (showSkinManager = true)}
+				onInstanceContextMenu={openInstanceContextMenu}
 			/>
 			<main class="main-content">
 				{#if appState.selectedInstance}
-					{#key appState.selectedInstance.uuid}
+					{#key appState.selectedInstance.uuid + '-' + navNonce}
 						<InstanceDetail
 							instance={appState.selectedInstance}
 							onChanged={handleInstanceChanged}
+							initialTab={pendingInitialTab}
 						/>
 					{/key}
 				{:else}
@@ -312,6 +378,15 @@
 
 {#if showSkinManager}
 	<SkinManagerModal onClose={() => (showSkinManager = false)} />
+{/if}
+
+{#if contextMenu}
+	<ContextMenu
+		x={contextMenu.x}
+		y={contextMenu.y}
+		items={buildContextMenuItems(contextMenu.instance)}
+		onClose={() => (contextMenu = null)}
+	/>
 {/if}
 
 {#if showJoinServerModal}

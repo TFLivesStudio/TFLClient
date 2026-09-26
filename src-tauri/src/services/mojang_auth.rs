@@ -22,7 +22,8 @@ pub async fn active_user_fresh() -> MinecraftUser {
     if user.user_type == AccountType::Microsoft {
         if let Some(refresh) = user.refresh_token.clone() {
             match tokio::task::spawn_blocking(move || {
-                launchwerk::auth::microsoft::MicrosoftAuth::default().refresh_token(&refresh)
+                launchwerk::auth::microsoft::MicrosoftAuth::new(crate::core::TFL_MICROSOFT_CLIENT_ID.to_string())
+                    .refresh_token(&refresh)
             })
             .await
             {

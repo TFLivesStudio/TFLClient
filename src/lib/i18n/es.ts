@@ -179,7 +179,8 @@ export const es = {
 		offlineAccountType: 'Offline — solo singleplayer',
 		openSettings: 'Ajustes',
 		logout: 'Cerrar sesión',
-		joinServer: 'Unirse a servidor'
+		joinServer: 'Unirse a servidor',
+		contextOpen: 'Abrir'
 	},
 	joinServer: {
 		title: 'Unirse a servidor',
@@ -492,7 +493,8 @@ export const es = {
 		uploadSkin: 'Subir skin',
 		resetSkin: 'Restaurar por defecto',
 		noCapes: 'Esta cuenta no tiene ninguna capa — se consiguen con eventos/promociones de Mojang.',
-		noCape: 'Sin capa'
+		noCape: 'Sin capa',
+		viewerHint: 'Arrastrá para girar, rueda del mouse para zoom'
 	}
 };
 
