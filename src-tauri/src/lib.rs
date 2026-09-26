@@ -114,6 +114,7 @@ pub fn run() {
             commands::mods::get_plugin_versions,
             commands::mods::add_local_plugin_files,
             commands::servers::get_server_versions,
+            commands::servers::get_server_connection_info,
             commands::servers::create_server_instance,
             commands::servers::launch_server,
             commands::servers::stop_server,

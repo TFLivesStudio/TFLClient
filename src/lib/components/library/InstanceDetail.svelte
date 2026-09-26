@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
-	import type { InstanceData } from '$lib/types/types';
+	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+	import type { InstanceData, ServerConnectionInfo } from '$lib/types/types';
 	import {
 		launchInstance,
 		deleteInstance,
@@ -15,7 +16,8 @@
 		getInstanceMods,
 		getInstanceIconPath,
 		launchServer,
-		stopServer
+		stopServer,
+		getServerConnectionInfo
 	} from '$lib/api/tflApi';
 	import { gameSession } from '$lib/state/gameSession.svelte';
 	import { serverSessions } from '$lib/state/serverSessions.svelte';
@@ -101,6 +103,33 @@
 		loadRamHint();
 		loadModCount();
 		loadIcon();
+		if (instance.server_type) loadConnectionInfo();
+	});
+
+	let connectionInfo = $state<ServerConnectionInfo | null>(null);
+	let copiedConnection = $state(false);
+	async function loadConnectionInfo() {
+		try {
+			connectionInfo = await getServerConnectionInfo(instance.name);
+		} catch {
+			// sin IP local disponible (ej. sin red) — se oculta la sección
+		}
+	}
+	async function copyConnectionAddress() {
+		if (!connectionInfo?.local_ip) return;
+		await writeText(`${connectionInfo.local_ip}:${connectionInfo.port}`);
+		copiedConnection = true;
+		setTimeout(() => (copiedConnection = false), 1500);
+	}
+
+	// server.properties (con el puerto real) recién existe después del
+	// primer arranque — se refresca la info de conexión apenas el server
+	// pasa a estar corriendo, así el puerto que se muestra es el real y no
+	// el default de 25565 asumido antes de que exista el archivo.
+	let wasServerRunning = $state(false);
+	$effect(() => {
+		if (serverRunning && !wasServerRunning) loadConnectionInfo();
+		wasServerRunning = serverRunning;
 	});
 
 	const SERVER_META: Record<string, { label: string; color: string }> = {
@@ -558,6 +587,23 @@
 
 	<div class="tab-content">
 	{#if tab === 'details'}
+		{#if isServer}
+			<section class="connection-section">
+				<span class="section-label">{t('serverInstance.connectionLabel')}</span>
+				{#if connectionInfo?.local_ip}
+					<div class="connection-row">
+						<code class="connection-address">{connectionInfo.local_ip}:{connectionInfo.port}</code>
+						<button type="button" class="icon-btn" onclick={copyConnectionAddress} aria-label={t('common.copy')}>
+							{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
+						</button>
+					</div>
+					<p class="hint">{t('serverInstance.connectionLanHint')}</p>
+					<p class="hint">{t('serverInstance.connectionInternetHint', { port: connectionInfo.port })}</p>
+				{:else}
+					<p class="hint">{t('serverInstance.connectionUnavailable')}</p>
+				{/if}
+			</section>
+		{/if}
 		<section class="ram-section">
 			<span class="section-label">{t('instanceDetail.ram.sectionLabel')}</span>
 			<p class="hint">
@@ -973,6 +1019,35 @@
 		border: 1px solid var(--border);
 		border-radius: var(--border-radius);
 		padding: 16px;
+	}
+
+	.connection-section {
+		background: var(--bg-card);
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius);
+		padding: 16px;
+		margin-bottom: 14px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.connection-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 4px 0 2px;
+	}
+
+	.connection-address {
+		padding: 6px 12px;
+		border-radius: var(--border-radius-sm);
+		background: var(--bg-input);
+		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+		font-size: 0.88rem;
+		font-weight: 600;
+		-webkit-user-select: text;
+		user-select: text;
 	}
 
 	.section-label {

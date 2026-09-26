@@ -454,7 +454,12 @@ export const es = {
 		tabPlugins: 'Plugins',
 		tabWorlds: 'Mundos',
 		tabFiles: 'Archivos',
-		tabConsole: 'Consola'
+		tabConsole: 'Consola',
+		connectionLabel: 'Cómo conectarse',
+		connectionLanHint: 'Para jugar con otra PC en tu misma red Wi-Fi, pasales esa dirección tal cual.',
+		connectionInternetHint:
+			'Para que alguien se conecte desde fuera de tu red, hay que abrir (port forward) el puerto {{port}} en el router — buscá "port forwarding" + el modelo de tu router.',
+		connectionUnavailable: 'No se pudo detectar la dirección de red — revisá que tengas conexión a internet o red local.'
 	}
 };
 

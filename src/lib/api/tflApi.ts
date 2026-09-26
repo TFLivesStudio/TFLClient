@@ -19,7 +19,8 @@ import type {
 	ScreenshotInfo,
 	ServerType,
 	WorldInfo,
-	FileEntry
+	FileEntry,
+	ServerConnectionInfo
 } from '$lib/types/types';
 
 // ── Auth ─────────────────────────────────────────────────────────────
@@ -252,6 +253,8 @@ export const getTflSelection = () => invoke<TflSelectionEntry[]>('get_tfl_select
 // ── Servidores ───────────────────────────────────────────────────────
 export const getServerVersions = (serverType: ServerType) =>
 	invoke<string[]>('get_server_versions', { serverType });
+export const getServerConnectionInfo = (instanceName: string) =>
+	invoke<ServerConnectionInfo>('get_server_connection_info', { instanceName });
 export const createServerInstance = (name: string, mcVersion: string, serverType: ServerType) =>
 	invoke<InstanceData>('create_server_instance', { name, mcVersion, serverType });
 export const launchServer = (instanceName: string) => invoke<void>('launch_server', { instanceName });

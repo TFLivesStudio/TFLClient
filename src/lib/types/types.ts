@@ -62,6 +62,11 @@ export interface FileEntry {
 	size_bytes: number;
 }
 
+export interface ServerConnectionInfo {
+	local_ip: string | null;
+	port: number;
+}
+
 export interface MinecraftVersion {
 	id: string;
 	type: string;

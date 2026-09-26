@@ -18,6 +18,50 @@ pub async fn get_server_versions(server_type: String) -> Result<Vec<String>, Str
     server_downloads::list_server_versions(kind).await
 }
 
+#[derive(Debug, Serialize)]
+pub struct ServerConnectionInfo {
+    pub local_ip: Option<String>,
+    pub port: u16,
+}
+
+/// IP de la máquina en la red local — no hay forma portable de "preguntarle
+/// al SO" directo, así que se usa el truco estándar: abrir un socket UDP
+/// "conectado" a una IP externa cualquiera (8.8.8.8, no hace falta que
+/// responda ni que la red tenga salida a internet) y leer qué interfaz
+/// local eligió el propio SO para esa ruta — es la misma IP que usaría
+/// para cualquier tráfico saliente real, sin mandar un solo byte.
+fn detect_local_ip() -> Option<String> {
+    use std::net::UdpSocket;
+    let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
+    socket.connect("8.8.8.8:80").ok()?;
+    socket.local_addr().ok().map(|addr| addr.ip().to_string())
+}
+
+/// Minecraft escribe server.properties recién en el primer arranque (no al
+/// descargar el jar), así que hasta ese momento no existe — se devuelve el
+/// default real de Mojang (25565) en vez de fallar, es lo que igual va a
+/// terminar usando la primera vez que se inicie.
+async fn read_server_port(instance_dir: &std::path::Path) -> u16 {
+    let path = instance_dir.join("server.properties");
+    let Ok(content) = tokio::fs::read_to_string(&path).await else {
+        return 25565;
+    };
+    content
+        .lines()
+        .find_map(|line| line.strip_prefix("server-port="))
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(25565)
+}
+
+#[command]
+pub async fn get_server_connection_info(instance_name: String) -> Result<ServerConnectionInfo, String> {
+    let instance = instance_manager::get_instance(&instance_name).await?;
+    Ok(ServerConnectionInfo {
+        local_ip: detect_local_ip(),
+        port: read_server_port(&instance.dir()).await,
+    })
+}
+
 #[command]
 pub async fn create_server_instance(
     name: String,

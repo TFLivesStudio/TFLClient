@@ -457,6 +457,11 @@ export const en: Dictionary = {
 		tabPlugins: 'Plugins',
 		tabWorlds: 'Worlds',
 		tabFiles: 'Files',
-		tabConsole: 'Console'
+		tabConsole: 'Console',
+		connectionLabel: 'How to connect',
+		connectionLanHint: 'For another PC on the same Wi-Fi, give them this address as is.',
+		connectionInternetHint:
+			'For someone outside your network to connect, you need to port forward {{port}} on your router — search "port forwarding" plus your router model.',
+		connectionUnavailable: "Couldn't detect a network address — check that you have internet or a local network connection."
 	}
 };
