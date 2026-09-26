@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { SkinViewer } from 'skinview3d';
 	import {
 		getMojangProfile,
 		setSkinFromFile,
@@ -22,6 +23,32 @@
 	let tab = $state<'skin' | 'cape'>('skin');
 	let variant = $state<'classic' | 'slim'>('classic');
 
+	// Visor 3D a cuerpo completo (pedido del cliente, "que se vea en 3D") —
+	// skinview3d es la misma librería que usan NameMC y similares: gratis,
+	// MIT, sin cuenta ni suscripción, corre entero en el cliente (three.js),
+	// no depende de ningún servicio externo más que la URL de la textura.
+	let canvasEl = $state<HTMLCanvasElement | undefined>(undefined);
+	let viewer: SkinViewer | undefined;
+	onMount(() => {
+		if (!canvasEl) return;
+		viewer = new SkinViewer({ canvas: canvasEl, width: 200, height: 280 });
+		viewer.autoRotate = true;
+		viewer.autoRotateSpeed = 0.8;
+		viewer.zoom = 0.85;
+	});
+	onDestroy(() => viewer?.dispose());
+
+	// Se actualiza cuando cambia el skin o la capa activa (carga inicial,
+	// después de subir, restaurar, o elegir/sacar una capa) — nunca antes de
+	// que `viewer` exista, por eso se llama desde `load()` en vez de un
+	// `$effect` (evita la carrera con el `onMount` de arriba).
+	function syncViewer() {
+		if (!viewer) return;
+		if (activeSkin) viewer.loadSkin(activeSkin.url);
+		if (activeCape) viewer.loadCape(activeCape.url);
+		else viewer.loadCape(null);
+	}
+
 	// Subir skin usa el diálogo nativo de archivos, mismo riesgo conocido que
 	// ícono/wallpaper propio (ver InstanceIconPicker.svelte) — mismo gate.
 	const dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');
@@ -35,6 +62,7 @@
 			profile = await getMojangProfile();
 			const current = profile.skins.find((s) => s.state === 'ACTIVE');
 			if (current) variant = current.variant.toLowerCase() as 'classic' | 'slim';
+			syncViewer();
 		} catch (e) {
 			error = String(e);
 		} finally {
@@ -123,6 +151,16 @@
 			</button>
 		</div>
 
+		<div class="viewer-row">
+			<div class="viewer-wrap">
+				<canvas bind:this={canvasEl}></canvas>
+				{#if loading}
+					<div class="viewer-loading"><Loader2 size={20} class="spin" /></div>
+				{/if}
+			</div>
+			<p class="hint viewer-hint">{t('skinManager.viewerHint')}</p>
+		</div>
+
 		<div class="tabs">
 			<button type="button" class="tab-btn" class:active={tab === 'skin'} onclick={() => (tab = 'skin')}>
 				{t('skinManager.tabSkin')}
@@ -132,51 +170,46 @@
 			</button>
 		</div>
 
-		{#if loading}
-			<div class="loading-row"><Loader2 size={20} class="spin" /></div>
-		{:else}
-			{#if error}<p class="error">{error}</p>{/if}
+		{#if error}<p class="error">{error}</p>{/if}
 
+		{#if !loading}
 			{#if tab === 'skin'}
-				<div class="skin-section">
-					<span class="skin-preview" style={activeSkin ? `background-image: url(${activeSkin.url})` : ''}></span>
-					<div class="skin-controls">
-						<div class="variant-tabs">
-							<button
-								type="button"
-								class="variant-btn"
-								class:active={variant === 'classic'}
-								onclick={() => (variant = 'classic')}
-							>
-								{t('skinManager.variantClassic')}
-							</button>
-							<button
-								type="button"
-								class="variant-btn"
-								class:active={variant === 'slim'}
-								onclick={() => (variant = 'slim')}
-							>
-								{t('skinManager.variantSlim')}
-							</button>
-						</div>
+				<div class="skin-controls">
+					<div class="variant-tabs">
 						<button
 							type="button"
-							class="action-btn primary"
-							disabled={busy === 'upload' || dialogsBlocked}
-							title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
-							onclick={uploadSkin}
+							class="variant-btn"
+							class:active={variant === 'classic'}
+							onclick={() => (variant = 'classic')}
 						>
-							{#if busy === 'upload'}<Loader2 size={14} class="spin" />{:else}<Upload size={14} />{/if}
-							{t('skinManager.uploadSkin')}
+							{t('skinManager.variantClassic')}
 						</button>
-						<button type="button" class="action-btn" disabled={busy === 'reset'} onclick={doResetSkin}>
-							{#if busy === 'reset'}<Loader2 size={14} class="spin" />{:else}<RotateCcw size={14} />{/if}
-							{t('skinManager.resetSkin')}
+						<button
+							type="button"
+							class="variant-btn"
+							class:active={variant === 'slim'}
+							onclick={() => (variant = 'slim')}
+						>
+							{t('skinManager.variantSlim')}
 						</button>
-						{#if dialogsBlocked}
-							<p class="hint">{t('instanceIconPicker.autoModeNotice')}</p>
-						{/if}
 					</div>
+					<button
+						type="button"
+						class="action-btn primary"
+						disabled={busy === 'upload' || dialogsBlocked}
+						title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
+						onclick={uploadSkin}
+					>
+						{#if busy === 'upload'}<Loader2 size={14} class="spin" />{:else}<Upload size={14} />{/if}
+						{t('skinManager.uploadSkin')}
+					</button>
+					<button type="button" class="action-btn" disabled={busy === 'reset'} onclick={doResetSkin}>
+						{#if busy === 'reset'}<Loader2 size={14} class="spin" />{:else}<RotateCcw size={14} />{/if}
+						{t('skinManager.resetSkin')}
+					</button>
+					{#if dialogsBlocked}
+						<p class="hint">{t('instanceIconPicker.autoModeNotice')}</p>
+					{/if}
 				</div>
 			{:else if profile && profile.capes.length === 0}
 				<p class="hint">{t('skinManager.noCapes')}</p>
@@ -285,12 +318,6 @@
 		color: var(--text-primary);
 	}
 
-	.loading-row {
-		display: flex;
-		justify-content: center;
-		padding: 32px;
-		color: var(--text-muted);
-	}
 
 	.error {
 		color: var(--color-error);
@@ -302,24 +329,46 @@
 		color: var(--text-muted);
 	}
 
-	.skin-section {
+	.viewer-row {
 		display: flex;
-		gap: 16px;
-		align-items: flex-start;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
 	}
 
-	.skin-preview {
-		flex-shrink: 0;
-		display: block;
-		width: 96px;
-		height: 96px;
+	.viewer-wrap {
+		position: relative;
+		width: 200px;
+		height: 280px;
 		border-radius: var(--border-radius-sm);
 		border: 1px solid var(--border);
-		background-color: var(--bg-input);
-		background-repeat: no-repeat;
-		background-size: 768px 768px;
-		background-position: -96px -96px;
-		image-rendering: pixelated;
+		background: var(--bg-input);
+		overflow: hidden;
+	}
+
+	.viewer-wrap canvas {
+		display: block;
+		width: 100%;
+		height: 100%;
+		cursor: grab;
+	}
+
+	.viewer-wrap canvas:active {
+		cursor: grabbing;
+	}
+
+	.viewer-loading {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--text-muted);
+		background: color-mix(in srgb, var(--bg-input) 70%, transparent);
+	}
+
+	.viewer-hint {
+		text-align: center;
 	}
 
 	.skin-controls {
