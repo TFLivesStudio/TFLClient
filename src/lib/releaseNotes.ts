@@ -97,5 +97,10 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.5': [
 		'Nuevo: botón "Unirse a servidor" (barra lateral y Ctrl/Cmd+K) para conectarte pegando la dirección — elegís entre una instancia tuya ya creada o "Quick Join" (crea o reusa una Vanilla de la versión que quieras), y el juego arranca ya conectado, sin pasar por el menú de Multijugador.'
+	],
+	'0.10.6': [
+		'Arreglado: unirse a un servidor real tiraba "invalid session" — el launcher no refrescaba la sesión de Microsoft antes de lanzar. Ahora se refresca siempre.',
+		'Nuevo: panel de Skin y capa (ícono junto a Ajustes, cuentas Microsoft) — subir tu skin propia, elegir clásico/slim, restaurar la default, y elegir qué capa usar entre las que ya tenés.',
+		'Nuevo: botón "Crear acceso directo" en cada instancia de juego — crea un ícono en el Escritorio que la abre directo, sin mostrar el launcher (queda en la bandeja del sistema mientras jugás).'
 	]
 };
