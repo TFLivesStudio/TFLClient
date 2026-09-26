@@ -134,11 +134,15 @@ pub async fn update_instance_memory(
 }
 
 #[command]
-pub async fn launch(app: AppHandle, instance_name: String) -> Result<(), String> {
+pub async fn launch(
+    app: AppHandle,
+    instance_name: String,
+    server_address: Option<String>,
+) -> Result<(), String> {
     // launcher::launch() rechaza si ya hay otra instancia corriendo — se
     // valida ahí antes, así que acá nunca se abre una ventana de log
     // huérfana por un lanzamiento que ni siquiera arrancó.
-    launcher::launch(app.clone(), instance_name.clone()).await?;
+    launcher::launch(app.clone(), instance_name.clone(), server_address).await?;
     open_log_window(&app, &instance_name)
 }
 

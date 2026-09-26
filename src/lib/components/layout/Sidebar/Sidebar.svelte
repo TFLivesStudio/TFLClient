@@ -5,7 +5,7 @@
 	import { network } from '$lib/state/network.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
-	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes, Sparkles, WifiOff } from 'lucide-svelte';
+	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes, Sparkles, WifiOff, Globe } from 'lucide-svelte';
 
 	let {
 		instances,
@@ -15,7 +15,8 @@
 		onCreate,
 		onLogout,
 		onOpenSettings,
-		onOpenTflSelection
+		onOpenTflSelection,
+		onJoinServer
 	}: {
 		instances: InstanceData[];
 		selected: InstanceData | null;
@@ -25,6 +26,7 @@
 		onLogout: () => void;
 		onOpenSettings: () => void;
 		onOpenTflSelection: () => void;
+		onJoinServer: () => void;
 	} = $props();
 
 	const LOADER_COLOR: Record<string, string> = {
@@ -86,9 +88,14 @@
 	<div class="instances">
 		<div class="section-label">
 			<span>{t('sidebar.yourInstances')}</span>
-			<button type="button" class="create-btn" onclick={onCreate} aria-label={t('sidebar.createInstance')}>
-				<Plus size={14} strokeWidth={2.25} />
-			</button>
+			<div class="section-label-actions">
+				<button type="button" class="create-btn" onclick={onJoinServer} aria-label={t('sidebar.joinServer')}>
+					<Globe size={14} strokeWidth={2.25} />
+				</button>
+				<button type="button" class="create-btn" onclick={onCreate} aria-label={t('sidebar.createInstance')}>
+					<Plus size={14} strokeWidth={2.25} />
+				</button>
+			</div>
 		</div>
 
 		{#if instances.length > 0}
@@ -237,6 +244,12 @@
 		letter-spacing: 0.5px;
 		text-transform: uppercase;
 		color: var(--text-muted);
+	}
+
+	.section-label-actions {
+		display: flex;
+		align-items: center;
+		gap: 6px;
 	}
 
 	.create-btn {

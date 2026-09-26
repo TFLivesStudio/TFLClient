@@ -181,7 +181,20 @@ export const en: Dictionary = {
 		noResultsFor: 'No results for "{{query}}"',
 		offlineAccountType: 'Offline — singleplayer only',
 		openSettings: 'Settings',
-		logout: 'Log out'
+		logout: 'Log out',
+		joinServer: 'Join server'
+	},
+	joinServer: {
+		title: 'Join server',
+		addressLabel: 'Server address',
+		addressPlaceholder: 'example.com:25565',
+		modeExisting: 'One of my instances',
+		modeQuick: 'Quick Join',
+		noInstances: "You don't have any client instance yet — use Quick Join.",
+		quickHint: "Creates (or reuses) a Vanilla instance with that version and connects you straight in, skipping the Multiplayer menu.",
+		crackedBlocked: 'Offline accounts can only play singleplayer — sign in with a Microsoft account to join a server.',
+		join: 'Join',
+		joining: 'Connecting…'
 	},
 	createInstance: {
 		title: 'New instance',

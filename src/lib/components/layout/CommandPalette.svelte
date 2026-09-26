@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { InstanceData } from '$lib/types/types';
 	import { t } from '$lib/i18n/index.svelte';
-	import { Search, Boxes, Plus, Settings as SettingsIcon, Sparkles, CornerDownLeft } from 'lucide-svelte';
+	import { Search, Boxes, Plus, Settings as SettingsIcon, Sparkles, CornerDownLeft, Globe } from 'lucide-svelte';
 
 	let {
 		instances,
@@ -10,7 +10,8 @@
 		onSelectInstance,
 		onCreate,
 		onOpenSettings,
-		onOpenTflSelection
+		onOpenTflSelection,
+		onJoinServer
 	}: {
 		instances: InstanceData[];
 		/** true mientras otro modal (Ajustes, Crear instancia, TFL Selection)
@@ -20,6 +21,7 @@
 		onCreate: () => void;
 		onOpenSettings: () => void;
 		onOpenTflSelection: () => void;
+		onJoinServer: () => void;
 	} = $props();
 
 	interface PaletteItem {
@@ -64,6 +66,16 @@
 			icon: Sparkles,
 			run: () => {
 				onOpenTflSelection();
+				close();
+			}
+		},
+		{
+			id: 'action:join-server',
+			label: t('sidebar.joinServer'),
+			hint: t('commandPalette.action'),
+			icon: Globe,
+			run: () => {
+				onJoinServer();
 				close();
 			}
 		},

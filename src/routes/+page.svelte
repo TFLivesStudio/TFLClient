@@ -7,6 +7,7 @@
 	import CreateInstanceModal from '$lib/components/library/CreateInstanceModal.svelte';
 	import CreateInstanceChooser from '$lib/components/library/CreateInstanceChooser.svelte';
 	import CreateServerModal from '$lib/components/library/CreateServerModal.svelte';
+	import JoinServerModal from '$lib/components/library/JoinServerModal.svelte';
 	import InstanceDetail from '$lib/components/library/InstanceDetail.svelte';
 	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
 	import ParticlesBackground from '$lib/components/layout/ParticlesBackground.svelte';
@@ -50,6 +51,7 @@
 	let showCreateChooser = $state(false);
 	let showCreateModal = $state(false);
 	let showCreateServerModal = $state(false);
+	let showJoinServerModal = $state(false);
 	let showSettings = $state(false);
 	let showTflSelection = $state(false);
 
@@ -241,6 +243,7 @@
 				onLogout={handleLogout}
 				onOpenSettings={() => (showSettings = true)}
 				onOpenTflSelection={() => (showTflSelection = true)}
+				onJoinServer={() => (showJoinServerModal = true)}
 			/>
 			<main class="main-content">
 				{#if appState.selectedInstance}
@@ -304,14 +307,27 @@
 	<CreateServerModal onClose={() => (showCreateServerModal = false)} onCreated={handleServerCreated} />
 {/if}
 
+{#if showJoinServerModal}
+	<JoinServerModal
+		instances={appState.instances}
+		currentUser={appState.currentUser}
+		onClose={() => (showJoinServerModal = false)}
+		onLaunched={async () => {
+			showJoinServerModal = false;
+			await refreshInstances();
+		}}
+	/>
+{/if}
+
 {#if !isLogWindow}
 	<CommandPalette
 		instances={appState.instances}
-		blocked={showCreateChooser || showCreateModal || showCreateServerModal || showSettings || showTflSelection}
+		blocked={showCreateChooser || showCreateModal || showCreateServerModal || showJoinServerModal || showSettings || showTflSelection}
 		onSelectInstance={handleSelect}
 		onCreate={() => (showCreateChooser = true)}
 		onOpenSettings={() => (showSettings = true)}
 		onOpenTflSelection={() => (showTflSelection = true)}
+		onJoinServer={() => (showJoinServerModal = true)}
 	/>
 {/if}
 

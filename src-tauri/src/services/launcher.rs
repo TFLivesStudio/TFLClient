@@ -202,7 +202,11 @@ async fn ensure_downloaded(
 /// lugar reservado — si el lanzamiento tiene éxito, lo libera la tarea de
 /// fondo que espera a que el proceso termine (ver el final de
 /// `launch_inner`).
-pub async fn launch(app: tauri::AppHandle, instance_name: String) -> Result<(), String> {
+pub async fn launch(
+    app: tauri::AppHandle,
+    instance_name: String,
+    server_address: Option<String>,
+) -> Result<(), String> {
     {
         let mut guard = RUNNING.lock().unwrap();
         if let Some(running) = guard.as_ref() {
@@ -218,7 +222,7 @@ pub async fn launch(app: tauri::AppHandle, instance_name: String) -> Result<(), 
         });
     }
 
-    let result = launch_inner(app, instance_name).await;
+    let result = launch_inner(app, instance_name, server_address).await;
     if result.is_err() {
         *RUNNING.lock().unwrap() = None;
     }
@@ -253,7 +257,11 @@ async fn inject_mp_guard(app: &tauri::AppHandle, mc_version: &str, instance_dir:
     }
 }
 
-async fn launch_inner(app: tauri::AppHandle, instance_name: String) -> Result<(), String> {
+async fn launch_inner(
+    app: tauri::AppHandle,
+    instance_name: String,
+    server_address: Option<String>,
+) -> Result<(), String> {
     info!("Lanzando instancia \"{instance_name}\"");
     let data = instance_manager::get_instance(&instance_name).await?;
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
@@ -283,6 +291,12 @@ async fn launch_inner(app: tauri::AppHandle, instance_name: String) -> Result<()
     let mut user = { SettingsManager::read().get_user() };
     if let Err(e) = user.load_tokens() {
         tracing::warn!("No se pudieron cargar los tokens del usuario: {e:?}");
+    }
+
+    if server_address.is_some() && !crate::core::allows_multiplayer(user.user_type) {
+        return Err(
+            "Las cuentas offline solo pueden jugar en singleplayer — conectate a un servidor con una cuenta Microsoft.".into(),
+        );
     }
 
     // Si la instancia no tiene override explícito de RAM, antes se caía
@@ -331,6 +345,10 @@ async fn launch_inner(app: tauri::AppHandle, instance_name: String) -> Result<()
         // nada, ni siquiera si el jar está instalado.
         AccountType::Cracked => builder.extra_jvm_args(vec!["-Dtflclient.cracked=true".into()]),
     };
+
+    if let Some(address) = server_address {
+        builder = builder.quick_play(launchwerk::QuickPlay::Multiplayer(address));
+    }
 
     let config = builder.build();
     let instance_dir = data.dir();

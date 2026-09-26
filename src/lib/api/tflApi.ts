@@ -73,7 +73,8 @@ export const updateInstanceMemory = (
 	minMemory: number | null,
 	maxMemory: number | null
 ) => invoke<InstanceData>('update_instance_memory', { name, minMemory, maxMemory });
-export const launchInstance = (instanceName: string) => invoke<void>('launch', { instanceName });
+export const launchInstance = (instanceName: string, serverAddress?: string) =>
+	invoke<void>('launch', { instanceName, serverAddress: serverAddress ?? null });
 export const stopRunningInstance = () => invoke<void>('stop_running_instance');
 export const getRunningInstance = () => invoke<string | null>('get_running_instance');
 export const openInstanceFolder = (name: string) => invoke<void>('open_instance_folder', { name });
