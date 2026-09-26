@@ -1,6 +1,7 @@
 pub mod instance_manager;
 pub mod java_manager;
 pub mod launcher;
+pub mod mojang_auth;
 pub mod playit_tunnel;
 pub mod port_forward;
 pub mod progress;

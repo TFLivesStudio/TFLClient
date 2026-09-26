@@ -479,6 +479,17 @@ export const es = {
 		playitPitch: '¿Se sigue complicando la conexión? Vinculá una cuenta gratis de playit.gg (un click, sin tarjeta) y la dirección va a andar siempre, sin depender del router.',
 		playitLinkButton: 'Vincular playit.gg',
 		playitLinking: 'Esperando confirmación en el navegador…'
+	},
+	skinManager: {
+		title: 'Skin y capa',
+		tabSkin: 'Skin',
+		tabCape: 'Capa',
+		variantClassic: 'Clásico',
+		variantSlim: 'Slim (brazos finos)',
+		uploadSkin: 'Subir skin',
+		resetSkin: 'Restaurar por defecto',
+		noCapes: 'Esta cuenta no tiene ninguna capa — se consiguen con eventos/promociones de Mojang.',
+		noCape: 'Sin capa'
 	}
 };
 

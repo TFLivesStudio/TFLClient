@@ -3,6 +3,7 @@ pub mod instance;
 pub mod loaders;
 pub mod mods;
 pub mod modpacks;
+pub mod mojang_profile;
 pub mod playit;
 pub mod servers;
 pub mod settings;

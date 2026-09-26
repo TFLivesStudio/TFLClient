@@ -8,6 +8,7 @@
 	import CreateInstanceChooser from '$lib/components/library/CreateInstanceChooser.svelte';
 	import CreateServerModal from '$lib/components/library/CreateServerModal.svelte';
 	import JoinServerModal from '$lib/components/library/JoinServerModal.svelte';
+	import SkinManagerModal from '$lib/components/library/SkinManagerModal.svelte';
 	import InstanceDetail from '$lib/components/library/InstanceDetail.svelte';
 	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
 	import ParticlesBackground from '$lib/components/layout/ParticlesBackground.svelte';
@@ -52,6 +53,7 @@
 	let showCreateModal = $state(false);
 	let showCreateServerModal = $state(false);
 	let showJoinServerModal = $state(false);
+	let showSkinManager = $state(false);
 	let showSettings = $state(false);
 	let showTflSelection = $state(false);
 
@@ -244,6 +246,7 @@
 				onOpenSettings={() => (showSettings = true)}
 				onOpenTflSelection={() => (showTflSelection = true)}
 				onJoinServer={() => (showJoinServerModal = true)}
+				onOpenSkinManager={() => (showSkinManager = true)}
 			/>
 			<main class="main-content">
 				{#if appState.selectedInstance}
@@ -307,6 +310,10 @@
 	<CreateServerModal onClose={() => (showCreateServerModal = false)} onCreated={handleServerCreated} />
 {/if}
 
+{#if showSkinManager}
+	<SkinManagerModal onClose={() => (showSkinManager = false)} />
+{/if}
+
 {#if showJoinServerModal}
 	<JoinServerModal
 		instances={appState.instances}
@@ -322,12 +329,13 @@
 {#if !isLogWindow}
 	<CommandPalette
 		instances={appState.instances}
-		blocked={showCreateChooser || showCreateModal || showCreateServerModal || showJoinServerModal || showSettings || showTflSelection}
+		blocked={showCreateChooser || showCreateModal || showCreateServerModal || showJoinServerModal || showSkinManager || showSettings || showTflSelection}
 		onSelectInstance={handleSelect}
 		onCreate={() => (showCreateChooser = true)}
 		onOpenSettings={() => (showSettings = true)}
 		onOpenTflSelection={() => (showTflSelection = true)}
 		onJoinServer={() => (showJoinServerModal = true)}
+		onOpenSkinManager={() => (showSkinManager = true)}
 	/>
 {/if}
 

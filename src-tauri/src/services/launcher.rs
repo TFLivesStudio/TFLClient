@@ -288,42 +288,11 @@ async fn launch_inner(
         format!("Manifest inválido: {e}")
     })?;
 
-    let mut user = { SettingsManager::read().get_user() };
-    if let Err(e) = user.load_tokens() {
-        tracing::warn!("No se pudieron cargar los tokens del usuario: {e:?}");
-    }
-
-    // El access_token de Microsoft es de corta duración y acá nunca se
-    // refrescaba antes de lanzar — Minecraft no valida la sesión para
-    // jugar solo, así que con un token vencido todo parecía andar bien
-    // (mods, singleplayer) hasta el momento de unirse a un servidor real,
-    // donde el session server de Mojang sí lo verifica y tira "invalid
-    // session". Se refresca siempre que haya cómo, best-effort: si falla
-    // (sin internet, refresh_token vencido) se sigue con el token viejo en
-    // vez de bloquear el lanzamiento — importa más no romper singleplayer
-    // offline que garantizar que el refresh salga bien.
-    if user.user_type == AccountType::Microsoft {
-        if let Some(refresh) = user.refresh_token.clone() {
-            match tokio::task::spawn_blocking(move || {
-                launchwerk::auth::microsoft::MicrosoftAuth::default().refresh_token(&refresh)
-            })
-            .await
-            {
-                Ok(Ok(fresh)) => {
-                    if let Err(e) = fresh.save_tokens() {
-                        tracing::warn!("No se pudo guardar la sesión refrescada: {e}");
-                    }
-                    user = fresh;
-                }
-                Ok(Err(e)) => {
-                    tracing::warn!("No se pudo refrescar la sesión de Microsoft, se sigue con la guardada: {e}");
-                }
-                Err(e) => {
-                    tracing::warn!("Falló la tarea de refresco de sesión: {e}");
-                }
-            }
-        }
-    }
+    // El access_token de Microsoft es de corta duración — `active_user_fresh`
+    // lo refresca best-effort antes de devolver el usuario, para no repetir
+    // el "andaba bien en singleplayer pero invalid session al unirse a un
+    // servidor" (Minecraft no valida la sesión para jugar solo).
+    let user = crate::services::mojang_auth::active_user_fresh().await;
 
     if server_address.is_some() && !crate::core::allows_multiplayer(user.user_type) {
         return Err(

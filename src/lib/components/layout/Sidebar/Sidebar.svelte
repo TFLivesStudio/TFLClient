@@ -5,7 +5,7 @@
 	import { network } from '$lib/state/network.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
-	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes, Sparkles, WifiOff, Globe } from 'lucide-svelte';
+	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes, Sparkles, WifiOff, Globe, Shirt } from 'lucide-svelte';
 
 	let {
 		instances,
@@ -16,7 +16,8 @@
 		onLogout,
 		onOpenSettings,
 		onOpenTflSelection,
-		onJoinServer
+		onJoinServer,
+		onOpenSkinManager
 	}: {
 		instances: InstanceData[];
 		selected: InstanceData | null;
@@ -27,6 +28,7 @@
 		onOpenSettings: () => void;
 		onOpenTflSelection: () => void;
 		onJoinServer: () => void;
+		onOpenSkinManager: () => void;
 	} = $props();
 
 	const LOADER_COLOR: Record<string, string> = {
@@ -164,6 +166,11 @@
 					>{user.user_type === 'Cracked' ? t('sidebar.offlineAccountType') : user.user_type}</span
 				>
 			</div>
+			{#if user.user_type !== 'Cracked'}
+				<button type="button" class="logout-btn" onclick={onOpenSkinManager} aria-label={t('skinManager.title')}>
+					<Shirt size={14} />
+				</button>
+			{/if}
 			<button type="button" class="logout-btn" onclick={onOpenSettings} aria-label={t('sidebar.openSettings')}>
 				<Settings size={14} />
 			</button>

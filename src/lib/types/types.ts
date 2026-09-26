@@ -75,6 +75,25 @@ export interface PlayitClaimInfo {
 	url: string;
 }
 
+export interface MojangSkin {
+	id: string;
+	state: 'ACTIVE' | 'INACTIVE';
+	url: string;
+	variant: 'CLASSIC' | 'SLIM';
+}
+
+export interface MojangCape {
+	id: string;
+	state: 'ACTIVE' | 'INACTIVE';
+	url: string;
+	alias?: string | null;
+}
+
+export interface MojangProfile {
+	skins: MojangSkin[];
+	capes: MojangCape[];
+}
+
 export interface MinecraftVersion {
 	id: string;
 	type: string;

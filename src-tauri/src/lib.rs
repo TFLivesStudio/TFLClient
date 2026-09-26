@@ -132,6 +132,11 @@ pub fn run() {
             commands::playit::playit_poll_claim,
             commands::playit::playit_unlink,
             commands::playit::playit_open_claim_url,
+            commands::mojang_profile::get_mojang_profile,
+            commands::mojang_profile::set_skin_from_file,
+            commands::mojang_profile::reset_skin,
+            commands::mojang_profile::set_active_cape,
+            commands::mojang_profile::hide_cape,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

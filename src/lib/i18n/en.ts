@@ -482,5 +482,16 @@ export const en: Dictionary = {
 		playitPitch: "Still fighting with the connection? Link a free playit.gg account (one click, no card) and the address will always work, no router needed.",
 		playitLinkButton: 'Link playit.gg',
 		playitLinking: 'Waiting for confirmation in the browser…'
+	},
+	skinManager: {
+		title: 'Skin & cape',
+		tabSkin: 'Skin',
+		tabCape: 'Cape',
+		variantClassic: 'Classic',
+		variantSlim: 'Slim (thin arms)',
+		uploadSkin: 'Upload skin',
+		resetSkin: 'Reset to default',
+		noCapes: "This account has no capes — they come from Mojang events/promotions.",
+		noCape: 'No cape'
 	}
 };

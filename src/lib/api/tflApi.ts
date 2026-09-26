@@ -21,7 +21,8 @@ import type {
 	WorldInfo,
 	FileEntry,
 	ServerConnectionInfo,
-	PlayitClaimInfo
+	PlayitClaimInfo,
+	MojangProfile
 } from '$lib/types/types';
 
 // ── Auth ─────────────────────────────────────────────────────────────
@@ -288,3 +289,11 @@ export const playitStartClaim = () => invoke<PlayitClaimInfo>('playit_start_clai
 export const playitPollClaim = (code: string) => invoke<string>('playit_poll_claim', { code });
 export const playitUnlink = () => invoke<void>('playit_unlink');
 export const playitOpenClaimUrl = (code: string) => invoke<void>('playit_open_claim_url', { code });
+
+// ── Perfil de Mojang (skin / capa) ───────────────────────────────────
+export const getMojangProfile = () => invoke<MojangProfile>('get_mojang_profile');
+export const setSkinFromFile = (path: string, variant: 'classic' | 'slim') =>
+	invoke<void>('set_skin_from_file', { path, variant });
+export const resetSkin = () => invoke<void>('reset_skin');
+export const setActiveCape = (capeId: string) => invoke<void>('set_active_cape', { capeId });
+export const hideCape = () => invoke<void>('hide_cape');

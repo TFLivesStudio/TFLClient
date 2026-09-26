@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { InstanceData } from '$lib/types/types';
 	import { t } from '$lib/i18n/index.svelte';
-	import { Search, Boxes, Plus, Settings as SettingsIcon, Sparkles, CornerDownLeft, Globe } from 'lucide-svelte';
+	import { Search, Boxes, Plus, Settings as SettingsIcon, Sparkles, CornerDownLeft, Globe, Shirt } from 'lucide-svelte';
 
 	let {
 		instances,
@@ -11,7 +11,8 @@
 		onCreate,
 		onOpenSettings,
 		onOpenTflSelection,
-		onJoinServer
+		onJoinServer,
+		onOpenSkinManager
 	}: {
 		instances: InstanceData[];
 		/** true mientras otro modal (Ajustes, Crear instancia, TFL Selection)
@@ -22,6 +23,7 @@
 		onOpenSettings: () => void;
 		onOpenTflSelection: () => void;
 		onJoinServer: () => void;
+		onOpenSkinManager: () => void;
 	} = $props();
 
 	interface PaletteItem {
@@ -76,6 +78,16 @@
 			icon: Globe,
 			run: () => {
 				onJoinServer();
+				close();
+			}
+		},
+		{
+			id: 'action:skin-manager',
+			label: t('skinManager.title'),
+			hint: t('commandPalette.action'),
+			icon: Shirt,
+			run: () => {
+				onOpenSkinManager();
 				close();
 			}
 		},
