@@ -673,7 +673,7 @@
 					<p class="hint">{t('serverInstance.connectionUnavailable')}</p>
 				{/if}
 
-				{#if playitLinked === false}
+				{#if playitLinked === false && !connectionInfo?.tunnel_address && !connectionInfo?.port_forwarded}
 					<div class="playit-prompt">
 						<p class="hint">{t('serverInstance.playitPitch')}</p>
 						<button type="button" class="playit-link-btn" onclick={startPlayitLink} disabled={playitLinking}>
