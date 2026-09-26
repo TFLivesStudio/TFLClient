@@ -21,7 +21,8 @@
 		playitIsLinked,
 		playitStartClaim,
 		playitPollClaim,
-		playitOpenClaimUrl
+		playitOpenClaimUrl,
+		createInstanceShortcut
 	} from '$lib/api/tflApi';
 	import { gameSession } from '$lib/state/gameSession.svelte';
 	import { serverSessions } from '$lib/state/serverSessions.svelte';
@@ -54,7 +55,8 @@
 		ChevronRight,
 		Copy,
 		FileOutput,
-		ShieldCheck
+		ShieldCheck,
+		Rocket
 	} from 'lucide-svelte';
 
 	let {
@@ -332,6 +334,21 @@
 			error = String(e);
 		}
 	}
+
+	let creatingShortcut = $state(false);
+	let shortcutStatus = $state<string | null>(null);
+	async function handleCreateShortcut() {
+		creatingShortcut = true;
+		try {
+			await createInstanceShortcut(instance.name);
+			shortcutStatus = t('instanceDetail.shortcutCreated');
+		} catch (e) {
+			error = String(e);
+		} finally {
+			creatingShortcut = false;
+			setTimeout(() => (shortcutStatus = null), 3000);
+		}
+	}
 </script>
 
 <div class="instance-detail">
@@ -541,6 +558,19 @@
 			</div>
 			<ChevronRight size={14} class="quick-arrow" />
 		</button>
+
+		{#if !isServer}
+			<button type="button" class="quick-card" onclick={handleCreateShortcut} disabled={creatingShortcut}>
+				<div class="quick-icon">
+					{#if creatingShortcut}<Loader2 size={16} class="spin" />{:else}<Rocket size={16} />{/if}
+				</div>
+				<div class="quick-text">
+					<span class="quick-title">{t('instanceDetail.createShortcut')}</span>
+					<span class="quick-sub">{shortcutStatus ?? t('instanceDetail.createShortcutHint')}</span>
+				</div>
+				<ChevronRight size={14} class="quick-arrow" />
+			</button>
+		{/if}
 	</div>
 
 	<div class="tabs">

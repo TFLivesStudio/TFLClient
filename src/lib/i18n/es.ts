@@ -282,6 +282,9 @@ export const es = {
 		modsInstalledCount: '{{count}} instalados',
 		folder: 'Carpeta',
 		instanceFiles: 'Archivos de la instancia',
+		createShortcut: 'Crear acceso directo',
+		createShortcutHint: 'Ábrela sin abrir el launcher primero',
+		shortcutCreated: 'Creado en el Escritorio',
 		tabs: {
 			details: 'Detalles',
 			mods: 'Mods',

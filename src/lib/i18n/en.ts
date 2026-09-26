@@ -285,6 +285,9 @@ export const en: Dictionary = {
 		modsInstalledCount: '{{count}} installed',
 		folder: 'Folder',
 		instanceFiles: 'Instance files',
+		createShortcut: 'Create shortcut',
+		createShortcutHint: 'Open it without opening the launcher first',
+		shortcutCreated: 'Created on your Desktop',
 		tabs: {
 			details: 'Details',
 			mods: 'Mods',

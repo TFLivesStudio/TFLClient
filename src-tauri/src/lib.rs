@@ -2,6 +2,85 @@ mod commands;
 mod core;
 mod services;
 
+use tauri::Manager;
+
+/// Busca `--launch-instance <nombre>` en los argumentos de línea de comandos
+/// (los que arma el acceso directo de escritorio, ver `commands::shortcuts`).
+/// Se comparte entre el arranque en frío y el callback de single-instance
+/// (segundo click en un acceso directo con la app ya abierta).
+fn extract_launch_instance(args: &[String]) -> Option<String> {
+    args.iter()
+        .position(|a| a == "--launch-instance")
+        .and_then(|i| args.get(i + 1))
+        .cloned()
+}
+
+/// Ícono de bandeja + menú (Mostrar/Salir) para el modo "acceso directo":
+/// la ventana principal queda oculta, esto es lo único visible del launcher
+/// mientras el juego corre.
+fn build_background_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
+    use tauri::menu::{Menu, MenuItem};
+    use tauri::tray::TrayIconBuilder;
+
+    let show_i = MenuItem::with_id(app, "show", "Mostrar TFL Client", true, None::<&str>)?;
+    let quit_i = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+
+    let mut builder = TrayIconBuilder::new().menu(&menu).on_menu_event(|app, event| match event.id.as_ref() {
+        "show" => {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }
+        "quit" => app.exit(0),
+        _ => {}
+    });
+    if let Some(icon) = app.default_window_icon() {
+        builder = builder.icon(icon.clone());
+    }
+    builder.build(app)?;
+    Ok(())
+}
+
+/// Lanza `instance_name` sin mostrar la ventana principal (la deja oculta,
+/// solo queda el ícono de bandeja) — el flujo completo que pidió el cliente
+/// para los accesos directos: doble click, el launcher no "aparece", el
+/// juego sí. Si el lanzamiento falla, se muestra la ventana igual para que
+/// el error no quede invisible.
+fn spawn_background_launch(app: tauri::AppHandle, instance_name: String) {
+    if let Err(e) = build_background_tray(&app) {
+        tracing::warn!("No se pudo crear el ícono de bandeja: {e}");
+    }
+
+    // Sin ventana ni ícono que lo indique, quedarse colgado en la bandeja
+    // después de que el juego cierra no tiene sentido — se cierra sola.
+    {
+        use tauri::Listener;
+        let app_for_exit = app.clone();
+        let watched_name = instance_name.clone();
+        app.listen("app-event", move |event| {
+            if let Ok(core::AppEvent::InstanceExited { instance, .. }) =
+                serde_json::from_str::<core::AppEvent>(event.payload())
+            {
+                if instance == watched_name {
+                    app_for_exit.exit(0);
+                }
+            }
+        });
+    }
+
+    tauri::async_runtime::spawn(async move {
+        if let Err(e) = services::launcher::launch(app.clone(), instance_name.clone(), None).await {
+            tracing::error!("No se pudo lanzar \"{instance_name}\" desde el acceso directo: {e}");
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tracing_subscriber::fmt::init();
@@ -9,6 +88,14 @@ pub fn run() {
     core::PathManager::ensure_dirs().expect("No se pudieron crear los directorios de datos");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if let Some(name) = extract_launch_instance(&args) {
+                spawn_background_launch(app.clone(), name);
+            } else if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
@@ -21,6 +108,20 @@ pub fn run() {
                 app.handle()
                     .plugin(tauri_plugin_updater::Builder::new().build())?;
             }
+
+            // La ventana arranca oculta (tauri.conf.json `visible: false`) para
+            // poder controlar acá si se muestra normal o se queda en segundo
+            // plano — un acceso directo de instancia (`--launch-instance`) no
+            // debe mostrar el launcher, solo lanzar el juego.
+            match extract_launch_instance(&std::env::args().collect::<Vec<_>>()) {
+                Some(name) => spawn_background_launch(app.handle().clone(), name),
+                None => {
+                    if let Some(window) = app.get_webview_window("main") {
+                        window.show()?;
+                    }
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -137,6 +238,7 @@ pub fn run() {
             commands::mojang_profile::reset_skin,
             commands::mojang_profile::set_active_cape,
             commands::mojang_profile::hide_cape,
+            commands::shortcuts::create_instance_shortcut,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

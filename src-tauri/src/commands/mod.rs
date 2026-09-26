@@ -7,5 +7,6 @@ pub mod mojang_profile;
 pub mod playit;
 pub mod servers;
 pub mod settings;
+pub mod shortcuts;
 pub mod tfl_selection;
 pub mod versions;

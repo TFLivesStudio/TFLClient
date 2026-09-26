@@ -18,7 +18,8 @@
 				"minWidth": 800,
 				"minHeight": 600,
 				"devtools": false,
-				"decorations": false
+				"decorations": false,
+				"visible": false
 			}
 		],
 		"security": {

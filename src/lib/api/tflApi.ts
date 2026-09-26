@@ -297,3 +297,7 @@ export const setSkinFromFile = (path: string, variant: 'classic' | 'slim') =>
 export const resetSkin = () => invoke<void>('reset_skin');
 export const setActiveCape = (capeId: string) => invoke<void>('set_active_cape', { capeId });
 export const hideCape = () => invoke<void>('hide_cape');
+
+// ── Accesos directos de escritorio ───────────────────────────────────
+export const createInstanceShortcut = (instanceName: string) =>
+	invoke<string>('create_instance_shortcut', { instanceName });
