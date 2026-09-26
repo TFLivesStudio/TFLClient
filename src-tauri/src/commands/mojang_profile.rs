@@ -7,6 +7,7 @@ use crate::services::mojang_auth::active_user_fresh;
 use launchwerk::auth::AccountType;
 use serde::{Deserialize, Serialize};
 use tauri::command;
+use tracing::warn;
 
 const API_BASE: &str = "https://api.minecraftservices.com";
 
@@ -38,6 +39,15 @@ async fn require_microsoft_token() -> Result<String, String> {
     if user.user_type != AccountType::Microsoft {
         return Err("Esto necesita una cuenta Microsoft — las cuentas offline no tienen skin ni capas propias en Mojang.".into());
     }
+    // Si cargar o refrescar el token falló silenciosamente (sin internet,
+    // storage corrupto, etc.) `access_token` puede quedar vacío — mandarlo
+    // igual como Bearer da un 401 genérico de Mojang que no dice nada de
+    // por qué. Mejor cortar acá con un mensaje que sí explica la causa real.
+    if user.access_token.trim().is_empty() {
+        return Err(
+            "No se pudo obtener una sesión de Microsoft válida — revisá tu conexión a internet o cerrá sesión y volvé a entrar.".into(),
+        );
+    }
     Ok(user.access_token)
 }
 
@@ -57,11 +67,21 @@ pub async fn get_mojang_profile() -> Result<MojangProfile, String> {
         .bearer_auth(token)
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            warn!("get_mojang_profile: fallo de red pidiendo el perfil: {e}");
+            format!("No se pudo conectar con Mojang: {e}")
+        })?;
     if !resp.status().is_success() {
-        return Err(map_status(resp.status()));
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        warn!("get_mojang_profile: Mojang devolvió {status}: {body}");
+        return Err(map_status(status));
     }
-    let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    let raw = resp.text().await.map_err(|e| e.to_string())?;
+    let json: serde_json::Value = serde_json::from_str(&raw).map_err(|e| {
+        warn!("get_mojang_profile: respuesta no es JSON válido ({e}): {raw}");
+        format!("Mojang devolvió una respuesta inesperada: {e}")
+    })?;
     Ok(MojangProfile {
         skins: serde_json::from_value(json["skins"].clone()).unwrap_or_default(),
         capes: serde_json::from_value(json["capes"].clone()).unwrap_or_default(),
