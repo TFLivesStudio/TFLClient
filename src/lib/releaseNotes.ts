@@ -85,5 +85,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.1': [
 		'Arreglado de verdad: las pestañas de la instancia (Detalles/Mods/Shaders/...) seguían desapareciendo al scrollear en Descargar — el intento anterior no funcionaba en la práctica. Ahora sí quedan fijas.'
+	],
+	'0.10.2': [
+		'Nuevo: en Detalles de una instancia de servidor, ahora se ve la dirección (IP:puerto) para conectarse, con botón de copiar — antes el servidor arrancaba pero no había forma de saber qué pasarle a otro jugador.'
 	]
 };
