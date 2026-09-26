@@ -102,5 +102,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Arreglado: unirse a un servidor real tiraba "invalid session" — el launcher no refrescaba la sesión de Microsoft antes de lanzar. Ahora se refresca siempre.',
 		'Nuevo: panel de Skin y capa (ícono junto a Ajustes, cuentas Microsoft) — subir tu skin propia, elegir clásico/slim, restaurar la default, y elegir qué capa usar entre las que ya tenés.',
 		'Nuevo: botón "Crear acceso directo" en cada instancia de juego — crea un ícono en el Escritorio que la abre directo, sin mostrar el launcher (queda en la bandeja del sistema mientras jugás).'
+	],
+	'0.10.7': [
+		'Arreglado: en macOS, el panel de Skin y capa no mostraba ninguna imagen (ícono roto) — las texturas de Mojang no cargaban por una regla de seguridad interna mal configurada. Ya se ven bien en las 3 plataformas.'
 	]
 };
