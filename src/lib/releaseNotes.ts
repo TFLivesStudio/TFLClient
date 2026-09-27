@@ -109,5 +109,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	'0.10.8': [
 		'Nuevo: el panel de Skin y capa ahora muestra el personaje completo en 3D (arrastrá para girar, rueda para zoom) en vez del recorte de la cara — se ve la skin y la capa juntas.',
 		'Nuevo: click derecho en una instancia de la barra lateral muestra accesos rápidos (Abrir, Mods, Crear acceso directo, Exportar, Carpeta) en vez del menú del navegador.'
+	],
+	'0.10.9': [
+		'Arreglado: "Unirse a servidor" abría Minecraft normal en vez de conectar directo al servidor. Ya conecta bien en versiones 1.20.2 en adelante — versiones más viejas no soportan esta función de Mojang, así que ahora avisa antes en vez de fallar en silencio.'
 	]
 };
