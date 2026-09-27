@@ -190,6 +190,7 @@ export const es = {
 		modeQuick: 'Quick Join',
 		noInstances: 'No tenés ninguna instancia de cliente todavía — usá Quick Join.',
 		quickHint: 'Crea (o reusa) una instancia Vanilla con esa versión y te conecta directo, sin pasar por el menú de Multijugador.',
+		quickPlayUnsupported: 'Esta versión es anterior a 1.20.2 y no soporta conexión directa — el juego va a abrir normal, conectate a mano desde el menú de Multijugador.',
 		crackedBlocked: 'Las cuentas offline solo pueden jugar en singleplayer — iniciá sesión con una cuenta Microsoft para unirte a un servidor.',
 		join: 'Unirse',
 		joining: 'Conectando…'

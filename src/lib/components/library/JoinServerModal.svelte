@@ -44,6 +44,25 @@
 	let loadingVersions = $state(true);
 	const releaseVersions = $derived(allVersions.filter((v) => v.type === 'release'));
 
+	// Quick Play (--quickPlayMultiplayer, lo que conecta directo) lo agregó
+	// Mojang recién en 1.20.2 — versiones anteriores ni entienden el flag,
+	// así que el juego abre normal en vez de conectar. El versionado nuevo
+	// post-renombre (ej. "26.3", sin el "1." adelante) es todo posterior,
+	// siempre soportado.
+	function supportsQuickPlay(versionId: string): boolean {
+		const parts = versionId.split('.').map(Number);
+		if (parts[0] !== 1) return true;
+		const minor = parts[1] ?? 0;
+		const patch = parts[2] ?? 0;
+		if (minor !== 20) return minor > 20;
+		return patch >= 2;
+	}
+
+	const targetVersion = $derived(
+		mode === 'existing' ? joinableInstances.find((i) => i.name === selectedInstance)?.mc_version : selectedVersion
+	);
+	const quickPlayUnsupported = $derived(!!targetVersion && !supportsQuickPlay(targetVersion));
+
 	let joining = $state(false);
 	let error = $state<string | null>(null);
 
@@ -156,6 +175,10 @@
 				<p class="hint">{t('joinServer.quickHint')}</p>
 			{/if}
 
+			{#if quickPlayUnsupported}
+				<p class="hint warn">{t('joinServer.quickPlayUnsupported')}</p>
+			{/if}
+
 			{#if error}
 				<p class="error">{error}</p>
 			{/if}
@@ -257,6 +280,10 @@
 		font-size: 0.75rem;
 		color: var(--text-muted);
 		margin-top: 4px;
+	}
+
+	.hint.warn {
+		color: var(--color-warning);
 	}
 
 	.error {

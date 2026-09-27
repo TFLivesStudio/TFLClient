@@ -193,6 +193,7 @@ export const en: Dictionary = {
 		modeQuick: 'Quick Join',
 		noInstances: "You don't have any client instance yet — use Quick Join.",
 		quickHint: "Creates (or reuses) a Vanilla instance with that version and connects you straight in, skipping the Multiplayer menu.",
+		quickPlayUnsupported: "This version is older than 1.20.2 and doesn't support direct connect — the game will open normally, connect manually from the Multiplayer menu.",
 		crackedBlocked: 'Offline accounts can only play singleplayer — sign in with a Microsoft account to join a server.',
 		join: 'Join',
 		joining: 'Connecting…'
