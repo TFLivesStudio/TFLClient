@@ -105,5 +105,9 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.7': [
 		'Arreglado: en macOS, el panel de Skin y capa no mostraba ninguna imagen (ícono roto) — las texturas de Mojang no cargaban por una regla de seguridad interna mal configurada. Ya se ven bien en las 3 plataformas.'
+	],
+	'0.10.8': [
+		'Nuevo: el panel de Skin y capa ahora muestra el personaje completo en 3D (arrastrá para girar, rueda para zoom) en vez del recorte de la cara — se ve la skin y la capa juntas.',
+		'Nuevo: click derecho en una instancia de la barra lateral muestra accesos rápidos (Abrir, Mods, Crear acceso directo, Exportar, Carpeta) en vez del menú del navegador.'
 	]
 };
