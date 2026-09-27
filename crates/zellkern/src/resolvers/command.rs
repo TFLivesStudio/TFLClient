@@ -284,10 +284,22 @@ impl<'a> CommandBuilder<'a> {
                 {
                     continue;
                 }
-                for s in arg.get_if_applies() {
-                    if !self.should_skip_arg(&s) {
-                        cmd.push(replace_vars(&s, vars));
-                    }
+                let tokens = arg.get_if_applies();
+                let Some(first) = tokens.first() else { continue };
+                // Se filtra por el primer token (el nombre de la flag), no
+                // token por token — `--quickPlayMultiplayer`/`${...}` viajan
+                // como un par en el mismo `WithRule`, y el manifest no
+                // modela el gate real de Mojang por "features" (solo por
+                // SO), así que sin esto quedaba siempre incluido con el
+                // placeholder `${quickPlayMultiplayer}` sin resolver — eso
+                // era lo que pisaba la dirección real más abajo en
+                // `add_optional_args` (ya había una flag con ese nombre en
+                // `cmd`, entonces no se agregaba la de verdad).
+                if self.should_skip_arg(first) {
+                    continue;
+                }
+                for s in tokens {
+                    cmd.push(replace_vars(&s, vars));
                 }
             }
             debug!(
@@ -319,7 +331,12 @@ impl<'a> CommandBuilder<'a> {
         if DEMO_ARGS.contains(&arg) && !self.config.demo_mode {
             return true;
         }
-        if QP_ARGS.contains(&arg) && self.config.quick_play.is_none() {
+        // Siempre se filtran acá — el manifest no modela el gate real de
+        // Mojang por "features" (`is_quick_play_multiplayer`, etc.), así
+        // que su versión del arg viene con el placeholder `${...}` sin
+        // resolver. `add_optional_args` es la única fuente de verdad para
+        // estos, con el valor real ya resuelto.
+        if QP_ARGS.contains(&arg) {
             return true;
         }
         false
@@ -383,6 +400,19 @@ impl<'a> CommandBuilder<'a> {
             if !cmd.contains(&flag.to_string()) {
                 cmd.push(flag.to_string());
                 cmd.push(value.clone());
+            }
+            // Minecraft 1.20.2+ necesita `--quickPlayPath` para que el modo
+            // Quick Play arranque de verdad (ahí escribe su propio log de
+            // estado) — sin esto el juego puede abrir normal en vez de
+            // conectar directo, aunque el resto de los flags estén bien.
+            // No hace falta que el archivo exista de antes, sí la carpeta.
+            let quick_play_path = self.instance_dir.join("quickPlay").join("log.json");
+            if let Some(parent) = quick_play_path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            if !cmd.contains(&"--quickPlayPath".to_string()) {
+                cmd.push("--quickPlayPath".to_string());
+                cmd.push(quick_play_path.display().to_string());
             }
         }
     }
