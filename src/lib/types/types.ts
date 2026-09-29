@@ -31,6 +31,7 @@ export interface Settings {
 	auto_updates: boolean;
 	native_dialog_mode: 'auto' | 'manual';
 	native_dialog_mode_prompted: boolean;
+	server_connection_info_shown: boolean;
 }
 
 export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt';

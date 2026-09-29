@@ -19,6 +19,7 @@ Everything you need to build a Svelte project, powered by [`sv`](https://github.
 ## Limitaciones conocidas
 
 - **Diálogos de archivo nativos (subir ícono/wallpaper propio, agregar mods por archivo):** el launcher tiene un modo "Automático" (default) y uno "Manual", elegible al primer inicio y editable en cualquier momento desde Ajustes. En Automático estas funciones quedan desactivadas — no hace falta usarlas, todo se instala solo. En Manual quedan habilitadas, pero pueden crashear el launcher en macOS (el diálogo nativo de archivos rompe con la firma ad-hoc del build, sin certificado de Apple Developer). Ver `CHANGELOG_macos-dialog-crash-java26.txt` y `CHANGELOG_modo-auto-manual-dialogos.txt` para el detalle técnico.
+- **Visor 3D de Skin y capa en macOS:** en investigación — el panel de Skin y capa (Ajustes de cuenta → ícono junto a Ajustes) no renderiza correctamente en macOS por ahora (el mismo panel anda bien en Windows y Linux). Subir/restaurar skin y elegir capa siguen funcionando igual en las 3 plataformas — es solo la vista previa 3D la que falla en Mac.
 
 ## Creating a project
 

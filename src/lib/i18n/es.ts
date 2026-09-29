@@ -496,6 +496,15 @@ export const es = {
 		noCapes: 'Esta cuenta no tiene ninguna capa — se consiguen con eventos/promociones de Mojang.',
 		noCape: 'Sin capa',
 		viewerHint: 'Arrastrá para girar, rueda del mouse para zoom'
+	},
+	serverConnectionInfo: {
+		title: 'Cómo se conectan los demás a tu servidor',
+		lead: 'Cuando inicies el servidor, TFL Client intenta que la dirección funcione sola. Esto es lo que puede pasar:',
+		upnpTitle: 'Lo normal: automático',
+		upnpSub: 'Si tu router soporta UPnP (la mayoría), TFL Client abre el puerto solo — copiás la dirección y listo, no hay que hacer nada más.',
+		playitTitle: 'Si tu router no coopera: playit.gg',
+		playitSub: 'Aparece un botón para vincular una cuenta gratis de playit.gg — un solo click, una sola vez, nunca más hace falta repetirlo.',
+		gotIt: 'Entendido'
 	}
 };
 

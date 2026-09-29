@@ -9,6 +9,7 @@
 	import CreateServerModal from '$lib/components/library/CreateServerModal.svelte';
 	import JoinServerModal from '$lib/components/library/JoinServerModal.svelte';
 	import SkinManagerModal from '$lib/components/library/SkinManagerModal.svelte';
+	import ServerConnectionInfoModal from '$lib/components/library/ServerConnectionInfoModal.svelte';
 	import InstanceDetail from '$lib/components/library/InstanceDetail.svelte';
 	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
 	import ParticlesBackground from '$lib/components/layout/ParticlesBackground.svelte';
@@ -57,6 +58,7 @@
 	let showCreateChooser = $state(false);
 	let showCreateModal = $state(false);
 	let showCreateServerModal = $state(false);
+	let showServerConnectionInfo = $state(false);
 	let showJoinServerModal = $state(false);
 	let showSkinManager = $state(false);
 	let showSettings = $state(false);
@@ -269,6 +271,9 @@
 		showCreateServerModal = false;
 		await refreshInstances();
 		appState.selectedInstance = instance;
+		if (appState.settings?.server_connection_info_shown !== true) {
+			showServerConnectionInfo = true;
+		}
 	}
 
 	async function handleInstanceChanged(instance: InstanceData | null) {
@@ -376,6 +381,10 @@
 	<CreateServerModal onClose={() => (showCreateServerModal = false)} onCreated={handleServerCreated} />
 {/if}
 
+{#if showServerConnectionInfo}
+	<ServerConnectionInfoModal onDone={() => (showServerConnectionInfo = false)} />
+{/if}
+
 {#if showSkinManager}
 	<SkinManagerModal onClose={() => (showSkinManager = false)} />
 {/if}
@@ -404,7 +413,7 @@
 {#if !isLogWindow}
 	<CommandPalette
 		instances={appState.instances}
-		blocked={showCreateChooser || showCreateModal || showCreateServerModal || showJoinServerModal || showSkinManager || showSettings || showTflSelection}
+		blocked={showCreateChooser || showCreateModal || showCreateServerModal || showJoinServerModal || showSkinManager || showServerConnectionInfo || showSettings || showTflSelection}
 		onSelectInstance={handleSelect}
 		onCreate={() => (showCreateChooser = true)}
 		onOpenSettings={() => (showSettings = true)}

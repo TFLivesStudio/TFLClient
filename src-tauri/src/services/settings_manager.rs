@@ -136,6 +136,13 @@ pub struct SettingsManager {
     /// en sí, que sigue editable en Ajustes en cualquier momento.
     #[serde(default)]
     pub native_dialog_mode_prompted: bool,
+    /// Si ya se le mostró la explicación de "cómo se conectan los demás a
+    /// tu servidor" (UPnP automático vs. playit.gg como fallback manual) —
+    /// aparece como modal la primera vez que se crea una instancia de
+    /// servidor, para que no sea sorpresa si UPnP no coopera. Una sola vez
+    /// por instalación, igual que `native_dialog_mode_prompted`.
+    #[serde(default)]
+    pub server_connection_info_shown: bool,
     #[serde(skip)]
     pub dirty: bool,
 }
@@ -164,6 +171,7 @@ impl Default for SettingsManager {
             auto_updates: true,
             native_dialog_mode: default_dialog_mode(),
             native_dialog_mode_prompted: false,
+            server_connection_info_shown: false,
             dirty: false,
         }
     }

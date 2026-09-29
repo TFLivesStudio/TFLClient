@@ -499,5 +499,14 @@ export const en: Dictionary = {
 		noCapes: "This account has no capes — they come from Mojang events/promotions.",
 		noCape: 'No cape',
 		viewerHint: 'Drag to rotate, scroll to zoom'
+	},
+	serverConnectionInfo: {
+		title: 'How others connect to your server',
+		lead: "When you start the server, TFL Client tries to make the address work on its own. Here's what can happen:",
+		upnpTitle: 'The normal case: automatic',
+		upnpSub: "If your router supports UPnP (most do), TFL Client opens the port on its own — copy the address and that's it, nothing else to do.",
+		playitTitle: "If your router doesn't cooperate: playit.gg",
+		playitSub: 'A button appears to link a free playit.gg account — one click, once, never needed again after that.',
+		gotIt: 'Got it'
 	}
 };
