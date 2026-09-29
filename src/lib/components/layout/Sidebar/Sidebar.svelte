@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { invoke } from '@tauri-apps/api/core';
+	import { convertFileSrc } from '@tauri-apps/api/core';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { getMascotFor } from '$lib/mascots';
 	import { network } from '$lib/state/network.svelte';
 	import { t } from '$lib/i18n/index.svelte';
+	import { getInstanceIconPath } from '$lib/api/tflApi';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
 	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes, Sparkles, WifiOff, Globe, Shirt } from 'lucide-svelte';
 
@@ -74,6 +76,25 @@
 			? sorted.filter((i) => i.name.toLowerCase().includes(query.trim().toLowerCase()))
 			: sorted
 	);
+
+	// La lista mostraba solo la inicial — nunca pedía el ícono real de cada
+	// instancia, a diferencia del header de Detalles (que sí lo carga). Se
+	// pide una sola vez por instancia (cacheado por uuid); si el ícono
+	// cambia después, se ve actualizado recién al reabrir el launcher — no
+	// vale la pena invalidar el cache acá por algo tan poco frecuente.
+	let iconUrls = $state<Record<string, string | null>>({});
+	$effect(() => {
+		for (const inst of instances) {
+			if (inst.uuid in iconUrls) continue;
+			getInstanceIconPath(inst.name)
+				.then((path) => {
+					iconUrls[inst.uuid] = path ? convertFileSrc(path) : null;
+				})
+				.catch(() => {
+					iconUrls[inst.uuid] = null;
+				});
+		}
+	});
 </script>
 
 <aside class="sidebar">
@@ -135,7 +156,11 @@
 						}}
 					>
 						<span class="instance-avatar">
-							{instance.name.charAt(0).toUpperCase()}
+							{#if iconUrls[instance.uuid]}
+								<img src={iconUrls[instance.uuid]} alt="" />
+							{:else}
+								{instance.name.charAt(0).toUpperCase()}
+							{/if}
 						</span>
 						<span class="instance-text">
 							<span class="instance-name">{instance.name}</span>
@@ -375,6 +400,11 @@
 		color: var(--text-primary);
 		cursor: pointer;
 		text-align: left;
+		/* La barrita de color (::before, ver abajo) es un rectángulo recto
+		   asomando desde el borde izquierdo — sin esto sobresale de las
+		   esquinas redondeadas de la card, se ve "cortada" en vez de
+		   completa. */
+		overflow: hidden;
 		transition:
 			background 0.15s,
 			border-color 0.15s,
@@ -416,10 +446,17 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		overflow: hidden;
 		font-size: 0.8rem;
 		font-weight: 800;
 		color: var(--loader-color);
 		background: color-mix(in srgb, var(--loader-color) 18%, transparent);
+	}
+
+	.instance-avatar img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 
 	.instance-text {
