@@ -43,8 +43,11 @@
 		CheckCircle2,
 		Download,
 		RefreshCw,
-		Upload
+		Upload,
+		Gauge,
+		HardDrive
 	} from 'lucide-svelte';
+	import InfoTooltip from '$lib/components/ui/InfoTooltip.svelte';
 
 	let { onClose }: { onClose: () => void } = $props();
 
@@ -179,7 +182,7 @@
 		}
 	];
 
-	let tab = $state<'general' | 'appearance' | 'accounts' | 'java'>('general');
+	let tab = $state<'general' | 'appearance' | 'performance' | 'system' | 'accounts' | 'java'>('general');
 
 	let accent = $state(
 		typeof localStorage !== 'undefined'
@@ -375,6 +378,12 @@
 		await updateSettings(appState.settings);
 	}
 
+	async function toggleMultiInstanceWarning() {
+		if (!appState.settings) return;
+		appState.settings.multi_instance_warning_dismissed = !appState.settings.multi_instance_warning_dismissed;
+		await updateSettings(appState.settings);
+	}
+
 	async function handleQuality(profile: QualityProfile) {
 		if (!appState.settings) return;
 		const updated = await setQualityProfile(profile);
@@ -492,7 +501,7 @@
 		javaStatuses = await getJavaStatus();
 	}
 
-	function selectTab(t: 'general' | 'appearance' | 'accounts' | 'java') {
+	function selectTab(t: 'general' | 'appearance' | 'performance' | 'system' | 'accounts' | 'java') {
 		tab = t;
 		if (t === 'accounts') loadAccounts();
 		if (t === 'java') loadJava();
@@ -543,6 +552,22 @@
 			<button
 				type="button"
 				class="ptab"
+				class:active={tab === 'performance'}
+				onclick={() => selectTab('performance')}
+			>
+				<Gauge size={14} /> {t('settings.tabs.performance')}
+			</button>
+			<button
+				type="button"
+				class="ptab"
+				class:active={tab === 'system'}
+				onclick={() => selectTab('system')}
+			>
+				<HardDrive size={14} /> {t('settings.tabs.system')}
+			</button>
+			<button
+				type="button"
+				class="ptab"
 				class:active={tab === 'accounts'}
 				onclick={() => selectTab('accounts')}
 			>
@@ -589,6 +614,23 @@
 				</section>
 
 				<section>
+					<span class="section-label">
+						{t('settings.multiInstance.label')}
+						<InfoTooltip text={t('settings.multiInstance.hint')} />
+					</span>
+					<button
+						type="button"
+						class="choice auto-update-toggle"
+						class:active={!appState.settings?.multi_instance_warning_dismissed}
+						onclick={toggleMultiInstanceWarning}
+					>
+						{appState.settings?.multi_instance_warning_dismissed
+							? t('settings.multiInstance.off')
+							: t('settings.multiInstance.on')}
+					</button>
+				</section>
+			{:else if tab === 'performance'}
+				<section>
 					<span class="section-label">{t('settings.quality.label')}</span>
 					<div class="row">
 						{#each QUALITY as q (q)}
@@ -623,7 +665,7 @@
 						<Check size={13} /> {t('settings.ram.save')}
 					</button>
 				</section>
-
+			{:else if tab === 'system'}
 				<section>
 					<span class="section-label">{t('settings.storage.label')}</span>
 					<button type="button" class="save-btn" disabled={clearingCache} onclick={handleClearCache}>
@@ -634,7 +676,10 @@
 				</section>
 
 				<section>
-					<span class="section-label">{t('settings.dialogs.label')}</span>
+					<span class="section-label">
+						{t('settings.dialogs.label')}
+						<InfoTooltip text={t('settings.dialogs.hint')} />
+					</span>
 					<div class="row">
 						<button
 							type="button"
@@ -653,13 +698,13 @@
 							{t('settings.dialogs.manual')}
 						</button>
 					</div>
-					<p class="hint">
-						{t('settings.dialogs.hint')}
-					</p>
 				</section>
 
 				<section>
-					<span class="section-label">{t('settings.updates.label')}</span>
+					<span class="section-label">
+						{t('settings.updates.label')}
+						<InfoTooltip text={t('settings.updates.hint')} />
+					</span>
 					<button
 						type="button"
 						class="choice auto-update-toggle"
@@ -668,9 +713,6 @@
 					>
 						{appState.settings?.auto_updates ? t('settings.updates.autoEnabled') : t('settings.updates.autoDisabled')}
 					</button>
-					<p class="hint">
-						{t('settings.updates.hint')}
-					</p>
 					<button
 						type="button"
 						class="save-btn"
@@ -940,7 +982,7 @@
 	}
 
 	.panel {
-		width: 440px;
+		width: min(620px, calc(100vw - 32px));
 		max-height: 80vh;
 		background: var(--bg-card);
 		border: 1px solid var(--border);
@@ -1022,7 +1064,9 @@
 	}
 
 	.section-label {
-		display: block;
+		display: flex;
+		align-items: center;
+		gap: 5px;
 		font-size: 0.68rem;
 		font-weight: 700;
 		letter-spacing: 0.5px;

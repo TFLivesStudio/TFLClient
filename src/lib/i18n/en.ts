@@ -33,6 +33,8 @@ export const en: Dictionary = {
 		tabs: {
 			appearance: 'Style',
 			general: 'General',
+			performance: 'Performance',
+			system: 'System',
 			accounts: 'Accounts',
 			java: 'Java'
 		},
@@ -57,6 +59,12 @@ export const en: Dictionary = {
 			clearCache: 'Clear temp cache',
 			cacheCleared: 'Freed {{mb}} MB.',
 			clearCacheFailed: 'Could not clear: {{error}}'
+		},
+		multiInstance: {
+			label: 'Multiple instances warning',
+			hint: "If you open an instance while another is already running, you'll get a heads-up first (same account can break multiplayer; different accounts only affect performance). You can turn this warning off here.",
+			on: 'Warn: On',
+			off: 'Warn: Off'
 		},
 		dialogs: {
 			label: 'Native file dialogs',

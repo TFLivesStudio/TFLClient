@@ -30,6 +30,8 @@ export const es = {
 		tabs: {
 			appearance: 'Estilo',
 			general: 'General',
+			performance: 'Rendimiento',
+			system: 'Sistema',
 			accounts: 'Cuentas',
 			java: 'Java'
 		},
@@ -54,6 +56,12 @@ export const es = {
 			clearCache: 'Limpiar caché temporal',
 			cacheCleared: 'Liberados {{mb}} MB.',
 			clearCacheFailed: 'No se pudo limpiar: {{error}}'
+		},
+		multiInstance: {
+			label: 'Aviso de varias instancias',
+			hint: 'Si abrís una instancia mientras otra ya está corriendo, te avisa antes (misma cuenta puede dar problemas de multijugador; cuentas distintas solo pega en rendimiento). Podés desactivar este aviso acá.',
+			on: 'Avisar: Activado',
+			off: 'Avisar: Desactivado'
 		},
 		dialogs: {
 			label: 'Diálogos de archivo nativos',
