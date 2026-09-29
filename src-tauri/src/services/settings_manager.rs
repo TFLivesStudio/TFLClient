@@ -143,6 +143,11 @@ pub struct SettingsManager {
     /// por instalación, igual que `native_dialog_mode_prompted`.
     #[serde(default)]
     pub server_connection_info_shown: bool,
+    /// "No volver a preguntarme" del aviso de multi-instancia (abrir una
+    /// instancia de cliente mientras ya hay otra corriendo) — editable en
+    /// cualquier momento desde Ajustes, igual que `native_dialog_mode`.
+    #[serde(default)]
+    pub multi_instance_warning_dismissed: bool,
     #[serde(skip)]
     pub dirty: bool,
 }
@@ -172,6 +177,7 @@ impl Default for SettingsManager {
             native_dialog_mode: default_dialog_mode(),
             native_dialog_mode_prompted: false,
             server_connection_info_shown: false,
+            multi_instance_warning_dismissed: false,
             dirty: false,
         }
     }

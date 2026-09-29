@@ -6,9 +6,17 @@ use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, command};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 
-/// Label fijo: el launcher solo permite una instancia corriendo a la vez
-/// (ver `launcher::launch`), así que alcanza con una sola ventana de log.
-const LOG_WINDOW_LABEL: &str = "log-instance";
+/// Ahora se puede tener más de una instancia corriendo a la vez (ver
+/// `launcher::launch`) — cada una necesita su propia ventana de log, así
+/// que el label incluye el nombre (saneado: los labels de ventana de Tauri
+/// no aceptan cualquier carácter).
+fn log_window_label(instance_name: &str) -> String {
+    let sanitized: String = instance_name
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect();
+    format!("log-{sanitized}")
+}
 
 const ICON_EXTENSIONS: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
 
@@ -139,9 +147,11 @@ pub async fn launch(
     instance_name: String,
     server_address: Option<String>,
 ) -> Result<(), String> {
-    // launcher::launch() rechaza si ya hay otra instancia corriendo — se
-    // valida ahí antes, así que acá nunca se abre una ventana de log
-    // huérfana por un lanzamiento que ni siquiera arrancó.
+    // launcher::launch() rechaza solo si ESTA MISMA instancia ya está
+    // corriendo (doble click) — otra instancia distinta corriendo a la vez
+    // ya se filtró antes en el frontend (confirmación si hacía falta), así
+    // que acá nunca se abre una ventana de log huérfana por un lanzamiento
+    // que ni siquiera arrancó.
     launcher::launch(app.clone(), instance_name.clone(), server_address).await?;
     open_log_window(&app, &instance_name)
 }
@@ -158,7 +168,8 @@ pub async fn launch(
 /// archivo con ese nombre exacto y tiraba 404 (visto en Windows, pero el
 /// bug no es específico de esa plataforma).
 fn open_log_window(app: &AppHandle, instance_name: &str) -> Result<(), String> {
-    if let Some(existing) = app.get_webview_window(LOG_WINDOW_LABEL) {
+    let label = log_window_label(instance_name);
+    if let Some(existing) = app.get_webview_window(&label) {
         let _ = existing.set_focus();
         return Ok(());
     }
@@ -166,7 +177,7 @@ fn open_log_window(app: &AppHandle, instance_name: &str) -> Result<(), String> {
     let instance_json = serde_json::to_string(instance_name).map_err(|e| e.to_string())?;
     let init_script = format!("window.__TFL_LOG_INSTANCE__ = {instance_json};");
 
-    WebviewWindowBuilder::new(app, LOG_WINDOW_LABEL, WebviewUrl::App("index.html".into()))
+    WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html".into()))
         .title(format!("Log — {instance_name}"))
         .inner_size(760.0, 480.0)
         .min_inner_size(480.0, 320.0)
@@ -178,13 +189,26 @@ fn open_log_window(app: &AppHandle, instance_name: &str) -> Result<(), String> {
 }
 
 #[command]
-pub async fn stop_running_instance() -> Result<(), String> {
-    launcher::stop_running().await
+pub async fn stop_running_instance(instance_name: String) -> Result<(), String> {
+    launcher::stop_running(&instance_name).await
 }
 
+#[derive(serde::Serialize)]
+pub struct RunningInstanceInfo {
+    pub name: String,
+    pub account_uuid: String,
+}
+
+/// Todas las instancias de cliente corriendo ahora mismo, con la cuenta
+/// que se usó para lanzar cada una — el frontend lo usa para avisar antes
+/// de abrir una instancia más si eso puede traer problemas (misma cuenta
+/// en dos lados, o rendimiento).
 #[command]
-pub fn get_running_instance() -> Option<String> {
-    launcher::running_instance_name()
+pub fn get_running_instances() -> Vec<RunningInstanceInfo> {
+    launcher::running_instances()
+        .into_iter()
+        .map(|(name, account_uuid)| RunningInstanceInfo { name, account_uuid })
+        .collect()
 }
 
 /// System persistente entre llamadas — sysinfo necesita eso para poder
@@ -199,12 +223,12 @@ pub struct ProcessStats {
     pub memory_mb: u64,
 }
 
-/// Uso de CPU/RAM del proceso de Java en vivo — `None` si no hay ninguna
-/// instancia corriendo ahora mismo. Pensado para pollearse cada 1-2s desde
-/// la ventana de log mientras el juego está abierto.
+/// Uso de CPU/RAM del proceso de Java en vivo de esa instancia — `None` si
+/// no está corriendo ahora mismo. Pensado para pollearse cada 1-2s desde
+/// su ventana de log mientras el juego está abierto.
 #[command]
-pub fn get_running_instance_stats() -> Option<ProcessStats> {
-    let pid = launcher::running_instance_pid()?;
+pub fn get_running_instance_stats(instance_name: String) -> Option<ProcessStats> {
+    let pid = launcher::running_instance_pid(&instance_name)?;
     let sysinfo_pid = sysinfo::Pid::from_u32(pid);
     let mut sys = PROCESS_MONITOR.lock().unwrap();
     sys.refresh_process(sysinfo_pid);

@@ -277,8 +277,15 @@ export const es = {
 		playedYesterday: 'Ayer',
 		playedDaysAgo: 'Hace {{days}} días',
 		preparing: 'Preparando…',
-		instanceRunning: '"{{name}}" está corriendo',
 		play: 'Jugar',
+		otherInstanceRunning: 'También corriendo ahora: {{names}}',
+		multiInstanceTitle: 'Ya hay otra instancia corriendo',
+		multiInstanceSameAccount:
+			'Es la misma cuenta que estás por usar acá — el multijugador puede fallar (no podés estar en dos lados con el mismo jugador) y suma carga de CPU/RAM. ¿Igual querés abrir esta también?',
+		multiInstanceDifferentAccount:
+			'Es otra cuenta, así que no hay problema de "mismo jugador" — pero dos instancias a la vez pesan más en CPU/RAM y solo se puede jugar una por vez con una persona. ¿Igual querés abrir esta también?',
+		multiInstanceProceed: 'Abrir igual',
+		multiInstanceDontAskAgain: 'No volver a preguntarme (editable en Ajustes)',
 		modsNotSupportedVanilla: 'No soportado en Vanilla',
 		loading: 'Cargando…',
 		modsInstalledCount: '{{count}} instalados',

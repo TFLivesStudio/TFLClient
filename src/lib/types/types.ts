@@ -32,6 +32,7 @@ export interface Settings {
 	native_dialog_mode: 'auto' | 'manual';
 	native_dialog_mode_prompted: boolean;
 	server_connection_info_shown: boolean;
+	multi_instance_warning_dismissed: boolean;
 }
 
 export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt';
@@ -88,6 +89,11 @@ export interface MojangCape {
 	state: 'ACTIVE' | 'INACTIVE';
 	url: string;
 	alias?: string | null;
+}
+
+export interface RunningInstanceInfo {
+	name: string;
+	account_uuid: string;
 }
 
 export interface MojangProfile {

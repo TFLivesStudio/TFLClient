@@ -280,8 +280,15 @@ export const en: Dictionary = {
 		playedYesterday: 'Yesterday',
 		playedDaysAgo: '{{days}} days ago',
 		preparing: 'Preparing…',
-		instanceRunning: '"{{name}}" is running',
 		play: 'Play',
+		otherInstanceRunning: 'Also running right now: {{names}}',
+		multiInstanceTitle: 'Another instance is already running',
+		multiInstanceSameAccount:
+			"It's the same account you're about to use here — multiplayer might break (can't be the same player in two places) and it adds CPU/RAM load. Open this one anyway?",
+		multiInstanceDifferentAccount:
+			"It's a different account, so no \"same player\" issue — but two instances at once means more CPU/RAM load, and only one can actually be played by one person at a time. Open this one anyway?",
+		multiInstanceProceed: 'Open anyway',
+		multiInstanceDontAskAgain: "Don't ask me again (editable in Settings)",
 		modsNotSupportedVanilla: 'Not supported in Vanilla',
 		loading: 'Loading…',
 		modsInstalledCount: '{{count}} installed',

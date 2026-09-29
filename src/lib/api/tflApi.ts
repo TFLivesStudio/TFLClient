@@ -22,7 +22,8 @@ import type {
 	FileEntry,
 	ServerConnectionInfo,
 	PlayitClaimInfo,
-	MojangProfile
+	MojangProfile,
+	RunningInstanceInfo
 } from '$lib/types/types';
 
 // ── Auth ─────────────────────────────────────────────────────────────
@@ -76,8 +77,9 @@ export const updateInstanceMemory = (
 ) => invoke<InstanceData>('update_instance_memory', { name, minMemory, maxMemory });
 export const launchInstance = (instanceName: string, serverAddress?: string) =>
 	invoke<void>('launch', { instanceName, serverAddress: serverAddress ?? null });
-export const stopRunningInstance = () => invoke<void>('stop_running_instance');
-export const getRunningInstance = () => invoke<string | null>('get_running_instance');
+export const stopRunningInstance = (instanceName: string) =>
+	invoke<void>('stop_running_instance', { instanceName });
+export const getRunningInstances = () => invoke<RunningInstanceInfo[]>('get_running_instances');
 export const openInstanceFolder = (name: string) => invoke<void>('open_instance_folder', { name });
 export const openExternalUrl = (url: string) => invoke<void>('open_external_url', { url });
 export const pickImageFile = () => invoke<string | null>('pick_image_file');

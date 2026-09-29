@@ -6,6 +6,7 @@ use aqua::{DownloadManager, FabricBatch, ForgeBatch, NeoForgeBatch, QuiltBatch};
 use launchwerk::Launchwerk;
 use launchwerk::auth::AccountType;
 use launchwerk::models::VersionManifest;
+use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{LazyLock, Mutex};
 use tracing::{error, info};
@@ -13,39 +14,50 @@ use tracing::{error, info};
 static LAUNCHWERK: LazyLock<Launchwerk> =
     LazyLock::new(|| Launchwerk::new(PathManager::get().get_shared_dir().to_path_buf()));
 
-/// Instancia de Minecraft actualmente en ejecución (a lo sumo una — el
-/// launcher no permite abrir dos al mismo tiempo). `id` queda en `None`
-/// mientras se reserva el lugar (justo antes de empezar a lanzar) y se
-/// completa una vez que el proceso realmente arrancó, para poder matarlo
-/// después por su uuid en `launchwerk`.
+/// Una instancia de cliente en ejecución — puede haber varias a la vez
+/// (el frontend avisa antes con una confirmación si eso puede traer
+/// problemas: misma cuenta en dos lados, o rendimiento). `id` queda en
+/// `None` mientras se reserva el lugar (justo antes de empezar a lanzar) y
+/// se completa una vez que el proceso realmente arrancó, para poder
+/// matarlo después por su uuid en `launchwerk`. `account_uuid` es la
+/// cuenta activa al momento de lanzar ESTA instancia en particular — no
+/// necesariamente la cuenta activa ahora mismo, si el usuario cambió de
+/// cuenta después de lanzarla.
 struct RunningGame {
-    name: String,
+    account_uuid: String,
     id: Option<uuid::Uuid>,
     pid: Option<u32>,
 }
 
-static RUNNING: LazyLock<Mutex<Option<RunningGame>>> = LazyLock::new(|| Mutex::new(None));
+static RUNNING: LazyLock<Mutex<HashMap<String, RunningGame>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 
-/// Nombre de la instancia corriendo ahora mismo, si hay alguna.
-pub fn running_instance_name() -> Option<String> {
-    RUNNING.lock().unwrap().as_ref().map(|r| r.name.clone())
+/// Nombre y cuenta de cada instancia de cliente corriendo ahora mismo — el
+/// frontend lo usa para decidir si avisar antes de lanzar una más (mismo
+/// jugador en dos lados, o impacto de rendimiento con cuentas distintas).
+pub fn running_instances() -> Vec<(String, String)> {
+    RUNNING
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|(name, r)| (name.clone(), r.account_uuid.clone()))
+        .collect()
 }
 
-/// PID del proceso de Java corriendo ahora mismo, si hay alguna instancia
-/// activa y ya arrancó de verdad (puede ser `None` un instante mientras se
-/// resuelve, aunque `running_instance_name` ya no sea `None`).
-pub fn running_instance_pid() -> Option<u32> {
-    RUNNING.lock().unwrap().as_ref().and_then(|r| r.pid)
+/// PID del proceso de Java de esa instancia, si está corriendo y ya
+/// arrancó de verdad (puede ser `None` un instante mientras se resuelve).
+pub fn running_instance_pid(name: &str) -> Option<u32> {
+    RUNNING.lock().unwrap().get(name).and_then(|r| r.pid)
 }
 
-/// Mata el proceso de la instancia en ejecución (si hay alguna). La
-/// limpieza real del estado (`RUNNING`, `LAUNCHWERK.remove`, evento
-/// `InstanceExited`) la hace la misma tarea de fondo que espera la salida
-/// normal del proceso — matar solo dispara esa salida.
-pub async fn stop_running() -> Result<(), String> {
-    let id = RUNNING.lock().unwrap().as_ref().and_then(|r| r.id);
+/// Mata el proceso de esa instancia (si está corriendo). La limpieza real
+/// del estado (`RUNNING`, `LAUNCHWERK.remove`, evento `InstanceExited`) la
+/// hace la misma tarea de fondo que espera la salida normal del proceso —
+/// matar solo dispara esa salida.
+pub async fn stop_running(name: &str) -> Result<(), String> {
+    let id = RUNNING.lock().unwrap().get(name).and_then(|r| r.id);
     let Some(id) = id else {
-        return Err("No hay ninguna instancia corriendo".into());
+        return Err(format!("\"{name}\" no está corriendo"));
     };
     let Some(handle) = LAUNCHWERK.get(id) else {
         return Err("La instancia ya no está activa".into());
@@ -196,35 +208,40 @@ async fn ensure_downloaded(
     Ok(())
 }
 
-/// Punto de entrada público: reserva el "lugar" de instancia corriendo
-/// (evita que se lancen dos al mismo tiempo) y delega en `launch_inner`.
-/// Si algo falla antes de que el proceso llegue a arrancar, libera el
-/// lugar reservado — si el lanzamiento tiene éxito, lo libera la tarea de
-/// fondo que espera a que el proceso termine (ver el final de
-/// `launch_inner`).
+/// Punto de entrada público: reserva el "lugar" de esta instancia (evita
+/// lanzarla dos veces en paralelo por un doble click, no evita que OTRA
+/// instancia distinta esté corriendo a la vez — eso ya lo filtró el
+/// frontend con una confirmación si hacía falta) y delega en
+/// `launch_inner`. Si algo falla antes de que el proceso llegue a
+/// arrancar, libera el lugar reservado — si el lanzamiento tiene éxito, lo
+/// libera la tarea de fondo que espera a que el proceso termine (ver el
+/// final de `launch_inner`).
 pub async fn launch(
     app: tauri::AppHandle,
     instance_name: String,
     server_address: Option<String>,
 ) -> Result<(), String> {
+    let account_uuid = SettingsManager::read().get_user().uuid;
     {
         let mut guard = RUNNING.lock().unwrap();
-        if let Some(running) = guard.as_ref() {
+        if guard.contains_key(&instance_name) {
             return Err(format!(
-                "Ya hay una instancia corriendo: \"{}\". Cerrala antes de iniciar otra.",
-                running.name
+                "\"{instance_name}\" ya está corriendo — cerrala antes de volver a abrirla."
             ));
         }
-        *guard = Some(RunningGame {
-            name: instance_name.clone(),
-            id: None,
-            pid: None,
-        });
+        guard.insert(
+            instance_name.clone(),
+            RunningGame {
+                account_uuid,
+                id: None,
+                pid: None,
+            },
+        );
     }
 
-    let result = launch_inner(app, instance_name, server_address).await;
+    let result = launch_inner(app, instance_name.clone(), server_address).await;
     if result.is_err() {
-        *RUNNING.lock().unwrap() = None;
+        RUNNING.lock().unwrap().remove(&instance_name);
     }
     result
 }
@@ -371,7 +388,7 @@ async fn launch_inner(
 
     let id = handle.id();
     let pid = handle.pid().await;
-    if let Some(running) = RUNNING.lock().unwrap().as_mut() {
+    if let Some(running) = RUNNING.lock().unwrap().get_mut(&instance_name) {
         running.id = Some(id);
         running.pid = pid;
     }
@@ -409,13 +426,13 @@ async fn launch_inner(
     });
 
     // Dueña final del handle: espera a que el proceso termine (solo o por
-    // stop_running()) y recién ahí libera el "lugar" de instancia corriendo
-    // — así una segunda instancia solo puede lanzarse una vez que esta de
-    // verdad cerró, no apenas se disparó el proceso.
+    // stop_running()) y recién ahí libera el "lugar" de ESTA instancia — así
+    // no se puede relanzar la misma dos veces en paralelo, aunque otras
+    // instancias distintas sí puedan estar corriendo al mismo tiempo.
     tokio::spawn(async move {
         let code = handle.wait().await;
         LAUNCHWERK.remove(id);
-        *RUNNING.lock().unwrap() = None;
+        RUNNING.lock().unwrap().remove(&instance_name);
         emit(AppEvent::InstanceExited {
             instance: instance_name.clone(),
             code,

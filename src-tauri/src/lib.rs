@@ -152,7 +152,7 @@ pub fn run() {
             commands::instance::update_instance_memory,
             commands::instance::launch,
             commands::instance::stop_running_instance,
-            commands::instance::get_running_instance,
+            commands::instance::get_running_instances,
             commands::instance::get_running_instance_stats,
             commands::instance::open_instance_folder,
             commands::instance::open_external_url,

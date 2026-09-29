@@ -7,6 +7,8 @@
 		message,
 		confirmLabel = t('confirmDialog.confirm'),
 		danger = false,
+		checkboxLabel,
+		checked = $bindable(false),
 		onConfirm,
 		onCancel
 	}: {
@@ -14,6 +16,10 @@
 		message: string;
 		confirmLabel?: string;
 		danger?: boolean;
+		/** Si se pasa, se muestra un checkbox extra (ej. "no volver a
+		 * preguntarme") — el caller lee `checked` en `onConfirm`. */
+		checkboxLabel?: string;
+		checked?: boolean;
 		onConfirm: () => void;
 		onCancel: () => void;
 	} = $props();
@@ -41,6 +47,12 @@
 		{/if}
 		<h3>{title}</h3>
 		<p>{message}</p>
+		{#if checkboxLabel}
+			<label class="checkbox-row">
+				<input type="checkbox" bind:checked />
+				{checkboxLabel}
+			</label>
+		{/if}
 		<div class="actions">
 			<button type="button" class="btn" onclick={onCancel}>{t('common.cancel')}</button>
 			<button type="button" class="btn" class:danger onclick={onConfirm}>
@@ -95,6 +107,21 @@
 		font-size: 0.8rem;
 		color: var(--text-secondary);
 		margin-bottom: 18px;
+	}
+
+	.checkbox-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: -6px 0 18px;
+		font-size: 0.76rem;
+		color: var(--text-secondary);
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.checkbox-row input {
+		flex-shrink: 0;
 	}
 
 	.actions {

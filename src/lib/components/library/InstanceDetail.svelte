@@ -22,10 +22,12 @@
 		playitStartClaim,
 		playitPollClaim,
 		playitOpenClaimUrl,
-		createInstanceShortcut
+		createInstanceShortcut,
+		updateSettings
 	} from '$lib/api/tflApi';
 	import { gameSession } from '$lib/state/gameSession.svelte';
 	import { serverSessions } from '$lib/state/serverSessions.svelte';
+	import { appState } from '$lib/state/state.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import ModsPanel from './ModsPanel.svelte';
 	import ShadersPanel from './ShadersPanel.svelte';
@@ -86,7 +88,11 @@
 	} = $props();
 
 	let launching = $state(false);
-	const blockedByOther = $derived(!!gameSession.running && gameSession.running !== instance.name);
+	// Ya no bloquea abrir esta instancia si hay OTRA corriendo — antes el
+	// launcher permitía una sola a la vez, ahora se avisa (con "no volver a
+	// preguntarme" opcional) y se deja seguir si el usuario confirma. Ver
+	// `handlePlay`/`multiInstanceWarningKind` más abajo.
+	const otherRunning = $derived(gameSession.running.filter((r) => r.name !== instance.name));
 	const isServer = $derived(!!instance.server_type);
 	const serverRunning = $derived(serverSessions.running.has(instance.name));
 	let error = $state<string | null>(null);
@@ -211,7 +217,44 @@
 		return t('instanceDetail.playedDaysAgo', { days });
 	});
 
+	// 'same-account': otra instancia ya corriendo usa la misma cuenta activa
+	// — puede fallar el multijugador (mismo jugador en dos lados) y suma
+	// carga de CPU/RAM. 'different-account': cuentas distintas, solo pega en
+	// rendimiento (igual no se puede jugar las dos a la vez con una persona).
+	function multiInstanceWarningKind(): 'same-account' | 'different-account' | null {
+		if (otherRunning.length === 0) return null;
+		const myUuid = appState.currentUser?.uuid;
+		const sameAccount = otherRunning.some((r) => r.account_uuid === myUuid);
+		return sameAccount ? 'same-account' : 'different-account';
+	}
+
+	let showMultiInstanceConfirm = $state(false);
+	let multiInstanceDontAskAgain = $state(false);
+
 	async function handlePlay() {
+		const kind = multiInstanceWarningKind();
+		if (kind && appState.settings?.multi_instance_warning_dismissed !== true) {
+			showMultiInstanceConfirm = true;
+			return;
+		}
+		await doLaunch();
+	}
+
+	async function confirmMultiInstance() {
+		showMultiInstanceConfirm = false;
+		if (multiInstanceDontAskAgain && appState.settings) {
+			try {
+				await updateSettings({ ...appState.settings, multi_instance_warning_dismissed: true });
+				appState.settings.multi_instance_warning_dismissed = true;
+			} catch {
+				// si falla guardar la preferencia, no vale la pena bloquear el
+				// lanzamiento por eso — se va a volver a preguntar la próxima.
+			}
+		}
+		await doLaunch();
+	}
+
+	async function doLaunch() {
 		launching = true;
 		error = null;
 		try {
@@ -508,13 +551,10 @@
 				{/if}
 			</button>
 		{:else}
-			<button type="button" class="play-btn" disabled={launching || blockedByOther} onclick={handlePlay}>
+			<button type="button" class="play-btn" disabled={launching} onclick={handlePlay}>
 				{#if launching}
 					<Loader2 size={16} class="spin" />
 					{t('instanceDetail.preparing')}
-				{:else if blockedByOther}
-					<Play size={16} fill="currentColor" />
-					{t('instanceDetail.instanceRunning', { name: gameSession.running ?? '' })}
 				{:else}
 					<Play size={16} fill="currentColor" />
 					{t('instanceDetail.play')}
@@ -522,6 +562,12 @@
 			</button>
 		{/if}
 	</div>
+
+	{#if otherRunning.length > 0}
+		<p class="hint">
+			{t('instanceDetail.otherInstanceRunning', { names: otherRunning.map((r) => r.name).join(', ') })}
+		</p>
+	{/if}
 
 	{#if error}
 		<p class="error">{error}</p>
@@ -796,6 +842,20 @@
 		danger
 		onConfirm={handleDelete}
 		onCancel={() => (showDeleteConfirm = false)}
+	/>
+{/if}
+
+{#if showMultiInstanceConfirm}
+	<ConfirmDialog
+		title={t('instanceDetail.multiInstanceTitle')}
+		message={multiInstanceWarningKind() === 'same-account'
+			? t('instanceDetail.multiInstanceSameAccount')
+			: t('instanceDetail.multiInstanceDifferentAccount')}
+		confirmLabel={t('instanceDetail.multiInstanceProceed')}
+		checkboxLabel={t('instanceDetail.multiInstanceDontAskAgain')}
+		bind:checked={multiInstanceDontAskAgain}
+		onConfirm={confirmMultiInstance}
+		onCancel={() => (showMultiInstanceConfirm = false)}
 	/>
 {/if}
 

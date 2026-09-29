@@ -32,7 +32,7 @@
 
 	async function pollStats() {
 		try {
-			stats = await invoke<ProcessStats | null>('get_running_instance_stats');
+			stats = await invoke<ProcessStats | null>('get_running_instance_stats', { instanceName });
 		} catch {
 			stats = null;
 		}
@@ -51,7 +51,7 @@
 	async function handleStop() {
 		stopping = true;
 		try {
-			await invoke('stop_running_instance');
+			await invoke('stop_running_instance', { instanceName });
 		} catch (e) {
 			lines = [...lines, { stream: 'stderr', line: t('instanceLogWindow.stopFailed', { error: String(e) }) }];
 		} finally {
