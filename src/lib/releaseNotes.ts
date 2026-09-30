@@ -124,5 +124,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.12': [
 		'Arreglado: el click derecho en una instancia de la barra lateral no abría el menú de accesos rápidos (Abrir, Mods, Crear acceso directo, Exportar, Carpeta) — no pasaba nada.'
+	],
+	'0.10.13': [
+		'Arreglado: click derecho en cualquier otra parte del launcher (fuera de una instancia) mostraba el menú del navegador (Atrás, Refrescar, Guardar como, Imprimir) — se veía como página web. Ya no aparece.'
 	]
 };
