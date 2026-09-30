@@ -426,7 +426,12 @@
 
 	.instance-item:hover {
 		border-color: var(--border);
-		transform: translateX(1px);
+		/* Antes tenía "transform: translateX(1px)" acá — combinado con el
+		   ícono recortado en esquinas redondeadas (overflow: hidden más
+		   arriba), algunos motores (Chromium/WebView2) repintan mal el
+		   compositing al mover el elemento: la imagen "pierde" un pedazo y
+		   se ve el fondo oscuro de atrás en su lugar. Era solo un detalle
+		   cosmético, no vale la pena el riesgo. */
 	}
 
 	.instance-item.active {
