@@ -118,5 +118,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Ajustes rediseñado: panel más ancho, "General" se dividió en Rendimiento y Sistema para que no quede todo apiñado, y los textos largos de explicación ahora son un ícono "?" con globo flotante al pasar el mouse.',
 		'Arreglado: la lista de instancias en la barra lateral mostraba solo la inicial en vez del ícono real de cada una.',
 		'Arreglado: la barrita de color de la instancia activa se salía un poco de las esquinas redondeadas de la card.'
+	],
+	'0.10.11': [
+		'Arreglado de verdad: al pasar el mouse por una instancia en la barra lateral, parte del ícono se veía negro — el intento anterior (v0.10.10) no alcanzaba. Era el efecto de deslizamiento del hover, se sacó.'
 	]
 };
