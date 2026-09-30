@@ -154,6 +154,19 @@
 							e.preventDefault();
 							onInstanceContextMenu(instance, e.clientX, e.clientY);
 						}}
+						onmousedown={(e) => {
+							// El evento "contextmenu" del click derecho no dispara de
+							// forma confiable en esta webview (se probó en vivo: ni
+							// siquiera aparece el menú nativo del sistema, algo se lo
+							// come antes de llegar al JS). "mousedown" con botón
+							// derecho es más bajo nivel y sí llega siempre — queda
+							// como camino principal, oncontextmenu como refuerzo si
+							// en algún entorno sí dispara.
+							if (e.button === 2) {
+								e.preventDefault();
+								onInstanceContextMenu(instance, e.clientX, e.clientY);
+							}
+						}}
 					>
 						<span class="instance-avatar">
 							{#if iconUrls[instance.uuid]}

@@ -121,5 +121,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.11': [
 		'Arreglado de verdad: al pasar el mouse por una instancia en la barra lateral, parte del ícono se veía negro — el intento anterior (v0.10.10) no alcanzaba. Era el efecto de deslizamiento del hover, se sacó.'
+	],
+	'0.10.12': [
+		'Arreglado: el click derecho en una instancia de la barra lateral no abría el menú de accesos rápidos (Abrir, Mods, Crear acceso directo, Exportar, Carpeta) — no pasaba nada.'
 	]
 };

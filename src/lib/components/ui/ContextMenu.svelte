@@ -69,6 +69,13 @@
 	onkeydown={(e) => e.key === 'Escape' && onClose()}
 	onclick={onClose}
 	oncontextmenu={(e) => {
+		// Si el "contextmenu" nativo del click que ABRIÓ este menú termina
+		// disparando igual (además del mousedown que ya lo abrió, ver
+		// Sidebar.svelte), el handler que lo originó ya llamó
+		// preventDefault() — si se cierra acá también, el menú aparece y
+		// se cierra en el mismo gesto. Solo cerrar si es un click derecho
+		// en otro lado (no manejado por nadie más).
+		if (e.defaultPrevented) return;
 		e.preventDefault();
 		onClose();
 	}}
