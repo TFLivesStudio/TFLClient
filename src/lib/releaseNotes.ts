@@ -112,5 +112,11 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.9': [
 		'Arreglado: "Unirse a servidor" abría Minecraft normal en vez de conectar directo al servidor. Ya conecta bien en versiones 1.20.2 en adelante — versiones más viejas no soportan esta función de Mojang, así que ahora avisa antes en vez de fallar en silencio.'
+	],
+	'0.10.10': [
+		'Nuevo: ya se puede abrir una instancia mientras otra está corriendo — antes lo bloqueaba directo. Avisa primero si eso puede traer problemas (misma cuenta en las dos, o rendimiento), con opción de "no volver a preguntarme" en Ajustes.',
+		'Ajustes rediseñado: panel más ancho, "General" se dividió en Rendimiento y Sistema para que no quede todo apiñado, y los textos largos de explicación ahora son un ícono "?" con globo flotante al pasar el mouse.',
+		'Arreglado: la lista de instancias en la barra lateral mostraba solo la inicial en vez del ícono real de cada una.',
+		'Arreglado: la barrita de color de la instancia activa se salía un poco de las esquinas redondeadas de la card.'
 	]
 };
