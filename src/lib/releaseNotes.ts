@@ -127,5 +127,9 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.13': [
 		'Arreglado: click derecho en cualquier otra parte del launcher (fuera de una instancia) mostraba el menú del navegador (Atrás, Refrescar, Guardar como, Imprimir) — se veía como página web. Ya no aparece.'
+	],
+	'0.10.14': [
+		'Arreglado: al instalar un mod, algunos aparecían duplicados en la lista (se bajaba también el archivo de código fuente "-sources" junto al mod real). Ya se instala solo el mod. Si ya tenés duplicados de antes, quitalos desde Gestionar.',
+		'Arreglado: si borrabas un mod a mano de la carpeta, después no se podía sacar de la lista del launcher (error "no se encuentra el archivo"). Ahora se saca sin problema.'
 	]
 };
