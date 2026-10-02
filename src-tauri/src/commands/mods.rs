@@ -409,7 +409,28 @@ async fn download_content_file(
         .await
         .map_err(|e| e.to_string())?;
 
-    for file in &version.files {
+    // Modrinth suele adjuntar en la misma versión el `-sources.jar` (código
+    // fuente) o `-javadoc.jar` junto al jar real — instalados en /mods, el
+    // loader los lee como un segundo mod duplicado y la lista muestra cada
+    // mod dos veces. Se bajan solo los archivos que son el mod de verdad.
+    let is_auxiliary = |name: &str| {
+        let n = name.to_ascii_lowercase();
+        n.ends_with("-sources.jar") || n.ends_with("-javadoc.jar") || n.ends_with("-dev.jar")
+    };
+    let wanted: Vec<&ModrinthFile> = version
+        .files
+        .iter()
+        .filter(|f| f.primary || !is_auxiliary(&f.filename))
+        .collect();
+    // Si el filtro dejara la lista vacía (versión con solo archivos auxiliares),
+    // mejor bajar lo que haya que no instalar nada.
+    let wanted = if wanted.is_empty() {
+        version.files.iter().collect()
+    } else {
+        wanted
+    };
+
+    for file in wanted {
         download_single_file(&dest_dir, file).await?;
     }
 
@@ -665,9 +686,14 @@ async fn remove_file_in(instance_name: &str, subdir: &str, filename: &str) -> Re
     }
     let instance = instance_manager::get_instance(instance_name).await?;
     let path = instance.dir().join(subdir).join(filename);
-    tokio::fs::remove_file(&path)
-        .await
-        .map_err(|e| e.to_string())
+    match tokio::fs::remove_file(&path).await {
+        Ok(()) => Ok(()),
+        // Si el archivo ya no está (lo borraron a mano de la carpeta con el
+        // launcher abierto), el resultado que pidió el usuario ya se cumple:
+        // devolver error dejaba la entrada fantasma en la lista para siempre.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 #[command]
