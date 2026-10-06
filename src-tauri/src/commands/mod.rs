@@ -1,4 +1,7 @@
 pub mod auth;
+pub mod crash_diagnosis;
+pub mod favorite_servers;
+pub mod import_launchers;
 pub mod instance;
 pub mod loaders;
 pub mod mods;
@@ -10,3 +13,4 @@ pub mod settings;
 pub mod shortcuts;
 pub mod tfl_selection;
 pub mod versions;
+pub mod world_backups;

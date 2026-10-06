@@ -429,10 +429,12 @@ async fn launch_inner(
     // stop_running()) y recién ahí libera el "lugar" de ESTA instancia — así
     // no se puede relanzar la misma dos veces en paralelo, aunque otras
     // instancias distintas sí puedan estar corriendo al mismo tiempo.
+    let session_start = std::time::Instant::now();
     tokio::spawn(async move {
         let code = handle.wait().await;
         LAUNCHWERK.remove(id);
         RUNNING.lock().unwrap().remove(&instance_name);
+        let _ = instance_manager::add_play_time(&instance_name, session_start.elapsed().as_secs()).await;
         emit(AppEvent::InstanceExited {
             instance: instance_name.clone(),
             code,

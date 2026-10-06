@@ -398,7 +398,7 @@ async fn download_content_file(
     instance_name: &str,
     version: &ModrinthVersion,
     kind: ContentKind,
-) -> Result<(), String> {
+) -> Result<Vec<String>, String> {
     if version.files.is_empty() {
         return Err("No tiene archivos para descargar".into());
     }
@@ -413,14 +413,10 @@ async fn download_content_file(
     // fuente) o `-javadoc.jar` junto al jar real — instalados en /mods, el
     // loader los lee como un segundo mod duplicado y la lista muestra cada
     // mod dos veces. Se bajan solo los archivos que son el mod de verdad.
-    let is_auxiliary = |name: &str| {
-        let n = name.to_ascii_lowercase();
-        n.ends_with("-sources.jar") || n.ends_with("-javadoc.jar") || n.ends_with("-dev.jar")
-    };
     let wanted: Vec<&ModrinthFile> = version
         .files
         .iter()
-        .filter(|f| f.primary || !is_auxiliary(&f.filename))
+        .filter(|f| f.primary || !is_auxiliary_jar(&f.filename))
         .collect();
     // Si el filtro dejara la lista vacía (versión con solo archivos auxiliares),
     // mejor bajar lo que haya que no instalar nada.
@@ -430,14 +426,16 @@ async fn download_content_file(
         wanted
     };
 
+    let mut filenames = Vec::new();
     for file in wanted {
         download_single_file(&dest_dir, file).await?;
+        filenames.push(file.filename.clone());
     }
 
     emit(AppEvent::DownloadFinished {
         task: format!("{}:{}", kind.subdir(), version.name),
     });
-    Ok(())
+    Ok(filenames)
 }
 
 /// Instala un mod/shader y, recursivamente, sus dependencias *requeridas*
@@ -451,6 +449,7 @@ async fn install_recursive(
     explicit_version_id: Option<&str>,
     depth: u8,
     seen: &mut HashSet<String>,
+    installed: &InstalledProjects,
     kind: ContentKind,
 ) -> Result<(), String> {
     if depth > MAX_DEPENDENCY_DEPTH || !seen.insert(project_id.to_string()) {
@@ -471,6 +470,14 @@ async fn install_recursive(
         }
     };
 
+    // Una dependencia que el usuario ya tiene (de cualquier versión) no se
+    // vuelve a bajar: antes se instalaba otra build al lado y el mod quedaba
+    // duplicado — el loader se queja de "duplicate mod" y la lista lo muestra
+    // dos veces. Solo se pisa si la dependencia exige una versión puntual.
+    if depth > 0 && explicit_version_id.is_none() && installed.contains_key(&version.project_id) {
+        return Ok(());
+    }
+
     emit(AppEvent::DownloadProgress {
         task: format!("{}:{}", kind.subdir(), version.name),
         stage: "downloading".into(),
@@ -480,7 +487,18 @@ async fn install_recursive(
         bytes_total: 0,
         current_item: Some(version.name.clone()),
     });
-    download_content_file(instance_name, &version, kind).await?;
+    let new_files = download_content_file(instance_name, &version, kind).await?;
+
+    // Si ya había OTRA build de este mismo proyecto instalada (incluye sus
+    // `-sources.jar` de instalaciones viejas), se saca: instalar otra
+    // versión de un mod es reemplazar, no sumar un segundo jar.
+    if let Some(old_files) = installed.get(&version.project_id) {
+        for old in old_files {
+            if !new_files.contains(old) {
+                let _ = remove_file_in(instance_name, kind.subdir(), old).await;
+            }
+        }
+    }
 
     let mut had_required_dep = false;
     for dep in &version.dependencies {
@@ -504,6 +522,7 @@ async fn install_recursive(
             dep.version_id.as_deref(),
             depth + 1,
             seen,
+            installed,
             kind,
         ))
         .await?;
@@ -532,6 +551,7 @@ async fn install_recursive(
                     None,
                     depth + 1,
                     seen,
+                    installed,
                     kind,
                 ))
                 .await?;
@@ -587,6 +607,7 @@ pub async fn install_mod(
         ));
     }
 
+    let installed = projects_from_info(&already_installed);
     let mut seen = HashSet::new();
     install_recursive(
         &instance_name,
@@ -596,6 +617,7 @@ pub async fn install_mod(
         version_id.as_deref(),
         0,
         &mut seen,
+        &installed,
         ContentKind::Mod,
     )
     .await
@@ -608,6 +630,7 @@ pub async fn install_shader(
     mc_version: String,
     version_id: Option<String>,
 ) -> Result<(), String> {
+    let installed = installed_projects(&instance_name, ContentKind::Shader).await;
     let mut seen = HashSet::new();
     install_recursive(
         &instance_name,
@@ -617,6 +640,7 @@ pub async fn install_shader(
         version_id.as_deref(),
         0,
         &mut seen,
+        &installed,
         ContentKind::Shader,
     )
     .await
@@ -629,6 +653,7 @@ pub async fn install_resourcepack(
     mc_version: String,
     version_id: Option<String>,
 ) -> Result<(), String> {
+    let installed = installed_projects(&instance_name, ContentKind::ResourcePack).await;
     let mut seen = HashSet::new();
     install_recursive(
         &instance_name,
@@ -638,6 +663,7 @@ pub async fn install_resourcepack(
         version_id.as_deref(),
         0,
         &mut seen,
+        &installed,
         ContentKind::ResourcePack,
     )
     .await
@@ -651,6 +677,7 @@ pub async fn install_plugin(
     server_type: String,
     version_id: Option<String>,
 ) -> Result<(), String> {
+    let installed = installed_projects(&instance_name, ContentKind::Plugin).await;
     let mut seen = HashSet::new();
     install_recursive(
         &instance_name,
@@ -660,6 +687,7 @@ pub async fn install_plugin(
         version_id.as_deref(),
         0,
         &mut seen,
+        &installed,
         ContentKind::Plugin,
     )
     .await
@@ -774,20 +802,40 @@ async fn hash_installed_files(dir: &std::path::Path, ext: &str) -> Vec<(String, 
     let Ok(mut entries) = tokio::fs::read_dir(dir).await else {
         return out;
     };
+    let enabled_suffix = format!(".{ext}");
+    let disabled_suffix = format!(".{ext}{DISABLED_SUFFIX}");
     while let Ok(Some(entry)) = entries.next_entry().await {
         let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some(ext) {
+        let Some(filename) = path.file_name().and_then(|f| f.to_str()) else {
+            continue;
+        };
+        // También los desactivados ("x.jar.disabled") — siguen siendo parte
+        // de lo instalado, el usuario tiene que poder verlos y reactivarlos.
+        if !filename.ends_with(&enabled_suffix) && !filename.ends_with(&disabled_suffix) {
             continue;
         }
         let Ok(bytes) = tokio::fs::read(&path).await else {
             continue;
         };
-        let Some(filename) = path.file_name().and_then(|f| f.to_str()) else {
-            continue;
-        };
         out.push((filename.to_string(), sha1_hex(&bytes)));
     }
     out
+}
+
+/// Sufijo con el que se "apaga" un mod/plugin sin borrarlo: ni los loaders
+/// de cliente ni Paper/Purpur cargan un archivo que no termine en `.jar`.
+const DISABLED_SUFFIX: &str = ".disabled";
+
+fn is_disabled_file(filename: &str) -> bool {
+    filename.ends_with(DISABLED_SUFFIX)
+}
+
+/// `-sources.jar`, `-javadoc.jar` y `-dev.jar` — archivos que Modrinth
+/// adjunta junto al jar real y que nunca deben instalarse como mod.
+fn is_auxiliary_jar(filename: &str) -> bool {
+    let n = filename.to_ascii_lowercase();
+    let n = n.strip_suffix(DISABLED_SUFFIX).unwrap_or(&n);
+    n.ends_with("-sources.jar") || n.ends_with("-javadoc.jar") || n.ends_with("-dev.jar")
 }
 
 fn instance_loader_str(instance: &instance_manager::InstanceData) -> String {
@@ -805,6 +853,9 @@ pub struct InstalledModInfo {
     pub version_id: Option<String>,
     pub icon_url: Option<String>,
     pub categories: Vec<String>,
+    /// El archivo termina en `.disabled`: instalado pero apagado, el juego no
+    /// lo carga.
+    pub disabled: bool,
 }
 
 /// Resuelve cada archivo instalado (mod/shader/resourcepack) contra
@@ -845,15 +896,21 @@ async fn fetch_project_info(
     projects.into_iter().map(|p| (p.id.clone(), p)).collect()
 }
 
-async fn get_installed_content_info(
-    instance_name: &str,
+/// project_id → archivos instalados de ese proyecto (sin contar los
+/// desactivados). Es lo que permite reemplazar en vez de duplicar al instalar.
+type InstalledProjects = std::collections::HashMap<String, Vec<String>>;
+
+/// Cada archivo de `subdir/` junto con la versión de Modrinth a la que
+/// resuelve por hash (`None` si no resuelve: build propia, de otro sitio, o
+/// sin red). Una sola llamada en bulk, sin importar cuántos archivos haya.
+async fn resolve_installed_files(
+    instance: &instance_manager::InstanceData,
     subdir: &str,
     ext: &str,
-) -> Result<Vec<InstalledModInfo>, String> {
-    let instance = instance_manager::get_instance(instance_name).await?;
+) -> Vec<(String, Option<ModrinthVersion>)> {
     let hashed = hash_installed_files(&instance.dir().join(subdir), ext).await;
     if hashed.is_empty() {
-        return Ok(Vec::new());
+        return Vec::new();
     }
     let hashes: Vec<String> = hashed.iter().map(|(_, h)| h.clone()).collect();
     let body = HashLookupBody {
@@ -864,44 +921,104 @@ async fn get_installed_content_info(
         post_json_retrying(&format!("{MODRINTH_API}/version_files"), &body)
             .await
             .unwrap_or_default();
+    hashed
+        .into_iter()
+        .map(|(filename, hash)| {
+            let version = resolved.get(&hash).cloned();
+            (filename, version)
+        })
+        .collect()
+}
 
-    let project_ids: Vec<String> = resolved
-        .values()
-        .map(|v| v.project_id.clone())
+fn content_ext(kind: ContentKind) -> &'static str {
+    match kind {
+        ContentKind::Mod | ContentKind::Plugin => "jar",
+        ContentKind::Shader | ContentKind::ResourcePack => "zip",
+    }
+}
+
+fn projects_from_info(infos: &[InstalledModInfo]) -> InstalledProjects {
+    let mut out = InstalledProjects::new();
+    for info in infos {
+        if info.disabled {
+            continue;
+        }
+        if let Some(pid) = &info.project_id {
+            out.entry(pid.clone()).or_default().push(info.filename.clone());
+        }
+    }
+    out
+}
+
+async fn installed_projects(instance_name: &str, kind: ContentKind) -> InstalledProjects {
+    let Ok(instance) = instance_manager::get_instance(instance_name).await else {
+        return InstalledProjects::new();
+    };
+    let mut out = InstalledProjects::new();
+    for (filename, version) in resolve_installed_files(&instance, kind.subdir(), content_ext(kind)).await {
+        if is_disabled_file(&filename) {
+            continue;
+        }
+        if let Some(v) = version {
+            out.entry(v.project_id).or_default().push(filename);
+        }
+    }
+    out
+}
+
+async fn get_installed_content_info(
+    instance_name: &str,
+    subdir: &str,
+    ext: &str,
+) -> Result<Vec<InstalledModInfo>, String> {
+    let instance = instance_manager::get_instance(instance_name).await?;
+    let files = resolve_installed_files(&instance, subdir, ext).await;
+    if files.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let project_ids: Vec<String> = files
+        .iter()
+        .filter_map(|(_, v)| v.as_ref().map(|v| v.project_id.clone()))
         .collect::<std::collections::HashSet<_>>()
         .into_iter()
         .collect();
     let project_info = fetch_project_info(&project_ids).await;
 
-    Ok(hashed
+    Ok(files
         .into_iter()
-        .map(|(filename, hash)| match resolved.get(&hash) {
-            Some(v) => {
-                let info = project_info.get(&v.project_id);
-                InstalledModInfo {
-                    filename,
-                    project_id: Some(v.project_id.clone()),
-                    // Preferí el título del proyecto (el nombre real del
-                    // mod) sobre el `name` de la versión puntual — si el
-                    // bulk lookup falla (red, Modrinth caído) se cae al
-                    // de la versión como antes, mejor eso que nada.
-                    title: Some(
-                        info.map(|i| i.title.clone())
-                            .unwrap_or_else(|| v.name.clone()),
-                    ),
-                    version_id: Some(v.id.clone()),
-                    icon_url: info.and_then(|i| i.icon_url.clone()),
-                    categories: info.map(|i| i.categories.clone()).unwrap_or_default(),
+        .map(|(filename, version)| {
+            let disabled = is_disabled_file(&filename);
+            match version {
+                Some(v) => {
+                    let info = project_info.get(&v.project_id);
+                    InstalledModInfo {
+                        filename,
+                        project_id: Some(v.project_id.clone()),
+                        // Preferí el título del proyecto (el nombre real del
+                        // mod) sobre el `name` de la versión puntual — si el
+                        // bulk lookup falla (red, Modrinth caído) se cae al
+                        // de la versión como antes, mejor eso que nada.
+                        title: Some(
+                            info.map(|i| i.title.clone())
+                                .unwrap_or_else(|| v.name.clone()),
+                        ),
+                        version_id: Some(v.id.clone()),
+                        icon_url: info.and_then(|i| i.icon_url.clone()),
+                        categories: info.map(|i| i.categories.clone()).unwrap_or_default(),
+                        disabled,
+                    }
                 }
+                None => InstalledModInfo {
+                    filename,
+                    project_id: None,
+                    title: None,
+                    version_id: None,
+                    categories: Vec::new(),
+                    icon_url: None,
+                    disabled,
+                },
             }
-            None => InstalledModInfo {
-                filename,
-                project_id: None,
-                title: None,
-                version_id: None,
-                categories: Vec::new(),
-                icon_url: None,
-            },
         })
         .collect())
 }
@@ -964,6 +1081,11 @@ pub async fn check_mod_updates(instance_name: String) -> Result<Vec<ModUpdateAva
 
     let mut out = Vec::new();
     for (filename, hash) in hashed {
+        // Un mod apagado a propósito no se actualiza: al bajar la build
+        // nueva quedaría activo otra vez sin que el usuario lo pida.
+        if is_disabled_file(&filename) {
+            continue;
+        }
         let Some(newest) = latest.get(&hash) else {
             continue;
         };
@@ -984,6 +1106,59 @@ pub async fn check_mod_updates(instance_name: String) -> Result<Vec<ModUpdateAva
     Ok(out)
 }
 
+// ── Rollback de la última actualización de mods ─────────────────────────────
+//
+// `update_all_mods` ya no borra los jars viejos: los mueve a `.tfl_rollback/`
+// junto con un manifest de qué reemplazó a qué. Si después de actualizar el
+// juego no arranca (o el usuario simplemente no quiere la versión nueva), un
+// click lo deja como estaba. Se guarda solo la última tanda: una
+// actualización nueva reemplaza el rollback anterior.
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct RollbackEntry {
+    /// Jar viejo que se movió a la carpeta de rollback.
+    old: String,
+    /// Archivos nuevos que lo reemplazaron en `mods/`.
+    new: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct RollbackManifest {
+    created_at: i64,
+    entries: Vec<RollbackEntry>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ModRollbackInfo {
+    pub created_at: i64,
+    pub count: u32,
+}
+
+fn rollback_dir(instance: &instance_manager::InstanceData) -> std::path::PathBuf {
+    instance.dir().join(".tfl_rollback")
+}
+
+fn unix_now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+async fn read_rollback_manifest(dir: &std::path::Path) -> Option<RollbackManifest> {
+    let raw = tokio::fs::read(dir.join("manifest.json")).await.ok()?;
+    serde_json::from_slice(&raw).ok()
+}
+
+/// rename y, si cruza de disco o falla, copia + borra.
+async fn move_file(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
+    if tokio::fs::rename(from, to).await.is_ok() {
+        return Ok(());
+    }
+    tokio::fs::copy(from, to).await?;
+    tokio::fs::remove_file(from).await
+}
+
 /// Actualiza todos los mods con versión nueva disponible de una — sigue de
 /// largo si un mod puntual falla (red, archivo corrupto, etc), no aborta
 /// el resto del lote. Devuelve cuántos se actualizaron de verdad.
@@ -993,30 +1168,103 @@ pub async fn update_all_mods(instance_name: String) -> Result<u32, String> {
     if updates.is_empty() {
         return Ok(0);
     }
+    let instance = instance_manager::get_instance(&instance_name).await?;
     // Backup del mundo antes de tocar mods — un mod nuevo puede romper un
     // mundo existente (cambios de formato de chunk, IDs de bloque
     // distintos, etc). Best-effort: si falla (sin carpeta saves/, error de
     // disco) no bloquea la actualización, solo no queda backup.
-    if let Ok(instance) = instance_manager::get_instance(&instance_name).await {
-        let _ = backup_world_dir(&instance.dir()).await;
-    }
+    let _ = backup_world_dir(&instance.dir()).await;
+
+    let rb_dir = rollback_dir(&instance);
+    let _ = tokio::fs::remove_dir_all(&rb_dir).await;
+    let rollback_ready = tokio::fs::create_dir_all(&rb_dir).await.is_ok();
+
+    let mods_dir = instance.dir().join("mods");
+    let mut entries = Vec::new();
     let mut count = 0u32;
     for update in updates {
         let Ok(version) = version_by_id(&update.new_version_id).await else {
             continue;
         };
-        if download_content_file(&instance_name, &version, ContentKind::Mod)
-            .await
-            .is_err()
-        {
+        let Ok(new_files) = download_content_file(&instance_name, &version, ContentKind::Mod).await
+        else {
             continue;
-        }
-        if let Ok(instance) = instance_manager::get_instance(&instance_name).await {
-            let _ = tokio::fs::remove_file(instance.dir().join("mods").join(&update.filename)).await;
+        };
+        let old_path = mods_dir.join(&update.filename);
+        if !new_files.contains(&update.filename) {
+            if rollback_ready && move_file(&old_path, &rb_dir.join(&update.filename)).await.is_ok() {
+                entries.push(RollbackEntry {
+                    old: update.filename.clone(),
+                    new: new_files,
+                });
+            } else {
+                let _ = tokio::fs::remove_file(&old_path).await;
+            }
         }
         count += 1;
     }
+
+    if rollback_ready {
+        if entries.is_empty() {
+            let _ = tokio::fs::remove_dir_all(&rb_dir).await;
+        } else {
+            let manifest = RollbackManifest {
+                created_at: unix_now(),
+                entries,
+            };
+            if let Ok(json) = serde_json::to_vec_pretty(&manifest) {
+                let _ = tokio::fs::write(rb_dir.join("manifest.json"), json).await;
+            }
+        }
+    }
     Ok(count)
+}
+
+/// `None` si no hay una actualización que se pueda deshacer.
+#[command]
+pub async fn get_mod_rollback_info(instance_name: String) -> Result<Option<ModRollbackInfo>, String> {
+    let instance = instance_manager::get_instance(&instance_name).await?;
+    Ok(read_rollback_manifest(&rollback_dir(&instance))
+        .await
+        .map(|m| ModRollbackInfo {
+            created_at: m.created_at,
+            count: m.entries.len() as u32,
+        }))
+}
+
+/// Deshace la última actualización: saca los archivos nuevos y devuelve los
+/// jars viejos a `mods/`. Devuelve cuántos mods volvieron a su versión anterior.
+#[command]
+pub async fn rollback_mod_update(instance_name: String) -> Result<u32, String> {
+    let instance = instance_manager::get_instance(&instance_name).await?;
+    let rb_dir = rollback_dir(&instance);
+    let Some(manifest) = read_rollback_manifest(&rb_dir).await else {
+        return Err("No hay ninguna actualización para deshacer".into());
+    };
+    let mods_dir = instance.dir().join("mods");
+    let mut restored = 0u32;
+    for entry in manifest.entries {
+        for new in &entry.new {
+            if new != &entry.old {
+                let _ = tokio::fs::remove_file(mods_dir.join(new)).await;
+            }
+        }
+        if move_file(&rb_dir.join(&entry.old), &mods_dir.join(&entry.old))
+            .await
+            .is_ok()
+        {
+            restored += 1;
+        }
+    }
+    let _ = tokio::fs::remove_dir_all(&rb_dir).await;
+    Ok(restored)
+}
+
+#[command]
+pub async fn discard_mod_rollback(instance_name: String) -> Result<(), String> {
+    let instance = instance_manager::get_instance(&instance_name).await?;
+    let _ = tokio::fs::remove_dir_all(rollback_dir(&instance)).await;
+    Ok(())
 }
 
 #[command]
@@ -1035,11 +1283,108 @@ pub async fn find_duplicate_mods(instance_name: String) -> Result<Vec<Vec<String
     let infos = get_installed_mods_info(instance_name).await?;
     let mut by_project: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
     for info in infos {
+        if info.disabled {
+            continue;
+        }
         if let Some(pid) = info.project_id {
             by_project.entry(pid).or_default().push(info.filename);
         }
     }
     Ok(by_project.into_values().filter(|v| v.len() > 1).collect())
+}
+
+/// Deja una sola copia por mod: de cada grupo de duplicados se queda con la
+/// build más nueva (y, a igual versión, con el jar real en vez del
+/// `-sources.jar`) y borra el resto. Devuelve cuántos archivos sacó.
+#[command]
+pub async fn remove_duplicate_mods(instance_name: String) -> Result<u32, String> {
+    let instance = instance_manager::get_instance(&instance_name).await?;
+    let files = resolve_installed_files(&instance, "mods", "jar").await;
+
+    let mut by_project: std::collections::HashMap<String, Vec<(String, ModrinthVersion)>> =
+        std::collections::HashMap::new();
+    for (filename, version) in files {
+        if is_disabled_file(&filename) {
+            continue;
+        }
+        if let Some(v) = version {
+            by_project.entry(v.project_id.clone()).or_default().push((filename, v));
+        }
+    }
+
+    let mut removed = 0u32;
+    for (_, mut group) in by_project {
+        if group.len() < 2 {
+            continue;
+        }
+        // El mejor queda último: build más nueva, jar real antes que auxiliar.
+        group.sort_by(|(fa, va), (fb, vb)| {
+            (!is_auxiliary_jar(fa), &va.date_published, fa)
+                .cmp(&(!is_auxiliary_jar(fb), &vb.date_published, fb))
+        });
+        group.pop();
+        for (filename, _) in group {
+            if remove_file_in(&instance_name, "mods", &filename).await.is_ok() {
+                removed += 1;
+            }
+        }
+    }
+    Ok(removed)
+}
+
+// ── Desactivar / reactivar sin borrar ───────────────────────────────────────
+
+async fn set_content_enabled(
+    instance_name: &str,
+    subdir: &str,
+    filename: &str,
+    enabled: bool,
+) -> Result<String, String> {
+    if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+        return Err("Nombre de archivo inválido".into());
+    }
+    let instance = instance_manager::get_instance(instance_name).await?;
+    let dir = instance.dir().join(subdir);
+    let new_name = if enabled {
+        filename
+            .strip_suffix(DISABLED_SUFFIX)
+            .unwrap_or(filename)
+            .to_string()
+    } else if is_disabled_file(filename) {
+        filename.to_string()
+    } else {
+        format!("{filename}{DISABLED_SUFFIX}")
+    };
+    if new_name == filename {
+        return Ok(new_name);
+    }
+    if dir.join(&new_name).exists() {
+        return Err(format!("Ya existe un archivo llamado \"{new_name}\""));
+    }
+    tokio::fs::rename(dir.join(filename), dir.join(&new_name))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(new_name)
+}
+
+/// Apaga o prende un mod renombrando su `.jar` ↔ `.jar.disabled`. Devuelve
+/// el nombre de archivo resultante.
+#[command]
+pub async fn set_mod_enabled(
+    instance_name: String,
+    filename: String,
+    enabled: bool,
+) -> Result<String, String> {
+    set_content_enabled(&instance_name, "mods", &filename, enabled).await
+}
+
+#[command]
+pub async fn set_plugin_enabled(
+    instance_name: String,
+    filename: String,
+    enabled: bool,
+) -> Result<String, String> {
+    set_content_enabled(&instance_name, "plugins", &filename, enabled).await
 }
 
 // ── Exportar instancia a .mrpack ────────────────────────────────────────────
@@ -1283,11 +1628,40 @@ fn zip_dir(source: &std::path::Path, dest: &std::path::Path) -> std::io::Result<
     Ok(())
 }
 
+/// Cuántas copias de mundos se guardan por instancia — cada una es un zip
+/// completo de saves/, sin tope se comerían el disco en silencio.
+const MAX_WORLD_BACKUPS: usize = 10;
+
+async fn prune_world_backups(dir: &std::path::Path) {
+    let Ok(mut entries) = tokio::fs::read_dir(dir).await else {
+        return;
+    };
+    let mut names = Vec::new();
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        if let Some(name) = entry.file_name().to_str() {
+            if name.starts_with("saves-") && name.ends_with(".zip") {
+                names.push(name.to_string());
+            }
+        }
+    }
+    // El timestamp está en el nombre: ordenar por nombre numérico = por fecha.
+    names.sort_by_key(|n| {
+        n.trim_start_matches("saves-")
+            .trim_end_matches(".zip")
+            .parse::<u64>()
+            .unwrap_or(0)
+    });
+    while names.len() > MAX_WORLD_BACKUPS {
+        let oldest = names.remove(0);
+        let _ = tokio::fs::remove_file(dir.join(oldest)).await;
+    }
+}
+
 /// Backup de saves/ antes de tocar mods — un mod nuevo puede romper un
 /// mundo existente (formato de chunk, IDs de bloque distintos entre
 /// versiones de un mod, etc). `None` si la instancia no tiene mundos
 /// todavía (nada que respaldar, no es un error).
-async fn backup_world_dir(instance_dir: &std::path::Path) -> Result<Option<String>, String> {
+pub(crate) async fn backup_world_dir(instance_dir: &std::path::Path) -> Result<Option<String>, String> {
     let saves_dir = instance_dir.join("saves");
     if !saves_dir.is_dir() {
         return Ok(None);
@@ -1302,6 +1676,7 @@ async fn backup_world_dir(instance_dir: &std::path::Path) -> Result<Option<Strin
         .await
         .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())?;
+    prune_world_backups(&instance_dir.join(".tfl_backups")).await;
     Ok(Some(backup_path.to_string_lossy().to_string()))
 }
 

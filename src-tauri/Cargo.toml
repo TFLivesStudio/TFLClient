@@ -19,7 +19,7 @@ serde_json = "1"
 aqua = { path = "../crates/aqua" }
 launchwerk = { path = "../crates/launchwerk", features = ["auth"] }
 directories = "6.0.0"
-tokio = { version = "1", features = ["sync", "rt-multi-thread", "macros"] }
+tokio = { version = "1", features = ["sync", "rt-multi-thread", "macros", "net", "time", "io-util", "fs"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 reqwest = { version = "0.13", features = ["json", "multipart"] }

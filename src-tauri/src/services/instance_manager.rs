@@ -66,6 +66,10 @@ pub struct InstanceData {
     pub launch_version_id: String,
     #[serde(default)]
     pub last_played: i64,
+    /// Segundos acumulados con el juego abierto (suma de todas las sesiones
+    /// terminadas). Instancias anteriores a este campo arrancan en 0.
+    #[serde(default)]
+    pub play_time_secs: u64,
     #[serde(default)]
     pub min_memory: Option<u32>,
     #[serde(default)]
@@ -165,6 +169,7 @@ pub async fn create_instance_full(
         loader_version,
         launch_version_id,
         last_played: 0,
+        play_time_secs: 0,
         min_memory: None,
         max_memory: None,
         server_type,
@@ -282,6 +287,7 @@ pub async fn duplicate_instance(source_name: &str) -> Result<InstanceData, Strin
     data.uuid = Uuid::new_v4().to_string();
     data.name = new_name;
     data.last_played = 0;
+    data.play_time_secs = 0;
     data.save().await.map_err(|e| e.to_string())?;
     Ok(data)
 }
@@ -310,6 +316,18 @@ pub async fn update_instance_memory(
 pub async fn mark_last_played(name: &str) -> Result<(), String> {
     let mut data = get_instance(name).await?;
     data.last_played = now_secs();
+    data.save().await.map_err(|e| e.to_string())
+}
+
+/// Suma el tiempo de una sesión terminada. Recarga la instancia del disco
+/// (no usa una copia vieja) para no pisar otros cambios hechos mientras se
+/// jugaba, como renombrar la RAM.
+pub async fn add_play_time(name: &str, secs: u64) -> Result<(), String> {
+    if secs == 0 {
+        return Ok(());
+    }
+    let mut data = get_instance(name).await?;
+    data.play_time_secs = data.play_time_secs.saturating_add(secs);
     data.save().await.map_err(|e| e.to_string())
 }
 
