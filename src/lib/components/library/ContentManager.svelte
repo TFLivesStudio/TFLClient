@@ -5,7 +5,8 @@
 		ModSearchHit,
 		InstalledModInfo,
 		ModUpdateAvailable,
-		ModVersionSummary
+		ModVersionSummary,
+		ModRollbackInfo
 	} from '$lib/types/types';
 	import { appState } from '$lib/state/state.svelte';
 	import {
@@ -16,6 +17,11 @@
 		updateAllMods,
 		getModVersionChangelog,
 		findDuplicateMods,
+		removeDuplicateMods,
+		setModEnabled,
+		setPluginEnabled,
+		getModRollbackInfo,
+		rollbackModUpdate,
 		removeMod,
 		getModVersions,
 		searchShaders,
@@ -52,7 +58,10 @@
 		FileText,
 		Upload,
 		Check,
-		ChevronDown
+		ChevronDown,
+		Power,
+		Undo2,
+		Eraser
 	} from 'lucide-svelte';
 
 	type Kind = 'mod' | 'shader' | 'resourcepack' | 'plugin';
@@ -204,6 +213,13 @@
 	let addingLocal = $state(false);
 	let removingSelected = $state(false);
 	let manageError = $state<string | null>(null);
+	let rollbackInfo = $state<ModRollbackInfo | null>(null);
+	let rollingBack = $state(false);
+	let cleaningDuplicates = $state(false);
+	let togglingFile = $state<string | null>(null);
+	// Desactivar sin borrar solo existe para lo que se carga desde un .jar
+	// suelto: mods de cliente y plugins de servidor.
+	const supportsToggle = $derived(kind === 'mod' || kind === 'plugin');
 	let changelogFor = $state<string | null>(null);
 	let changelogText = $state<string | null>(null);
 	let loadingChangelog = $state(false);
@@ -305,6 +321,50 @@
 			manageError = String(e);
 		} finally {
 			updatingAll = false;
+		}
+	}
+
+	async function handleCleanDuplicates() {
+		cleaningDuplicates = true;
+		manageError = null;
+		updateMsg = null;
+		try {
+			const removed = await removeDuplicateMods(instance.name);
+			updateMsg = t('contentManager.duplicatesCleaned', { count: removed });
+			await refreshInstalled();
+		} catch (e) {
+			manageError = String(e);
+		} finally {
+			cleaningDuplicates = false;
+		}
+	}
+
+	async function handleToggleEnabled(item: InstalledModInfo) {
+		togglingFile = item.filename;
+		manageError = null;
+		try {
+			if (kind === 'plugin') await setPluginEnabled(instance.name, item.filename, item.disabled);
+			else await setModEnabled(instance.name, item.filename, item.disabled);
+			await refreshInstalled();
+		} catch (e) {
+			manageError = String(e);
+		} finally {
+			togglingFile = null;
+		}
+	}
+
+	async function handleRollback() {
+		rollingBack = true;
+		manageError = null;
+		updateMsg = null;
+		try {
+			const restored = await rollbackModUpdate(instance.name);
+			updateMsg = t('contentManager.rolledBack', { count: restored });
+			await refreshInstalled();
+		} catch (e) {
+			manageError = String(e);
+		} finally {
+			rollingBack = false;
 		}
 	}
 
@@ -565,7 +625,24 @@
 						list: duplicateGroups.map((g) => g.join(' + ')).join(' · ')
 					})}
 				</span>
+				<button type="button" class="dup-action" disabled={cleaningDuplicates} onclick={handleCleanDuplicates}>
+					{#if cleaningDuplicates}<Loader2 size={12} class="spin" />{:else}<Eraser size={12} />{/if}
+					{t('contentManager.cleanDuplicates')}
+				</button>
 			</div>
+		{/if}
+
+		{#if kind === 'mod' && rollbackInfo}
+			<button
+				type="button"
+				class="update-all-btn rollback-btn"
+				disabled={rollingBack}
+				title={t('contentManager.rollbackHint')}
+				onclick={handleRollback}
+			>
+				{#if rollingBack}<Loader2 size={12} class="spin" />{:else}<Undo2 size={12} />{/if}
+				{t('contentManager.rollbackButton', { count: rollbackInfo.count })}
+			</button>
 		{/if}
 
 		{#if updates.length > 0}
@@ -583,7 +660,7 @@
 			<div class="installed">
 				{#each installedFiltered as item (item.filename)}
 					{@const update = updates.find((u) => u.filename === item.filename)}
-					<div class="installed-row">
+					<div class="installed-row" class:disabled={item.disabled}>
 						<button
 							type="button"
 							class="checkbox"
@@ -599,9 +676,23 @@
 							<div class="installed-icon installed-icon-fallback"></div>
 						{/if}
 						<span class="filename">{item.title ?? item.filename}</span>
+						{#if item.disabled}<span class="disabled-tag">{t('contentManager.disabledTag')}</span>{/if}
 						{#if update}
 							<button type="button" class="changelog-toggle" onclick={() => toggleChangelog(update)}>
 								<FileText size={11} /> {t('contentManager.changelogButton')}
+							</button>
+						{/if}
+						{#if supportsToggle}
+							<button
+								type="button"
+								class="icon-btn toggle-btn"
+								class:off={item.disabled}
+								disabled={togglingFile === item.filename}
+								onclick={() => handleToggleEnabled(item)}
+								title={item.disabled ? t('contentManager.enable') : t('contentManager.disable')}
+								aria-label={item.disabled ? t('contentManager.enable') : t('contentManager.disable')}
+							>
+								<Power size={13} />
 							</button>
 						{/if}
 						<button type="button" class="icon-btn" onclick={() => handleRemoveOne(item.filename)} aria-label={t('contentManager.remove')}>
@@ -841,6 +932,34 @@
 		margin-top: 1px;
 	}
 
+	.duplicate-warning span {
+		flex: 1;
+	}
+
+	.dup-action {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		flex-shrink: 0;
+		padding: 4px 9px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid color-mix(in srgb, var(--color-error) 50%, var(--border));
+		background: transparent;
+		color: var(--color-error);
+		font-size: 0.72rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.dup-action:hover:not(:disabled) {
+		background: color-mix(in srgb, var(--color-error) 15%, transparent);
+	}
+
+	.dup-action:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+
 	.update-all-btn {
 		display: flex;
 		align-items: center;
@@ -990,6 +1109,34 @@
 
 	.icon-btn:hover {
 		color: var(--color-error);
+	}
+
+	.icon-btn.toggle-btn {
+		color: var(--accent);
+	}
+
+	.icon-btn.toggle-btn:hover {
+		color: var(--text-primary);
+	}
+
+	.icon-btn.toggle-btn.off {
+		color: var(--text-muted);
+	}
+
+	.installed-row.disabled .filename,
+	.installed-row.disabled .installed-icon {
+		opacity: 0.45;
+	}
+
+	.disabled-tag {
+		flex-shrink: 0;
+		padding: 1px 6px;
+		border-radius: 999px;
+		border: 1px solid var(--border);
+		color: var(--text-muted);
+		font-size: 0.64rem;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
 	}
 
 	.category-dropdown {

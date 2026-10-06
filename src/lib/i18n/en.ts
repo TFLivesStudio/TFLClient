@@ -237,6 +237,19 @@ export const en: Dictionary = {
 		create: 'Create server',
 		creating: 'Downloading the server…'
 	},
+	worldBackups: {
+		title: 'World backups',
+		hint: 'They are created automatically before updating mods. You can make one by hand any time and restore it if something goes wrong (the last 10 are kept).',
+		create: 'Back up now',
+		created: 'Backup created.',
+		noWorlds: 'This instance has no worlds to back up yet.',
+		empty: 'No backups yet.',
+		restore: 'Restore',
+		delete: 'Delete backup',
+		restored: 'Worlds restored. A backup of the previous state was saved first.',
+		restoreTitle: 'Restore this backup?',
+		restoreMessage: 'Your current worlds will be replaced with the ones from the {{date}} backup. A backup of how they are now is saved first, in case you change your mind.'
+	},
 	contentManager: {
 		manageTab: 'Manage',
 		downloadTab: 'Download',
@@ -267,9 +280,20 @@ export const en: Dictionary = {
 		favorite: 'Favorite',
 		viewVersions: 'View versions',
 		alreadyInstalled: 'Already installed',
-		noCompatibleVersions: 'No versions compatible with this instance.'
+		noCompatibleVersions: 'No versions compatible with this instance.',
+		cleanDuplicates: 'Remove duplicates',
+		duplicatesCleaned: 'Removed {{count}} duplicate files.',
+		enable: 'Enable',
+		disable: 'Disable',
+		disabledTag: 'disabled',
+		rollbackButton: 'Undo last update ({{count}})',
+		rollbackHint: 'Puts mods back to the version they had before "Update all".',
+		rolledBack: '{{count}} mods went back to their previous version.'
 	},
 	instanceDetail: {
+		playTimeHours: '{{h}} h {{m}} min played',
+		playTimeMinutes: '{{m}} min played',
+		playTimeTitle: 'Total time this instance has been open',
 		changeIcon: 'Change instance icon',
 		rename: 'Rename',
 		duplicate: 'Duplicate',
@@ -326,6 +350,13 @@ export const en: Dictionary = {
 		autoModeNotice: 'Disabled in Automatic mode — enable "Manual" in Settings to use it.'
 	},
 	instanceLogWindow: {
+		suspectsTitle: 'Possible culprit mods',
+		suspectsHint: 'Based on the crash report. Disabling them does not delete them — you can re-enable them from Mods.',
+		disableMod: 'Disable',
+		suspectDisabled: 'Disabled',
+		rollbackHint: 'If the game started failing right after updating mods:',
+		rollbackMods: 'Go back to previous versions',
+		rolledBackDone: 'Done: mods went back to the version they had before updating.',
 		stopFailed: 'Could not stop: {{error}}',
 		running: 'Running…',
 		exited: 'Process finished{{codeSuffix}}',

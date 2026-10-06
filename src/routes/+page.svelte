@@ -28,6 +28,7 @@
 	import { initServerSessionListener } from '$lib/state/serverSessions.svelte';
 	import { initNetworkListener } from '$lib/state/network.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
+	import { listen } from '@tauri-apps/api/event';
 	import {
 		getCurrentUser,
 		getInstances,
@@ -145,6 +146,18 @@
 
 		initDownloadListener();
 		initGameSessionListener();
+		// Al cerrarse el juego se guardó el tiempo jugado y la última vez que
+		// se abrió — se vuelve a leer la lista para que Detalles lo muestre ya,
+		// sin esperar a reabrir el launcher.
+		listen<{ type: string; data: { status?: string } }>('app-event', async (event) => {
+			if (event.payload.type !== 'InstanceStatusChanged' || event.payload.data.status !== 'stopped') return;
+			await refreshInstances();
+			const current = appState.selectedInstance;
+			if (current) {
+				const fresh = appState.instances.find((i) => i.uuid === current.uuid);
+				if (fresh) appState.selectedInstance = fresh;
+			}
+		});
 		initServerSessionListener();
 		initNetworkListener();
 		try {

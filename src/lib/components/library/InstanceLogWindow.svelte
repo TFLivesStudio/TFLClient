@@ -4,6 +4,8 @@
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { invoke } from '@tauri-apps/api/core';
 	import { t, type TranslationKey } from '$lib/i18n/index.svelte';
+	import { diagnoseCrash, setModEnabled, rollbackModUpdate } from '$lib/api/tflApi';
+	import type { CrashSuspect } from '$lib/types/types';
 	import { Square, X, Loader2 } from 'lucide-svelte';
 
 	const instanceName =
@@ -123,6 +125,52 @@
 		}
 	}
 
+	// Qué mod pudo causar el cierre (lee el crash report / latest.log) y, si
+	// hay una actualización de mods reciente, la opción de deshacerla. Es de
+	// mejor esfuerzo: si no encuentra nada, simplemente no muestra el bloque.
+	let suspects = $state<CrashSuspect[]>([]);
+	let rollbackAvailable = $state(false);
+	let disabledSuspects = $state<Set<string>>(new Set());
+	let rolledBack = $state(false);
+	let actionBusy = $state<string | null>(null);
+	let actionError = $state<string | null>(null);
+
+	async function runDiagnosis() {
+		try {
+			const d = await diagnoseCrash(instanceName);
+			suspects = d.suspects;
+			rollbackAvailable = d.rollback_available;
+		} catch {
+			// sin diagnóstico, el resto del aviso sigue funcionando igual
+		}
+	}
+
+	async function disableSuspect(s: CrashSuspect) {
+		actionBusy = s.filename;
+		actionError = null;
+		try {
+			await setModEnabled(instanceName, s.filename, false);
+			disabledSuspects = new Set([...disabledSuspects, s.filename]);
+		} catch (e) {
+			actionError = String(e);
+		} finally {
+			actionBusy = null;
+		}
+	}
+
+	async function doRollback() {
+		actionBusy = '__rollback__';
+		actionError = null;
+		try {
+			await rollbackModUpdate(instanceName);
+			rolledBack = true;
+		} catch (e) {
+			actionError = String(e);
+		} finally {
+			actionBusy = null;
+		}
+	}
+
 	// Si terminó mal (código distinto de 0, o sin código porque el sistema
 	// operativo mató el proceso) y ningún patrón conocido de stderr avisó
 	// nada — el caso típico es el SO cortando el proceso por falta de RAM
@@ -131,7 +179,9 @@
 	// al mensaje genérico, se intenta el resumen real del hs_err_pid*.log
 	// que la JVM deja al crashear nativo — mucho más útil que adivinar.
 	async function handleExit(code: number | null) {
-		if (code === 0 || friendlyError) return;
+		if (code === 0) return;
+		void runDiagnosis();
+		if (friendlyError) return;
 		try {
 			const crashSummary = await invoke<string | null>('get_crash_report', {
 				name: instanceName
@@ -211,6 +261,46 @@
 			<span>{friendlyError}</span>
 			<button type="button" onclick={() => (friendlyError = null)} aria-label={t('instanceLogWindow.closeNotice')}>✕</button>
 		</div>
+	{/if}
+
+	{#if suspects.length > 0 || (rollbackAvailable && !rolledBack)}
+		<div class="suspects">
+			{#if suspects.length > 0}
+				<div class="suspects-head">
+					<strong>{t('instanceLogWindow.suspectsTitle')}</strong>
+					<span>{t('instanceLogWindow.suspectsHint')}</span>
+				</div>
+				{#each suspects as s (s.filename)}
+					<div class="suspect-row">
+						<span class="suspect-name">
+							{s.mod_name ?? s.mod_id}
+							<small>{s.filename}</small>
+						</span>
+						<button
+							type="button"
+							disabled={disabledSuspects.has(s.filename) || actionBusy === s.filename}
+							onclick={() => disableSuspect(s)}
+						>
+							{disabledSuspects.has(s.filename)
+								? t('instanceLogWindow.suspectDisabled')
+								: t('instanceLogWindow.disableMod')}
+						</button>
+					</div>
+				{/each}
+			{/if}
+			{#if rollbackAvailable && !rolledBack}
+				<div class="suspect-row">
+					<span class="suspect-name">{t('instanceLogWindow.rollbackHint')}</span>
+					<button type="button" disabled={actionBusy === '__rollback__'} onclick={doRollback}>
+						{t('instanceLogWindow.rollbackMods')}
+					</button>
+				</div>
+			{/if}
+			{#if actionError}<p class="suspect-error">{actionError}</p>{/if}
+		</div>
+	{/if}
+	{#if rolledBack}
+		<div class="suspects"><p class="suspect-ok">{t('instanceLogWindow.rolledBackDone')}</p></div>
 	{/if}
 
 	<div class="log-body" bind:this={logEl} onscroll={handleScroll}>
@@ -298,6 +388,69 @@
 
 	.friendly-error button:hover {
 		opacity: 1;
+	}
+
+	.suspects {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 8px 14px;
+		background: rgba(239, 68, 68, 0.1);
+		border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+		font-size: 0.74rem;
+		color: #fca5a5;
+	}
+
+	.suspects-head {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.suspects-head span {
+		opacity: 0.8;
+	}
+
+	.suspect-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+	}
+
+	.suspect-name small {
+		margin-left: 6px;
+		opacity: 0.6;
+	}
+
+	.suspect-row button {
+		flex-shrink: 0;
+		padding: 3px 10px;
+		border-radius: 6px;
+		border: 1px solid rgba(252, 165, 165, 0.45);
+		background: transparent;
+		color: inherit;
+		font-size: 0.72rem;
+		cursor: pointer;
+	}
+
+	.suspect-row button:hover:not(:disabled) {
+		background: rgba(239, 68, 68, 0.18);
+	}
+
+	.suspect-row button:disabled {
+		opacity: 0.55;
+		cursor: default;
+	}
+
+	.suspect-error {
+		margin: 0;
+		color: #fecaca;
+	}
+
+	.suspect-ok {
+		margin: 0;
+		color: #86efac;
 	}
 
 	.actions {

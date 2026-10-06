@@ -234,6 +234,19 @@ export const es = {
 		create: 'Crear servidor',
 		creating: 'Descargando el servidor…'
 	},
+	worldBackups: {
+		title: 'Copias de seguridad de mundos',
+		hint: 'Se guardan solas antes de actualizar mods. Podés crear una a mano cuando quieras y restaurarla si algo sale mal (se guardan las últimas 10).',
+		create: 'Crear copia ahora',
+		created: 'Copia creada.',
+		noWorlds: 'Esta instancia todavía no tiene mundos para respaldar.',
+		empty: 'Todavía no hay copias.',
+		restore: 'Restaurar',
+		delete: 'Borrar copia',
+		restored: 'Mundos restaurados. Antes se guardó una copia del estado anterior.',
+		restoreTitle: '¿Restaurar esta copia?',
+		restoreMessage: 'Los mundos actuales se van a reemplazar por los de la copia del {{date}}. Antes se guarda una copia de cómo están ahora, por si te arrepentís.'
+	},
 	contentManager: {
 		manageTab: 'Gestionar',
 		downloadTab: 'Descargar',
@@ -264,9 +277,20 @@ export const es = {
 		favorite: 'Favorito',
 		viewVersions: 'Ver versiones',
 		alreadyInstalled: 'Ya instalado',
-		noCompatibleVersions: 'No hay versiones compatibles con esta instancia.'
+		noCompatibleVersions: 'No hay versiones compatibles con esta instancia.',
+		cleanDuplicates: 'Limpiar duplicados',
+		duplicatesCleaned: 'Se quitaron {{count}} archivos duplicados.',
+		enable: 'Activar',
+		disable: 'Desactivar',
+		disabledTag: 'desactivado',
+		rollbackButton: 'Deshacer última actualización ({{count}})',
+		rollbackHint: 'Devuelve los mods a la versión que tenían antes de "Actualizar todos".',
+		rolledBack: '{{count}} mods volvieron a su versión anterior.'
 	},
 	instanceDetail: {
+		playTimeHours: '{{h}} h {{m}} min jugadas',
+		playTimeMinutes: '{{m}} min jugadas',
+		playTimeTitle: 'Tiempo total que esta instancia estuvo abierta',
 		changeIcon: 'Cambiar ícono de la instancia',
 		rename: 'Renombrar',
 		duplicate: 'Duplicar',
@@ -323,6 +347,13 @@ export const es = {
 		autoModeNotice: 'Desactivado en modo Automático — activá "Manual" en Ajustes para usarlo.'
 	},
 	instanceLogWindow: {
+		suspectsTitle: 'Posibles mods culpables',
+		suspectsHint: 'Según el reporte del cierre. Desactivarlos no los borra — se pueden volver a activar desde Mods.',
+		disableMod: 'Desactivar',
+		suspectDisabled: 'Desactivado',
+		rollbackHint: 'Si el juego empezó a fallar justo después de actualizar los mods:',
+		rollbackMods: 'Volver a las versiones anteriores',
+		rolledBackDone: 'Listo: los mods volvieron a la versión que tenían antes de actualizar.',
 		stopFailed: 'No se pudo detener: {{error}}',
 		running: 'Corriendo…',
 		exited: 'Proceso finalizado{{codeSuffix}}',

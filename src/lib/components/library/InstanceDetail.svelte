@@ -36,6 +36,7 @@
 	import ScreenshotsPanel from './ScreenshotsPanel.svelte';
 	import PluginsPanel from './PluginsPanel.svelte';
 	import ServerWorlds from './ServerWorlds.svelte';
+	import WorldBackups from './WorldBackups.svelte';
 	import ServerFileManager from './ServerFileManager.svelte';
 	import ServerConsole from './ServerConsole.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
@@ -51,6 +52,7 @@
 		Package,
 		Blocks,
 		Clock,
+		Timer,
 		FolderOpen,
 		Puzzle,
 		ImagePlus,
@@ -207,6 +209,16 @@
 		quilt: { label: 'Quilt', color: 'var(--loader-quilt)' }
 	};
 	const loaderMeta = $derived(serverMeta ?? LOADER_META[instance.loader]);
+
+	const playTimeLabel = $derived.by(() => {
+		const secs = instance.play_time_secs ?? 0;
+		if (secs < 60) return null;
+		const h = Math.floor(secs / 3600);
+		const m = Math.floor((secs % 3600) / 60);
+		return h > 0
+			? t('instanceDetail.playTimeHours', { h, m })
+			: t('instanceDetail.playTimeMinutes', { m });
+	});
 
 	const lastPlayedLabel = $derived.by(() => {
 		if (!instance.last_played) return t('instanceDetail.neverPlayed');
@@ -528,6 +540,11 @@
 					<span class="stat-chip"><Blocks size={12} /> {instance.loader_version}</span>
 				{/if}
 				<span class="stat-chip"><Clock size={12} /> {lastPlayedLabel}</span>
+				{#if playTimeLabel && !isServer}
+					<span class="stat-chip" title={t('instanceDetail.playTimeTitle')}
+						><Timer size={12} /> {playTimeLabel}</span
+					>
+				{/if}
 			</div>
 		</div>
 
@@ -812,6 +829,9 @@
 				</label>
 			</div>
 		</section>
+		{#if !isServer}
+			<WorldBackups {instance} />
+		{/if}
 	{:else if tab === 'mods'}
 		<ModsPanel {instance} />
 	{:else if tab === 'shaders'}

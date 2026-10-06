@@ -46,6 +46,7 @@ export interface InstanceData {
 	loader_version: string | null;
 	launch_version_id: string;
 	last_played: number;
+	play_time_secs: number;
 	min_memory: number | null;
 	max_memory: number | null;
 	server_type: ServerType | null;
@@ -143,6 +144,7 @@ export interface InstalledModInfo {
 	version_id: string | null;
 	icon_url: string | null;
 	categories: string[];
+	disabled: boolean;
 }
 
 export interface ModVersionSummary {
@@ -221,4 +223,50 @@ export interface ScreenshotInfo {
 	filename: string;
 	path: string;
 	modified_ms: number;
+}
+
+export interface CrashSuspect {
+	filename: string;
+	mod_id: string;
+	mod_name: string | null;
+}
+
+export interface CrashDiagnosis {
+	suspects: CrashSuspect[];
+	rollback_available: boolean;
+}
+
+export interface ModRollbackInfo {
+	created_at: number;
+	count: number;
+}
+
+export interface WorldBackup {
+	id: string;
+	created_at: number;
+	size_bytes: number;
+}
+
+export interface ImportCandidate {
+	source: 'prism' | 'multimc' | 'polymc' | 'curseforge';
+	name: string;
+	path: string;
+	mc_version: string | null;
+	loader: Loader;
+	mod_count: number;
+}
+
+export interface FavoriteServer {
+	id: string;
+	name: string;
+	address: string;
+}
+
+export interface ServerStatus {
+	online: boolean;
+	motd: string | null;
+	players_online: number | null;
+	players_max: number | null;
+	version: string | null;
+	latency_ms: number | null;
 }

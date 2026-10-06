@@ -23,7 +23,13 @@ import type {
 	ServerConnectionInfo,
 	PlayitClaimInfo,
 	MojangProfile,
-	RunningInstanceInfo
+	RunningInstanceInfo,
+	ModRollbackInfo,
+	CrashDiagnosis,
+	WorldBackup,
+	ImportCandidate,
+	FavoriteServer,
+	ServerStatus
 } from '$lib/types/types';
 
 // ── Auth ─────────────────────────────────────────────────────────────
@@ -128,6 +134,38 @@ export const getModVersionChangelog = (versionId: string) =>
 	invoke<string | null>('get_mod_version_changelog', { versionId });
 export const findDuplicateMods = (instanceName: string) =>
 	invoke<string[][]>('find_duplicate_mods', { instanceName });
+export const removeDuplicateMods = (instanceName: string) =>
+	invoke<number>('remove_duplicate_mods', { instanceName });
+export const setModEnabled = (instanceName: string, filename: string, enabled: boolean) =>
+	invoke<string>('set_mod_enabled', { instanceName, filename, enabled });
+export const setPluginEnabled = (instanceName: string, filename: string, enabled: boolean) =>
+	invoke<string>('set_plugin_enabled', { instanceName, filename, enabled });
+export const getModRollbackInfo = (instanceName: string) =>
+	invoke<ModRollbackInfo | null>('get_mod_rollback_info', { instanceName });
+export const rollbackModUpdate = (instanceName: string) =>
+	invoke<number>('rollback_mod_update', { instanceName });
+export const discardModRollback = (instanceName: string) =>
+	invoke<void>('discard_mod_rollback', { instanceName });
+export const diagnoseCrash = (instanceName: string) =>
+	invoke<CrashDiagnosis>('diagnose_crash', { instanceName });
+export const getWorldBackups = (instanceName: string) =>
+	invoke<WorldBackup[]>('get_world_backups', { instanceName });
+export const createWorldBackup = (instanceName: string) =>
+	invoke<WorldBackup | null>('create_world_backup', { instanceName });
+export const deleteWorldBackup = (instanceName: string, id: string) =>
+	invoke<void>('delete_world_backup', { instanceName, id });
+export const restoreWorldBackup = (instanceName: string, id: string) =>
+	invoke<void>('restore_world_backup', { instanceName, id });
+export const detectImportableInstances = () =>
+	invoke<ImportCandidate[]>('detect_importable_instances');
+export const importExternalInstance = (path: string, newName: string) =>
+	invoke<InstanceData>('import_external_instance', { path, newName });
+export const getFavoriteServers = () => invoke<FavoriteServer[]>('get_favorite_servers');
+export const addFavoriteServer = (name: string, address: string) =>
+	invoke<FavoriteServer>('add_favorite_server', { name, address });
+export const removeFavoriteServer = (id: string) =>
+	invoke<void>('remove_favorite_server', { id });
+export const pingServer = (address: string) => invoke<ServerStatus>('ping_server', { address });
 export const getModVersions = (projectId: string, mcVersion: string, loader: Loader) =>
 	invoke<ModVersionSummary[]>('get_mod_versions', { projectId, mcVersion, loader });
 
