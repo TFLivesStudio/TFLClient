@@ -194,6 +194,13 @@ export const en: Dictionary = {
 		contextOpen: 'Open'
 	},
 	joinServer: {
+		favorites: 'Favorites',
+		offline: 'No response',
+		saveFavorite: 'Save to favorites',
+		alreadyFavorite: 'Already in favorites',
+		removeFavorite: 'Remove from favorites',
+		favoriteNamePlaceholder: 'Name (optional)',
+		saveFavoriteConfirm: 'Save',
 		title: 'Join server',
 		addressLabel: 'Server address',
 		addressPlaceholder: 'example.com:25565',
@@ -207,6 +214,8 @@ export const en: Dictionary = {
 		joining: 'Connecting…'
 	},
 	createInstance: {
+		importTitle: 'Import from another launcher',
+		importDesc: 'Bring your instances from Prism, MultiMC or CurseForge with their mods and worlds.',
 		title: 'New instance',
 		chooserSubtitle: 'How do you want to build it?',
 		customTitle: 'Custom',
@@ -249,6 +258,18 @@ export const en: Dictionary = {
 		restored: 'Worlds restored. A backup of the previous state was saved first.',
 		restoreTitle: 'Restore this backup?',
 		restoreMessage: 'Your current worlds will be replaced with the ones from the {{date}} backup. A backup of how they are now is saved first, in case you change your mind.'
+	},
+	importInstance: {
+		title: 'Import instance',
+		subtitle: 'We found these instances in other launchers installed on your computer.',
+		searching: 'Looking for instances…',
+		none: 'We did not find Prism, MultiMC, PolyMC or CurseForge instances in the usual folders.',
+		unknownVersion: 'unknown version',
+		modCount: '{{count}} mods',
+		nameLabel: 'Name in TFL Client',
+		hint: 'A new instance is created with its mods, configs, worlds and packs. The original is not touched. The loader is installed at its latest version for that Minecraft version.',
+		import: 'Import',
+		importing: 'Importing…'
 	},
 	contentManager: {
 		manageTab: 'Manage',

@@ -1611,7 +1611,7 @@ pub async fn export_instance_as_mrpack(instance_name: String) -> Result<String, 
 
 // ── Backup de mundo + verificación de integridad ────────────────────────────
 
-fn zip_dir(source: &std::path::Path, dest: &std::path::Path) -> std::io::Result<()> {
+pub(crate) fn zip_dir(source: &std::path::Path, dest: &std::path::Path) -> std::io::Result<()> {
     if let Some(parent) = dest.parent() {
         std::fs::create_dir_all(parent)?;
     }
@@ -1786,4 +1786,47 @@ pub async fn add_local_resourcepack_files(
 #[command]
 pub async fn add_local_plugin_files(instance_name: String, paths: Vec<String>) -> Result<u32, String> {
     add_local_content_files(&instance_name, "plugins", "jar", paths).await
+}
+
+#[cfg(test)]
+mod install_helper_tests {
+    use super::*;
+
+    #[test]
+    fn auxiliary_jars_are_detected() {
+        assert!(is_auxiliary_jar("embeddium-0.1.5+mc1.20.1-sources.jar"));
+        assert!(is_auxiliary_jar("Mod-1.0-JAVADOC.jar"));
+        assert!(is_auxiliary_jar("mod-1.0-dev.jar"));
+        assert!(is_auxiliary_jar("mod-1.0-sources.jar.disabled"));
+        assert!(!is_auxiliary_jar("mod-1.0.jar"));
+        assert!(!is_auxiliary_jar("developers-toolkit-1.0.jar"));
+    }
+
+    #[test]
+    fn disabled_suffix_detection() {
+        assert!(is_disabled_file("x.jar.disabled"));
+        assert!(!is_disabled_file("x.jar"));
+    }
+
+    #[test]
+    fn projects_map_skips_disabled_and_unresolved() {
+        let mk = |filename: &str, pid: Option<&str>, disabled: bool| InstalledModInfo {
+            filename: filename.into(),
+            project_id: pid.map(String::from),
+            title: None,
+            version_id: None,
+            icon_url: None,
+            categories: vec![],
+            disabled,
+        };
+        let infos = vec![
+            mk("a.jar", Some("P1"), false),
+            mk("a-sources.jar", Some("P1"), false),
+            mk("b.jar.disabled", Some("P2"), true),
+            mk("c.jar", None, false),
+        ];
+        let map = projects_from_info(&infos);
+        assert_eq!(map.len(), 1);
+        assert_eq!(map["P1"], vec!["a.jar".to_string(), "a-sources.jar".to_string()]);
+    }
 }

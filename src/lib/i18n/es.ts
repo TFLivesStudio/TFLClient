@@ -191,6 +191,13 @@ export const es = {
 		contextOpen: 'Abrir'
 	},
 	joinServer: {
+		favorites: 'Favoritos',
+		offline: 'Sin respuesta',
+		saveFavorite: 'Guardar en favoritos',
+		alreadyFavorite: 'Ya está en favoritos',
+		removeFavorite: 'Quitar de favoritos',
+		favoriteNamePlaceholder: 'Nombre (opcional)',
+		saveFavoriteConfirm: 'Guardar',
 		title: 'Unirse a servidor',
 		addressLabel: 'Dirección del servidor',
 		addressPlaceholder: 'ejemplo.com:25565',
@@ -204,6 +211,8 @@ export const es = {
 		joining: 'Conectando…'
 	},
 	createInstance: {
+		importTitle: 'Importar de otro launcher',
+		importDesc: 'Traé tus instancias de Prism, MultiMC o CurseForge con sus mods y mundos.',
 		title: 'Nueva instancia',
 		chooserSubtitle: '¿Cómo la querés armar?',
 		customTitle: 'Personalizada',
@@ -246,6 +255,18 @@ export const es = {
 		restored: 'Mundos restaurados. Antes se guardó una copia del estado anterior.',
 		restoreTitle: '¿Restaurar esta copia?',
 		restoreMessage: 'Los mundos actuales se van a reemplazar por los de la copia del {{date}}. Antes se guarda una copia de cómo están ahora, por si te arrepentís.'
+	},
+	importInstance: {
+		title: 'Importar instancia',
+		subtitle: 'Encontramos estas instancias en otros launchers instalados en tu equipo.',
+		searching: 'Buscando instancias…',
+		none: 'No encontramos instancias de Prism, MultiMC, PolyMC ni CurseForge en las carpetas habituales.',
+		unknownVersion: 'versión desconocida',
+		modCount: '{{count}} mods',
+		nameLabel: 'Nombre en TFL Client',
+		hint: 'Se crea una instancia nueva con sus mods, configs, mundos y packs. La original no se toca. El loader se instala en su última versión para esa versión de Minecraft.',
+		import: 'Importar',
+		importing: 'Importando…'
 	},
 	contentManager: {
 		manageTab: 'Gestionar',

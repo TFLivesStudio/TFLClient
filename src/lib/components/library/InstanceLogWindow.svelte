@@ -50,11 +50,17 @@
 		}
 	});
 
+	// No se resetea al terminar de parar: el evento de salida puede llegar
+	// antes o después de que `stopping` vuelva a false.
+	let userStopped = false;
+
 	async function handleStop() {
 		stopping = true;
+		userStopped = true;
 		try {
 			await invoke('stop_running_instance', { instanceName });
 		} catch (e) {
+			userStopped = false;
 			lines = [...lines, { stream: 'stderr', line: t('instanceLogWindow.stopFailed', { error: String(e) }) }];
 		} finally {
 			stopping = false;
@@ -180,7 +186,9 @@
 	// que la JVM deja al crashear nativo — mucho más útil que adivinar.
 	async function handleExit(code: number | null) {
 		if (code === 0) return;
-		void runDiagnosis();
+		// Si lo paró el propio usuario con el botón, el código de salida
+		// "raro" es esperable y no hay nada que diagnosticar.
+		if (!userStopped) void runDiagnosis();
 		if (friendlyError) return;
 		try {
 			const crashSummary = await invoke<string | null>('get_crash_report', {

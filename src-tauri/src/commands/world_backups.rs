@@ -105,32 +105,96 @@ pub async fn restore_world_backup(instance_name: String, id: String) -> Result<(
     crate::commands::mods::backup_world_dir(&instance.dir()).await?;
 
     let saves_dir = instance.dir().join("saves");
-    tokio::task::spawn_blocking(move || -> Result<(), String> {
-        let file = std::fs::File::open(&zip_path).map_err(|e| e.to_string())?;
-        let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
-        if saves_dir.exists() {
-            std::fs::remove_dir_all(&saves_dir).map_err(|e| e.to_string())?;
+    tokio::task::spawn_blocking(move || replace_saves_from_zip(&zip_path, &saves_dir))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Vacía `saves_dir` y extrae el zip adentro. Descarta cualquier entrada cuya
+/// ruta se escape de la carpeta (`..`, rutas absolutas): el zip es un archivo
+/// del disco del usuario, pero no por eso se confía en sus rutas.
+fn replace_saves_from_zip(zip_path: &Path, saves_dir: &Path) -> Result<(), String> {
+    let file = std::fs::File::open(zip_path).map_err(|e| e.to_string())?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
+    if saves_dir.exists() {
+        std::fs::remove_dir_all(saves_dir).map_err(|e| e.to_string())?;
+    }
+    std::fs::create_dir_all(saves_dir).map_err(|e| e.to_string())?;
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
+        let Some(rel) = entry.enclosed_name() else {
+            continue;
+        };
+        let out_path = saves_dir.join(rel);
+        if entry.is_dir() {
+            std::fs::create_dir_all(&out_path).map_err(|e| e.to_string())?;
+            continue;
         }
-        std::fs::create_dir_all(&saves_dir).map_err(|e| e.to_string())?;
-        for i in 0..archive.len() {
-            let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
-            // `enclosed_name` descarta rutas con `..` o absolutas (zip slip).
-            let Some(rel) = entry.enclosed_name() else {
-                continue;
-            };
-            let out_path = saves_dir.join(rel);
-            if entry.is_dir() {
-                std::fs::create_dir_all(&out_path).map_err(|e| e.to_string())?;
-                continue;
-            }
-            if let Some(parent) = out_path.parent() {
-                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-            }
-            let mut out = std::fs::File::create(&out_path).map_err(|e| e.to_string())?;
-            std::io::copy(&mut entry, &mut out).map_err(|e| e.to_string())?;
+        if let Some(parent) = out_path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }
-        Ok(())
-    })
-    .await
-    .map_err(|e| e.to_string())?
+        let mut out = std::fs::File::create(&out_path).map_err(|e| e.to_string())?;
+        std::io::copy(&mut entry, &mut out).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temp_dir(tag: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("tfl-wb-test-{tag}-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn backup_id_only_accepts_the_generated_shape() {
+        assert_eq!(parse_backup_id("saves-1700000000.zip"), Some(1_700_000_000));
+        assert_eq!(parse_backup_id("saves-../../x.zip"), None);
+        assert_eq!(parse_backup_id("saves-12.zip.exe"), None);
+        assert_eq!(parse_backup_id("other.zip"), None);
+        assert_eq!(parse_backup_id("saves-.zip"), None);
+    }
+
+    #[test]
+    fn restore_roundtrip_replaces_current_saves() {
+        let base = temp_dir("roundtrip");
+        let saves = base.join("saves");
+        std::fs::create_dir_all(saves.join("World1")).unwrap();
+        std::fs::write(saves.join("World1").join("level.dat"), b"original").unwrap();
+        let zip_path = base.join("saves-1.zip");
+        crate::commands::mods::zip_dir(&saves, &zip_path).unwrap();
+
+        // El estado actual cambia después de la copia: se tiene que pisar.
+        std::fs::write(saves.join("World1").join("level.dat"), b"modificado").unwrap();
+        std::fs::create_dir_all(saves.join("World2")).unwrap();
+
+        replace_saves_from_zip(&zip_path, &saves).unwrap();
+        assert_eq!(std::fs::read(saves.join("World1").join("level.dat")).unwrap(), b"original");
+        assert!(!saves.join("World2").exists());
+        let _ = std::fs::remove_dir_all(base);
+    }
+
+    #[test]
+    fn restore_ignores_entries_that_escape_the_folder() {
+        let base = temp_dir("zipslip");
+        let zip_path = base.join("evil.zip");
+        {
+            let file = std::fs::File::create(&zip_path).unwrap();
+            let mut zip = zip::ZipWriter::new(file);
+            let opts = zip::write::SimpleFileOptions::default();
+            zip.start_file("World1/level.dat", opts).unwrap();
+            std::io::Write::write_all(&mut zip, b"ok").unwrap();
+            zip.start_file("../escaped.txt", opts).unwrap();
+            std::io::Write::write_all(&mut zip, b"malo").unwrap();
+            zip.finish().unwrap();
+        }
+        let saves = base.join("saves");
+        replace_saves_from_zip(&zip_path, &saves).unwrap();
+        assert!(saves.join("World1").join("level.dat").exists());
+        assert!(!base.join("escaped.txt").exists());
+        let _ = std::fs::remove_dir_all(base);
+    }
 }

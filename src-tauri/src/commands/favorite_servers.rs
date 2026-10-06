@@ -272,3 +272,84 @@ pub async fn ping_server(address: String) -> Result<ServerStatus, String> {
     let (host, port) = parse_address(&address)?;
     Ok(ping_inner(&host, port).await.unwrap_or_default())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::net::TcpListener;
+
+    #[test]
+    fn parse_address_defaults_and_validates() {
+        assert_eq!(parse_address("play.example.com").unwrap(), ("play.example.com".into(), 25565));
+        assert_eq!(parse_address(" mc.test:25566 ").unwrap(), ("mc.test".into(), 25566));
+        assert!(parse_address("").is_err());
+        assert!(parse_address("host with space").is_err());
+        assert!(parse_address("host:notaport").is_err());
+        assert!(parse_address("host:0").is_err());
+        assert!(parse_address("a/b").is_err());
+    }
+
+    #[test]
+    fn motd_is_flattened_and_color_codes_stripped() {
+        let v: serde_json::Value =
+            serde_json::from_str(r#"{"text":"§aHola ","extra":[{"text":"mundo"},"!"]}"#).unwrap();
+        assert_eq!(strip_color_codes(&flatten_description(&v)), "Hola mundo!");
+        let plain = serde_json::Value::String("§6Solo texto".into());
+        assert_eq!(strip_color_codes(&flatten_description(&plain)), "Solo texto");
+    }
+
+    #[test]
+    fn varint_roundtrip_bytes() {
+        let mut buf = Vec::new();
+        write_varint(&mut buf, 300);
+        assert_eq!(buf, vec![0xAC, 0x02]);
+        let mut neg = Vec::new();
+        write_varint(&mut neg, -1);
+        assert_eq!(neg, vec![0xFF, 0xFF, 0xFF, 0xFF, 0x0F]);
+    }
+
+    #[tokio::test]
+    async fn ping_talks_the_real_protocol() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        tokio::spawn(async move {
+            let (mut s, _) = listener.accept().await.unwrap();
+            // handshake + pedido de status
+            for _ in 0..2 {
+                let len = read_varint(&mut s).await.unwrap();
+                let mut buf = vec![0u8; len as usize];
+                s.read_exact(&mut buf).await.unwrap();
+            }
+            let json = r#"{"version":{"name":"1.20.1","protocol":763},"players":{"max":20,"online":3},"description":{"text":"§aHola ","extra":[{"text":"mundo"}]}}"#;
+            let mut payload = Vec::new();
+            write_varint(&mut payload, 0);
+            write_varint(&mut payload, json.len() as i32);
+            payload.extend_from_slice(json.as_bytes());
+            s.write_all(&framed(payload)).await.unwrap();
+            // ping -> pong (mismo id 0x01 + mismo payload)
+            let len = read_varint(&mut s).await.unwrap();
+            let mut buf = vec![0u8; len as usize];
+            s.read_exact(&mut buf).await.unwrap();
+            s.write_all(&framed(buf)).await.unwrap();
+        });
+
+        let status = ping_inner("127.0.0.1", port).await.unwrap();
+        assert!(status.online);
+        assert_eq!(status.motd.as_deref(), Some("Hola mundo"));
+        assert_eq!(status.players_online, Some(3));
+        assert_eq!(status.players_max, Some(20));
+        assert_eq!(status.version.as_deref(), Some("1.20.1"));
+        assert!(status.latency_ms.is_some());
+    }
+
+    #[tokio::test]
+    async fn ping_to_closed_port_is_offline_not_an_error() {
+        // Puerto efímero recién liberado: nadie escucha.
+        let port = {
+            let l = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            l.local_addr().unwrap().port()
+        };
+        let status = ping_server(format!("127.0.0.1:{port}")).await.unwrap();
+        assert!(!status.online);
+    }
+}

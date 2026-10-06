@@ -1,8 +1,22 @@
 <script lang="ts">
-	import { getAvailableVersions, createInstance, launchInstance } from '$lib/api/tflApi';
-	import type { InstanceData, MinecraftUser, MinecraftVersion } from '$lib/types/types';
+	import {
+		getAvailableVersions,
+		createInstance,
+		launchInstance,
+		getFavoriteServers,
+		addFavoriteServer,
+		removeFavoriteServer,
+		pingServer
+	} from '$lib/api/tflApi';
+	import type {
+		InstanceData,
+		MinecraftUser,
+		MinecraftVersion,
+		FavoriteServer,
+		ServerStatus
+	} from '$lib/types/types';
 	import { t } from '$lib/i18n/index.svelte';
-	import { Loader2 } from 'lucide-svelte';
+	import { Loader2, Star, Trash2, Play } from 'lucide-svelte';
 
 	let {
 		instances,
@@ -73,6 +87,66 @@
 		})
 		.finally(() => (loadingVersions = false));
 
+	// ── Favoritos ───────────────────────────────────────────────────────
+	// Lista guardada con el estado de cada servidor (se consulta al abrir el
+	// modal, en paralelo): así se ve cuáles están arriba y cuánta gente hay
+	// antes de unirse, y un click los carga.
+	let favorites = $state<FavoriteServer[]>([]);
+	let statuses = $state<Record<string, ServerStatus | 'loading'>>({});
+	let savingFavorite = $state(false);
+	let favoriteName = $state('');
+	let favoriteError = $state<string | null>(null);
+
+	async function refreshStatus(fav: FavoriteServer) {
+		statuses[fav.id] = 'loading';
+		try {
+			statuses[fav.id] = await pingServer(fav.address);
+		} catch {
+			statuses[fav.id] = { online: false, motd: null, players_online: null, players_max: null, version: null, latency_ms: null };
+		}
+	}
+
+	async function loadFavorites() {
+		try {
+			favorites = await getFavoriteServers();
+			favorites.forEach((f) => void refreshStatus(f));
+		} catch {
+			favorites = [];
+		}
+	}
+	loadFavorites();
+
+	const alreadyFavorite = $derived(
+		favorites.some((f) => f.address.toLowerCase() === address.trim().toLowerCase())
+	);
+
+	async function handleSaveFavorite() {
+		favoriteError = null;
+		try {
+			const added = await addFavoriteServer(favoriteName, address.trim());
+			favorites = [...favorites, added];
+			savingFavorite = false;
+			favoriteName = '';
+			void refreshStatus(added);
+		} catch (e) {
+			favoriteError = String(e);
+		}
+	}
+
+	async function handleRemoveFavorite(fav: FavoriteServer) {
+		try {
+			await removeFavoriteServer(fav.id);
+			favorites = favorites.filter((f) => f.id !== fav.id);
+		} catch (e) {
+			favoriteError = String(e);
+		}
+	}
+
+	async function joinFavorite(fav: FavoriteServer) {
+		address = fav.address;
+		await handleJoin();
+	}
+
 	async function handleJoin() {
 		const trimmed = address.trim();
 		if (!trimmed || blocked) return;
@@ -121,15 +195,96 @@
 		{#if blocked}
 			<p class="error">{t('joinServer.crackedBlocked')}</p>
 		{:else}
+			{#if favorites.length > 0}
+				<span class="fav-label">{t('joinServer.favorites')}</span>
+				<div class="fav-list">
+					{#each favorites as fav (fav.id)}
+						{@const st = statuses[fav.id]}
+						<div class="fav-row">
+							<button type="button" class="fav-main" disabled={joining} onclick={() => (address = fav.address)}>
+								<span
+									class="dot"
+									class:online={st !== undefined && st !== 'loading' && st.online}
+									class:loading={st === undefined || st === 'loading'}
+								></span>
+								<span class="fav-text">
+									<span class="fav-name">{fav.name}</span>
+									<span class="fav-sub">
+										{#if st === undefined || st === 'loading'}
+											{fav.address}
+										{:else if st.online}
+											{st.motd ?? fav.address}
+										{:else}
+											{t('joinServer.offline')} · {fav.address}
+										{/if}
+									</span>
+								</span>
+								{#if st && st !== 'loading' && st.online}
+									<span class="fav-meta">
+										{#if st.players_online !== null}{st.players_online}{#if st.players_max !== null}/{st.players_max}{/if}{/if}
+										{#if st.latency_ms !== null}<small>{st.latency_ms} ms</small>{/if}
+									</span>
+								{/if}
+							</button>
+							<button
+								type="button"
+								class="fav-icon"
+								disabled={joining || blocked}
+								onclick={() => joinFavorite(fav)}
+								title={t('joinServer.join')}
+								aria-label={t('joinServer.join')}
+							>
+								<Play size={13} />
+							</button>
+							<button
+								type="button"
+								class="fav-icon danger"
+								disabled={joining}
+								onclick={() => handleRemoveFavorite(fav)}
+								title={t('joinServer.removeFavorite')}
+								aria-label={t('joinServer.removeFavorite')}
+							>
+								<Trash2 size={13} />
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
+
 			<label for="join-address">{t('joinServer.addressLabel')}</label>
-			<input
-				id="join-address"
-				type="text"
-				bind:value={address}
-				placeholder={t('joinServer.addressPlaceholder')}
-				autocomplete="off"
-				disabled={joining}
-			/>
+			<div class="address-row">
+				<input
+					id="join-address"
+					type="text"
+					bind:value={address}
+					placeholder={t('joinServer.addressPlaceholder')}
+					autocomplete="off"
+					disabled={joining}
+				/>
+				<button
+					type="button"
+					class="star-btn"
+					disabled={joining || !address.trim() || alreadyFavorite}
+					title={alreadyFavorite ? t('joinServer.alreadyFavorite') : t('joinServer.saveFavorite')}
+					aria-label={t('joinServer.saveFavorite')}
+					onclick={() => (savingFavorite = !savingFavorite)}
+				>
+					<Star size={15} fill={alreadyFavorite ? 'currentColor' : 'none'} />
+				</button>
+			</div>
+			{#if savingFavorite && !alreadyFavorite}
+				<div class="address-row">
+					<input
+						type="text"
+						bind:value={favoriteName}
+						placeholder={t('joinServer.favoriteNamePlaceholder')}
+						maxlength="40"
+						onkeydown={(e) => e.key === 'Enter' && handleSaveFavorite()}
+					/>
+					<button type="button" class="btn" onclick={handleSaveFavorite}>{t('joinServer.saveFavoriteConfirm')}</button>
+				</div>
+			{/if}
+			{#if favoriteError}<p class="error">{favoriteError}</p>{/if}
 
 			<div class="mode-tabs">
 				<button
@@ -245,6 +400,158 @@
 		background: var(--bg-input);
 		color: var(--text-primary);
 		font-size: 0.88rem;
+	}
+
+	.address-row {
+		display: flex;
+		gap: 6px;
+	}
+
+	.address-row input {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.star-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		flex-shrink: 0;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-input);
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+
+	.star-btn:hover:not(:disabled) {
+		color: var(--accent);
+		border-color: var(--accent);
+	}
+
+	.star-btn:disabled {
+		opacity: 0.6;
+		cursor: default;
+	}
+
+	.fav-label {
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+	}
+
+	.fav-list {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		max-height: 168px;
+		overflow-y: auto;
+	}
+
+	.fav-row {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		border-radius: var(--border-radius-sm);
+		background: var(--bg-input);
+		border: 1px solid var(--border);
+	}
+
+	.fav-main {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 7px 10px;
+		border: none;
+		background: transparent;
+		color: var(--text-primary);
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		background: var(--color-error);
+	}
+
+	.dot.online {
+		background: #4ade80;
+	}
+
+	.dot.loading {
+		background: var(--text-muted);
+		opacity: 0.6;
+	}
+
+	.fav-text {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+	}
+
+	.fav-name {
+		font-size: 0.84rem;
+		font-weight: 700;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.fav-sub {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.fav-meta {
+		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		font-size: 0.76rem;
+		font-weight: 600;
+	}
+
+	.fav-meta small {
+		font-size: 0.64rem;
+		font-weight: 400;
+		color: var(--text-muted);
+	}
+
+	.fav-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+		flex-shrink: 0;
+		border: none;
+		border-radius: var(--border-radius-sm);
+		background: transparent;
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+
+	.fav-icon:hover:not(:disabled) {
+		color: var(--accent);
+	}
+
+	.fav-icon.danger:hover:not(:disabled) {
+		color: var(--color-error);
+	}
+
+	.fav-icon:disabled {
+		opacity: 0.45;
+		cursor: default;
 	}
 
 	.mode-tabs {

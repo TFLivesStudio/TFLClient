@@ -7,6 +7,7 @@
 	import CreateInstanceModal from '$lib/components/library/CreateInstanceModal.svelte';
 	import CreateInstanceChooser from '$lib/components/library/CreateInstanceChooser.svelte';
 	import CreateServerModal from '$lib/components/library/CreateServerModal.svelte';
+	import ImportInstanceModal from '$lib/components/library/ImportInstanceModal.svelte';
 	import JoinServerModal from '$lib/components/library/JoinServerModal.svelte';
 	import SkinManagerModal from '$lib/components/library/SkinManagerModal.svelte';
 	import ServerConnectionInfoModal from '$lib/components/library/ServerConnectionInfoModal.svelte';
@@ -59,6 +60,7 @@
 	let showCreateChooser = $state(false);
 	let showCreateModal = $state(false);
 	let showCreateServerModal = $state(false);
+	let showImportModal = $state(false);
 	let showServerConnectionInfo = $state(false);
 	let showJoinServerModal = $state(false);
 	let showSkinManager = $state(false);
@@ -382,6 +384,20 @@
 		onChooseServer={() => {
 			showCreateChooser = false;
 			showCreateServerModal = true;
+		}}
+		onChooseImport={() => {
+			showCreateChooser = false;
+			showImportModal = true;
+		}}
+	/>
+{/if}
+
+{#if showImportModal}
+	<ImportInstanceModal
+		onClose={() => (showImportModal = false)}
+		onImported={async (instance) => {
+			showImportModal = false;
+			await handleCreated(instance);
 		}}
 	/>
 {/if}

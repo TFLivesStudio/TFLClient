@@ -291,3 +291,90 @@ pub async fn import_external_instance(
     }
     Ok(created)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temp_dir(tag: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("tfl-import-test-{tag}-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn prism_instance_is_detected() {
+        let dir = temp_dir("prism");
+        std::fs::write(
+            dir.join("mmc-pack.json"),
+            r#"{"components":[{"uid":"net.minecraft","version":"1.20.1"},{"uid":"net.fabricmc.fabric-loader","version":"0.15.11"}],"formatVersion":1}"#,
+        )
+        .unwrap();
+        std::fs::write(dir.join("instance.cfg"), "InstanceType=OneSix\nname=Mi Pack\n").unwrap();
+        std::fs::create_dir_all(dir.join(".minecraft").join("mods")).unwrap();
+        std::fs::write(dir.join(".minecraft").join("mods").join("a.jar"), b"x").unwrap();
+        std::fs::write(dir.join(".minecraft").join("mods").join("notes.txt"), b"x").unwrap();
+
+        let d = detect_mmc_style("prism", &dir).expect("debe detectarse");
+        assert_eq!(d.candidate.name, "Mi Pack");
+        assert_eq!(d.candidate.mc_version.as_deref(), Some("1.20.1"));
+        assert_eq!(d.candidate.loader, "fabric");
+        assert_eq!(d.candidate.mod_count, 1);
+        assert!(d.game_dir.ends_with(".minecraft"));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn prism_vanilla_without_game_dir_is_skipped() {
+        let dir = temp_dir("prism-nogame");
+        std::fs::write(
+            dir.join("mmc-pack.json"),
+            r#"{"components":[{"uid":"net.minecraft","version":"1.21"}]}"#,
+        )
+        .unwrap();
+        assert!(detect_mmc_style("prism", &dir).is_none());
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn curseforge_instance_is_detected() {
+        let dir = temp_dir("cf");
+        std::fs::write(
+            dir.join("minecraftinstance.json"),
+            r#"{"name":"All The Mods","gameVersion":"1.20.1","baseModLoader":{"name":"forge-47.2.0"}}"#,
+        )
+        .unwrap();
+        let d = detect_curseforge(&dir).expect("debe detectarse");
+        assert_eq!(d.candidate.name, "All The Mods");
+        assert_eq!(d.candidate.loader, "forge");
+        assert_eq!(d.candidate.mc_version.as_deref(), Some("1.20.1"));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn curseforge_neoforge_is_not_confused_with_forge() {
+        let dir = temp_dir("cf-neo");
+        std::fs::write(
+            dir.join("minecraftinstance.json"),
+            r#"{"name":"N","gameVersion":"1.21.1","baseModLoader":{"name":"neoforge-21.1.1"}}"#,
+        )
+        .unwrap();
+        assert_eq!(detect_curseforge(&dir).unwrap().candidate.loader, "neoforge");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn copy_recursive_copies_nested_files() {
+        let src = temp_dir("copy-src");
+        let dst = temp_dir("copy-dst");
+        std::fs::create_dir_all(src.join("saves").join("World1")).unwrap();
+        std::fs::write(src.join("saves").join("World1").join("level.dat"), b"data").unwrap();
+        copy_recursive(&src.join("saves"), &dst.join("saves")).unwrap();
+        assert_eq!(
+            std::fs::read(dst.join("saves").join("World1").join("level.dat")).unwrap(),
+            b"data"
+        );
+        let _ = std::fs::remove_dir_all(src);
+        let _ = std::fs::remove_dir_all(dst);
+    }
+}

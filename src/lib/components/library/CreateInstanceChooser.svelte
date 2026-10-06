@@ -1,17 +1,19 @@
 <script lang="ts">
-	import { SlidersHorizontal, PackageOpen, ChevronRight, Server } from 'lucide-svelte';
+	import { SlidersHorizontal, PackageOpen, ChevronRight, Server, FolderInput } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
 
 	let {
 		onClose,
 		onChooseCustom,
 		onChooseModpack,
-		onChooseServer
+		onChooseServer,
+		onChooseImport
 	}: {
 		onClose: () => void;
 		onChooseCustom: () => void;
 		onChooseModpack: () => void;
 		onChooseServer: () => void;
+		onChooseImport: () => void;
 	} = $props();
 </script>
 
@@ -57,6 +59,14 @@
 				<span class="choice-text">
 					<span class="choice-title">{t('createInstance.serverTitle')}</span>
 					<span class="choice-desc">{t('createInstance.serverDesc')}</span>
+				</span>
+				<ChevronRight size={16} class="choice-arrow" />
+			</button>
+			<button type="button" class="choice-card" onclick={onChooseImport}>
+				<span class="choice-icon"><FolderInput size={22} /></span>
+				<span class="choice-text">
+					<span class="choice-title">{t('createInstance.importTitle')}</span>
+					<span class="choice-desc">{t('createInstance.importDesc')}</span>
 				</span>
 				<ChevronRight size={16} class="choice-arrow" />
 			</button>

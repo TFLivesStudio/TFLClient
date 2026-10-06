@@ -286,3 +286,89 @@ pub async fn diagnose_crash(instance_name: String) -> Result<CrashDiagnosis, Str
         rollback_available,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn forge_suspected_mods_block() {
+        let report = "\
+---- Minecraft Crash Report ----
+Description: Exception in server tick loop
+
+Suspected Mods:
+\tCreate (create), Version: 0.5.1
+\t\tIssue tracker URL: https://example.com
+\tSodium (sodium), Version: 0.5.3
+
+Stacktrace:
+";
+        let (ids, _) = extract_culprits(report);
+        assert_eq!(ids, vec!["create".to_string(), "sodium".to_string()]);
+    }
+
+    #[test]
+    fn suspected_none_yields_nothing() {
+        let (ids, jars) = extract_culprits("Suspected Mods: NONE\n\nStacktrace:\n");
+        assert!(ids.is_empty());
+        assert!(jars.is_empty());
+    }
+
+    #[test]
+    fn fabric_entrypoint_and_mod_file() {
+        let log = "\
+Could not execute entrypoint stage 'main' due to errors, provided by 'badmod'!
+Mod File: /home/u/.tflclient/instances/x/mods/other-mod-1.0.jar
+Mod ID: 'minecraft'
+";
+        let (ids, jars) = extract_culprits(log);
+        assert_eq!(ids, vec!["badmod".to_string()]);
+        assert_eq!(jars, vec!["other-mod-1.0.jar".to_string()]);
+    }
+
+    #[test]
+    fn fabric_dependency_error() {
+        let log = "- Mod 'Fancy' (fancymod) 1.0.0 requires version 2.x of mod 'lib', which is missing!";
+        let (ids, _) = extract_culprits(log);
+        assert_eq!(ids, vec!["fancymod".to_string()]);
+    }
+
+    fn write_jar(entries: &[(&str, &str)]) -> PathBuf {
+        let path = std::env::temp_dir().join(format!("tfl-jar-test-{}.jar", uuid::Uuid::new_v4()));
+        let file = std::fs::File::create(&path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        for (name, body) in entries {
+            zip.start_file(*name, zip::write::SimpleFileOptions::default()).unwrap();
+            std::io::Write::write_all(&mut zip, body.as_bytes()).unwrap();
+        }
+        zip.finish().unwrap();
+        path
+    }
+
+    #[test]
+    fn reads_fabric_mod_id_and_name() {
+        let jar = write_jar(&[("fabric.mod.json", r#"{"id":"sodium","name":"Sodium","provides":["indium"]}"#)]);
+        let m = read_jar_mods(&jar).unwrap();
+        assert_eq!(m.ids, vec!["sodium".to_string(), "indium".to_string()]);
+        assert_eq!(m.name.as_deref(), Some("Sodium"));
+        let _ = std::fs::remove_file(jar);
+    }
+
+    #[test]
+    fn reads_forge_mods_toml() {
+        let toml = "modLoader=\"javafml\"\n[[mods]]\nmodId=\"create\"\ndisplayName=\"Create\"\n";
+        let jar = write_jar(&[("META-INF/mods.toml", toml)]);
+        let m = read_jar_mods(&jar).unwrap();
+        assert_eq!(m.ids, vec!["create".to_string()]);
+        assert_eq!(m.name.as_deref(), Some("Create"));
+        let _ = std::fs::remove_file(jar);
+    }
+
+    #[test]
+    fn jar_without_metadata_is_ignored() {
+        let jar = write_jar(&[("readme.txt", "hi")]);
+        assert!(read_jar_mods(&jar).is_none());
+        let _ = std::fs::remove_file(jar);
+    }
+}
