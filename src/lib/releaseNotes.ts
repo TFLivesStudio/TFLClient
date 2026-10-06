@@ -131,5 +131,14 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	'0.10.14': [
 		'Arreglado: al instalar un mod, algunos aparecían duplicados en la lista (se bajaba también el archivo de código fuente "-sources" junto al mod real). Ya se instala solo el mod. Si ya tenés duplicados de antes, quitalos desde Gestionar.',
 		'Arreglado: si borrabas un mod a mano de la carpeta, después no se podía sacar de la lista del launcher (error "no se encuentra el archivo"). Ahora se saca sin problema.'
+	],
+	'0.10.15': [
+		'Nuevo: Importar instancias de Prism, MultiMC o CurseForge con sus mods, mundos y configuración (al crear una instancia → "Importar de otro launcher").',
+		'Nuevo: servidores favoritos en "Unirse a servidor", con estado en vivo (si está arriba, jugadores, MOTD y latencia) y botón para entrar directo.',
+		'Nuevo: copias de seguridad de mundos en Detalles — creá una a mano, restaurala o borrala (se guardan las últimas 10).',
+		'Nuevo: podés desactivar un mod o plugin sin borrarlo, y "Actualizar todos" ahora se puede deshacer con un click.',
+		'Nuevo: si el juego se cierra por un error, el launcher señala qué mods lo pueden haber causado y deja desactivarlos al toque.',
+		'Nuevo: el tiempo total jugado de cada instancia aparece en Detalles.',
+		'Mejorado: instalar otra versión de un mod ahora reemplaza la anterior en vez de dejar las dos, y hay un botón "Limpiar duplicados" para los que ya tenías.'
 	]
 };
