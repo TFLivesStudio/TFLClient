@@ -140,5 +140,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Nuevo: si el juego se cierra por un error, el launcher señala qué mods lo pueden haber causado y deja desactivarlos al toque.',
 		'Nuevo: el tiempo total jugado de cada instancia aparece en Detalles.',
 		'Mejorado: instalar otra versión de un mod ahora reemplaza la anterior en vez de dejar las dos, y hay un botón "Limpiar duplicados" para los que ya tenías.'
+	],
+	'0.10.16': [
+		'Arreglado: la versión 0.10.15 no llegó a publicarse completa para macOS y Linux por un error de empaquetado. Esta trae todo lo de 0.10.15 (importar instancias, favoritos, backups de mundos, desactivar mods y más) para las 3 plataformas.'
 	]
 };
