@@ -299,20 +299,25 @@ async fn launch_inner(
     server_address: Option<String>,
 ) -> Result<(), String> {
     info!("Lanzando instancia \"{instance_name}\"");
+    let _perf_total = crate::core::perf::span("launch.total");
     let data = instance_manager::get_instance(&instance_name).await?;
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
 
     // Java se resuelve una vez acá: lo necesitan tanto el lanzamiento final
     // como (para Forge/NeoForge) el propio instalador del loader.
     let java_major = aqua::infer_java_version(&data.mc_version);
+    let perf_java = crate::core::perf::span("launch.java");
     let java_path = java_manager::ensure_java(java_major)
         .await
         .inspect_err(|e| {
             error!("No se pudo resolver Java {java_major} para \"{instance_name}\": {e}");
         })?;
+    drop(perf_java);
     info!("Java {java_major}: {}", java_path.display());
 
+    let perf_prepare = crate::core::perf::span("launch.prepare_minecraft");
     ensure_downloaded(&data, Some(java_path.clone())).await?;
+    drop(perf_prepare);
 
     let manifest_path = shared_dir
         .join("versions")
@@ -330,7 +335,9 @@ async fn launch_inner(
     // lo refresca best-effort antes de devolver el usuario, para no repetir
     // el "andaba bien en singleplayer pero invalid session al unirse a un
     // servidor" (Minecraft no valida la sesión para jugar solo).
+    let perf_auth = crate::core::perf::span("launch.auth_refresh");
     let user = crate::services::mojang_auth::active_user_fresh().await;
+    drop(perf_auth);
 
     if server_address.is_some() && !crate::core::allows_multiplayer(user.user_type) {
         return Err(
@@ -400,10 +407,12 @@ async fn launch_inner(
     }
 
     let handle = LAUNCHWERK.prepare(manifest, config, instance_dir);
+    let perf_spawn = crate::core::perf::span("launch.spawn");
     handle.launch().await.map_err(|e| {
         error!("No se pudo lanzar \"{instance_name}\": {e}");
         e.to_string()
     })?;
+    drop(perf_spawn);
     info!("\"{instance_name}\" lanzada correctamente");
     instance_manager::mark_last_played(&instance_name).await?;
 

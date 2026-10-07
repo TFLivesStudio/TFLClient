@@ -73,6 +73,8 @@ fn main_window_can_use_every_app_command_and_log_window_only_its_own() {
         "update_all_mods",
         "restore_world_backup",
         "create_instance_shortcut",
+        "get_perf_report",
+        "perf_record",
     ] {
         assert!(
             allowed(&main, cmd),
@@ -105,6 +107,8 @@ fn main_window_can_use_every_app_command_and_log_window_only_its_own() {
         "remove_mod",
         "import_external_instance",
         "playit_unlink",
+        "get_perf_report",
+        "perf_record",
     ] {
         assert!(
             !allowed(&log, cmd),

@@ -93,6 +93,7 @@ pub async fn add_offline_account(username: String) -> Result<MinecraftUser, Stri
 
 #[command]
 pub fn get_current_user() -> MinecraftUser {
+    let _perf = crate::core::perf::span("accounts.load");
     SettingsManager::read().get_user()
 }
 

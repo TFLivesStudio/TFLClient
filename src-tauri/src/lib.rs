@@ -85,6 +85,7 @@ fn spawn_background_launch(app: tauri::AppHandle, instance_name: String) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    core::perf::init();
     init_logging();
 
     core::PathManager::ensure_dirs().expect("No se pudieron crear los directorios de datos");
@@ -121,12 +122,20 @@ pub fn run() {
                     if let Some(window) = app.get_webview_window("main") {
                         window.show()?;
                     }
+                    core::perf::mark_since_start("startup.window_shown");
                 }
             }
+
+            core::perf::mark_since_start("startup.setup_done");
+            // Consumo en reposo: se toma unos segundos después de abrir, cuando
+            // ya no está cargando nada (solo si la medición está activa).
+            core::perf::spawn_idle_logger(std::time::Duration::from_secs(15));
 
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            core::perf::get_perf_report,
+            core::perf::perf_record,
             commands::auth::get_device_code,
             commands::auth::authenticate_with_device_code,
             commands::auth::add_offline_account,

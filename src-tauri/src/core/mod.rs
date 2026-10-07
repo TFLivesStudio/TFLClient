@@ -4,6 +4,7 @@ pub mod errors;
 pub mod event_bus;
 pub mod http_client;
 pub mod path_manager;
+pub mod perf;
 
 #[allow(unused_imports)]
 pub use account_policy::allows_multiplayer;

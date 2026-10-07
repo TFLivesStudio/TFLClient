@@ -113,6 +113,7 @@ pub async fn create_instance(
 
 #[command]
 pub async fn get_instances() -> Vec<InstanceData> {
+    let _perf = crate::core::perf::span("instances.load");
     instance_manager::list_instances().await
 }
 

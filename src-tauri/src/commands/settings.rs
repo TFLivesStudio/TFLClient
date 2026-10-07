@@ -76,6 +76,7 @@ pub async fn get_recommended_ram_for_instance(name: String) -> RecommendedRam {
 
 #[command]
 pub fn get_settings() -> SettingsManager {
+    let _perf = crate::core::perf::span("settings.load");
     SettingsManager::snapshot()
 }
 

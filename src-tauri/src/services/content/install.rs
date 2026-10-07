@@ -35,6 +35,7 @@ struct InstallContext<'a> {
 
 impl<P: ContentProvider> ContentService<P> {
     pub async fn install(&self, request: InstallRequest<'_>) -> Result<(), String> {
+        let _perf = crate::core::perf::span("content.install");
         let installed = if request.kind == ContentKind::Mod {
             // Chequeo de conflictos conocidos ANTES de instalar — antes esto
             // lo descubría recién Fabric Loader al lanzar el juego

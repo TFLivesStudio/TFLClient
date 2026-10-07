@@ -1,4 +1,5 @@
 import { listen } from '@tauri-apps/api/event';
+import { exposePerfReport, perfMarkUsable, perfMeasure } from '$lib/perf';
 import { getCurrentUser, getSettings } from '$lib/api';
 import {
 	applyQualityVisuals,
@@ -32,6 +33,7 @@ export async function startApp() {
 		return;
 	}
 
+	exposePerfReport();
 	observeAppearance();
 
 	initDownloadListener();
@@ -44,7 +46,9 @@ export async function startApp() {
 	initServerSessionListener();
 	initNetworkListener();
 	try {
-		const [user, settings] = await Promise.all([getCurrentUser(), getSettings()]);
+		const [user, settings] = await perfMeasure('accounts_settings', () =>
+			Promise.all([getCurrentUser(), getSettings()])
+		);
 		appState.currentUser = user;
 		appState.settings = settings;
 		if (settings.theme === 'light' || settings.theme === 'dark') {
@@ -52,12 +56,13 @@ export async function startApp() {
 		}
 		await restoreAppearance();
 		applyQualityVisuals(settings);
-		await refreshInstances();
+		await perfMeasure('instances', () => refreshInstances());
 		// No await a propósito — chequeo/descarga en segundo plano, no
 		// debe bloquear el arranque del launcher. El badge (si aparece)
 		// lo dispara el store cuando termine, no esto.
 		if (settings.auto_updates) void checkAndDownloadUpdate();
 	} finally {
 		ui.loading = false;
+		perfMarkUsable();
 	}
 }

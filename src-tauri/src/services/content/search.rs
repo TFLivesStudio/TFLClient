@@ -13,6 +13,7 @@ impl<P: ContentProvider> ContentService<P> {
         categories: &[String],
         kind: ContentKind,
     ) -> Result<Vec<ContentSearchHit>, String> {
+        let _perf = crate::core::perf::span("content.search");
         self.provider
             .search(&SearchQuery {
                 query,
