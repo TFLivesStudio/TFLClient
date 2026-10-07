@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getAvailableVersions, createInstance } from '$lib/api/tflApi';
+	import { getAvailableVersions, createInstance } from '$lib/api';
 	import type { InstanceData, MinecraftVersion, Loader } from '$lib/types/types';
 	import { Loader2 } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';

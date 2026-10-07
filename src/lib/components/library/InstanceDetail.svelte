@@ -24,7 +24,7 @@
 		playitOpenClaimUrl,
 		createInstanceShortcut,
 		updateSettings
-	} from '$lib/api/tflApi';
+	} from '$lib/api';
 	import { gameSession } from '$lib/state/gameSession.svelte';
 	import { serverSessions } from '$lib/state/serverSessions.svelte';
 	import { appState } from '$lib/state/state.svelte';

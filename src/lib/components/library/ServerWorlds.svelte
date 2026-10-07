@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { InstanceData, WorldInfo } from '$lib/types/types';
-	import { listServerWorlds, deleteServerWorld } from '$lib/api/tflApi';
+	import { listServerWorlds, deleteServerWorld } from '$lib/api';
 	import { t } from '$lib/i18n/index.svelte';
 	import { Globe, Trash2, Loader2 } from 'lucide-svelte';
 

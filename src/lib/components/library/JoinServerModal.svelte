@@ -7,7 +7,7 @@
 		addFavoriteServer,
 		removeFavoriteServer,
 		pingServer
-	} from '$lib/api/tflApi';
+	} from '$lib/api';
 	import type {
 		InstanceData,
 		MinecraftUser,

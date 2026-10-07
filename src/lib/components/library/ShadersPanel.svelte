@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { InstanceData } from '$lib/types/types';
-	import { installShader } from '$lib/api/tflApi';
+	import { installShader } from '$lib/api';
 	import ContentManager from './ContentManager.svelte';
 	import { Loader2 } from 'lucide-svelte';
 	import { t, type TranslationKey } from '$lib/i18n/index.svelte';

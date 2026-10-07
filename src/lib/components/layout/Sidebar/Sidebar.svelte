@@ -5,7 +5,7 @@
 	import { getMascotFor } from '$lib/mascots';
 	import { network } from '$lib/state/network.svelte';
 	import { t } from '$lib/i18n/index.svelte';
-	import { getInstanceIconPath } from '$lib/api/tflApi';
+	import { getInstanceIconPath } from '$lib/api';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
 	import {
 		Plus,

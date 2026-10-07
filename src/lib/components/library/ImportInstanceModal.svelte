@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { ImportCandidate, InstanceData } from '$lib/types/types';
-	import { detectImportableInstances, importExternalInstance } from '$lib/api/tflApi';
+	import { detectImportableInstances, importExternalInstance } from '$lib/api';
 	import { t } from '$lib/i18n/index.svelte';
 	import { Loader2, Download } from 'lucide-svelte';
 

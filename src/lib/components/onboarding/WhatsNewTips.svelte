@@ -12,7 +12,7 @@
 	//     a abrir el Release de GitHub, así que el texto tiene que estar
 	//     ACÁ, el link de salida queda solo como detalle extra opcional.
 	// Si coincide, no muestra nada — no molesta en cada apertura.
-	import { openExternalUrl } from '$lib/api/tflApi';
+	import { openExternalUrl } from '$lib/api';
 	import { RELEASE_NOTES } from '$lib/releaseNotes';
 	import { t, type TranslationKey } from '$lib/i18n/index.svelte';
 	import { Sparkles, X, ExternalLink } from 'lucide-svelte';

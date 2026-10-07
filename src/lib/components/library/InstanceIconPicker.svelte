@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
-	import { pickImageFile, setInstanceIcon } from '$lib/api/tflApi';
+	import { pickImageFile, setInstanceIcon } from '$lib/api';
 	import { appState } from '$lib/state/state.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { X, Upload, Loader2 } from 'lucide-svelte';

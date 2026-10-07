@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getServerVersions, createServerInstance } from '$lib/api/tflApi';
+	import { getServerVersions, createServerInstance } from '$lib/api';
 	import type { InstanceData, ServerType } from '$lib/types/types';
 	import { t } from '$lib/i18n/index.svelte';
 	import { Loader2 } from 'lucide-svelte';

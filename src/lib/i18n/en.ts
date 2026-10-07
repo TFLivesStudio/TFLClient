@@ -76,11 +76,17 @@ export const en: Dictionary = {
 			label: 'Updates',
 			autoEnabled: 'Auto-update: On',
 			autoDisabled: 'Auto-update: Off',
-			hint: 'With this on, the launcher checks for and downloads updates by itself on startup, in the background — you choose when to install with the notice that appears.',
+			hint: 'With this on, the launcher checks for and downloads updates by itself on startup, in the background, without getting in your way — you choose when to restart to apply them. With it off, updates are only checked manually from here.',
 			check: 'Check for updates',
 			upToDate: "You're on the latest version.",
 			available: 'Update available: v{{version}}',
-			download: 'Download and install'
+			download: 'Download update',
+			downloading: 'Downloading update… {{percent}}%',
+			downloadingUnknown: 'Downloading update…',
+			ready: 'Update v{{version}} is ready to install.',
+			restart: 'Restart to update',
+			installing: 'Installing…',
+			retry: 'Retry'
 		},
 		accent: {
 			label: 'Accent color',
@@ -494,8 +500,17 @@ export const en: Dictionary = {
 	},
 	updateBadge: {
 		available: 'Update available',
+		availableSub: 'v{{version}}',
+		download: 'Download',
+		downloading: 'Downloading update…',
+		downloadingSub: 'v{{version}} — {{percent}}%',
+		downloadingSubUnknown: 'v{{version}}',
+		ready: 'Update ready',
+		readySub: 'v{{version}} — applied on restart',
+		restart: 'Restart to update',
 		installing: 'Installing…',
-		clickToInstall: 'v{{version}} — click to install'
+		error: "Couldn't update",
+		retry: 'Retry'
 	},
 	commandPalette: {
 		action: 'Action',
