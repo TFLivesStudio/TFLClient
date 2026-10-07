@@ -43,7 +43,7 @@
 		addLocalShaderFiles,
 		addLocalResourcepackFiles,
 		addLocalPluginFiles
-	} from '$lib/api/tflApi';
+	} from '$lib/api';
 	import { favoriteMods, isFavoriteMod, toggleFavoriteMod } from '$lib/state/modFavorites.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import {

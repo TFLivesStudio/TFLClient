@@ -24,7 +24,7 @@
 		pickImageFile,
 		setCustomWallpaper,
 		getCustomWallpaperPath
-	} from '$lib/api/tflApi';
+	} from '$lib/api';
 	import type { QualityProfile, MinecraftUser, JavaStatus } from '$lib/types/types';
 	import {
 		X,

@@ -8,7 +8,7 @@
 		getInstanceModpacks,
 		checkModpackUpdates,
 		removeModpack
-	} from '$lib/api/tflApi';
+	} from '$lib/api';
 	import { Search, Download, Trash2, Loader2, Package, RefreshCw } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
 

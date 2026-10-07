@@ -5,7 +5,7 @@
 		createWorldBackup,
 		restoreWorldBackup,
 		deleteWorldBackup
-	} from '$lib/api/tflApi';
+	} from '$lib/api';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import { t, i18nState } from '$lib/i18n/index.svelte';
 	import { Archive, Loader2, RotateCcw, Trash2 } from 'lucide-svelte';

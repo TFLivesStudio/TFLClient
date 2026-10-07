@@ -1,5 +1,5 @@
 import { listen } from '@tauri-apps/api/event';
-import { getRunningInstances } from '$lib/api/tflApi';
+import { getRunningInstances } from '$lib/api';
 import type { RunningInstanceInfo } from '$lib/types/types';
 
 // Puede haber más de una instancia de cliente corriendo a la vez (con

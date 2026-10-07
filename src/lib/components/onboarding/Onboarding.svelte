@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Tfl from '$lib/icons/Tfl.svelte';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-	import { getDeviceCode, authenticateWithDeviceCode, addOfflineAccount } from '$lib/api/tflApi';
+	import { getDeviceCode, authenticateWithDeviceCode, addOfflineAccount } from '$lib/api';
 	import type { MinecraftUser } from '$lib/types/types';
 	import { User, Gamepad2, Loader2, Copy, CheckCircle2 } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';

@@ -55,7 +55,7 @@
 			done = item.id;
 			setTimeout(onClose, 500);
 		} catch {
-			// El error real ya lo maneja/loguea la acción en sí (tflApi
+			// El error real ya lo maneja/loguea la acción en sí (lib/api
 			// propaga el mensaje de Rust) — acá no hay dónde mostrarlo con
 			// detalle, así que solo se cierra sin fingir que salió bien.
 			onClose();

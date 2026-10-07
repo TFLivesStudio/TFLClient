@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { appState } from '$lib/state/state.svelte';
-	import { updateSettings } from '$lib/api/tflApi';
+	import { updateSettings } from '$lib/api';
 	import { Wifi, Globe } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
 

@@ -4,7 +4,7 @@
 	import { Image } from '@tauri-apps/api/image';
 	import { writeImage } from '@tauri-apps/plugin-clipboard-manager';
 	import type { InstanceData, ScreenshotInfo } from '$lib/types/types';
-	import { getInstanceScreenshots, deleteScreenshot, openScreenshotsFolder } from '$lib/api/tflApi';
+	import { getInstanceScreenshots, deleteScreenshot, openScreenshotsFolder } from '$lib/api';
 	import { FolderOpen, Trash2, X, ImageOff, Copy, Check } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
 

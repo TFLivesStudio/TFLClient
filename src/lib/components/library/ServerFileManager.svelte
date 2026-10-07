@@ -6,7 +6,7 @@
 		writeInstanceTextFile,
 		deleteInstancePath,
 		createInstanceDir
-	} from '$lib/api/tflApi';
+	} from '$lib/api';
 	import { t } from '$lib/i18n/index.svelte';
 	import { Folder, FileText, Trash2, ArrowLeft, FolderPlus, Loader2, Save } from 'lucide-svelte';
 

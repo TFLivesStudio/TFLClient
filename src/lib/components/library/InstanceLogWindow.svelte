@@ -4,7 +4,7 @@
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { invoke } from '@tauri-apps/api/core';
 	import { t, type TranslationKey } from '$lib/i18n/index.svelte';
-	import { diagnoseCrash, setModEnabled, rollbackModUpdate } from '$lib/api/tflApi';
+	import { diagnoseCrash, setModEnabled, rollbackModUpdate } from '$lib/api';
 	import type { CrashSuspect } from '$lib/types/types';
 	import { Square, X, Loader2 } from 'lucide-svelte';
 

@@ -39,7 +39,7 @@
 		createInstanceShortcut,
 		exportInstanceAsMrpack,
 		openInstanceFolder
-	} from '$lib/api/tflApi';
+	} from '$lib/api';
 	import { checkAndDownloadUpdate } from '$lib/state/updateState.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';

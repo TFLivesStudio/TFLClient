@@ -8,7 +8,7 @@
 		setActiveCape,
 		hideCape,
 		pickImageFile
-	} from '$lib/api/tflApi';
+	} from '$lib/api';
 	import { appState } from '$lib/state/state.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import type { MojangProfile } from '$lib/types/types';

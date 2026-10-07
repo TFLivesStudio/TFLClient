@@ -1,12 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { InstanceData, Loader, TflSelectionEntry } from '$lib/types/types';
-	import {
-		getTflSelection,
-		installModpack,
-		installModpackFromUrl,
-		createInstance
-	} from '$lib/api/tflApi';
+	import { getTflSelection, installModpack, installModpackFromUrl, createInstance } from '$lib/api';
 	import { X, Download, Loader2, Check } from 'lucide-svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
 	import { t } from '$lib/i18n/index.svelte';
