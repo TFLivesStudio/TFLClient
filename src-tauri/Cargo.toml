@@ -1,6 +1,6 @@
 [package]
 name = "tflclient"
-version = "0.1.0"
+version = "0.10.16"
 description = "TFL Client, launcher de Minecraft de TFLives"
 authors = ["TFLives"]
 edition = "2024"
