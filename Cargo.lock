@@ -5736,7 +5736,7 @@ dependencies = [
 
 [[package]]
 name = "tflclient"
-version = "0.11.0"
+version = "0.11.0-beta.1"
 dependencies = [
  "ablage",
  "aqua",
@@ -5760,6 +5760,7 @@ dependencies = [
  "rand 0.9.5",
  "regex",
  "reqwest 0.13.5",
+ "semver",
  "serde",
  "serde_json",
  "sha1",

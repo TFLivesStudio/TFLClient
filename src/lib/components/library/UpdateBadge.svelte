@@ -8,11 +8,12 @@
 	} from '$lib/state/updateState.svelte';
 	import { isBadgeVisible, progressPercent } from '$lib/state/updateMachine';
 	import { t } from '$lib/i18n/index.svelte';
+	import { formatVersion } from '$lib/version';
 	import { Download, RotateCw, AlertTriangle, X, Loader2 } from 'lucide-svelte';
 
 	const visible = $derived(isBadgeVisible(updateState, updateState.dismissed));
 	const percent = $derived(progressPercent(updateState));
-	const version = $derived(updateState.version ?? '');
+	const version = $derived(formatVersion(updateState.version ?? ''));
 	const phase = $derived(updateState.phase);
 </script>
 

@@ -70,6 +70,15 @@ export const es = {
 			hint: 'Automático (recomendado): subir tu propio ícono/wallpaper o agregar mods por archivo queda desactivado — no hace falta, todo se instala solo. Manual: lo habilita, pero en algunos casos puede cerrar el launcher de golpe (diálogo nativo de archivos).'
 		},
 		updates: {
+			betaEnabled: 'Versiones beta: Activadas',
+			betaDisabled: 'Versiones beta: Desactivadas',
+			betaHint:
+				'Las betas son pruebas anticipadas de lo que viene: llegan antes pero pueden tener errores. Podés desactivarlas cuando quieras.',
+			currentVersion: 'Versión instalada: {{version}}',
+			betaWarningTitle: '¿Activar las versiones beta?',
+			betaWarningMessage:
+				'Las versiones beta son pruebas anticipadas: pueden contener errores, cerrarse de golpe o dejar tus instancias en un estado raro. Hacé una copia de tus mundos importantes antes de probarlas. Podés desactivarlas cuando quieras, pero el launcher no vuelve solo a la versión estable: te quedás en la beta hasta que salga una estable más nueva.',
+			betaWarningConfirm: 'Activar betas',
 			label: 'Actualizaciones',
 			autoEnabled: 'Auto-actualizar: Activado',
 			autoDisabled: 'Auto-actualizar: Desactivado',

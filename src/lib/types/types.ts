@@ -29,6 +29,7 @@ export interface Settings {
 	disable_blur_effects: boolean;
 	disable_infinite_animations: boolean;
 	auto_updates: boolean;
+	beta_updates: boolean;
 	native_dialog_mode: 'auto' | 'manual';
 	native_dialog_mode_prompted: boolean;
 	server_connection_info_shown: boolean;
@@ -269,4 +270,11 @@ export interface ServerStatus {
 	players_max: number | null;
 	version: string | null;
 	latency_ms: number | null;
+}
+
+export interface UpdateInfo {
+	version: string;
+	current_version: string;
+	notes: string | null;
+	is_beta: boolean;
 }

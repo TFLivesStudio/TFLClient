@@ -1,6 +1,6 @@
 [package]
 name = "tflclient"
-version = "0.11.0"
+version = "0.11.0-beta.1"
 description = "TFL Client, launcher de Minecraft de TFLives"
 authors = ["TFLives"]
 edition = "2024"
@@ -49,6 +49,7 @@ ablage = { path = "../crates/ablage" }
 postcard = { version = "1", features = ["use-std"] }
 urlencoding = "2"
 url = "2"
+semver = "1"
 regex = "1"
 tauri-plugin-opener = "2.5.5"
 tauri-plugin-clipboard-manager = "2.3.3"

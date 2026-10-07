@@ -1,5 +1,8 @@
-import { check, type Update } from '@tauri-apps/plugin-updater';
+import { listen } from '@tauri-apps/api/event';
 import { relaunch } from '@tauri-apps/plugin-process';
+import { updateCheck, updateDownload, updateInstall } from '$lib/api';
+import { appState } from '$lib/state/state.svelte';
+import type { UpdateInfo } from '$lib/types/types';
 import {
 	INITIAL_UPDATE_SNAPSHOT,
 	canStartCheck,
@@ -22,9 +25,9 @@ export const updateState = $state<UpdateSnapshot & { dismissed: boolean }>({
 	dismissed: false
 });
 
-// El objeto `Update` es un recurso nativo, no un valor serializable: vive
-// fuera del estado reactivo.
-let pendingUpdate: Update | null = null;
+// El paquete de la actualización vive del lado Rust (commands/updater.rs);
+// acá solo se sabe si hay una pendiente.
+let hasPendingUpdate = false;
 let autoCheckStarted = false;
 let lastAutoDownload = false;
 
@@ -37,6 +40,22 @@ function dispatch(event: UpdateEvent): void {
 	Object.assign(updateState, next);
 	// Un badge cerrado reaparece cuando cambia la fase (p. ej. terminó la descarga).
 	if (next.phase !== previousPhase) updateState.dismissed = false;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+	return new Promise<T>((resolve, reject) => {
+		const timer = setTimeout(() => reject(new Error('Tiempo de espera agotado')), ms);
+		promise.then(
+			(value) => {
+				clearTimeout(timer);
+				resolve(value);
+			},
+			(error) => {
+				clearTimeout(timer);
+				reject(error);
+			}
+		);
+	});
 }
 
 function errorMessage(e: unknown): string {
@@ -56,9 +75,14 @@ export async function checkForUpdates(options: {
 	lastAutoDownload = options.autoDownload;
 	dispatch({ type: 'CHECK_START', userInitiated: options.userInitiated });
 
-	let update: Update | null;
+	let update: UpdateInfo | null;
 	try {
-		update = await check({ timeout: CHECK_TIMEOUT_MS });
+		// El canal (estable/beta) sale del ajuste actual: así sirve igual para el
+		// chequeo automático, el manual y los reintentos.
+		update = await withTimeout(
+			updateCheck(appState.settings?.beta_updates === true),
+			CHECK_TIMEOUT_MS
+		);
 	} catch (e) {
 		console.error('Chequeo de actualización falló:', e);
 		dispatch({ type: 'CHECK_FAILED', message: errorMessage(e) });
@@ -68,7 +92,7 @@ export async function checkForUpdates(options: {
 		dispatch({ type: 'CHECK_NONE' });
 		return;
 	}
-	pendingUpdate = update;
+	hasPendingUpdate = true;
 	dispatch({ type: 'CHECK_FOUND', version: update.version });
 	if (options.autoDownload) await downloadUpdate();
 }
@@ -92,33 +116,46 @@ export async function checkAndDownloadUpdate(): Promise<void> {
 }
 
 export async function downloadUpdate(): Promise<void> {
-	const update = pendingUpdate;
-	if (!update) return;
+	if (!hasPendingUpdate) return;
 	dispatch({ type: 'DOWNLOAD_START' });
 	if (updateState.phase !== 'downloading') return;
-	try {
-		await update.download((event) => {
-			if (event.event === 'Started') {
-				dispatch({ type: 'DOWNLOAD_TOTAL', totalBytes: event.data.contentLength ?? null });
-			} else if (event.event === 'Progress') {
-				dispatch({ type: 'DOWNLOAD_PROGRESS', chunkBytes: event.data.chunkLength });
+
+	// El backend avisa el progreso acumulado; la máquina de estados espera
+	// "bytes de este tramo", así que se pasa la diferencia.
+	let lastDownloaded = 0;
+	let totalAnnounced = false;
+	const unlisten = await listen<{ downloaded: number; total: number | null }>(
+		'update-download-progress',
+		(event) => {
+			const { downloaded, total } = event.payload;
+			if (!totalAnnounced && total !== null) {
+				totalAnnounced = true;
+				dispatch({ type: 'DOWNLOAD_TOTAL', totalBytes: total });
 			}
-		});
+			if (downloaded > lastDownloaded) {
+				dispatch({ type: 'DOWNLOAD_PROGRESS', chunkBytes: downloaded - lastDownloaded });
+				lastDownloaded = downloaded;
+			}
+		}
+	);
+	try {
+		await updateDownload();
 		dispatch({ type: 'DOWNLOAD_DONE' });
 	} catch (e) {
 		console.error('Descarga de actualización falló:', e);
 		dispatch({ type: 'DOWNLOAD_FAILED', message: errorMessage(e) });
+	} finally {
+		unlisten();
 	}
 }
 
 /** Instala la actualización ya descargada y reinicia el launcher. */
 export async function installDownloadedUpdate(): Promise<void> {
-	const update = pendingUpdate;
-	if (!update) return;
+	if (!hasPendingUpdate) return;
 	dispatch({ type: 'INSTALL_START' });
 	if (updateState.phase !== 'installing') return;
 	try {
-		await update.install();
+		await updateInstall();
 		await relaunch();
 	} catch (e) {
 		console.error('Instalación de actualización falló:', e);

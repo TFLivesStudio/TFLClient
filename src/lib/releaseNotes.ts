@@ -144,7 +144,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	'0.10.16': [
 		'Arreglado: la versión 0.10.15 no llegó a publicarse completa para macOS y Linux por un error de empaquetado. Esta trae todo lo de 0.10.15 (importar instancias, favoritos, backups de mundos, desactivar mods y más) para las 3 plataformas.'
 	],
-	'0.11.0': [
+	'0.11.0-beta.1': [
+		'Esta es una versión BETA: trae las novedades de la 0.11.0 antes que el resto y puede tener errores. Si algo anda mal, avisanos; podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Actualizaciones más claras: un aviso discreto cuando hay una versión nueva, se descarga sola en segundo plano con barra de progreso, y al terminar te deja "Reiniciar para actualizar" cuando quieras. Si algo falla, hay un botón para reintentar.',
 		'Más seguro: el launcher ahora corre con permisos mínimos (la ventana de logs solo puede hacer lo suyo y una protección más estricta contra contenido externo). No cambia nada de cómo se usa.',
 		'Arreglado: el botón "Deshacer última actualización" de los mods no aparecía después de actualizar.',

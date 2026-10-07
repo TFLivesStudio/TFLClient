@@ -32,6 +32,8 @@
 		getCustomWallpaperPath
 	} from '$lib/api';
 	import type { QualityProfile, MinecraftUser, JavaStatus } from '$lib/types/types';
+	import { formatVersion } from '$lib/version';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import {
 		X,
 		Check,
@@ -372,6 +374,29 @@
 		// data-surface, la elección del usuario se mantiene en los dos.
 		appState.settings.theme = theme;
 		await updateSettings(appState.settings);
+	}
+
+	let showBetaWarning = $state(false);
+
+	// Activar las betas siempre pide confirmación (cada vez, no solo la primera):
+	// pueden traer errores. Desactivarlas es directo.
+	async function toggleBetaUpdates() {
+		if (!appState.settings) return;
+		if (!appState.settings.beta_updates) {
+			showBetaWarning = true;
+			return;
+		}
+		appState.settings.beta_updates = false;
+		await updateSettings(appState.settings);
+	}
+
+	async function confirmBetaUpdates() {
+		showBetaWarning = false;
+		if (!appState.settings) return;
+		appState.settings.beta_updates = true;
+		await updateSettings(appState.settings);
+		// Para que se vea enseguida si ya hay una beta disponible.
+		handleCheckForUpdate();
 	}
 
 	async function toggleAutoUpdates() {
@@ -752,6 +777,20 @@
 					</button>
 					<button
 						type="button"
+						class="choice auto-update-toggle"
+						class:active={appState.settings?.beta_updates}
+						onclick={toggleBetaUpdates}
+					>
+						{appState.settings?.beta_updates
+							? t('settings.updates.betaEnabled')
+							: t('settings.updates.betaDisabled')}
+					</button>
+					<p class="hint">{t('settings.updates.betaHint')}</p>
+					<p class="hint">
+						{t('settings.updates.currentVersion', { version: formatVersion(__APP_VERSION__) })}
+					</p>
+					<button
+						type="button"
 						class="save-btn"
 						disabled={!canStartCheck(updateState)}
 						onclick={handleCheckForUpdate}
@@ -770,7 +809,9 @@
 
 					{#if updateState.phase === 'available'}
 						<p class="hint">
-							{t('settings.updates.available', { version: updateState.version ?? '' })}
+							{t('settings.updates.available', {
+								version: formatVersion(updateState.version ?? '')
+							})}
 						</p>
 						<button type="button" class="save-btn" onclick={downloadUpdate}>
 							<Download size={13} />
@@ -784,7 +825,7 @@
 						</p>
 					{:else if updateState.phase === 'downloaded'}
 						<p class="hint">
-							{t('settings.updates.ready', { version: updateState.version ?? '' })}
+							{t('settings.updates.ready', { version: formatVersion(updateState.version ?? '') })}
 						</p>
 						<button type="button" class="save-btn" onclick={installDownloadedUpdate}>
 							<RefreshCw size={13} />
@@ -1092,6 +1133,17 @@
 		</div>
 	</div>
 </div>
+
+{#if showBetaWarning}
+	<ConfirmDialog
+		title={t('settings.updates.betaWarningTitle')}
+		message={t('settings.updates.betaWarningMessage')}
+		confirmLabel={t('settings.updates.betaWarningConfirm')}
+		danger
+		onConfirm={confirmBetaUpdates}
+		onCancel={() => (showBetaWarning = false)}
+	/>
+{/if}
 
 <style>
 	.overlay {

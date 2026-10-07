@@ -73,6 +73,15 @@ export const en: Dictionary = {
 			hint: 'Automatic (recommended): uploading your own icon/wallpaper or adding mods from a file stays disabled — no need, everything installs itself. Manual: enables it, but in some cases it can close the launcher abruptly (native file dialog).'
 		},
 		updates: {
+			betaEnabled: 'Beta versions: On',
+			betaDisabled: 'Beta versions: Off',
+			betaHint:
+				'Betas are early previews of what is coming: they arrive sooner but may have bugs. You can turn them off any time.',
+			currentVersion: 'Installed version: {{version}}',
+			betaWarningTitle: 'Turn on beta versions?',
+			betaWarningMessage:
+				'Beta versions are early previews: they may contain bugs, crash, or leave your instances in an odd state. Back up any important worlds before trying them. You can turn them off any time, but the launcher does not go back to the stable version by itself: you stay on the beta until a newer stable version is released.',
+			betaWarningConfirm: 'Turn on betas',
 			label: 'Updates',
 			autoEnabled: 'Auto-update: On',
 			autoDisabled: 'Auto-update: Off',

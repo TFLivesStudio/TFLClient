@@ -121,6 +121,11 @@ pub struct SettingsManager {
     /// `updateState.svelte.ts` en el frontend.
     #[serde(default = "default_true")]
     pub auto_updates: bool,
+    /// Canal de actualizaciones: `true` = también recibe las versiones beta
+    /// (y las estables). Se activa a propósito desde Ajustes, con un aviso de
+    /// que pueden traer errores — ver `commands/updater.rs`.
+    #[serde(default)]
+    pub beta_updates: bool,
     /// "auto" (default) oculta/deshabilita en el frontend cualquier función
     /// que dependa del diálogo nativo de archivos (subir ícono/wallpaper
     /// propio, agregar mods/shaders/resourcepacks por archivo) — el diálogo
@@ -174,6 +179,7 @@ impl Default for SettingsManager {
             disable_blur_effects: false,
             disable_infinite_animations: false,
             auto_updates: true,
+            beta_updates: false,
             native_dialog_mode: default_dialog_mode(),
             native_dialog_mode_prompted: false,
             server_connection_info_shown: false,

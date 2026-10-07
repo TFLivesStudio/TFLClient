@@ -12,5 +12,6 @@ pub mod servers;
 pub mod settings;
 pub mod shortcuts;
 pub mod tfl_selection;
+pub mod updater;
 pub mod versions;
 pub mod world_backups;

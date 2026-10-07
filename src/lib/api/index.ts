@@ -9,3 +9,4 @@ export * from './modpacks';
 export * from './backups';
 export * from './servers';
 export * from './profile';
+export * from './updater';

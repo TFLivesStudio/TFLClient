@@ -141,7 +141,6 @@ fn plugins_are_limited_to_what_the_ui_uses() {
     for cmd in [
         "plugin:clipboard-manager|write_text",
         "plugin:clipboard-manager|write_image",
-        "plugin:updater|check",
         "plugin:process|restart",
         "plugin:image|from_path",
         "plugin:resources|close",
@@ -150,6 +149,14 @@ fn plugins_are_limited_to_what_the_ui_uses() {
         assert!(!allowed(&log, cmd), "el log NO debería poder `{cmd}`");
     }
     assert!(!allowed(&main, "plugin:clipboard-manager|read_text"));
+    // Las actualizaciones van por comandos propios (`update_*`, que eligen el
+    // canal estable/beta): el plugin del updater ya no se llama desde el WebView.
+    assert!(!allowed(&main, "plugin:updater|check"));
+    assert!(!allowed(&main, "plugin:updater|download_and_install"));
+    for cmd in ["update_check", "update_download", "update_install"] {
+        assert!(allowed(&main, cmd), "la principal debería poder `{cmd}`");
+        assert!(!allowed(&log, cmd), "el log NO debería poder `{cmd}`");
+    }
 
     // Fuera de lo que usa la interfaz: ni DevTools ni diálogos ni salir de la app.
     for cmd in [

@@ -17,6 +17,8 @@
 	import { t, type TranslationKey } from '$lib/i18n/index.svelte';
 	import { Sparkles, X, ExternalLink } from 'lucide-svelte';
 
+	import { formatVersion } from '$lib/version';
+
 	const STORAGE_KEY = 'tfl-last-seen-version';
 
 	type Mode = 'none' | 'first-run' | 'update';
@@ -76,7 +78,7 @@
 					<h2>
 						{mode === 'first-run'
 							? t('whatsNewTips.welcomeTitle')
-							: t('whatsNewTips.updatesTitle', { version: __APP_VERSION__ })}
+							: t('whatsNewTips.updatesTitle', { version: formatVersion(__APP_VERSION__) })}
 					</h2>
 				</div>
 				<button type="button" class="close-btn" onclick={dismiss} aria-label={t('settings.close')}
@@ -92,7 +94,7 @@
 				</ul>
 			{:else if updateNotes.length > 0}
 				<p class="update-text">
-					{t('whatsNewTips.updatedToVersionWithNotes', { version: __APP_VERSION__ })}
+					{t('whatsNewTips.updatedToVersionWithNotes', { version: formatVersion(__APP_VERSION__) })}
 				</p>
 				<ul class="tips">
 					{#each updateNotes as note, i (i)}
@@ -105,7 +107,7 @@
 				</button>
 			{:else}
 				<p class="update-text">
-					{t('whatsNewTips.updatedToVersionNoNotes', { version: __APP_VERSION__ })}
+					{t('whatsNewTips.updatedToVersionNoNotes', { version: formatVersion(__APP_VERSION__) })}
 				</p>
 				<button type="button" class="release-link" onclick={openRelease}>
 					<ExternalLink size={13} />

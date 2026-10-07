@@ -168,11 +168,27 @@ jobs:
           # los artifacts de siempre.
           tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
           releaseName: ${{ startsWith(github.ref, 'refs/tags/v') && format('TFL Client {0}', github.ref_name) || '' }}
-          releaseBody: 'Ver el changelog del repo para el detalle de esta versión.'
+          # Un tag con guion (v0.11.0-beta.1) es una BETA: se publica como
+          # prerelease, que GitHub NO cuenta como "latest". Eso es lo que evita
+          # que quien no activó las betas en Ajustes la reciba (el updater estable
+          # lee releases/latest/download/latest.json). Ver docs/CANAL_BETA.md.
+          releaseBody: "${{ contains(github.ref_name, '-') && 'Versión BETA: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes.' || 'Ver el changelog del repo para el detalle de esta versión.' }}"
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
           includeUpdaterJson: true
           args: ${{ matrix.args }}
+
+      # Cinturón y tirantes: si por lo que sea el Release de una beta no quedó
+      # marcado como prerelease, las actualizaciones estables se la ofrecerían a
+      # todos. Este paso lo fuerza (y no toca los releases estables).
+      - name: Asegurar que las betas sean prerelease
+        if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, '-')
+        shell: bash
+        run: gh release edit "$REF_NAME" --prerelease -R "$REPO"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
 
       - name: Subir copia con nombre fijo (link de descarga directa)
         # Los archivos que sube tauri-action llevan la versión en el
