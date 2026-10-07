@@ -10,11 +10,17 @@
 				background: #0a0a0a;
 				margin: 0;
 			}
+			/* Antes era style="display: contents" inline en el div: con una CSP
+			   estricta un atributo style del HTML no se puede hashear, así que
+			   va como clase en este bloque (que sí se hashea). */
+			.app-root {
+				display: contents;
+			}
 		</style>
 		%sveltekit.head%
 	</head>
 
 	<body>
-		<div style="display: contents">%sveltekit.body%</div>
+		<div class="app-root">%sveltekit.body%</div>
 	</body>
 </html>
