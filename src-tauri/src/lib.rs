@@ -126,6 +126,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::auth::get_device_code,
+            commands::updater::update_check,
+            commands::updater::update_download,
+            commands::updater::update_install,
             commands::auth::authenticate_with_device_code,
             commands::auth::add_offline_account,
             commands::auth::get_current_user,

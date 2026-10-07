@@ -2,8 +2,9 @@
 	import { onMount } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-	import { check as checkForUpdate, type Update } from '@tauri-apps/plugin-updater';
-	import { relaunch } from '@tauri-apps/plugin-process';
+	import { checkForUpdateNow, downloadAndInstallNow } from '$lib/state/updateState.svelte';
+	import { formatVersion } from '$lib/version';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import { t, i18nState, setLocale, type TranslationKey } from '$lib/i18n/index.svelte';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
@@ -25,7 +26,7 @@
 		setCustomWallpaper,
 		getCustomWallpaperPath
 	} from '$lib/api/tflApi';
-	import type { QualityProfile, MinecraftUser, JavaStatus } from '$lib/types/types';
+	import type { QualityProfile, MinecraftUser, JavaStatus, UpdateInfo } from '$lib/types/types';
 	import {
 		X,
 		Check,
@@ -227,7 +228,8 @@
 
 	let updateChecking = $state(false);
 	let updateInstalling = $state(false);
-	let updateInfo = $state<Update | null>(null);
+	let updateInfo = $state<UpdateInfo | null>(null);
+	let showBetaWarning = $state(false);
 	let updateError = $state<string | null>(null);
 	let updateChecked = $state(false);
 
@@ -235,7 +237,7 @@
 		updateChecking = true;
 		updateError = null;
 		try {
-			updateInfo = await checkForUpdate();
+			updateInfo = await checkForUpdateNow(appState.settings?.beta_updates ?? false);
 			updateChecked = true;
 		} catch (e) {
 			// Endpoint todavía no configurado (host de updates pendiente) — no es un
@@ -251,8 +253,7 @@
 		updateInstalling = true;
 		updateError = null;
 		try {
-			await updateInfo.downloadAndInstall();
-			await relaunch();
+			await downloadAndInstallNow();
 		} catch (e) {
 			updateError = String(e);
 			updateInstalling = false;
@@ -369,6 +370,29 @@
 		if (!appState.settings) return;
 		appState.settings.auto_updates = !appState.settings.auto_updates;
 		await updateSettings(appState.settings);
+	}
+
+	// Activar las betas siempre pide confirmación (cada vez, no solo la primera):
+	// pueden traer errores. Desactivarlas es directo.
+	async function toggleBetaUpdates() {
+		if (!appState.settings) return;
+		if (!appState.settings.beta_updates) {
+			showBetaWarning = true;
+			return;
+		}
+		appState.settings.beta_updates = false;
+		if (updateInfo?.is_beta) updateInfo = null;
+		updateChecked = false;
+		await updateSettings(appState.settings);
+	}
+
+	async function confirmBetaUpdates() {
+		showBetaWarning = false;
+		if (!appState.settings) return;
+		appState.settings.beta_updates = true;
+		await updateSettings(appState.settings);
+		// Para que se vea enseguida si ya hay una beta disponible.
+		void handleCheckForUpdate();
 	}
 
 	async function setNativeDialogMode(mode: 'auto' | 'manual') {
@@ -715,6 +739,16 @@
 					</button>
 					<button
 						type="button"
+						class="choice auto-update-toggle"
+						class:active={appState.settings?.beta_updates}
+						onclick={toggleBetaUpdates}
+					>
+						{appState.settings?.beta_updates ? t('settings.updates.betaEnabled') : t('settings.updates.betaDisabled')}
+					</button>
+					<p class="hint">{t('settings.updates.betaHint')}</p>
+					<p class="hint">{t('settings.updates.currentVersion', { version: formatVersion(__APP_VERSION__) })}</p>
+					<button
+						type="button"
 						class="save-btn"
 						disabled={updateChecking || updateInstalling}
 						onclick={handleCheckForUpdate}
@@ -732,7 +766,7 @@
 					{/if}
 
 					{#if updateInfo}
-						<p class="hint">{t('settings.updates.available', { version: updateInfo.version })}</p>
+						<p class="hint">{t('settings.updates.available', { version: formatVersion(updateInfo.version) })}</p>
 						<button
 							type="button"
 							class="save-btn"
@@ -969,6 +1003,17 @@
 		</div>
 	</div>
 </div>
+
+{#if showBetaWarning}
+	<ConfirmDialog
+		title={t('settings.updates.betaWarningTitle')}
+		message={t('settings.updates.betaWarningMessage')}
+		confirmLabel={t('settings.updates.betaWarningConfirm')}
+		danger
+		onConfirm={confirmBetaUpdates}
+		onCancel={() => (showBetaWarning = false)}
+	/>
+{/if}
 
 <style>
 	.overlay {

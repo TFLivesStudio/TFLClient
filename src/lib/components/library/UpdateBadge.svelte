@@ -5,6 +5,7 @@
 		dismissUpdateBadge
 	} from '$lib/state/updateState.svelte';
 	import { t } from '$lib/i18n/index.svelte';
+	import { formatVersion } from '$lib/version';
 	import { Download, X, Loader2 } from 'lucide-svelte';
 </script>
 
@@ -27,7 +28,7 @@
 					<span class="badge-sub">
 						{updateState.installing
 							? t('updateBadge.installing')
-							: t('updateBadge.clickToInstall', { version: updateState.update.version })}
+							: t('updateBadge.clickToInstall', { version: formatVersion(updateState.update.version) })}
 					</span>
 				</span>
 			</button>

@@ -17,6 +17,8 @@
 	import { t, type TranslationKey } from '$lib/i18n/index.svelte';
 	import { Sparkles, X, ExternalLink } from 'lucide-svelte';
 
+	import { formatVersion } from '$lib/version';
+
 	const STORAGE_KEY = 'tfl-last-seen-version';
 
 	type Mode = 'none' | 'first-run' | 'update';
@@ -58,7 +60,7 @@
 	<div class="overlay" onclick={dismiss} onkeydown={(e) => e.key === 'Escape' && dismiss()} role="button" tabindex="-1">
 		<div class="panel anim-fade-in" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
 			<div class="panel-header">
-				<div class="title-row"><Sparkles size={16} /><h2>{mode === 'first-run' ? t('whatsNewTips.welcomeTitle') : t('whatsNewTips.updatesTitle', { version: __APP_VERSION__ })}</h2></div>
+				<div class="title-row"><Sparkles size={16} /><h2>{mode === 'first-run' ? t('whatsNewTips.welcomeTitle') : t('whatsNewTips.updatesTitle', { version: formatVersion(__APP_VERSION__) })}</h2></div>
 				<button type="button" class="close-btn" onclick={dismiss} aria-label={t('settings.close')}><X size={16} /></button>
 			</div>
 
@@ -69,7 +71,7 @@
 					{/each}
 				</ul>
 			{:else if updateNotes.length > 0}
-				<p class="update-text">{t('whatsNewTips.updatedToVersionWithNotes', { version: __APP_VERSION__ })}</p>
+				<p class="update-text">{t('whatsNewTips.updatedToVersionWithNotes', { version: formatVersion(__APP_VERSION__) })}</p>
 				<ul class="tips">
 					{#each updateNotes as note}
 						<li>{note}</li>
@@ -80,7 +82,7 @@
 				</button>
 			{:else}
 				<p class="update-text">
-					{t('whatsNewTips.updatedToVersionNoNotes', { version: __APP_VERSION__ })}
+					{t('whatsNewTips.updatedToVersionNoNotes', { version: formatVersion(__APP_VERSION__) })}
 				</p>
 				<button type="button" class="release-link" onclick={openRelease}>
 					<ExternalLink size={13} /> {t('whatsNewTips.viewFullRelease')}

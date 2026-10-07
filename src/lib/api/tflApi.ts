@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type {
 	Settings,
+	UpdateInfo,
 	MinecraftUser,
 	InstanceData,
 	MinecraftVersion,
@@ -341,3 +342,8 @@ export const hideCape = () => invoke<void>('hide_cape');
 // ── Accesos directos de escritorio ───────────────────────────────────
 export const createInstanceShortcut = (instanceName: string) =>
 	invoke<string>('create_instance_shortcut', { instanceName });
+
+// ── Actualizaciones del launcher (canal estable / beta) ─────────────────
+export const updateCheck = (beta: boolean) => invoke<UpdateInfo | null>('update_check', { beta });
+export const updateDownload = () => invoke<void>('update_download');
+export const updateInstall = () => invoke<void>('update_install');

@@ -175,7 +175,7 @@
 			// No await a propósito — chequeo/descarga en segundo plano, no
 			// debe bloquear el arranque del launcher. El badge (si aparece)
 			// lo dispara el store cuando termine, no esto.
-			if (settings.auto_updates) void checkAndDownloadUpdate();
+			if (settings.auto_updates) void checkAndDownloadUpdate(settings.beta_updates);
 		} finally {
 			loading = false;
 		}

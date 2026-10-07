@@ -143,5 +143,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.16': [
 		'Arreglado: la versión 0.10.15 no llegó a publicarse completa para macOS y Linux por un error de empaquetado. Esta trae todo lo de 0.10.15 (importar instancias, favoritos, backups de mundos, desactivar mods y más) para las 3 plataformas.'
+	],
+	'0.10.17': [
+		'Nuevo: versiones beta. En Ajustes → Sistema → Actualizaciones podés activar "Versiones beta" para recibir las novedades antes que el resto. Antes de activarlas te avisa que pueden tener errores, y las podés desactivar cuando quieras (cada vez que las vuelvas a activar te va a mostrar el aviso de nuevo).'
 	]
 };
