@@ -85,7 +85,7 @@ fn spawn_background_launch(app: tauri::AppHandle, instance_name: String) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tracing_subscriber::fmt::init();
+    init_logging();
 
     core::PathManager::ensure_dirs().expect("No se pudieron crear los directorios de datos");
 
@@ -261,6 +261,21 @@ pub fn run() {
         ])
         .run(tauri_context())
         .expect("error while running tauri application");
+}
+
+/// Logging por defecto: en desarrollo (builds de debug) el detalle de TFL
+/// Client; en release solo INFO, sin el ruido de las dependencias. En ambos se
+/// puede pisar con `RUST_LOG` (útil para pedirle a un usuario un log de más
+/// detalle sin recompilar).
+fn init_logging() {
+    let default = if cfg!(debug_assertions) {
+        "info,tflclient_lib=debug"
+    } else {
+        "info"
+    };
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(default));
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 }
 
 /// `generate_context!` solo se puede expandir una vez por crate: la app y los

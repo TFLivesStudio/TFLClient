@@ -82,6 +82,12 @@ export async function checkForUpdates(options: {
 export async function checkAndDownloadUpdate(): Promise<void> {
 	if (autoCheckStarted) return;
 	autoCheckStarted = true;
+	// En `tauri dev` el binario es de desarrollo: bajar e instalar el release
+	// oficial encima lo pisaría. El chequeo manual de Ajustes sigue disponible.
+	if (import.meta.env.DEV) {
+		console.info('[updater] chequeo automático omitido en desarrollo');
+		return;
+	}
 	await checkForUpdates({ userInitiated: false, autoDownload: true });
 }
 

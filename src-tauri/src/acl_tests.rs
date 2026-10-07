@@ -277,3 +277,107 @@ fn log_window_capability_covers_exactly_what_its_screen_uses() {
          (y a LOG_WINDOW_COMMANDS en build.rs): si cambió la pantalla, actualizá ambas listas"
     );
 }
+
+// ── Guardas de configuración de producción ─────────────────────────────────
+
+#[test]
+fn release_builds_do_not_ship_devtools() {
+    let cargo =
+        std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml")).unwrap();
+    let tauri_line = cargo
+        .lines()
+        .find(|l| l.trim_start().starts_with("tauri = {"))
+        .expect("no se encontró la dependencia de tauri en Cargo.toml");
+    assert!(
+        !tauri_line.contains("devtools"),
+        "la feature `devtools` de tauri expone el inspector en builds de release: {tauri_line}"
+    );
+}
+
+#[test]
+fn production_csp_has_no_unsafe_inline_scripts_or_localhost() {
+    let raw =
+        std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("tauri.conf.json"))
+            .unwrap();
+    let conf: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let csp = &conf["app"]["security"]["csp"];
+    assert!(
+        csp.is_object(),
+        "la CSP de producción tiene que estar definida"
+    );
+    let script_src = csp["script-src"].as_str().unwrap_or_default();
+    assert!(
+        !script_src.contains("unsafe-inline"),
+        "script-src: {script_src}"
+    );
+    assert!(
+        !script_src.contains("unsafe-eval"),
+        "script-src: {script_src}"
+    );
+    for (directive, value) in csp.as_object().unwrap() {
+        let v = value.as_str().unwrap_or_default();
+        assert!(
+            !v.contains("localhost:*"),
+            "{directive} permite localhost: {v}"
+        );
+        assert!(
+            !v.split_whitespace().any(|t| t == "https:" || t == "*"),
+            "{directive} es demasiado abierta: {v}"
+        );
+    }
+    assert!(
+        conf["app"]["security"]["dangerousDisableAssetCspModification"].is_null(),
+        "no desactivar la inyección de hashes/nonces de CSP de Tauri"
+    );
+    // El asset protocol no puede exponer la carpeta de ajustes (tokens, secrets).
+    let scope = &conf["app"]["security"]["assetProtocol"]["scope"];
+    let allow = serde_json::to_string(&scope["allow"]).unwrap();
+    assert!(
+        !allow.contains("**"),
+        "scope de assets demasiado amplio: {allow}"
+    );
+    assert!(
+        !allow.contains("settings"),
+        "scope de assets incluye settings: {allow}"
+    );
+    let deny = serde_json::to_string(&scope["deny"]).unwrap();
+    assert!(
+        deny.contains(".tflclient/settings"),
+        "falta denegar settings: {deny}"
+    );
+}
+
+#[test]
+fn asset_protocol_only_serves_icons_screenshots_and_wallpaper() {
+    use tauri::Manager;
+    let app = app();
+    let scope = app.asset_protocol_scope();
+    let home = std::env::var("HOME").expect("HOME no definido");
+    let p = |rel: &str| Path::new(&home).join(".tflclient").join(rel);
+
+    // Lo que la interfaz muestra de verdad.
+    for ok in [
+        "instances/Mi Pack/icon.png",
+        "instances/Mi Pack/icon.webp",
+        "instances/Mi Pack/screenshots/2026-10-07_20.00.00.png",
+        "shared/appearance/custom-wallpaper.jpg",
+    ] {
+        assert!(scope.is_allowed(p(ok)), "debería poder servirse: {ok}");
+    }
+
+    // Todo lo demás de ~/.tflclient, en especial tokens y secrets.
+    for no in [
+        "settings/settings.tfl",
+        "settings/playit.tfl",
+        "settings/settings.cub",
+        "instances/Mi Pack/instance.tfl.json",
+        "instances/Mi Pack/saves/Mundo/level.dat",
+        "instances/Mi Pack/options.txt",
+        "instances/Mi Pack/mods/algo.jar",
+        "shared/other/archivo.bin",
+        "skins/algo.png",
+    ] {
+        assert!(!scope.is_allowed(p(no)), "NO debería poder servirse: {no}");
+    }
+    assert!(!scope.is_allowed(Path::new(&home).join(".ssh").join("id_rsa")));
+}
