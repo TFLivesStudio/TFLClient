@@ -5,7 +5,9 @@
 //! carpeta de destino dentro de la instancia (`mods/` vs `shaderpacks/`).
 //! CurseForge queda para una próxima iteración — necesita una API key
 //! propia que todavía no existe (spec §26).
-use crate::core::{AppEvent, PathManager, emit, get_bytes_retrying, get_json_retrying, post_json_retrying};
+use crate::core::{
+    AppEvent, PathManager, emit, get_bytes_retrying, get_json_retrying, post_json_retrying,
+};
 use crate::services::instance_manager;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -155,7 +157,14 @@ pub async fn search_resourcepacks(
     mc_version: String,
     categories: Vec<String>,
 ) -> Result<Vec<ModSearchHit>, String> {
-    search_content(&query, &mc_version, "", &categories, ContentKind::ResourcePack).await
+    search_content(
+        &query,
+        &mc_version,
+        "",
+        &categories,
+        ContentKind::ResourcePack,
+    )
+    .await
 }
 
 #[command]
@@ -165,7 +174,14 @@ pub async fn search_plugins(
     server_type: String,
     categories: Vec<String>,
 ) -> Result<Vec<ModSearchHit>, String> {
-    search_content(&query, &mc_version, &server_type, &categories, ContentKind::Plugin).await
+    search_content(
+        &query,
+        &mc_version,
+        &server_type,
+        &categories,
+        ContentKind::Plugin,
+    )
+    .await
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -342,8 +358,7 @@ async fn download_single_file(
     dest_dir: &std::path::Path,
     file: &ModrinthFile,
 ) -> Result<(), String> {
-    if file.filename.contains('/') || file.filename.contains('\\') || file.filename.contains("..")
-    {
+    if file.filename.contains('/') || file.filename.contains('\\') || file.filename.contains("..") {
         return Err(format!(
             "Nombre de archivo inválido recibido de Modrinth: {}",
             file.filename
@@ -371,7 +386,8 @@ async fn download_single_file(
                 .map(|b| format!("{b:02x}"))
                 .collect::<String>();
             if &actual != expected {
-                last_err = format!("hash SHA1 no coincide (esperado {expected}, obtenido {actual})");
+                last_err =
+                    format!("hash SHA1 no coincide (esperado {expected}, obtenido {actual})");
                 tracing::warn!(
                     "Descarga de {} corrupta en intento {attempt}/3: {last_err}",
                     file.filename
@@ -601,7 +617,10 @@ pub async fn install_mod(
             .as_deref()
             .is_some_and(|pid| conflicts_with(&project_id, pid))
     }) {
-        let conflict_name = conflict.title.clone().unwrap_or_else(|| conflict.filename.clone());
+        let conflict_name = conflict
+            .title
+            .clone()
+            .unwrap_or_else(|| conflict.filename.clone());
         return Err(format!(
             "Este mod no es compatible con \"{conflict_name}\", que ya tenés instalado — son motores de renderizado alternativos, no pueden convivir. Sacá uno de los dos antes de instalar el otro."
         ));
@@ -944,7 +963,9 @@ fn projects_from_info(infos: &[InstalledModInfo]) -> InstalledProjects {
             continue;
         }
         if let Some(pid) = &info.project_id {
-            out.entry(pid.clone()).or_default().push(info.filename.clone());
+            out.entry(pid.clone())
+                .or_default()
+                .push(info.filename.clone());
         }
     }
     out
@@ -955,7 +976,9 @@ async fn installed_projects(instance_name: &str, kind: ContentKind) -> Installed
         return InstalledProjects::new();
     };
     let mut out = InstalledProjects::new();
-    for (filename, version) in resolve_installed_files(&instance, kind.subdir(), content_ext(kind)).await {
+    for (filename, version) in
+        resolve_installed_files(&instance, kind.subdir(), content_ext(kind)).await
+    {
         if is_disabled_file(&filename) {
             continue;
         }
@@ -1024,12 +1047,16 @@ async fn get_installed_content_info(
 }
 
 #[command]
-pub async fn get_installed_mods_info(instance_name: String) -> Result<Vec<InstalledModInfo>, String> {
+pub async fn get_installed_mods_info(
+    instance_name: String,
+) -> Result<Vec<InstalledModInfo>, String> {
     get_installed_content_info(&instance_name, "mods", "jar").await
 }
 
 #[command]
-pub async fn get_installed_shaders_info(instance_name: String) -> Result<Vec<InstalledModInfo>, String> {
+pub async fn get_installed_shaders_info(
+    instance_name: String,
+) -> Result<Vec<InstalledModInfo>, String> {
     get_installed_content_info(&instance_name, "shaderpacks", "zip").await
 }
 
@@ -1091,9 +1118,10 @@ pub async fn check_mod_updates(instance_name: String) -> Result<Vec<ModUpdateAva
         };
         // Modrinth devuelve la versión más nueva pase lo que pase — si
         // coincide con el hash ya instalado, en realidad no hay update.
-        let already_current = newest.files.iter().any(|f| {
-            f.hashes.as_ref().and_then(|h| h.sha1.as_deref()) == Some(hash.as_str())
-        });
+        let already_current = newest
+            .files
+            .iter()
+            .any(|f| f.hashes.as_ref().and_then(|h| h.sha1.as_deref()) == Some(hash.as_str()));
         if !already_current {
             out.push(ModUpdateAvailable {
                 filename,
@@ -1192,7 +1220,11 @@ pub async fn update_all_mods(instance_name: String) -> Result<u32, String> {
         };
         let old_path = mods_dir.join(&update.filename);
         if !new_files.contains(&update.filename) {
-            if rollback_ready && move_file(&old_path, &rb_dir.join(&update.filename)).await.is_ok() {
+            if rollback_ready
+                && move_file(&old_path, &rb_dir.join(&update.filename))
+                    .await
+                    .is_ok()
+            {
                 entries.push(RollbackEntry {
                     old: update.filename.clone(),
                     new: new_files,
@@ -1222,7 +1254,9 @@ pub async fn update_all_mods(instance_name: String) -> Result<u32, String> {
 
 /// `None` si no hay una actualización que se pueda deshacer.
 #[command]
-pub async fn get_mod_rollback_info(instance_name: String) -> Result<Option<ModRollbackInfo>, String> {
+pub async fn get_mod_rollback_info(
+    instance_name: String,
+) -> Result<Option<ModRollbackInfo>, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
     Ok(read_rollback_manifest(&rollback_dir(&instance))
         .await
@@ -1281,7 +1315,8 @@ pub async fn get_mod_version_changelog(version_id: String) -> Result<Option<Stri
 #[command]
 pub async fn find_duplicate_mods(instance_name: String) -> Result<Vec<Vec<String>>, String> {
     let infos = get_installed_mods_info(instance_name).await?;
-    let mut by_project: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    let mut by_project: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
     for info in infos {
         if info.disabled {
             continue;
@@ -1308,7 +1343,10 @@ pub async fn remove_duplicate_mods(instance_name: String) -> Result<u32, String>
             continue;
         }
         if let Some(v) = version {
-            by_project.entry(v.project_id.clone()).or_default().push((filename, v));
+            by_project
+                .entry(v.project_id.clone())
+                .or_default()
+                .push((filename, v));
         }
     }
 
@@ -1319,12 +1357,18 @@ pub async fn remove_duplicate_mods(instance_name: String) -> Result<u32, String>
         }
         // El mejor queda último: build más nueva, jar real antes que auxiliar.
         group.sort_by(|(fa, va), (fb, vb)| {
-            (!is_auxiliary_jar(fa), &va.date_published, fa)
-                .cmp(&(!is_auxiliary_jar(fb), &vb.date_published, fb))
+            (!is_auxiliary_jar(fa), &va.date_published, fa).cmp(&(
+                !is_auxiliary_jar(fb),
+                &vb.date_published,
+                fb,
+            ))
         });
         group.pop();
         for (filename, _) in group {
-            if remove_file_in(&instance_name, "mods", &filename).await.is_ok() {
+            if remove_file_in(&instance_name, "mods", &filename)
+                .await
+                .is_ok()
+            {
                 removed += 1;
             }
         }
@@ -1479,9 +1523,12 @@ fn build_mrpack_zip(
     let file = std::fs::File::create(export_path)?;
     let mut zip = zip::ZipWriter::new(file);
 
-    let index_json = serde_json::to_vec_pretty(index)
-        .map_err(|e| std::io::Error::other(e.to_string()))?;
-    zip.start_file("modrinth.index.json", zip::write::SimpleFileOptions::default())?;
+    let index_json =
+        serde_json::to_vec_pretty(index).map_err(|e| std::io::Error::other(e.to_string()))?;
+    zip.start_file(
+        "modrinth.index.json",
+        zip::write::SimpleFileOptions::default(),
+    )?;
     std::io::Write::write_all(&mut zip, &index_json)?;
 
     // Mods que no resolvieron contra Modrinth — van embebidos de verdad,
@@ -1499,7 +1546,11 @@ fn build_mrpack_zip(
     }
 
     for subdir in ["config", "resourcepacks", "shaderpacks"] {
-        add_override_dir(&mut zip, &instance_dir.join(subdir), &format!("overrides/{subdir}"))?;
+        add_override_dir(
+            &mut zip,
+            &instance_dir.join(subdir),
+            &format!("overrides/{subdir}"),
+        )?;
     }
 
     zip.finish()?;
@@ -1537,9 +1588,11 @@ pub async fn export_instance_as_mrpack(instance_name: String) -> Result<String, 
             unresolved.insert(filename.clone());
             continue;
         };
-        let Some(file) = version.files.iter().find(|f| {
-            f.hashes.as_ref().and_then(|h| h.sha1.as_deref()) == Some(hash.as_str())
-        }) else {
+        let Some(file) = version
+            .files
+            .iter()
+            .find(|f| f.hashes.as_ref().and_then(|h| h.sha1.as_deref()) == Some(hash.as_str()))
+        else {
             unresolved.insert(filename.clone());
             continue;
         };
@@ -1566,9 +1619,10 @@ pub async fn export_instance_as_mrpack(instance_name: String) -> Result<String, 
 
     let mut dependencies = std::collections::HashMap::new();
     dependencies.insert("minecraft".to_string(), instance.mc_version.clone());
-    if let (Some(loader_version), Some(key)) =
-        (&instance.loader_version, loader_dependency_key(instance.loader))
-    {
+    if let (Some(loader_version), Some(key)) = (
+        &instance.loader_version,
+        loader_dependency_key(instance.loader),
+    ) {
         dependencies.insert(key.to_string(), loader_version.clone());
     }
 
@@ -1589,7 +1643,13 @@ pub async fn export_instance_as_mrpack(instance_name: String) -> Result<String, 
     let safe_name: String = instance
         .name
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     let export_path = PathManager::get()
         .get_shared_dir()
@@ -1600,7 +1660,13 @@ pub async fn export_instance_as_mrpack(instance_name: String) -> Result<String, 
     let mods_dir_clone = mods_dir.clone();
     let export_path_clone = export_path.clone();
     tokio::task::spawn_blocking(move || {
-        build_mrpack_zip(&instance_dir_clone, &mods_dir_clone, &unresolved, &index, &export_path_clone)
+        build_mrpack_zip(
+            &instance_dir_clone,
+            &mods_dir_clone,
+            &unresolved,
+            &index,
+            &export_path_clone,
+        )
     })
     .await
     .map_err(|e| e.to_string())?
@@ -1661,7 +1727,9 @@ async fn prune_world_backups(dir: &std::path::Path) {
 /// mundo existente (formato de chunk, IDs de bloque distintos entre
 /// versiones de un mod, etc). `None` si la instancia no tiene mundos
 /// todavía (nada que respaldar, no es un error).
-pub(crate) async fn backup_world_dir(instance_dir: &std::path::Path) -> Result<Option<String>, String> {
+pub(crate) async fn backup_world_dir(
+    instance_dir: &std::path::Path,
+) -> Result<Option<String>, String> {
     let saves_dir = instance_dir.join("saves");
     if !saves_dir.is_dir() {
         return Ok(None);
@@ -1670,7 +1738,9 @@ pub(crate) async fn backup_world_dir(instance_dir: &std::path::Path) -> Result<O
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    let backup_path = instance_dir.join(".tfl_backups").join(format!("saves-{ts}.zip"));
+    let backup_path = instance_dir
+        .join(".tfl_backups")
+        .join(format!("saves-{ts}.zip"));
     let backup_path_clone = backup_path.clone();
     tokio::task::spawn_blocking(move || zip_dir(&saves_dir, &backup_path_clone))
         .await
@@ -1758,7 +1828,10 @@ async fn add_local_content_files(
         if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
             continue;
         }
-        if tokio::fs::copy(&source, dest_dir.join(filename)).await.is_ok() {
+        if tokio::fs::copy(&source, dest_dir.join(filename))
+            .await
+            .is_ok()
+        {
             count += 1;
         }
     }
@@ -1771,7 +1844,10 @@ pub async fn add_local_mod_files(instance_name: String, paths: Vec<String>) -> R
 }
 
 #[command]
-pub async fn add_local_shader_files(instance_name: String, paths: Vec<String>) -> Result<u32, String> {
+pub async fn add_local_shader_files(
+    instance_name: String,
+    paths: Vec<String>,
+) -> Result<u32, String> {
     add_local_content_files(&instance_name, "shaderpacks", "zip", paths).await
 }
 
@@ -1784,7 +1860,10 @@ pub async fn add_local_resourcepack_files(
 }
 
 #[command]
-pub async fn add_local_plugin_files(instance_name: String, paths: Vec<String>) -> Result<u32, String> {
+pub async fn add_local_plugin_files(
+    instance_name: String,
+    paths: Vec<String>,
+) -> Result<u32, String> {
     add_local_content_files(&instance_name, "plugins", "jar", paths).await
 }
 
@@ -1827,6 +1906,9 @@ mod install_helper_tests {
         ];
         let map = projects_from_info(&infos);
         assert_eq!(map.len(), 1);
-        assert_eq!(map["P1"], vec!["a.jar".to_string(), "a-sources.jar".to_string()]);
+        assert_eq!(
+            map["P1"],
+            vec!["a.jar".to_string(), "a-sources.jar".to_string()]
+        );
     }
 }

@@ -90,7 +90,12 @@
 	tabindex="-1"
 >
 	{#each items as item (item.id)}
-		<button type="button" class="menu-item" class:danger={item.danger} onclick={() => runItem(item)}>
+		<button
+			type="button"
+			class="menu-item"
+			class:danger={item.danger}
+			onclick={() => runItem(item)}
+		>
 			{#if item.icon}
 				<item.icon size={14} />
 			{/if}

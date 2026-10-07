@@ -14,11 +14,17 @@ fn desktop_dir() -> Result<std::path::PathBuf, String> {
 }
 
 fn sanitize_filename(name: &str) -> String {
-    name.chars().map(|c| if r#"\/:*?"<>|"#.contains(c) { '_' } else { c }).collect()
+    name.chars()
+        .map(|c| if r#"\/:*?"<>|"#.contains(c) { '_' } else { c })
+        .collect()
 }
 
 #[cfg(target_os = "windows")]
-fn write_shortcut(instance_name: &str, exe: &std::path::Path, dest: &std::path::Path) -> Result<(), String> {
+fn write_shortcut(
+    instance_name: &str,
+    exe: &std::path::Path,
+    dest: &std::path::Path,
+) -> Result<(), String> {
     let mut link = mslnk::ShellLink::new(exe).map_err(|e| e.to_string())?;
     link.set_arguments(Some(format!("--launch-instance \"{instance_name}\"")));
     link.set_icon_location(Some(exe.to_string_lossy().to_string()));
@@ -26,24 +32,39 @@ fn write_shortcut(instance_name: &str, exe: &std::path::Path, dest: &std::path::
 }
 
 #[cfg(target_os = "macos")]
-fn write_shortcut(instance_name: &str, exe: &std::path::Path, dest: &std::path::Path) -> Result<(), String> {
+fn write_shortcut(
+    instance_name: &str,
+    exe: &std::path::Path,
+    dest: &std::path::Path,
+) -> Result<(), String> {
     use std::os::unix::fs::PermissionsExt;
-    let script = format!("#!/bin/bash\n\"{}\" --launch-instance \"{instance_name}\" &\n", exe.display());
+    let script = format!(
+        "#!/bin/bash\n\"{}\" --launch-instance \"{instance_name}\" &\n",
+        exe.display()
+    );
     std::fs::write(dest, script).map_err(|e| e.to_string())?;
-    let mut perms = std::fs::metadata(dest).map_err(|e| e.to_string())?.permissions();
+    let mut perms = std::fs::metadata(dest)
+        .map_err(|e| e.to_string())?
+        .permissions();
     perms.set_mode(0o755);
     std::fs::set_permissions(dest, perms).map_err(|e| e.to_string())
 }
 
 #[cfg(target_os = "linux")]
-fn write_shortcut(instance_name: &str, exe: &std::path::Path, dest: &std::path::Path) -> Result<(), String> {
+fn write_shortcut(
+    instance_name: &str,
+    exe: &std::path::Path,
+    dest: &std::path::Path,
+) -> Result<(), String> {
     use std::os::unix::fs::PermissionsExt;
     let content = format!(
         "[Desktop Entry]\nType=Application\nName=TFL Client - {instance_name}\nExec=\"{}\" --launch-instance \"{instance_name}\"\nIcon=tflclient\nTerminal=false\n",
         exe.display()
     );
     std::fs::write(dest, content).map_err(|e| e.to_string())?;
-    let mut perms = std::fs::metadata(dest).map_err(|e| e.to_string())?.permissions();
+    let mut perms = std::fs::metadata(dest)
+        .map_err(|e| e.to_string())?
+        .permissions();
     perms.set_mode(0o755);
     std::fs::set_permissions(dest, perms).map_err(|e| e.to_string())
 }

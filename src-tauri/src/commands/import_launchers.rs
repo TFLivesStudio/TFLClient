@@ -213,7 +213,12 @@ fn detect_all() -> Vec<Detected> {
             }
         }
     }
-    out.sort_by(|a, b| a.candidate.name.to_lowercase().cmp(&b.candidate.name.to_lowercase()));
+    out.sort_by(|a, b| {
+        a.candidate
+            .name
+            .to_lowercase()
+            .cmp(&b.candidate.name.to_lowercase())
+    });
     out
 }
 
@@ -287,7 +292,9 @@ pub async fn import_external_instance(
     if let Err(e) = copy_result {
         // Mejor no dejar una instancia a medio copiar como si estuviera bien.
         let _ = instance_manager::delete_instance(&created.name).await;
-        return Err(format!("No se pudo copiar el contenido de la instancia: {e}"));
+        return Err(format!(
+            "No se pudo copiar el contenido de la instancia: {e}"
+        ));
     }
     Ok(created)
 }
@@ -297,7 +304,8 @@ mod tests {
     use super::*;
 
     fn temp_dir(tag: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("tfl-import-test-{tag}-{}", uuid::Uuid::new_v4()));
+        let dir =
+            std::env::temp_dir().join(format!("tfl-import-test-{tag}-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         dir
     }
@@ -310,7 +318,11 @@ mod tests {
             r#"{"components":[{"uid":"net.minecraft","version":"1.20.1"},{"uid":"net.fabricmc.fabric-loader","version":"0.15.11"}],"formatVersion":1}"#,
         )
         .unwrap();
-        std::fs::write(dir.join("instance.cfg"), "InstanceType=OneSix\nname=Mi Pack\n").unwrap();
+        std::fs::write(
+            dir.join("instance.cfg"),
+            "InstanceType=OneSix\nname=Mi Pack\n",
+        )
+        .unwrap();
         std::fs::create_dir_all(dir.join(".minecraft").join("mods")).unwrap();
         std::fs::write(dir.join(".minecraft").join("mods").join("a.jar"), b"x").unwrap();
         std::fs::write(dir.join(".minecraft").join("mods").join("notes.txt"), b"x").unwrap();
@@ -359,7 +371,10 @@ mod tests {
             r#"{"name":"N","gameVersion":"1.21.1","baseModLoader":{"name":"neoforge-21.1.1"}}"#,
         )
         .unwrap();
-        assert_eq!(detect_curseforge(&dir).unwrap().candidate.loader, "neoforge");
+        assert_eq!(
+            detect_curseforge(&dir).unwrap().candidate.loader,
+            "neoforge"
+        );
         let _ = std::fs::remove_dir_all(dir);
     }
 

@@ -41,7 +41,7 @@
 	}
 
 	$effect(() => {
-		currentPath;
+		void currentPath;
 		refresh();
 	});
 
@@ -124,7 +124,12 @@
 		<div class="editor-header">
 			<span class="editor-filename">{editingFile}</span>
 			<div class="editor-actions">
-				<button type="button" class="icon-btn" onclick={() => (editingFile = null)} disabled={savingFile}>
+				<button
+					type="button"
+					class="icon-btn"
+					onclick={() => (editingFile = null)}
+					disabled={savingFile}
+				>
 					{t('common.cancel')}
 				</button>
 				<button type="button" class="save-btn" onclick={saveFile} disabled={savingFile}>
@@ -140,10 +145,14 @@
 	<div class="file-manager">
 		<div class="toolbar">
 			<div class="breadcrumbs">
-				<button type="button" class="crumb" onclick={() => (currentPath = '')}>{instance.name}</button>
+				<button type="button" class="crumb" onclick={() => (currentPath = '')}
+					>{instance.name}</button
+				>
 				{#each breadcrumbs as crumb (crumb.path)}
 					<span class="sep">/</span>
-					<button type="button" class="crumb" onclick={() => (currentPath = crumb.path)}>{crumb.name}</button>
+					<button type="button" class="crumb" onclick={() => (currentPath = crumb.path)}
+						>{crumb.name}</button
+					>
 				{/each}
 			</div>
 			<button type="button" class="tool-btn" onclick={handleNewFolder} disabled={creatingDir}>
@@ -156,7 +165,8 @@
 
 		{#if currentPath}
 			<button type="button" class="up-row" onclick={goUp}>
-				<ArrowLeft size={14} /> {t('serverFileManager.up')}
+				<ArrowLeft size={14} />
+				{t('serverFileManager.up')}
 			</button>
 		{/if}
 
@@ -173,7 +183,10 @@
 							class="entry-main"
 							onclick={() => (entry.is_dir ? openDir(entry.name) : openFile(entry.name))}
 						>
-							{#if entry.is_dir}<Folder size={15} class="entry-icon" />{:else}<FileText size={15} class="entry-icon" />{/if}
+							{#if entry.is_dir}<Folder size={15} class="entry-icon" />{:else}<FileText
+									size={15}
+									class="entry-icon"
+								/>{/if}
 							<span class="entry-name">{entry.name}</span>
 							{#if !entry.is_dir}<span class="entry-size">{fmtSize(entry.size_bytes)}</span>{/if}
 						</button>

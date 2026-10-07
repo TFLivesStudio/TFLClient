@@ -25,7 +25,9 @@ pub struct FavoriteServer {
 }
 
 fn favorites_path() -> PathBuf {
-    PathManager::get().get_settings_dir().join("favorite_servers.tfl")
+    PathManager::get()
+        .get_settings_dir()
+        .join("favorite_servers.tfl")
 }
 
 async fn load_favorites() -> Vec<FavoriteServer> {
@@ -84,7 +86,10 @@ pub async fn add_favorite_server(name: String, address: String) -> Result<Favori
     let name: String = name.chars().take(40).collect();
 
     let mut list = load_favorites().await;
-    if list.iter().any(|f| f.address.eq_ignore_ascii_case(&normalized)) {
+    if list
+        .iter()
+        .any(|f| f.address.eq_ignore_ascii_case(&normalized))
+    {
         return Err("Ese servidor ya está en favoritos".into());
     }
     if list.len() >= MAX_FAVORITES {
@@ -135,7 +140,10 @@ async fn read_varint(stream: &mut TcpStream) -> Result<i32, String> {
     let mut result: u32 = 0;
     for shift in 0..5 {
         let mut byte = [0u8; 1];
-        stream.read_exact(&mut byte).await.map_err(|e| e.to_string())?;
+        stream
+            .read_exact(&mut byte)
+            .await
+            .map_err(|e| e.to_string())?;
         result |= ((byte[0] & 0x7F) as u32) << (7 * shift);
         if byte[0] & 0x80 == 0 {
             return Ok(result as i32);
@@ -203,7 +211,10 @@ async fn ping_inner(host: &str, port: u16) -> Result<ServerStatus, String> {
     write_varint(&mut handshake, 1);
     let mut request = framed(handshake);
     request.extend(framed(vec![0x00]));
-    stream.write_all(&request).await.map_err(|e| e.to_string())?;
+    stream
+        .write_all(&request)
+        .await
+        .map_err(|e| e.to_string())?;
 
     let response = tokio::time::timeout(IO_TIMEOUT, async {
         let _packet_len = read_varint(&mut stream).await?;
@@ -216,14 +227,16 @@ async fn ping_inner(host: &str, port: u16) -> Result<ServerStatus, String> {
             return Err("Respuesta demasiado grande".to_string());
         }
         let mut json = vec![0u8; json_len as usize];
-        stream.read_exact(&mut json).await.map_err(|e| e.to_string())?;
+        stream
+            .read_exact(&mut json)
+            .await
+            .map_err(|e| e.to_string())?;
         Ok(json)
     })
     .await
     .map_err(|_| "El servidor no respondió".to_string())??;
 
-    let parsed: serde_json::Value =
-        serde_json::from_slice(&response).map_err(|e| e.to_string())?;
+    let parsed: serde_json::Value = serde_json::from_slice(&response).map_err(|e| e.to_string())?;
 
     // Latencia: ida y vuelta de un ping aparte. Si falla no importa, el
     // resto del estado ya está.
@@ -247,7 +260,11 @@ async fn ping_inner(host: &str, port: u16) -> Result<ServerStatus, String> {
         online: true,
         motd: parsed
             .get("description")
-            .map(|d| strip_color_codes(&flatten_description(d)).trim().to_string())
+            .map(|d| {
+                strip_color_codes(&flatten_description(d))
+                    .trim()
+                    .to_string()
+            })
             .filter(|m| !m.is_empty()),
         players_online: parsed
             .pointer("/players/online")
@@ -280,8 +297,14 @@ mod tests {
 
     #[test]
     fn parse_address_defaults_and_validates() {
-        assert_eq!(parse_address("play.example.com").unwrap(), ("play.example.com".into(), 25565));
-        assert_eq!(parse_address(" mc.test:25566 ").unwrap(), ("mc.test".into(), 25566));
+        assert_eq!(
+            parse_address("play.example.com").unwrap(),
+            ("play.example.com".into(), 25565)
+        );
+        assert_eq!(
+            parse_address(" mc.test:25566 ").unwrap(),
+            ("mc.test".into(), 25566)
+        );
         assert!(parse_address("").is_err());
         assert!(parse_address("host with space").is_err());
         assert!(parse_address("host:notaport").is_err());
@@ -295,7 +318,10 @@ mod tests {
             serde_json::from_str(r#"{"text":"§aHola ","extra":[{"text":"mundo"},"!"]}"#).unwrap();
         assert_eq!(strip_color_codes(&flatten_description(&v)), "Hola mundo!");
         let plain = serde_json::Value::String("§6Solo texto".into());
-        assert_eq!(strip_color_codes(&flatten_description(&plain)), "Solo texto");
+        assert_eq!(
+            strip_color_codes(&flatten_description(&plain)),
+            "Solo texto"
+        );
     }
 
     #[test]

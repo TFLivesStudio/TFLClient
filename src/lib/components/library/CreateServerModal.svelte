@@ -12,7 +12,11 @@
 		onCreated: (instance: InstanceData) => void;
 	} = $props();
 
-	const SERVER_TYPES: { id: ServerType; label: string; descKey: 'vanillaDesc' | 'paperDesc' | 'purpurDesc' }[] = [
+	const SERVER_TYPES: {
+		id: ServerType;
+		label: string;
+		descKey: 'vanillaDesc' | 'paperDesc' | 'purpurDesc';
+	}[] = [
 		{ id: 'vanilla', label: 'Vanilla', descKey: 'vanillaDesc' },
 		{ id: 'paper', label: 'Paper', descKey: 'paperDesc' },
 		{ id: 'purpur', label: 'Purpur', descKey: 'purpurDesc' }
@@ -40,7 +44,7 @@
 	}
 
 	$effect(() => {
-		selectedType;
+		void selectedType;
 		loadVersions();
 	});
 
@@ -107,7 +111,8 @@
 		<label for="server-version">{t('createServer.versionLabel')}</label>
 		{#if loadingVersions}
 			<div class="loading">
-				<Loader2 size={16} class="spin" /> {t('createServer.loadingVersions')}
+				<Loader2 size={16} class="spin" />
+				{t('createServer.loadingVersions')}
 			</div>
 		{:else if versions.length === 0}
 			<p class="hint">{t('createServer.noVersionsForType')}</p>
@@ -124,7 +129,9 @@
 		{/if}
 
 		<div class="actions">
-			<button type="button" class="btn" onclick={onClose} disabled={creating}>{t('common.cancel')}</button>
+			<button type="button" class="btn" onclick={onClose} disabled={creating}
+				>{t('common.cancel')}</button
+			>
 			<button
 				type="button"
 				class="btn primary"

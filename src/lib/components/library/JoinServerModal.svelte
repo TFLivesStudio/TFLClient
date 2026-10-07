@@ -73,7 +73,9 @@
 	}
 
 	const targetVersion = $derived(
-		mode === 'existing' ? joinableInstances.find((i) => i.name === selectedInstance)?.mc_version : selectedVersion
+		mode === 'existing'
+			? joinableInstances.find((i) => i.name === selectedInstance)?.mc_version
+			: selectedVersion
 	);
 	const quickPlayUnsupported = $derived(!!targetVersion && !supportsQuickPlay(targetVersion));
 
@@ -102,7 +104,14 @@
 		try {
 			statuses[fav.id] = await pingServer(fav.address);
 		} catch {
-			statuses[fav.id] = { online: false, motd: null, players_online: null, players_max: null, version: null, latency_ms: null };
+			statuses[fav.id] = {
+				online: false,
+				motd: null,
+				players_online: null,
+				players_max: null,
+				version: null,
+				latency_ms: null
+			};
 		}
 	}
 
@@ -160,8 +169,12 @@
 				if (!selectedVersion) return;
 				// Reusa una instancia Vanilla que ya tenga esta versión en vez
 				// de crear una nueva cada vez que se hace quick join.
-				const existing = instances.find((i) => i.loader === 'vanilla' && i.mc_version === selectedVersion && !i.server_type);
-				const instanceName = existing?.name ?? (await createInstance(`Quick Join ${selectedVersion}`, selectedVersion, 'vanilla')).name;
+				const existing = instances.find(
+					(i) => i.loader === 'vanilla' && i.mc_version === selectedVersion && !i.server_type
+				);
+				const instanceName =
+					existing?.name ??
+					(await createInstance(`Quick Join ${selectedVersion}`, selectedVersion, 'vanilla')).name;
 				await launchInstance(instanceName, trimmed);
 			}
 			onLaunched();
@@ -201,7 +214,12 @@
 					{#each favorites as fav (fav.id)}
 						{@const st = statuses[fav.id]}
 						<div class="fav-row">
-							<button type="button" class="fav-main" disabled={joining} onclick={() => (address = fav.address)}>
+							<button
+								type="button"
+								class="fav-main"
+								disabled={joining}
+								onclick={() => (address = fav.address)}
+							>
 								<span
 									class="dot"
 									class:online={st !== undefined && st !== 'loading' && st.online}
@@ -281,7 +299,9 @@
 						maxlength="40"
 						onkeydown={(e) => e.key === 'Enter' && handleSaveFavorite()}
 					/>
-					<button type="button" class="btn" onclick={handleSaveFavorite}>{t('joinServer.saveFavoriteConfirm')}</button>
+					<button type="button" class="btn" onclick={handleSaveFavorite}
+						>{t('joinServer.saveFavoriteConfirm')}</button
+					>
 				</div>
 			{/if}
 			{#if favoriteError}<p class="error">{favoriteError}</p>{/if}
@@ -319,7 +339,8 @@
 				{/if}
 			{:else if loadingVersions}
 				<div class="loading">
-					<Loader2 size={16} class="spin" /> {t('createInstance.loadingVersions')}
+					<Loader2 size={16} class="spin" />
+					{t('createInstance.loadingVersions')}
 				</div>
 			{:else}
 				<select bind:value={selectedVersion} disabled={joining}>
@@ -340,7 +361,9 @@
 		{/if}
 
 		<div class="actions">
-			<button type="button" class="btn" onclick={onClose} disabled={joining}>{t('common.cancel')}</button>
+			<button type="button" class="btn" onclick={onClose} disabled={joining}
+				>{t('common.cancel')}</button
+			>
 			{#if !blocked}
 				<button
 					type="button"

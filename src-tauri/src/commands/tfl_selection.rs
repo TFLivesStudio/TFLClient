@@ -91,10 +91,16 @@ async fn discover_community_modpacks() -> Result<Vec<TflSelectionEntry>, String>
         match fetch_manifest(&repo.full_name).await {
             Ok(Some(entry)) => out.push(entry),
             Ok(None) => {
-                tracing::debug!("TFL Selection: {} sin manifest válido, se omite", repo.full_name);
+                tracing::debug!(
+                    "TFL Selection: {} sin manifest válido, se omite",
+                    repo.full_name
+                );
             }
             Err(e) => {
-                tracing::debug!("TFL Selection: {} falló al leer manifest: {e}", repo.full_name);
+                tracing::debug!(
+                    "TFL Selection: {} falló al leer manifest: {e}",
+                    repo.full_name
+                );
             }
         }
     }
@@ -114,7 +120,11 @@ pub(crate) async fn fetch_manifest(full_name: &str) -> Result<Option<TflSelectio
     if content_res.encoding != "base64" {
         return Ok(None);
     }
-    let cleaned: String = content_res.content.chars().filter(|c| !c.is_whitespace()).collect();
+    let cleaned: String = content_res
+        .content
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
     let Ok(decoded) = base64::engine::general_purpose::STANDARD.decode(&cleaned) else {
         return Ok(None);
     };
@@ -168,7 +178,10 @@ fn extract_versions(raw: &serde_json::Value) -> Vec<ModpackVersion> {
         let mc_version = v.get("mc_version")?.as_str()?.trim();
         let loader = v.get("loader")?.as_str()?.trim().to_lowercase();
         let mrpack_url = v.get("mrpack_url")?.as_str()?.trim();
-        if mc_version.is_empty() || mrpack_url.is_empty() || !VALID_LOADERS.contains(&loader.as_str()) {
+        if mc_version.is_empty()
+            || mrpack_url.is_empty()
+            || !VALID_LOADERS.contains(&loader.as_str())
+        {
             return None;
         }
         Some(ModpackVersion {

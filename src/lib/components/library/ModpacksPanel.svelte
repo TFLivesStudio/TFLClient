@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import type { InstanceData, ModSearchHit, InstalledModpack, ModpackUpdateInfo } from '$lib/types/types';
+	import type { InstanceData, ModSearchHit, InstalledModpack } from '$lib/types/types';
 	import {
 		searchModpacks,
 		installModpack,
-		installModpackFromUrl,
 		updateCommunityModpack,
 		getInstanceModpacks,
 		checkModpackUpdates,
@@ -128,7 +127,11 @@
 			{:else}
 				<Search size={14} class="search-icon" />
 			{/if}
-			<input type="text" bind:value={query} placeholder={t('contentManager.searchPlaceholder', { noun: 'modpacks' })} />
+			<input
+				type="text"
+				bind:value={query}
+				placeholder={t('contentManager.searchPlaceholder', { noun: 'modpacks' })}
+			/>
 		</div>
 
 		{#if error}
@@ -137,7 +140,9 @@
 
 		{#if installed.length > 0}
 			<div class="installed">
-				<span class="section-label">{t('modpacksPanel.installedCount', { count: installed.length })}</span>
+				<span class="section-label"
+					>{t('modpacksPanel.installedCount', { count: installed.length })}</span
+				>
 				{#each installed as pack (pack.version_id)}
 					<div class="installed-row">
 						<Package size={13} class="pack-icon" />

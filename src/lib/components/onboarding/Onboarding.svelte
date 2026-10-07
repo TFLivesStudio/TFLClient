@@ -124,7 +124,10 @@
 					<div class="code-row">
 						<code class="code" tabindex="0">{msCode}</code>
 						<button type="button" class="copy-code" onclick={copyMicrosoftCode}>
-							{#if codeCopied}<CheckCircle2 size={15} /> {t('common.copied')}{:else}<Copy size={15} /> {t('common.copy')}{/if}
+							{#if codeCopied}<CheckCircle2 size={15} /> {t('common.copied')}{:else}<Copy
+									size={15}
+								/>
+								{t('common.copy')}{/if}
 						</button>
 					</div>
 					<p class="hint">{t('onboarding.waitingConfirmation')}</p>
@@ -370,7 +373,7 @@
 		border-radius: var(--border-radius-sm);
 		background: var(--bg-input);
 		color: var(--text-secondary);
-		font-size: .75rem;
+		font-size: 0.75rem;
 		font-weight: 700;
 		cursor: pointer;
 	}

@@ -18,6 +18,14 @@ export default defineConfig(
 	{
 		languageOptions: { globals: { ...globals.browser, ...globals.node } },
 		rules: {
+			// El estado de TFL Client reemplaza Sets/Maps enteros al cambiar (nunca
+			// los muta en el lugar) — es el patrón que Svelte reacciona bien, así
+			// que la advertencia de usar SvelteSet/SvelteMap no aplica acá.
+			'svelte/prefer-svelte-reactivity': 'off',
+			// App de escritorio con una sola ruta, sin navegación del lado del
+			// cliente: los únicos href son links externos (se abren con el
+			// opener de Tauri), no hay nada que pasar por resolve().
+			'svelte/no-navigation-without-resolve': 'off',
 			// typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.
 			// see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
 			'no-undef': 'off'

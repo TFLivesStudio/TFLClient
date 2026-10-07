@@ -54,8 +54,7 @@ async fn resolve_loader(
             Ok((Some(lv), id))
         }
         LoaderKind::NeoForge => {
-            let lv =
-                crate::commands::loaders::get_neoforge_version(mc_version.to_string()).await?;
+            let lv = crate::commands::loaders::get_neoforge_version(mc_version.to_string()).await?;
             let id = format!("{mc_version}-neoforge-{lv}");
             Ok((Some(lv), id))
         }
@@ -478,12 +477,18 @@ pub async fn get_crash_report(name: String) -> Result<Option<String>, String> {
     };
     while let Ok(Some(entry)) = entries.next_entry().await {
         let file_name = entry.file_name();
-        let Some(name) = file_name.to_str() else { continue };
+        let Some(name) = file_name.to_str() else {
+            continue;
+        };
         if !name.starts_with("hs_err_pid") || !name.ends_with(".log") {
             continue;
         }
-        let Ok(metadata) = entry.metadata().await else { continue };
-        let Ok(modified) = metadata.modified() else { continue };
+        let Ok(metadata) = entry.metadata().await else {
+            continue;
+        };
+        let Ok(modified) = metadata.modified() else {
+            continue;
+        };
         if newest.as_ref().is_none_or(|(_, t)| modified > *t) {
             newest = Some((entry.path(), modified));
         }

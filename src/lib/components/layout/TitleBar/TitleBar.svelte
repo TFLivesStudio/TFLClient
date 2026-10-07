@@ -99,7 +99,10 @@
 		text-overflow: ellipsis;
 	}
 
-	.titlebar-drag { flex: 1; height: 100%; }
+	.titlebar-drag {
+		flex: 1;
+		height: 100%;
+	}
 
 	.titlebar-controls {
 		display: flex;

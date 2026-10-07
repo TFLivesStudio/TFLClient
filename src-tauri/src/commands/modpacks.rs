@@ -111,7 +111,9 @@ pub async fn install_modpack(
 
     let instance = instance_manager::get_instance(&instance_name).await?;
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
-    let temp_dir = shared_dir.join("temp").join(format!("mrpack-{}", version.id));
+    let temp_dir = shared_dir
+        .join("temp")
+        .join(format!("mrpack-{}", version.id));
     tokio::fs::create_dir_all(&temp_dir)
         .await
         .map_err(|e| e.to_string())?;

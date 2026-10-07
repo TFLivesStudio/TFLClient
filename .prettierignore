@@ -7,3 +7,6 @@ bun.lockb
 
 # Miscellaneous
 /static/
+
+# Mod de Java, tiene su propio build (gradle)
+/mp-guard/

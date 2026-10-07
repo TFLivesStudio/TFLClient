@@ -16,7 +16,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter_level(log::LevelFilter::Info)
         .init();
 
-    let base_dir = env::var("BASE_DIR").unwrap_or_else(|_| "/home/santiagolxx/.tflclient/".to_string());
+    let base_dir =
+        env::var("BASE_DIR").unwrap_or_else(|_| "/home/santiagolxx/.tflclient/".to_string());
     let version = env::var("VERSION").unwrap_or_else(|_| "26.2-snapshot-5".to_string());
     let java_path =
         env::var("JAVA").unwrap_or_else(|_| "/usr/lib/jvm/java-25-openjdk/bin/java".to_string());

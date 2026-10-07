@@ -118,13 +118,19 @@ fn read_jar_mods(path: &Path) -> Option<JarMod> {
     if ids.is_empty() {
         return None;
     }
-    Some(JarMod { filename, ids, name })
+    Some(JarMod {
+        filename,
+        ids,
+        name,
+    })
 }
 
 /// El crash report más nuevo, si es de hace poco (no se culpa a un mod por
 /// un crash de hace una semana).
 async fn newest_recent_crash_report(instance_dir: &Path) -> Option<String> {
-    let mut entries = tokio::fs::read_dir(instance_dir.join("crash-reports")).await.ok()?;
+    let mut entries = tokio::fs::read_dir(instance_dir.join("crash-reports"))
+        .await
+        .ok()?;
     let mut best: Option<(std::time::SystemTime, PathBuf)> = None;
     while let Ok(Some(entry)) = entries.next_entry().await {
         let Ok(meta) = entry.metadata().await else {
@@ -147,7 +153,9 @@ async fn newest_recent_crash_report(instance_dir: &Path) -> Option<String> {
 }
 
 async fn latest_log_tail(instance_dir: &Path) -> Option<String> {
-    let bytes = tokio::fs::read(instance_dir.join("logs").join("latest.log")).await.ok()?;
+    let bytes = tokio::fs::read(instance_dir.join("logs").join("latest.log"))
+        .await
+        .ok()?;
     let start = bytes.len().saturating_sub(LOG_TAIL_BYTES);
     Some(String::from_utf8_lossy(&bytes[start..]).to_string())
 }
@@ -193,11 +201,7 @@ fn extract_culprits(text: &str) -> (Vec<String>, Vec<String>) {
 
     let jar_re = Regex::new(r"Mod File: (.+?\.jar)").expect("regex válido");
     for c in jar_re.captures_iter(text) {
-        let name = c[1]
-            .rsplit(['/', '\\'])
-            .next()
-            .unwrap_or(&c[1])
-            .to_string();
+        let name = c[1].rsplit(['/', '\\']).next().unwrap_or(&c[1]).to_string();
         if !jars.contains(&name) {
             jars.push(name);
         }
@@ -329,7 +333,8 @@ Mod ID: 'minecraft'
 
     #[test]
     fn fabric_dependency_error() {
-        let log = "- Mod 'Fancy' (fancymod) 1.0.0 requires version 2.x of mod 'lib', which is missing!";
+        let log =
+            "- Mod 'Fancy' (fancymod) 1.0.0 requires version 2.x of mod 'lib', which is missing!";
         let (ids, _) = extract_culprits(log);
         assert_eq!(ids, vec!["fancymod".to_string()]);
     }
@@ -339,7 +344,8 @@ Mod ID: 'minecraft'
         let file = std::fs::File::create(&path).unwrap();
         let mut zip = zip::ZipWriter::new(file);
         for (name, body) in entries {
-            zip.start_file(*name, zip::write::SimpleFileOptions::default()).unwrap();
+            zip.start_file(*name, zip::write::SimpleFileOptions::default())
+                .unwrap();
             std::io::Write::write_all(&mut zip, body.as_bytes()).unwrap();
         }
         zip.finish().unwrap();
@@ -348,7 +354,10 @@ Mod ID: 'minecraft'
 
     #[test]
     fn reads_fabric_mod_id_and_name() {
-        let jar = write_jar(&[("fabric.mod.json", r#"{"id":"sodium","name":"Sodium","provides":["indium"]}"#)]);
+        let jar = write_jar(&[(
+            "fabric.mod.json",
+            r#"{"id":"sodium","name":"Sodium","provides":["indium"]}"#,
+        )]);
         let m = read_jar_mods(&jar).unwrap();
         assert_eq!(m.ids, vec!["sodium".to_string(), "indium".to_string()]);
         assert_eq!(m.name.as_deref(), Some("Sodium"));

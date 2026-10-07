@@ -62,7 +62,10 @@ pub async fn get_recommended_ram_for_instance(name: String) -> RecommendedRam {
         return base;
     }
     let bump_mb = (mod_count - 20) * 48;
-    let ceiling = base.total_mb.saturating_sub(1024).max(base.recommended_max_mb);
+    let ceiling = base
+        .total_mb
+        .saturating_sub(1024)
+        .max(base.recommended_max_mb);
     let recommended_max_mb = (base.recommended_max_mb + bump_mb).min(ceiling);
     RecommendedRam {
         total_mb: base.total_mb,

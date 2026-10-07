@@ -63,7 +63,13 @@
 		<circle cx="21" cy="22" r="3.6" fill="#1a1a1a" />
 		<circle cx="43" cy="22" r="3.6" fill="#1a1a1a" />
 		<rect x="14" y="30" width="36" height="22" rx="11" fill={m.primary} />
-		<path d="M22 42 Q32 48 42 42" stroke={m.secondary} stroke-width="3" fill="none" stroke-linecap="round" />
+		<path
+			d="M22 42 Q32 48 42 42"
+			stroke={m.secondary}
+			stroke-width="3"
+			fill="none"
+			stroke-linecap="round"
+		/>
 	{:else if m.id === 'bee'}
 		<circle cx="32" cy="34" r="19" fill={m.secondary} />
 		<rect x="13" y="26" width="38" height="7" fill={m.primary} />

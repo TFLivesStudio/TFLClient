@@ -171,7 +171,8 @@ pub async fn list_server_versions(server_type: ServerType) -> Result<Vec<String>
             Ok(versions)
         }
         ServerType::Purpur => {
-            let data: PurpurProject = get_json_retrying("https://api.purpurmc.org/v2/purpur").await?;
+            let data: PurpurProject =
+                get_json_retrying("https://api.purpurmc.org/v2/purpur").await?;
             let mut versions = data.versions;
             versions.reverse();
             Ok(versions)

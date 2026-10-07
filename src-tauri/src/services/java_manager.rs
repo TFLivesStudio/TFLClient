@@ -86,7 +86,10 @@ pub async fn ensure_java(major: u8) -> Result<PathBuf, String> {
         .map_err(|e| e.to_string())?;
 
     let (tx, watcher) = progress::watch(&format!("java:{major}"));
-    let result = handle.download_all(Some(tx)).await.map_err(|e| e.to_string());
+    let result = handle
+        .download_all(Some(tx))
+        .await
+        .map_err(|e| e.to_string());
     watcher.finish(result).await?;
 
     if !bin.exists() {

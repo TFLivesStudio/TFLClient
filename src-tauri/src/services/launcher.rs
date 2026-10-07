@@ -84,7 +84,8 @@ fn version_json_exists(shared_dir: &Path, version_id: &str) -> bool {
 /// incompleta se detecta y se reintenta sola en el próximo "Jugar".
 fn vanilla_fully_installed(shared_dir: &Path, version_id: &str) -> bool {
     let dir = shared_dir.join("versions").join(version_id);
-    dir.join(format!("{version_id}.json")).exists() && dir.join(format!("{version_id}.jar")).exists()
+    dir.join(format!("{version_id}.json")).exists()
+        && dir.join(format!("{version_id}.jar")).exists()
 }
 
 /// Descarga lo que haga falta para poder lanzar `data`: siempre la base
@@ -100,11 +101,17 @@ async fn ensure_downloaded(
         info!("Descargando base Vanilla {}", data.mc_version);
         let manager = DownloadManager::new(shared_dir.clone());
         let handle = manager.prepare(&data.mc_version).await.map_err(|e| {
-            error!("No se pudo preparar la descarga de {}: {e}", data.mc_version);
+            error!(
+                "No se pudo preparar la descarga de {}: {e}",
+                data.mc_version
+            );
             e.to_string()
         })?;
         let (tx, watcher) = progress::watch(&format!("minecraft:{}", data.mc_version));
-        let result = handle.download_all(Some(tx)).await.map_err(|e| e.to_string());
+        let result = handle
+            .download_all(Some(tx))
+            .await
+            .map_err(|e| e.to_string());
         watcher.finish(result).await.inspect_err(|e| {
             error!("Falló la descarga de Vanilla {}: {e}", data.mc_version);
         })?;
@@ -140,7 +147,10 @@ async fn ensure_downloaded(
                 .await
                 .map_err(|e| e.to_string())?;
             let (tx, watcher) = progress::watch(&format!("fabric:{}", data.mc_version));
-            let result = handle.download_all(Some(tx)).await.map_err(|e| e.to_string());
+            let result = handle
+                .download_all(Some(tx))
+                .await
+                .map_err(|e| e.to_string());
             watcher
                 .finish(result)
                 .await
@@ -159,7 +169,10 @@ async fn ensure_downloaded(
                 .await
                 .map_err(|e| e.to_string())?;
             let (tx, watcher) = progress::watch(&format!("quilt:{}", data.mc_version));
-            let result = handle.download_all(Some(tx)).await.map_err(|e| e.to_string());
+            let result = handle
+                .download_all(Some(tx))
+                .await
+                .map_err(|e| e.to_string());
             watcher
                 .finish(result)
                 .await
@@ -189,11 +202,15 @@ async fn ensure_downloaded(
             let java_path = java_path_hint.ok_or("NeoForge necesita Java resuelto de antemano")?;
             let (tx, watcher) = progress::watch(&format!("neoforge:{}", data.mc_version));
             progress::mark_processing(&tx, "Instalando NeoForge (esto puede tardar)…");
-            let result =
-                NeoForgeBatch::install(&shared_dir, &data.mc_version, loader_version, Some(java_path))
-                    .await
-                    .map(|_manifest| ())
-                    .map_err(|e| e.to_string());
+            let result = NeoForgeBatch::install(
+                &shared_dir,
+                &data.mc_version,
+                loader_version,
+                Some(java_path),
+            )
+            .await
+            .map(|_manifest| ())
+            .map_err(|e| e.to_string());
             watcher
                 .finish(result)
                 .await
@@ -259,7 +276,9 @@ async fn inject_mp_guard(app: &tauri::AppHandle, mc_version: &str, instance_dir:
     };
     let jar = base.join(mc_version).join("tfl-mp-guard.jar");
     if !jar.exists() {
-        tracing::info!("mp-guard: sin jar para Minecraft {mc_version}, se omite (queda solo el bloqueo JVM)");
+        tracing::info!(
+            "mp-guard: sin jar para Minecraft {mc_version}, se omite (queda solo el bloqueo JVM)"
+        );
         return;
     }
     let mods_dir = instance_dir.join("mods");
@@ -286,9 +305,11 @@ async fn launch_inner(
     // Java se resuelve una vez acá: lo necesitan tanto el lanzamiento final
     // como (para Forge/NeoForge) el propio instalador del loader.
     let java_major = aqua::infer_java_version(&data.mc_version);
-    let java_path = java_manager::ensure_java(java_major).await.inspect_err(|e| {
-        error!("No se pudo resolver Java {java_major} para \"{instance_name}\": {e}");
-    })?;
+    let java_path = java_manager::ensure_java(java_major)
+        .await
+        .inspect_err(|e| {
+            error!("No se pudo resolver Java {java_major} para \"{instance_name}\": {e}");
+        })?;
     info!("Java {java_major}: {}", java_path.display());
 
     ensure_downloaded(&data, Some(java_path.clone())).await?;
@@ -434,7 +455,8 @@ async fn launch_inner(
         let code = handle.wait().await;
         LAUNCHWERK.remove(id);
         RUNNING.lock().unwrap().remove(&instance_name);
-        let _ = instance_manager::add_play_time(&instance_name, session_start.elapsed().as_secs()).await;
+        let _ = instance_manager::add_play_time(&instance_name, session_start.elapsed().as_secs())
+            .await;
         emit(AppEvent::InstanceExited {
             instance: instance_name.clone(),
             code,

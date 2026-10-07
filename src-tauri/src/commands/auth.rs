@@ -61,7 +61,10 @@ pub async fn authenticate_with_device_code(
     // próximo arranque (ver `load_tokens()` en launcher.rs), y el juego se
     // lanzaba igual con una sesión inválida en vez de fallar visiblemente.
     if let Err(e) = user.save_tokens() {
-        warn!("No se pudieron guardar los tokens de \"{}\": {e}", user.username);
+        warn!(
+            "No se pudieron guardar los tokens de \"{}\": {e}",
+            user.username
+        );
     }
 
     SettingsManager::write(|s| {
@@ -176,7 +179,10 @@ pub async fn remove_user(uuid: String) -> Result<(), String> {
 
     if let Some(removed) = SettingsManager::read().user.iter().find(|u| u.uuid == uuid) {
         if let Err(e) = removed.delete_tokens() {
-            tracing::warn!("No se pudieron borrar los tokens de \"{}\": {e}", removed.username);
+            tracing::warn!(
+                "No se pudieron borrar los tokens de \"{}\": {e}",
+                removed.username
+            );
         }
     }
 

@@ -172,7 +172,10 @@ mod tests {
         std::fs::create_dir_all(saves.join("World2")).unwrap();
 
         replace_saves_from_zip(&zip_path, &saves).unwrap();
-        assert_eq!(std::fs::read(saves.join("World1").join("level.dat")).unwrap(), b"original");
+        assert_eq!(
+            std::fs::read(saves.join("World1").join("level.dat")).unwrap(),
+            b"original"
+        );
         assert!(!saves.join("World2").exists());
         let _ = std::fs::remove_dir_all(base);
     }

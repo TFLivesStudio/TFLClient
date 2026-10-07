@@ -61,7 +61,10 @@
 			await invoke('stop_running_instance', { instanceName });
 		} catch (e) {
 			userStopped = false;
-			lines = [...lines, { stream: 'stderr', line: t('instanceLogWindow.stopFailed', { error: String(e) }) }];
+			lines = [
+				...lines,
+				{ stream: 'stderr', line: t('instanceLogWindow.stopFailed', { error: String(e) }) }
+			];
 		} finally {
 			stopping = false;
 		}
@@ -210,24 +213,27 @@
 	}
 
 	onMount(async () => {
-		unlisten = await listen<{ type: string; data: Record<string, unknown> }>('app-event', (event) => {
-			const payload = event.payload;
-			if (payload.type === 'InstanceLogLine') {
-				const d = payload.data as { instance: string; stream: string; line: string };
-				if (d.instance !== instanceName) return;
-				const next = [...lines, { stream: d.stream as 'stdout' | 'stderr', line: d.line }];
-				lines = next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
-				if (d.stream === 'stderr') checkForKnownError(d.line);
-				tick().then(() => {
-					if (autoScroll && logEl) logEl.scrollTop = logEl.scrollHeight;
-				});
-			} else if (payload.type === 'InstanceExited') {
-				const d = payload.data as { instance: string; code: number | null };
-				if (d.instance !== instanceName) return;
-				exitCode = d.code;
-				void handleExit(d.code);
+		unlisten = await listen<{ type: string; data: Record<string, unknown> }>(
+			'app-event',
+			(event) => {
+				const payload = event.payload;
+				if (payload.type === 'InstanceLogLine') {
+					const d = payload.data as { instance: string; stream: string; line: string };
+					if (d.instance !== instanceName) return;
+					const next = [...lines, { stream: d.stream as 'stdout' | 'stderr', line: d.line }];
+					lines = next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
+					if (d.stream === 'stderr') checkForKnownError(d.line);
+					tick().then(() => {
+						if (autoScroll && logEl) logEl.scrollTop = logEl.scrollHeight;
+					});
+				} else if (payload.type === 'InstanceExited') {
+					const d = payload.data as { instance: string; code: number | null };
+					if (d.instance !== instanceName) return;
+					exitCode = d.code;
+					void handleExit(d.code);
+				}
 			}
-		});
+		);
 		pollStats();
 		statsInterval = setInterval(pollStats, 2000);
 	});
@@ -247,11 +253,15 @@
 					{t('instanceLogWindow.running')}
 				{:else}
 					{t('instanceLogWindow.exited', {
-						codeSuffix: exitCode !== null ? t('instanceLogWindow.exitedCodeSuffix', { code: exitCode }) : ''
+						codeSuffix:
+							exitCode !== null ? t('instanceLogWindow.exitedCodeSuffix', { code: exitCode }) : ''
 					})}
 				{/if}
 				{#if stats}
-					{t('instanceLogWindow.stats', { cpu: stats.cpu_percent.toFixed(0), ram: stats.memory_mb })}
+					{t('instanceLogWindow.stats', {
+						cpu: stats.cpu_percent.toFixed(0),
+						ram: stats.memory_mb
+					})}
 				{/if}
 			</span>
 		</div>
@@ -267,7 +277,11 @@
 	{#if friendlyError}
 		<div class="friendly-error">
 			<span>{friendlyError}</span>
-			<button type="button" onclick={() => (friendlyError = null)} aria-label={t('instanceLogWindow.closeNotice')}>✕</button>
+			<button
+				type="button"
+				onclick={() => (friendlyError = null)}
+				aria-label={t('instanceLogWindow.closeNotice')}>✕</button
+			>
 		</div>
 	{/if}
 
@@ -335,12 +349,7 @@
 		height: 100vh;
 		background: #0b0d12;
 		color: #e4e6eb;
-		font-family:
-			-apple-system,
-			BlinkMacSystemFont,
-			'Segoe UI',
-			system-ui,
-			sans-serif;
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 	}
 
 	header {

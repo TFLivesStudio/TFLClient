@@ -104,7 +104,8 @@
 		<label for="instance-version">{t('createInstance.versionLabel')}</label>
 		{#if loadingVersions}
 			<div class="loading">
-				<Loader2 size={16} class="spin" /> {t('createInstance.loadingVersions')}
+				<Loader2 size={16} class="spin" />
+				{t('createInstance.loadingVersions')}
 			</div>
 		{:else}
 			<select id="instance-version" bind:value={selectedVersion}>

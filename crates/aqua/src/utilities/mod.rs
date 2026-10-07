@@ -43,8 +43,7 @@ pub async fn fetch_text_retrying(url: &str) -> Result<String, AquaError> {
         }
         warn!("Fallo intento {attempt}/{MAX_METADATA_ATTEMPTS} pidiendo {url}: {last_err}");
         if attempt < MAX_METADATA_ATTEMPTS {
-            tokio::time::sleep(std::time::Duration::from_millis(200 * (1 << (attempt - 1))))
-                .await;
+            tokio::time::sleep(std::time::Duration::from_millis(200 * (1 << (attempt - 1)))).await;
         }
     }
     Err(AquaError::Other(format!(

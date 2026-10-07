@@ -98,19 +98,28 @@
 	const isServer = $derived(!!instance.server_type);
 	const serverRunning = $derived(serverSessions.running.has(instance.name));
 	let error = $state<string | null>(null);
-	const validTabs: TabKey[] = ['details', 'mods', 'shaders', 'resourcepacks', 'modpacks', 'screenshots', 'plugins', 'worlds', 'files', 'console'];
-	let tab = $state<TabKey>((validTabs as string[]).includes(initialTab ?? '') ? (initialTab as TabKey) : 'details');
+	const validTabs: TabKey[] = [
+		'details',
+		'mods',
+		'shaders',
+		'resourcepacks',
+		'modpacks',
+		'screenshots',
+		'plugins',
+		'worlds',
+		'files',
+		'console'
+	];
+	let tab = $state<TabKey>(
+		(validTabs as string[]).includes(initialTab ?? '') ? (initialTab as TabKey) : 'details'
+	);
 	let showDeleteConfirm = $state(false);
 	let editingName = $state(false);
-	let nameDraft = $state(instance.name);
+	let nameDraft = $derived(instance.name);
 	let ramRecommended = $state<number | null>(null);
 	let modCount = $state<number | null>(null);
 	let iconUrl = $state<string | null>(null);
 	let showIconPicker = $state(false);
-
-	$effect(() => {
-		nameDraft = instance.name;
-	});
 
 	async function loadIcon() {
 		const path = await getInstanceIconPath(instance.name);
@@ -448,7 +457,12 @@
 						}}
 						{@attach (el) => el.focus()}
 					/>
-					<button type="button" class="icon-btn" onclick={confirmRename} aria-label={t('settings.ram.save')}>
+					<button
+						type="button"
+						class="icon-btn"
+						onclick={confirmRename}
+						aria-label={t('settings.ram.save')}
+					>
 						<Check size={15} />
 					</button>
 					<button
@@ -582,7 +596,9 @@
 
 	{#if otherRunning.length > 0}
 		<p class="hint">
-			{t('instanceDetail.otherInstanceRunning', { names: otherRunning.map((r) => r.name).join(', ') })}
+			{t('instanceDetail.otherInstanceRunning', {
+				names: otherRunning.map((r) => r.name).join(', ')
+			})}
 		</p>
 	{/if}
 
@@ -631,7 +647,12 @@
 		</button>
 
 		{#if !isServer}
-			<button type="button" class="quick-card" onclick={handleCreateShortcut} disabled={creatingShortcut}>
+			<button
+				type="button"
+				class="quick-card"
+				onclick={handleCreateShortcut}
+				disabled={creatingShortcut}
+			>
 				<div class="quick-icon">
 					{#if creatingShortcut}<Loader2 size={16} class="spin" />{:else}<Rocket size={16} />{/if}
 				</div>
@@ -731,126 +752,151 @@
 	</div>
 
 	<div class="tab-content">
-	{#if tab === 'details'}
-		{#if isServer}
-			<section class="connection-section">
-				<span class="section-label">{t('serverInstance.connectionLabel')}</span>
-				{#if connectionInfo?.tunnel_address}
-					<div class="connection-row">
-						<code class="connection-address">{connectionInfo.tunnel_address}</code>
-						<button type="button" class="icon-btn" onclick={copyConnectionAddress} aria-label={t('common.copy')}>
-							{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
-						</button>
-					</div>
-					<p class="hint">{t('serverInstance.connectionTunnelReady')}</p>
-				{:else if connectionInfo?.public_ip}
-					<div class="connection-row">
-						<code class="connection-address">{connectionInfo.public_ip}:{connectionInfo.port}</code>
-						<button type="button" class="icon-btn" onclick={copyConnectionAddress} aria-label={t('common.copy')}>
-							{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
-						</button>
-					</div>
-					{#if connectionInfo.port_forwarded}
-						<p class="hint">{t('serverInstance.connectionPublicReady')}</p>
+		{#if tab === 'details'}
+			{#if isServer}
+				<section class="connection-section">
+					<span class="section-label">{t('serverInstance.connectionLabel')}</span>
+					{#if connectionInfo?.tunnel_address}
+						<div class="connection-row">
+							<code class="connection-address">{connectionInfo.tunnel_address}</code>
+							<button
+								type="button"
+								class="icon-btn"
+								onclick={copyConnectionAddress}
+								aria-label={t('common.copy')}
+							>
+								{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
+							</button>
+						</div>
+						<p class="hint">{t('serverInstance.connectionTunnelReady')}</p>
+					{:else if connectionInfo?.public_ip}
+						<div class="connection-row">
+							<code class="connection-address"
+								>{connectionInfo.public_ip}:{connectionInfo.port}</code
+							>
+							<button
+								type="button"
+								class="icon-btn"
+								onclick={copyConnectionAddress}
+								aria-label={t('common.copy')}
+							>
+								{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
+							</button>
+						</div>
+						{#if connectionInfo.port_forwarded}
+							<p class="hint">{t('serverInstance.connectionPublicReady')}</p>
+						{:else}
+							<p class="hint">
+								{t('serverInstance.connectionPublicManual', { port: connectionInfo.port })}
+							</p>
+						{/if}
+						{#if connectionInfo.local_ip}
+							<p class="hint">
+								{t('serverInstance.connectionLanFallback', {
+									address: `${connectionInfo.local_ip}:${connectionInfo.port}`
+								})}
+							</p>
+						{/if}
+					{:else if connectionInfo?.local_ip}
+						<div class="connection-row">
+							<code class="connection-address">{connectionInfo.local_ip}:{connectionInfo.port}</code
+							>
+							<button
+								type="button"
+								class="icon-btn"
+								onclick={copyConnectionAddress}
+								aria-label={t('common.copy')}
+							>
+								{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
+							</button>
+						</div>
+						<p class="hint">{t('serverInstance.connectionLanHint')}</p>
 					{:else}
-						<p class="hint">{t('serverInstance.connectionPublicManual', { port: connectionInfo.port })}</p>
+						<p class="hint">{t('serverInstance.connectionUnavailable')}</p>
 					{/if}
-					{#if connectionInfo.local_ip}
-						<p class="hint">
-							{t('serverInstance.connectionLanFallback', {
-								address: `${connectionInfo.local_ip}:${connectionInfo.port}`
-							})}
-						</p>
-					{/if}
-				{:else if connectionInfo?.local_ip}
-					<div class="connection-row">
-						<code class="connection-address">{connectionInfo.local_ip}:{connectionInfo.port}</code>
-						<button type="button" class="icon-btn" onclick={copyConnectionAddress} aria-label={t('common.copy')}>
-							{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
-						</button>
-					</div>
-					<p class="hint">{t('serverInstance.connectionLanHint')}</p>
-				{:else}
-					<p class="hint">{t('serverInstance.connectionUnavailable')}</p>
-				{/if}
 
-				{#if playitLinked === false && !connectionInfo?.tunnel_address && !connectionInfo?.port_forwarded}
-					<div class="playit-prompt">
-						<p class="hint">{t('serverInstance.playitPitch')}</p>
-						<button type="button" class="playit-link-btn" onclick={startPlayitLink} disabled={playitLinking}>
-							{#if playitLinking}
-								<Loader2 size={14} class="spin" />
-								{t('serverInstance.playitLinking')}
-							{:else}
-								{t('serverInstance.playitLinkButton')}
-							{/if}
-						</button>
-					</div>
-				{/if}
+					{#if playitLinked === false && !connectionInfo?.tunnel_address && !connectionInfo?.port_forwarded}
+						<div class="playit-prompt">
+							<p class="hint">{t('serverInstance.playitPitch')}</p>
+							<button
+								type="button"
+								class="playit-link-btn"
+								onclick={startPlayitLink}
+								disabled={playitLinking}
+							>
+								{#if playitLinking}
+									<Loader2 size={14} class="spin" />
+									{t('serverInstance.playitLinking')}
+								{:else}
+									{t('serverInstance.playitLinkButton')}
+								{/if}
+							</button>
+						</div>
+					{/if}
+				</section>
+			{/if}
+			<section class="ram-section">
+				<span class="section-label">{t('instanceDetail.ram.sectionLabel')}</span>
+				<p class="hint">
+					{t('instanceDetail.ram.hint', {
+						recommended: ramRecommended
+							? t('instanceDetail.ram.recommendedSuffix', { mb: ramRecommended })
+							: ''
+					})}
+				</p>
+				<div class="ram-row">
+					<label>
+						{t('settings.ram.min')}
+						<input
+							type="number"
+							value={instance.min_memory ?? ''}
+							placeholder={t('instanceDetail.ram.globalPlaceholder')}
+							min="512"
+							step="256"
+							onchange={(e) => {
+								const v = e.currentTarget.valueAsNumber;
+								setMemory(Number.isNaN(v) ? null : v, instance.max_memory);
+							}}
+						/>
+					</label>
+					<label>
+						{t('settings.ram.max')}
+						<input
+							type="number"
+							value={instance.max_memory ?? ''}
+							placeholder={t('instanceDetail.ram.globalPlaceholder')}
+							min="512"
+							step="256"
+							onchange={(e) => {
+								const v = e.currentTarget.valueAsNumber;
+								setMemory(instance.min_memory, Number.isNaN(v) ? null : v);
+							}}
+						/>
+					</label>
+				</div>
 			</section>
+			{#if !isServer}
+				<WorldBackups {instance} />
+			{/if}
+		{:else if tab === 'mods'}
+			<ModsPanel {instance} />
+		{:else if tab === 'shaders'}
+			<ShadersPanel {instance} />
+		{:else if tab === 'resourcepacks'}
+			<ResourcePacksPanel {instance} />
+		{:else if tab === 'modpacks'}
+			<ModpacksPanel {instance} />
+		{:else if tab === 'screenshots'}
+			<ScreenshotsPanel {instance} />
+		{:else if tab === 'plugins'}
+			<PluginsPanel {instance} />
+		{:else if tab === 'worlds'}
+			<ServerWorlds {instance} />
+		{:else if tab === 'files'}
+			<ServerFileManager {instance} />
+		{:else if tab === 'console'}
+			<ServerConsole {instance} />
 		{/if}
-		<section class="ram-section">
-			<span class="section-label">{t('instanceDetail.ram.sectionLabel')}</span>
-			<p class="hint">
-				{t('instanceDetail.ram.hint', {
-					recommended: ramRecommended
-						? t('instanceDetail.ram.recommendedSuffix', { mb: ramRecommended })
-						: ''
-				})}
-			</p>
-			<div class="ram-row">
-				<label>
-					{t('settings.ram.min')}
-					<input
-						type="number"
-						value={instance.min_memory ?? ''}
-						placeholder={t('instanceDetail.ram.globalPlaceholder')}
-						min="512"
-						step="256"
-						onchange={(e) => {
-							const v = e.currentTarget.valueAsNumber;
-							setMemory(Number.isNaN(v) ? null : v, instance.max_memory);
-						}}
-					/>
-				</label>
-				<label>
-					{t('settings.ram.max')}
-					<input
-						type="number"
-						value={instance.max_memory ?? ''}
-						placeholder={t('instanceDetail.ram.globalPlaceholder')}
-						min="512"
-						step="256"
-						onchange={(e) => {
-							const v = e.currentTarget.valueAsNumber;
-							setMemory(instance.min_memory, Number.isNaN(v) ? null : v);
-						}}
-					/>
-				</label>
-			</div>
-		</section>
-		{#if !isServer}
-			<WorldBackups {instance} />
-		{/if}
-	{:else if tab === 'mods'}
-		<ModsPanel {instance} />
-	{:else if tab === 'shaders'}
-		<ShadersPanel {instance} />
-	{:else if tab === 'resourcepacks'}
-		<ResourcePacksPanel {instance} />
-	{:else if tab === 'modpacks'}
-		<ModpacksPanel {instance} />
-	{:else if tab === 'screenshots'}
-		<ScreenshotsPanel {instance} />
-	{:else if tab === 'plugins'}
-		<PluginsPanel {instance} />
-	{:else if tab === 'worlds'}
-		<ServerWorlds {instance} />
-	{:else if tab === 'files'}
-		<ServerFileManager {instance} />
-	{:else if tab === 'console'}
-		<ServerConsole {instance} />
-	{/if}
 	</div>
 </div>
 
@@ -1096,7 +1142,11 @@
 	}
 
 	.play-btn.stop-btn {
-		background: linear-gradient(155deg, var(--color-error), color-mix(in srgb, var(--color-error) 80%, black));
+		background: linear-gradient(
+			155deg,
+			var(--color-error),
+			color-mix(in srgb, var(--color-error) 80%, black)
+		);
 		box-shadow:
 			var(--shadow-md),
 			0 0 24px color-mix(in srgb, var(--color-error) 35%, transparent);

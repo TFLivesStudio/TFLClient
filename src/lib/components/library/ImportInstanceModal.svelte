@@ -93,9 +93,12 @@
 						<span class="c-main">
 							<span class="c-name">{c.name}</span>
 							<span class="c-meta">
-								{c.mc_version ?? t('importInstance.unknownVersion')} · {c.loader} · {t('importInstance.modCount', {
-									count: c.mod_count
-								})}
+								{c.mc_version ?? t('importInstance.unknownVersion')} · {c.loader} · {t(
+									'importInstance.modCount',
+									{
+										count: c.mod_count
+									}
+								)}
 							</span>
 						</span>
 						<span class="c-source">{SOURCE_LABEL[c.source]}</span>
@@ -124,9 +127,9 @@
 				disabled={!selectedPath || !nameInput.trim() || importing}
 				onclick={handleImport}
 			>
-				{#if importing}<Loader2 size={14} class="spin" />{t('importInstance.importing')}{:else}<Download
-						size={14}
-					/>{t('importInstance.import')}{/if}
+				{#if importing}<Loader2 size={14} class="spin" />{t(
+						'importInstance.importing'
+					)}{:else}<Download size={14} />{t('importInstance.import')}{/if}
 			</button>
 		</div>
 	</div>

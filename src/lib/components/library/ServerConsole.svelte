@@ -19,19 +19,22 @@
 
 	let unlisten: UnlistenFn | undefined;
 	onMount(async () => {
-		unlisten = await listen<{ type: string; data: Record<string, unknown> }>('app-event', (event) => {
-			const payload = event.payload;
-			if (payload.type !== 'InstanceLogLine') return;
-			const d = payload.data as { instance: string; stream: string; line: string };
-			if (d.instance !== instance.name) return;
-			lines.push({ stream: d.stream === 'stderr' ? 'stderr' : 'stdout', line: d.line });
-			if (lines.length > 2000) lines.splice(0, lines.length - 2000);
-			if (stickToBottom) {
-				tick().then(() => {
-					if (logEl) logEl.scrollTop = logEl.scrollHeight;
-				});
+		unlisten = await listen<{ type: string; data: Record<string, unknown> }>(
+			'app-event',
+			(event) => {
+				const payload = event.payload;
+				if (payload.type !== 'InstanceLogLine') return;
+				const d = payload.data as { instance: string; stream: string; line: string };
+				if (d.instance !== instance.name) return;
+				lines.push({ stream: d.stream === 'stderr' ? 'stderr' : 'stdout', line: d.line });
+				if (lines.length > 2000) lines.splice(0, lines.length - 2000);
+				if (stickToBottom) {
+					tick().then(() => {
+						if (logEl) logEl.scrollTop = logEl.scrollHeight;
+					});
+				}
 			}
-		});
+		);
 	});
 
 	onDestroy(() => unlisten?.());
@@ -58,7 +61,9 @@
 <div class="console">
 	<div class="log" bind:this={logEl} onscroll={handleScroll}>
 		{#if lines.length === 0}
-			<p class="empty">{running ? t('serverConsole.waitingOutput') : t('serverConsole.notRunning')}</p>
+			<p class="empty">
+				{running ? t('serverConsole.waitingOutput') : t('serverConsole.notRunning')}
+			</p>
 		{:else}
 			{#each lines as entry, i (i)}
 				<div class="line" class:stderr={entry.stream === 'stderr'}>{entry.line}</div>
@@ -79,7 +84,12 @@
 			placeholder={running ? t('serverConsole.commandPlaceholder') : t('serverConsole.notRunning')}
 			autocomplete="off"
 		/>
-		<button type="submit" class="send-btn" disabled={!running || !command.trim()} aria-label={t('serverConsole.send')}>
+		<button
+			type="submit"
+			class="send-btn"
+			disabled={!running || !command.trim()}
+			aria-label={t('serverConsole.send')}
+		>
 			<Send size={14} />
 		</button>
 	</form>

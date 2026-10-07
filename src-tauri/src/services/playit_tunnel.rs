@@ -55,7 +55,9 @@ async fn load_config() -> PlayitConfig {
 
 async fn save_config(cfg: &PlayitConfig) -> Result<(), String> {
     let json = serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?;
-    tokio::fs::write(config_path(), json).await.map_err(|e| e.to_string())
+    tokio::fs::write(config_path(), json)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 pub async fn is_linked() -> bool {
@@ -112,10 +114,15 @@ pub async fn poll_claim(code: &str) -> Result<ClaimPoll, String> {
 pub async fn finish_claim(code: &str) -> Result<(), String> {
     let api = PlayitApi::create(API_BASE.to_string(), None);
     let res = api
-        .claim_exchange(ReqClaimExchange { code: code.to_string() })
+        .claim_exchange(ReqClaimExchange {
+            code: code.to_string(),
+        })
         .await
         .map_err(|e| e.to_string())?;
-    save_config(&PlayitConfig { secret_key: Some(res.secret_key) }).await
+    save_config(&PlayitConfig {
+        secret_key: Some(res.secret_key),
+    })
+    .await
 }
 
 static AGENT: OnceCell<Mutex<Option<Arc<OriginLookup>>>> = OnceCell::const_new();
@@ -229,5 +236,8 @@ pub async fn ensure_tunnel_address(local_port: u16) -> Result<String, String> {
         tokio::time::sleep(Duration::from_millis(700)).await;
     }
 
-    Err("playit.gg no terminó de asignar la dirección del túnel — probá de nuevo en un momento".into())
+    Err(
+        "playit.gg no terminó de asignar la dirección del túnel — probá de nuevo en un momento"
+            .into(),
+    )
 }

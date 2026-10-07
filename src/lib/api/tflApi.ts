@@ -75,7 +75,8 @@ export const getInstances = () => invoke<InstanceData[]>('get_instances');
 export const deleteInstance = (name: string) => invoke<void>('delete_instance', { name });
 export const renameInstance = (oldName: string, newName: string) =>
 	invoke<InstanceData>('rename_instance', { oldName, newName });
-export const duplicateInstance = (name: string) => invoke<InstanceData>('duplicate_instance', { name });
+export const duplicateInstance = (name: string) =>
+	invoke<InstanceData>('duplicate_instance', { name });
 export const updateInstanceMemory = (
 	name: string,
 	minMemory: number | null,
@@ -112,15 +113,26 @@ export const getNeoforgeVersion = (mcVersion: string) =>
 	invoke<string>('get_neoforge_version', { mcVersion });
 
 // ── Mods ─────────────────────────────────────────────────────────────
-export const searchMods = (query: string, mcVersion: string, loader: Loader, categories: string[] = []) =>
-	invoke<ModSearchHit[]>('search_mods', { query, mcVersion, loader, categories });
+export const searchMods = (
+	query: string,
+	mcVersion: string,
+	loader: Loader,
+	categories: string[] = []
+) => invoke<ModSearchHit[]>('search_mods', { query, mcVersion, loader, categories });
 export const installMod = (
 	instanceName: string,
 	projectId: string,
 	mcVersion: string,
 	loader: Loader,
 	versionId?: string
-) => invoke<void>('install_mod', { instanceName, projectId, mcVersion, loader, versionId: versionId ?? null });
+) =>
+	invoke<void>('install_mod', {
+		instanceName,
+		projectId,
+		mcVersion,
+		loader,
+		versionId: versionId ?? null
+	});
 export const getInstanceMods = (instanceName: string) =>
 	invoke<string[]>('get_instance_mods', { instanceName });
 export const removeMod = (instanceName: string, filename: string) =>
@@ -129,7 +141,8 @@ export const getInstalledModsInfo = (instanceName: string) =>
 	invoke<InstalledModInfo[]>('get_installed_mods_info', { instanceName });
 export const checkModUpdates = (instanceName: string) =>
 	invoke<ModUpdateAvailable[]>('check_mod_updates', { instanceName });
-export const updateAllMods = (instanceName: string) => invoke<number>('update_all_mods', { instanceName });
+export const updateAllMods = (instanceName: string) =>
+	invoke<number>('update_all_mods', { instanceName });
 export const getModVersionChangelog = (versionId: string) =>
 	invoke<string | null>('get_mod_version_changelog', { versionId });
 export const findDuplicateMods = (instanceName: string) =>
@@ -163,8 +176,7 @@ export const importExternalInstance = (path: string, newName: string) =>
 export const getFavoriteServers = () => invoke<FavoriteServer[]>('get_favorite_servers');
 export const addFavoriteServer = (name: string, address: string) =>
 	invoke<FavoriteServer>('add_favorite_server', { name, address });
-export const removeFavoriteServer = (id: string) =>
-	invoke<void>('remove_favorite_server', { id });
+export const removeFavoriteServer = (id: string) => invoke<void>('remove_favorite_server', { id });
 export const pingServer = (address: string) => invoke<ServerStatus>('ping_server', { address });
 export const getModVersions = (projectId: string, mcVersion: string, loader: Loader) =>
 	invoke<ModVersionSummary[]>('get_mod_versions', { projectId, mcVersion, loader });
@@ -177,7 +189,13 @@ export const installShader = (
 	projectId: string,
 	mcVersion: string,
 	versionId?: string
-) => invoke<void>('install_shader', { instanceName, projectId, mcVersion, versionId: versionId ?? null });
+) =>
+	invoke<void>('install_shader', {
+		instanceName,
+		projectId,
+		mcVersion,
+		versionId: versionId ?? null
+	});
 export const getInstanceShaders = (instanceName: string) =>
 	invoke<string[]>('get_instance_shaders', { instanceName });
 export const removeShader = (instanceName: string, filename: string) =>
@@ -261,8 +279,7 @@ export const installModpack = (
 	projectId: string,
 	mcVersion: string,
 	loader: Loader
-) =>
-	invoke<InstalledModpack>('install_modpack', { instanceName, projectId, mcVersion, loader });
+) => invoke<InstalledModpack>('install_modpack', { instanceName, projectId, mcVersion, loader });
 export const getInstanceModpacks = (instanceName: string) =>
 	invoke<InstalledModpack[]>('get_instance_modpacks', { instanceName });
 export const removeModpack = (instanceName: string, versionId: string) =>
@@ -300,7 +317,8 @@ export const getServerConnectionInfo = (instanceName: string) =>
 	invoke<ServerConnectionInfo>('get_server_connection_info', { instanceName });
 export const createServerInstance = (name: string, mcVersion: string, serverType: ServerType) =>
 	invoke<InstanceData>('create_server_instance', { name, mcVersion, serverType });
-export const launchServer = (instanceName: string) => invoke<void>('launch_server', { instanceName });
+export const launchServer = (instanceName: string) =>
+	invoke<void>('launch_server', { instanceName });
 export const stopServer = (instanceName: string) => invoke<void>('stop_server', { instanceName });
 export const sendServerCommand = (instanceName: string, command: string) =>
 	invoke<void>('send_server_command', { instanceName, command });

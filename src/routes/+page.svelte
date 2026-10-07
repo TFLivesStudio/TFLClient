@@ -43,7 +43,17 @@
 	import { checkAndDownloadUpdate } from '$lib/state/updateState.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
-	import { Plus, Sparkles, PackageOpen, Zap, Play, Blocks, Rocket, FileOutput, FolderOpen } from 'lucide-svelte';
+	import {
+		Plus,
+		Sparkles,
+		PackageOpen,
+		Zap,
+		Play,
+		Blocks,
+		Rocket,
+		FileOutput,
+		FolderOpen
+	} from 'lucide-svelte';
 
 	// Esta misma index.html también se usa para la ventana emergente del log
 	// en vivo — Tauri la abre con un initialization_script que setea esta
@@ -54,7 +64,8 @@
 	// del launcher (cuentas, instancias, ajustes…).
 	const isLogWindow =
 		typeof window !== 'undefined' &&
-		typeof (window as unknown as { __TFL_LOG_INSTANCE__?: string }).__TFL_LOG_INSTANCE__ === 'string';
+		typeof (window as unknown as { __TFL_LOG_INSTANCE__?: string }).__TFL_LOG_INSTANCE__ ===
+			'string';
 
 	let loading = $state(true);
 	let showCreateChooser = $state(false);
@@ -71,7 +82,9 @@
 	// setAttribute), no hay ningún store — para saber acá cuándo mostrar
 	// las partículas hace falta observar el atributo.
 	let ambience = $state(
-		typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-ambience') ?? 'aurora') : 'aurora'
+		typeof document !== 'undefined'
+			? (document.documentElement.getAttribute('data-ambience') ?? 'aurora')
+			: 'aurora'
 	);
 	let reduceMotion = $state(false);
 
@@ -96,7 +109,11 @@
 			// de exclusión mutua OLED/claro) pueden tener surface='oled' con
 			// theme='light' guardado a la vez — se normaliza acá una sola
 			// vez, en vez de arrastrar el estado inválido en cada arranque.
-			if (attribute === 'data-surface' && value === 'oled' && root.getAttribute('data-theme') === 'light') {
+			if (
+				attribute === 'data-surface' &&
+				value === 'oled' &&
+				root.getAttribute('data-theme') === 'light'
+			) {
 				value = defaultValue;
 				localStorage.setItem(storageKey, defaultValue);
 			}
@@ -152,7 +169,8 @@
 		// se abrió — se vuelve a leer la lista para que Detalles lo muestre ya,
 		// sin esperar a reabrir el launcher.
 		listen<{ type: string; data: { status?: string } }>('app-event', async (event) => {
-			if (event.payload.type !== 'InstanceStatusChanged' || event.payload.data.status !== 'stopped') return;
+			if (event.payload.type !== 'InstanceStatusChanged' || event.payload.data.status !== 'stopped')
+				return;
 			await refreshInstances();
 			const current = appState.selectedInstance;
 			if (current) {
@@ -302,72 +320,86 @@
 {#if isLogWindow}
 	<InstanceLogWindow />
 {:else}
-<div class="app-shell">
-	<TitleBar />
+	<div class="app-shell">
+		<TitleBar />
 
-	{#if loading}
-		<div class="loading-screen">
-			<div class="loading-mark"><Tfl width="28" height="28" /></div>
-		</div>
-	{:else if needsOnboarding}
-		<Onboarding onDone={handleOnboardingDone} />
-	{:else if justOnboarded && needsDialogModePrompt}
-		<NativeDialogModePrompt variant="modal" onDone={() => (justOnboarded = false)} />
-	{:else}
-		<div class="app-body">
-			<div class="ambient-bg">
-				{#if ambience === 'particles' && !reduceMotion}
-					<ParticlesBackground />
-				{/if}
+		{#if loading}
+			<div class="loading-screen">
+				<div class="loading-mark"><Tfl width="28" height="28" /></div>
 			</div>
-			<Sidebar
-				instances={appState.instances}
-				selected={appState.selectedInstance}
-				user={appState.currentUser}
-				onSelect={handleSelect}
-				onCreate={() => (showCreateChooser = true)}
-				onLogout={handleLogout}
-				onOpenSettings={() => (showSettings = true)}
-				onOpenTflSelection={() => (showTflSelection = true)}
-				onJoinServer={() => (showJoinServerModal = true)}
-				onOpenSkinManager={() => (showSkinManager = true)}
-				onInstanceContextMenu={openInstanceContextMenu}
-			/>
-			<main class="main-content">
-				{#if appState.selectedInstance}
-					{#key appState.selectedInstance.uuid + '-' + navNonce}
-						<InstanceDetail
-							instance={appState.selectedInstance}
-							onChanged={handleInstanceChanged}
-							initialTab={pendingInitialTab}
-						/>
-					{/key}
-				{:else}
-					<div class="empty-state">
-						<div class="welcome-orb"><Tfl width="42" height="42" /></div>
-						<div class="welcome-copy">
-							<span class="eyebrow">TFL Client</span>
-							<h2>{t('home.title')}</h2>
-							<p>{t('home.subtitle')}</p>
+		{:else if needsOnboarding}
+			<Onboarding onDone={handleOnboardingDone} />
+		{:else if justOnboarded && needsDialogModePrompt}
+			<NativeDialogModePrompt variant="modal" onDone={() => (justOnboarded = false)} />
+		{:else}
+			<div class="app-body">
+				<div class="ambient-bg">
+					{#if ambience === 'particles' && !reduceMotion}
+						<ParticlesBackground />
+					{/if}
+				</div>
+				<Sidebar
+					instances={appState.instances}
+					selected={appState.selectedInstance}
+					user={appState.currentUser}
+					onSelect={handleSelect}
+					onCreate={() => (showCreateChooser = true)}
+					onLogout={handleLogout}
+					onOpenSettings={() => (showSettings = true)}
+					onOpenTflSelection={() => (showTflSelection = true)}
+					onJoinServer={() => (showJoinServerModal = true)}
+					onOpenSkinManager={() => (showSkinManager = true)}
+					onInstanceContextMenu={openInstanceContextMenu}
+				/>
+				<main class="main-content">
+					{#if appState.selectedInstance}
+						{#key appState.selectedInstance.uuid + '-' + navNonce}
+							<InstanceDetail
+								instance={appState.selectedInstance}
+								onChanged={handleInstanceChanged}
+								initialTab={pendingInitialTab}
+							/>
+						{/key}
+					{:else}
+						<div class="empty-state">
+							<div class="welcome-orb"><Tfl width="42" height="42" /></div>
+							<div class="welcome-copy">
+								<span class="eyebrow">TFL Client</span>
+								<h2>{t('home.title')}</h2>
+								<p>{t('home.subtitle')}</p>
+							</div>
+							<div class="welcome-actions">
+								<button type="button" class="empty-cta" onclick={() => (showCreateChooser = true)}>
+									<Plus size={16} strokeWidth={2.5} />
+									{t('sidebar.createInstance')}
+								</button>
+								<button
+									type="button"
+									class="secondary-cta"
+									onclick={() => (showTflSelection = true)}
+								>
+									<Sparkles size={15} />
+									{t('home.exploreTflSelection')}
+								</button>
+							</div>
+							<div class="welcome-grid">
+								<div class="welcome-card">
+									<PackageOpen size={16} /><span>{t('home.modsCardTitle')}</span><small
+										>{t('home.modsCardHint')}</small
+									>
+								</div>
+								<div class="welcome-card">
+									<Zap size={16} /><span>{t('home.javaCardTitle')}</span><small
+										>{t('home.javaCardHint')}</small
+									>
+								</div>
+							</div>
 						</div>
-						<div class="welcome-actions">
-							<button type="button" class="empty-cta" onclick={() => (showCreateChooser = true)}>
-								<Plus size={16} strokeWidth={2.5} /> {t('sidebar.createInstance')}
-							</button>
-							<button type="button" class="secondary-cta" onclick={() => (showTflSelection = true)}>
-								<Sparkles size={15} /> {t('home.exploreTflSelection')}
-							</button>
-						</div>
-						<div class="welcome-grid">
-							<div class="welcome-card"><PackageOpen size={16} /><span>{t('home.modsCardTitle')}</span><small>{t('home.modsCardHint')}</small></div>
-							<div class="welcome-card"><Zap size={16} /><span>{t('home.javaCardTitle')}</span><small>{t('home.javaCardHint')}</small></div>
-						</div>
-					</div>
-				{/if}
-			</main>
-		</div>
-	{/if}
-</div>
+					{/if}
+				</main>
+			</div>
+		{/if}
+	</div>
 {/if}
 
 {#if showCreateChooser}
@@ -407,7 +439,10 @@
 {/if}
 
 {#if showCreateServerModal}
-	<CreateServerModal onClose={() => (showCreateServerModal = false)} onCreated={handleServerCreated} />
+	<CreateServerModal
+		onClose={() => (showCreateServerModal = false)}
+		onCreated={handleServerCreated}
+	/>
 {/if}
 
 {#if showServerConnectionInfo}
@@ -442,7 +477,14 @@
 {#if !isLogWindow}
 	<CommandPalette
 		instances={appState.instances}
-		blocked={showCreateChooser || showCreateModal || showCreateServerModal || showJoinServerModal || showSkinManager || showServerConnectionInfo || showSettings || showTflSelection}
+		blocked={showCreateChooser ||
+			showCreateModal ||
+			showCreateServerModal ||
+			showJoinServerModal ||
+			showSkinManager ||
+			showServerConnectionInfo ||
+			showSettings ||
+			showTflSelection}
 		onSelectInstance={handleSelect}
 		onCreate={() => (showCreateChooser = true)}
 		onOpenSettings={() => (showSettings = true)}
@@ -549,10 +591,15 @@
 		background:
 			linear-gradient(145deg, color-mix(in srgb, var(--accent) 25%, transparent), transparent),
 			var(--bg-card);
-		box-shadow: 0 20px 55px rgba(var(--accent-rgb), 0.18), var(--shadow-md);
+		box-shadow:
+			0 20px 55px rgba(var(--accent-rgb), 0.18),
+			var(--shadow-md);
 	}
 
-	.welcome-copy { display: grid; gap: 8px; }
+	.welcome-copy {
+		display: grid;
+		gap: 8px;
+	}
 	.eyebrow {
 		color: var(--accent);
 		font-size: var(--text-xs);
@@ -582,7 +629,11 @@
 		text-shadow: 0 1px 16px var(--bg-main);
 	}
 
-	.welcome-actions { display: flex; gap: 10px; margin-top: 6px; }
+	.welcome-actions {
+		display: flex;
+		gap: 10px;
+		margin-top: 6px;
+	}
 
 	.empty-cta {
 		display: inline-flex;
@@ -617,15 +668,61 @@
 		font-size: 0.82rem;
 		font-weight: 700;
 		cursor: pointer;
-		transition: border-color .16s, color .16s, transform .16s;
+		transition:
+			border-color 0.16s,
+			color 0.16s,
+			transform 0.16s;
 	}
-	.secondary-cta:hover { color: var(--text-primary); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); transform: translateY(-1px); }
+	.secondary-cta:hover {
+		color: var(--text-primary);
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+		transform: translateY(-1px);
+	}
 
-	.welcome-grid { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: 10px; width: min(100%, 430px); margin-top: 10px; }
-	.welcome-card { display: grid; grid-template-columns: auto 1fr; column-gap: 9px; align-items: center; padding: 13px; text-align: left; border: 1px solid var(--border); border-radius: var(--border-radius); background: color-mix(in srgb, var(--bg-card) 88%, transparent); }
-	.welcome-card :global(svg) { grid-row: span 2; color: var(--accent); }
-	.welcome-card span { font-size: var(--text-sm); font-weight: 750; }
-	.welcome-card small { color: var(--text-muted); font-size: var(--text-xs); margin-top: 2px; }
+	.welcome-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(150px, 1fr));
+		gap: 10px;
+		width: min(100%, 430px);
+		margin-top: 10px;
+	}
+	.welcome-card {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		column-gap: 9px;
+		align-items: center;
+		padding: 13px;
+		text-align: left;
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius);
+		background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+	}
+	.welcome-card :global(svg) {
+		grid-row: span 2;
+		color: var(--accent);
+	}
+	.welcome-card span {
+		font-size: var(--text-sm);
+		font-weight: 750;
+	}
+	.welcome-card small {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		margin-top: 2px;
+	}
 
-	@media (max-width: 640px) { .welcome-actions, .welcome-grid { grid-template-columns: 1fr; width: 100%; } .welcome-actions { flex-direction: column; } .empty-cta, .secondary-cta { justify-content: center; } }
+	@media (max-width: 640px) {
+		.welcome-actions,
+		.welcome-grid {
+			grid-template-columns: 1fr;
+			width: 100%;
+		}
+		.welcome-actions {
+			flex-direction: column;
+		}
+		.empty-cta,
+		.secondary-cta {
+			justify-content: center;
+		}
+	}
 </style>

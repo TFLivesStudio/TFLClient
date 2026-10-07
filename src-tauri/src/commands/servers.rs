@@ -84,22 +84,25 @@ pub(crate) async fn read_server_port(instance_dir: &std::path::Path) -> u16 {
 }
 
 #[command]
-pub async fn get_server_connection_info(instance_name: String) -> Result<ServerConnectionInfo, String> {
+pub async fn get_server_connection_info(
+    instance_name: String,
+) -> Result<ServerConnectionInfo, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
     let port = read_server_port(&instance.dir()).await;
     let public_ip = fetch_public_ip().await;
 
-    let tunnel_address = if server_process::is_server_running(&instance_name) && playit_tunnel::is_linked().await {
-        match playit_tunnel::ensure_tunnel_address(port).await {
-            Ok(addr) => Some(addr),
-            Err(e) => {
-                tracing::warn!("playit.gg: no se pudo obtener la dirección del túnel: {e}");
-                None
+    let tunnel_address =
+        if server_process::is_server_running(&instance_name) && playit_tunnel::is_linked().await {
+            match playit_tunnel::ensure_tunnel_address(port).await {
+                Ok(addr) => Some(addr),
+                Err(e) => {
+                    tracing::warn!("playit.gg: no se pudo obtener la dirección del túnel: {e}");
+                    None
+                }
             }
-        }
-    } else {
-        None
-    };
+        } else {
+            None
+        };
 
     Ok(ServerConnectionInfo {
         local_ip: detect_local_ip(),
@@ -181,7 +184,9 @@ async fn dir_size(path: &std::path::Path) -> u64 {
             continue;
         };
         while let Ok(Some(entry)) = entries.next_entry().await {
-            let Ok(meta) = entry.metadata().await else { continue };
+            let Ok(meta) = entry.metadata().await else {
+                continue;
+            };
             if meta.is_dir() {
                 stack.push(entry.path());
             } else {
@@ -221,7 +226,9 @@ pub async fn delete_server_world(instance_name: String, world_name: String) -> R
     if !path.join("level.dat").exists() {
         return Err("Esa carpeta no es un mundo válido".into());
     }
-    tokio::fs::remove_dir_all(&path).await.map_err(|e| e.to_string())
+    tokio::fs::remove_dir_all(&path)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 // ─── File manager (genérico, scoped a la carpeta de la instancia) ───────
@@ -234,13 +241,18 @@ pub struct FileEntry {
 }
 
 #[command]
-pub async fn list_instance_dir(instance_name: String, subpath: String) -> Result<Vec<FileEntry>, String> {
+pub async fn list_instance_dir(
+    instance_name: String,
+    subpath: String,
+) -> Result<Vec<FileEntry>, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
     let dir = safe_join(&instance.dir(), &subpath)?;
     let mut out = Vec::new();
     let mut entries = tokio::fs::read_dir(&dir).await.map_err(|e| e.to_string())?;
     while let Ok(Some(entry)) = entries.next_entry().await {
-        let Ok(meta) = entry.metadata().await else { continue };
+        let Ok(meta) = entry.metadata().await else {
+            continue;
+        };
         out.push(FileEntry {
             name: entry.file_name().to_string_lossy().to_string(),
             is_dir: meta.is_dir(),
@@ -257,10 +269,15 @@ pub async fn list_instance_dir(instance_name: String, subpath: String) -> Result
 const MAX_TEXT_FILE_SIZE: u64 = 2 * 1024 * 1024;
 
 #[command]
-pub async fn read_instance_text_file(instance_name: String, subpath: String) -> Result<String, String> {
+pub async fn read_instance_text_file(
+    instance_name: String,
+    subpath: String,
+) -> Result<String, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
     let path = safe_join(&instance.dir(), &subpath)?;
-    let meta = tokio::fs::metadata(&path).await.map_err(|e| e.to_string())?;
+    let meta = tokio::fs::metadata(&path)
+        .await
+        .map_err(|e| e.to_string())?;
     if meta.len() > MAX_TEXT_FILE_SIZE {
         return Err("El archivo es demasiado grande para editar acá (más de 2 MB)".into());
     }
@@ -277,18 +294,26 @@ pub async fn write_instance_text_file(
 ) -> Result<(), String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
     let path = safe_join(&instance.dir(), &subpath)?;
-    tokio::fs::write(&path, content).await.map_err(|e| e.to_string())
+    tokio::fs::write(&path, content)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[command]
 pub async fn delete_instance_path(instance_name: String, subpath: String) -> Result<(), String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
     let path = safe_join(&instance.dir(), &subpath)?;
-    let meta = tokio::fs::metadata(&path).await.map_err(|e| e.to_string())?;
+    let meta = tokio::fs::metadata(&path)
+        .await
+        .map_err(|e| e.to_string())?;
     if meta.is_dir() {
-        tokio::fs::remove_dir_all(&path).await.map_err(|e| e.to_string())
+        tokio::fs::remove_dir_all(&path)
+            .await
+            .map_err(|e| e.to_string())
     } else {
-        tokio::fs::remove_file(&path).await.map_err(|e| e.to_string())
+        tokio::fs::remove_file(&path)
+            .await
+            .map_err(|e| e.to_string())
     }
 }
 
@@ -296,5 +321,7 @@ pub async fn delete_instance_path(instance_name: String, subpath: String) -> Res
 pub async fn create_instance_dir(instance_name: String, subpath: String) -> Result<(), String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
     let path = safe_join(&instance.dir(), &subpath)?;
-    tokio::fs::create_dir_all(&path).await.map_err(|e| e.to_string())
+    tokio::fs::create_dir_all(&path)
+        .await
+        .map_err(|e| e.to_string())
 }

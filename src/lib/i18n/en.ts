@@ -207,15 +207,19 @@ export const en: Dictionary = {
 		modeExisting: 'One of my instances',
 		modeQuick: 'Quick Join',
 		noInstances: "You don't have any client instance yet — use Quick Join.",
-		quickHint: "Creates (or reuses) a Vanilla instance with that version and connects you straight in, skipping the Multiplayer menu.",
-		quickPlayUnsupported: "This version is older than 1.20.2 and doesn't support direct connect — the game will open normally, connect manually from the Multiplayer menu.",
-		crackedBlocked: 'Offline accounts can only play singleplayer — sign in with a Microsoft account to join a server.',
+		quickHint:
+			'Creates (or reuses) a Vanilla instance with that version and connects you straight in, skipping the Multiplayer menu.',
+		quickPlayUnsupported:
+			"This version is older than 1.20.2 and doesn't support direct connect — the game will open normally, connect manually from the Multiplayer menu.",
+		crackedBlocked:
+			'Offline accounts can only play singleplayer — sign in with a Microsoft account to join a server.',
 		join: 'Join',
 		joining: 'Connecting…'
 	},
 	createInstance: {
 		importTitle: 'Import from another launcher',
-		importDesc: 'Bring your instances from Prism, MultiMC or CurseForge with their mods and worlds.',
+		importDesc:
+			'Bring your instances from Prism, MultiMC or CurseForge with their mods and worlds.',
 		title: 'New instance',
 		chooserSubtitle: 'How do you want to build it?',
 		customTitle: 'Custom',
@@ -230,7 +234,7 @@ export const en: Dictionary = {
 		loadingVersions: 'Loading versions…',
 		loaderLabel: 'Loader',
 		loaderHint:
-			"The loader version (Fabric/Forge/NeoForge/Quilt) resolves itself — the latest/recommended one for this Minecraft version.",
+			'The loader version (Fabric/Forge/NeoForge/Quilt) resolves itself — the latest/recommended one for this Minecraft version.',
 		experimentalToggle: 'Show experimental versions (snapshots, pre-releases, release candidates)',
 		create: 'Create'
 	},
@@ -257,7 +261,8 @@ export const en: Dictionary = {
 		delete: 'Delete backup',
 		restored: 'Worlds restored. A backup of the previous state was saved first.',
 		restoreTitle: 'Restore this backup?',
-		restoreMessage: 'Your current worlds will be replaced with the ones from the {{date}} backup. A backup of how they are now is saved first, in case you change your mind.'
+		restoreMessage:
+			'Your current worlds will be replaced with the ones from the {{date}} backup. A backup of how they are now is saved first, in case you change your mind.'
 	},
 	importInstance: {
 		title: 'Import instance',
@@ -281,15 +286,18 @@ export const en: Dictionary = {
 		addByFile: 'Add from file',
 		checkUpdates: 'Check for updates',
 		remove: 'Remove',
-		autoModeDisablesAddByFile: 'Add from file is disabled in Automatic mode — enable "Manual" in Settings.',
+		autoModeDisablesAddByFile:
+			'Add from file is disabled in Automatic mode — enable "Manual" in Settings.',
 		allUpToDate: 'Everything up to date — no updates.',
 		noChangelogNotes: 'No changelog notes.',
 		changelogLoadFailed: 'Could not load: {{error}}',
-		partialLocalAdd: "Added {{added}} of {{total}} files — the rest didn't have the expected extension or couldn't be copied.",
+		partialLocalAdd:
+			"Added {{added}} of {{total}} files — the rest didn't have the expected extension or couldn't be copied.",
 		removeFailedPartial: 'Could not remove {{failed}} of {{total}}: {{names}}',
 		duplicateOne: 'There is one mod',
 		duplicateMany: 'There are {{count}} mods',
-		duplicateWarning: 'installed twice (different versions of the same mod at once) — can cause crashes. Check: {{list}}',
+		duplicateWarning:
+			'installed twice (different versions of the same mod at once) — can cause crashes. Check: {{list}}',
 		updateAll: 'Update all',
 		notInstalledYet: "You haven't installed any {{kind}} here yet.",
 		noneMatchCategories: 'No installed {{kind}} matches those categories.',
@@ -339,7 +347,7 @@ export const en: Dictionary = {
 		multiInstanceSameAccount:
 			"It's the same account you're about to use here — multiplayer might break (can't be the same player in two places) and it adds CPU/RAM load. Open this one anyway?",
 		multiInstanceDifferentAccount:
-			"It's a different account, so no \"same player\" issue — but two instances at once means more CPU/RAM load, and only one can actually be played by one person at a time. Open this one anyway?",
+			'It\'s a different account, so no "same player" issue — but two instances at once means more CPU/RAM load, and only one can actually be played by one person at a time. Open this one anyway?',
 		multiInstanceProceed: 'Open anyway',
 		multiInstanceDontAskAgain: "Don't ask me again (editable in Settings)",
 		modsNotSupportedVanilla: 'Not supported in Vanilla',
@@ -372,7 +380,8 @@ export const en: Dictionary = {
 	},
 	instanceLogWindow: {
 		suspectsTitle: 'Possible culprit mods',
-		suspectsHint: 'Based on the crash report. Disabling them does not delete them — you can re-enable them from Mods.',
+		suspectsHint:
+			'Based on the crash report. Disabling them does not delete them — you can re-enable them from Mods.',
 		disableMod: 'Disable',
 		suspectDisabled: 'Disabled',
 		rollbackHint: 'If the game started failing right after updating mods:',
@@ -393,7 +402,8 @@ export const en: Dictionary = {
 			insufficientSystemRam:
 				'You asked for more RAM than your computer has available — lower the maximum in Settings.',
 			jniError: 'A conflict between mods, or a Java version incompatible with this instance.',
-			mixinConflict: 'A mod (mixin) clashed with another — try removing the last mod you installed.',
+			mixinConflict:
+				'A mod (mixin) clashed with another — try removing the last mod you installed.',
 			missingDependency:
 				'A mod is missing a dependency it needs — check whether you installed everything it required.',
 			duplicateMod: "You have the same mod installed twice — check the instance's mod list.",
@@ -428,11 +438,13 @@ export const en: Dictionary = {
 	},
 	tflSelection: {
 		eyebrow: 'Featured content',
-		subtitle: 'Discover curated packs and add them to a compatible instance, or create a new one on the spot.',
+		subtitle:
+			'Discover curated packs and add them to a compatible instance, or create a new one on the spot.',
 		allTab: 'All',
 		empty: 'No modpacks in the selection yet.',
 		createNewOption: '＋ Create new instance — {{mcVersion}} ({{loader}})',
-		needsLoaderInstance: 'You need an instance with Fabric, Forge, NeoForge or Quilt to install this pack.',
+		needsLoaderInstance:
+			'You need an instance with Fabric, Forge, NeoForge or Quilt to install this pack.',
 		noMatchingInstance: "None of your instances match this pack's versions.",
 		added: 'Added',
 		add: 'Add',
@@ -440,7 +452,8 @@ export const en: Dictionary = {
 		noInstanceBuild: 'There is no build of this pack for that instance'
 	},
 	modpacksPanel: {
-		vanillaNotSupported: "Vanilla doesn't support modpacks — choose Fabric, Forge, NeoForge or Quilt when creating the instance.",
+		vanillaNotSupported:
+			"Vanilla doesn't support modpacks — choose Fabric, Forge, NeoForge or Quilt when creating the instance.",
 		hint: "Installing a modpack adds its mods and configuration to this instance — it doesn't replace what you already had. Removing it deletes exactly what it brought, nothing more.",
 		installedCount: 'Installed ({{count}})',
 		update: 'Update'
@@ -506,7 +519,8 @@ export const en: Dictionary = {
 		generic: 'Working…'
 	},
 	modsPanel: {
-		vanillaHint: "Vanilla doesn't support mods — pick Fabric, Forge, NeoForge or Quilt when creating the instance."
+		vanillaHint:
+			"Vanilla doesn't support mods — pick Fabric, Forge, NeoForge or Quilt when creating the instance."
 	},
 	resourcePacksPanel: {
 		hint: "Resource packs work on any instance, with or without mods — you don't need anything extra installed. Enable them from Minecraft's menu (Options → Resource Packs)."
@@ -545,13 +559,17 @@ export const en: Dictionary = {
 		tabConsole: 'Console',
 		connectionLabel: 'How to connect',
 		connectionLanHint: 'For another PC on the same Wi-Fi, give them this address as is.',
-		connectionPublicReady: "This address works for anyone, anywhere — TFL Client opened the port on your router automatically.",
+		connectionPublicReady:
+			'This address works for anyone, anywhere — TFL Client opened the port on your router automatically.',
 		connectionPublicManual:
-			"This address works for anyone, but your router didn't let TFL Client open it automatically: you'll need to port forward {{port}} manually — search \"port forwarding\" plus your router model.",
+			'This address works for anyone, but your router didn\'t let TFL Client open it automatically: you\'ll need to port forward {{port}} manually — search "port forwarding" plus your router model.',
 		connectionLanFallback: 'On the same Wi-Fi, {{address}} also works directly.',
-		connectionUnavailable: "Couldn't detect a network address — check that you have internet or a local network connection.",
-		connectionTunnelReady: 'This address works for anyone, anywhere — it doesn\'t depend on your router.',
-		playitPitch: "Still fighting with the connection? Link a free playit.gg account (one click, no card) and the address will always work, no router needed.",
+		connectionUnavailable:
+			"Couldn't detect a network address — check that you have internet or a local network connection.",
+		connectionTunnelReady:
+			"This address works for anyone, anywhere — it doesn't depend on your router.",
+		playitPitch:
+			'Still fighting with the connection? Link a free playit.gg account (one click, no card) and the address will always work, no router needed.',
 		playitLinkButton: 'Link playit.gg',
 		playitLinking: 'Waiting for confirmation in the browser…'
 	},
@@ -563,7 +581,7 @@ export const en: Dictionary = {
 		variantSlim: 'Slim (thin arms)',
 		uploadSkin: 'Upload skin',
 		resetSkin: 'Reset to default',
-		noCapes: "This account has no capes — they come from Mojang events/promotions.",
+		noCapes: 'This account has no capes — they come from Mojang events/promotions.',
 		noCape: 'No cape',
 		viewerHint: 'Drag to rotate, scroll to zoom'
 	},
@@ -571,9 +589,11 @@ export const en: Dictionary = {
 		title: 'How others connect to your server',
 		lead: "When you start the server, TFL Client tries to make the address work on its own. Here's what can happen:",
 		upnpTitle: 'The normal case: automatic',
-		upnpSub: "If your router supports UPnP (most do), TFL Client opens the port on its own — copy the address and that's it, nothing else to do.",
+		upnpSub:
+			"If your router supports UPnP (most do), TFL Client opens the port on its own — copy the address and that's it, nothing else to do.",
 		playitTitle: "If your router doesn't cooperate: playit.gg",
-		playitSub: 'A button appears to link a free playit.gg account — one click, once, never needed again after that.',
+		playitSub:
+			'A button appears to link a free playit.gg account — one click, once, never needed again after that.',
 		gotIt: 'Got it'
 	}
 };

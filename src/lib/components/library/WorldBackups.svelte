@@ -31,7 +31,7 @@
 	}
 
 	$effect(() => {
-		instance.name;
+		void instance.name;
 		load();
 	});
 
@@ -122,7 +122,9 @@
 						disabled={busyId === b.id}
 						onclick={() => (confirmRestore = b)}
 					>
-						{#if busyId === b.id}<Loader2 size={12} class="spin" />{:else}<RotateCcw size={12} />{/if}
+						{#if busyId === b.id}<Loader2 size={12} class="spin" />{:else}<RotateCcw
+								size={12}
+							/>{/if}
 						{t('worldBackups.restore')}
 					</button>
 					<button

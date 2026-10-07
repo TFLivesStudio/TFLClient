@@ -119,7 +119,11 @@
 		},
 		{ id: 'obsidian-solid', key: 'settings.wallpaper.items.obsidianSolid', preview: '#08090c' },
 		{ id: 'charcoal', key: 'settings.wallpaper.items.charcoal', preview: '#0f1115' },
-		{ id: 'savanna', key: 'settings.wallpaper.items.savanna', preview: 'url(/wallpapers/mc-wallpaper-1.jpg)' },
+		{
+			id: 'savanna',
+			key: 'settings.wallpaper.items.savanna',
+			preview: 'url(/wallpapers/mc-wallpaper-1.jpg)'
+		},
 		{
 			id: 'golden-sunset',
 			key: 'settings.wallpaper.items.goldenSunset',
@@ -182,20 +186,40 @@
 		}
 	];
 
-	let tab = $state<'general' | 'appearance' | 'performance' | 'system' | 'accounts' | 'java'>('general');
+	let tab = $state<'general' | 'appearance' | 'performance' | 'system' | 'accounts' | 'java'>(
+		'general'
+	);
 
 	let accent = $state(
 		typeof localStorage !== 'undefined'
 			? (localStorage.getItem('tfl-accent') ?? 'orange')
 			: 'orange'
 	);
-	let surface = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-surface') ?? 'obsidian') : 'obsidian');
-	let ambience = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-ambience') ?? 'aurora') : 'aurora');
-	let font = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-font') ?? 'system') : 'system');
-	let density = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-density') ?? 'comfortable') : 'comfortable');
-	let wallpaper = $state(typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-wallpaper') ?? 'none') : 'none');
+	let surface = $state(
+		typeof localStorage !== 'undefined'
+			? (localStorage.getItem('tfl-surface') ?? 'obsidian')
+			: 'obsidian'
+	);
+	let ambience = $state(
+		typeof localStorage !== 'undefined'
+			? (localStorage.getItem('tfl-ambience') ?? 'aurora')
+			: 'aurora'
+	);
+	let font = $state(
+		typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-font') ?? 'system') : 'system'
+	);
+	let density = $state(
+		typeof localStorage !== 'undefined'
+			? (localStorage.getItem('tfl-density') ?? 'comfortable')
+			: 'comfortable'
+	);
+	let wallpaper = $state(
+		typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-wallpaper') ?? 'none') : 'none'
+	);
 	let cardStyle = $state(
-		typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-card-style') ?? 'rich') : 'rich'
+		typeof localStorage !== 'undefined'
+			? (localStorage.getItem('tfl-card-style') ?? 'rich')
+			: 'rich'
 	);
 	let customWallpaperUrl = $state<string | null>(null);
 	let customWallpaperBusy = $state(false);
@@ -380,7 +404,8 @@
 
 	async function toggleMultiInstanceWarning() {
 		if (!appState.settings) return;
-		appState.settings.multi_instance_warning_dismissed = !appState.settings.multi_instance_warning_dismissed;
+		appState.settings.multi_instance_warning_dismissed =
+			!appState.settings.multi_instance_warning_dismissed;
 		await updateSettings(appState.settings);
 	}
 
@@ -391,7 +416,10 @@
 		document.documentElement.setAttribute('data-quality', profile.toLowerCase());
 		document.documentElement.toggleAttribute('data-reduce-motion', profile === 'Lite');
 		document.documentElement.toggleAttribute('data-no-blur', updated.disable_blur_effects);
-		document.documentElement.toggleAttribute('data-no-infinite-fx', updated.disable_infinite_animations);
+		document.documentElement.toggleAttribute(
+			'data-no-infinite-fx',
+			updated.disable_infinite_animations
+		);
 	}
 
 	function changeMascot(uuid: string, id: MascotId) {
@@ -539,7 +567,8 @@
 				class:active={tab === 'appearance'}
 				onclick={() => selectTab('appearance')}
 			>
-				<Palette size={14} /> {t('settings.tabs.appearance')}
+				<Palette size={14} />
+				{t('settings.tabs.appearance')}
 			</button>
 			<button
 				type="button"
@@ -547,7 +576,8 @@
 				class:active={tab === 'general'}
 				onclick={() => selectTab('general')}
 			>
-				<SlidersHorizontal size={14} /> {t('settings.tabs.general')}
+				<SlidersHorizontal size={14} />
+				{t('settings.tabs.general')}
 			</button>
 			<button
 				type="button"
@@ -555,7 +585,8 @@
 				class:active={tab === 'performance'}
 				onclick={() => selectTab('performance')}
 			>
-				<Gauge size={14} /> {t('settings.tabs.performance')}
+				<Gauge size={14} />
+				{t('settings.tabs.performance')}
 			</button>
 			<button
 				type="button"
@@ -563,7 +594,8 @@
 				class:active={tab === 'system'}
 				onclick={() => selectTab('system')}
 			>
-				<HardDrive size={14} /> {t('settings.tabs.system')}
+				<HardDrive size={14} />
+				{t('settings.tabs.system')}
 			</button>
 			<button
 				type="button"
@@ -571,7 +603,8 @@
 				class:active={tab === 'accounts'}
 				onclick={() => selectTab('accounts')}
 			>
-				<Users size={14} /> {t('settings.tabs.accounts')}
+				<Users size={14} />
+				{t('settings.tabs.accounts')}
 			</button>
 			<button
 				type="button"
@@ -579,7 +612,8 @@
 				class:active={tab === 'java'}
 				onclick={() => selectTab('java')}
 			>
-				<Coffee size={14} /> {t('settings.tabs.java')}
+				<Coffee size={14} />
+				{t('settings.tabs.java')}
 			</button>
 		</div>
 
@@ -588,8 +622,18 @@
 				<section>
 					<span class="section-label">{t('settings.language')}</span>
 					<div class="row">
-						<button type="button" class="choice" class:active={i18nState.locale === 'es'} onclick={() => setLocale('es')}>Español</button>
-						<button type="button" class="choice" class:active={i18nState.locale === 'en'} onclick={() => setLocale('en')}>English</button>
+						<button
+							type="button"
+							class="choice"
+							class:active={i18nState.locale === 'es'}
+							onclick={() => setLocale('es')}>Español</button
+						>
+						<button
+							type="button"
+							class="choice"
+							class:active={i18nState.locale === 'en'}
+							onclick={() => setLocale('en')}>English</button
+						>
 					</div>
 				</section>
 
@@ -662,13 +706,19 @@
 						</label>
 					</div>
 					<button type="button" class="save-btn" disabled={savingRam} onclick={saveRam}>
-						<Check size={13} /> {t('settings.ram.save')}
+						<Check size={13} />
+						{t('settings.ram.save')}
 					</button>
 				</section>
 			{:else if tab === 'system'}
 				<section>
 					<span class="section-label">{t('settings.storage.label')}</span>
-					<button type="button" class="save-btn" disabled={clearingCache} onclick={handleClearCache}>
+					<button
+						type="button"
+						class="save-btn"
+						disabled={clearingCache}
+						onclick={handleClearCache}
+					>
 						{#if clearingCache}<Loader2 size={13} class="spin" />{:else}<Trash2 size={13} />{/if}
 						{t('settings.storage.clearCache')}
 					</button>
@@ -711,7 +761,9 @@
 						class:active={appState.settings?.auto_updates}
 						onclick={toggleAutoUpdates}
 					>
-						{appState.settings?.auto_updates ? t('settings.updates.autoEnabled') : t('settings.updates.autoDisabled')}
+						{appState.settings?.auto_updates
+							? t('settings.updates.autoEnabled')
+							: t('settings.updates.autoDisabled')}
 					</button>
 					<button
 						type="button"
@@ -755,20 +807,49 @@
 					<span class="section-label">{t('settings.accent.label')}</span>
 					<div class="swatches">
 						{#each ACCENTS as a (a.id)}
-							<button type="button" class="swatch" class:active={accent === a.id} style="background: {a.color}; color: {a.color}" onclick={() => applyAccent(a.id)} aria-label={t(a.key)}></button>
+							<button
+								type="button"
+								class="swatch"
+								class:active={accent === a.id}
+								style="background: {a.color}; color: {a.color}"
+								onclick={() => applyAccent(a.id)}
+								aria-label={t(a.key)}
+							></button>
 						{/each}
 					</div>
 				</section>
 				<section>
 					<span class="section-label"><PanelLeft size={13} /> {t('settings.surface.label')}</span>
-					<div class="row">{#each SURFACES as item (item.id)}<button type="button" class="choice" class:active={surface === item.id} disabled={item.id === 'oled' && appState.settings?.theme === 'light'} title={item.id === 'oled' && appState.settings?.theme === 'light' ? t('settings.surface.incompatibleTitle') : undefined} onclick={() => applySurface(item.id)}>{t(item.key)}</button>{/each}</div>
+					<div class="row">
+						{#each SURFACES as item (item.id)}<button
+								type="button"
+								class="choice"
+								class:active={surface === item.id}
+								disabled={item.id === 'oled' && appState.settings?.theme === 'light'}
+								title={item.id === 'oled' && appState.settings?.theme === 'light'
+									? t('settings.surface.incompatibleTitle')
+									: undefined}
+								onclick={() => applySurface(item.id)}>{t(item.key)}</button
+							>{/each}
+					</div>
 				</section>
 				<section>
-					<span class="section-label"><WandSparkles size={13} /> {t('settings.ambience.label')}</span>
-					<div class="row">{#each AMBIENCES as item (item.id)}<button type="button" class="choice" class:active={ambience === item.id} onclick={() => applyAmbience(item.id)}>{t(item.key)}</button>{/each}</div>
+					<span class="section-label"
+						><WandSparkles size={13} /> {t('settings.ambience.label')}</span
+					>
+					<div class="row">
+						{#each AMBIENCES as item (item.id)}<button
+								type="button"
+								class="choice"
+								class:active={ambience === item.id}
+								onclick={() => applyAmbience(item.id)}>{t(item.key)}</button
+							>{/each}
+					</div>
 				</section>
 				<section>
-					<span class="section-label"><WandSparkles size={13} /> {t('settings.wallpaper.label')}</span>
+					<span class="section-label"
+						><WandSparkles size={13} /> {t('settings.wallpaper.label')}</span
+					>
 					<div class="wallpaper-grid">
 						{#each WALLPAPERS as item (item.id)}
 							<button
@@ -801,7 +882,9 @@
 							class="wallpaper-swatch wallpaper-upload"
 							onclick={pickCustomWallpaper}
 							disabled={customWallpaperBusy || dialogsBlocked}
-							aria-label={customWallpaperUrl ? t('settings.wallpaper.change') : t('settings.wallpaper.upload')}
+							aria-label={customWallpaperUrl
+								? t('settings.wallpaper.change')
+								: t('settings.wallpaper.upload')}
 							title={dialogsBlocked
 								? t('settings.wallpaper.uploadDisabledTitle')
 								: customWallpaperUrl
@@ -811,18 +894,43 @@
 							<Upload size={13} />
 						</button>
 					</div>
-					{#if dialogsBlocked}<p class="mac-notice">{t('settings.wallpaper.autoModeDisabled')}</p>{/if}
+					{#if dialogsBlocked}<p class="mac-notice">
+							{t('settings.wallpaper.autoModeDisabled')}
+						</p>{/if}
 					{#if customWallpaperError}<p class="error-text">{customWallpaperError}</p>{/if}
 				</section>
 				<section>
 					<span class="section-label">{t('settings.density.label')}</span>
-					<div class="row"><button type="button" class="choice" class:active={density === 'comfortable'} onclick={() => applyDensity('comfortable')}>{t('settings.density.comfortable')}</button><button type="button" class="choice" class:active={density === 'compact'} onclick={() => applyDensity('compact')}>{t('settings.density.compact')}</button></div>
+					<div class="row">
+						<button
+							type="button"
+							class="choice"
+							class:active={density === 'comfortable'}
+							onclick={() => applyDensity('comfortable')}
+							>{t('settings.density.comfortable')}</button
+						><button
+							type="button"
+							class="choice"
+							class:active={density === 'compact'}
+							onclick={() => applyDensity('compact')}>{t('settings.density.compact')}</button
+						>
+					</div>
 				</section>
 				<section>
 					<span class="section-label">{t('settings.cardStyle.label')}</span>
 					<div class="row">
-						<button type="button" class="choice" class:active={cardStyle === 'rich'} onclick={() => applyCardStyle('rich')}>{t('settings.cardStyle.rich')}</button>
-						<button type="button" class="choice" class:active={cardStyle === 'minimal'} onclick={() => applyCardStyle('minimal')}>{t('settings.cardStyle.minimal')}</button>
+						<button
+							type="button"
+							class="choice"
+							class:active={cardStyle === 'rich'}
+							onclick={() => applyCardStyle('rich')}>{t('settings.cardStyle.rich')}</button
+						>
+						<button
+							type="button"
+							class="choice"
+							class:active={cardStyle === 'minimal'}
+							onclick={() => applyCardStyle('minimal')}>{t('settings.cardStyle.minimal')}</button
+						>
 					</div>
 				</section>
 				<section>
@@ -907,17 +1015,34 @@
 					<span class="section-label">{t('settings.accounts.addMicrosoft')}</span>
 					{#if msCode}
 						<div class="ms-pending">
-							<p>{t('onboarding.goTo')} <a href={msVerificationUri} target="_blank" rel="noreferrer">{msVerificationUri}</a> {t('settings.accounts.microsoftEnter')}</p>
-						<div class="ms-code-row">
-							<code class="ms-code" tabindex="0">{msCode}</code>
-							<button type="button" class="copy-code-btn" onclick={copyMicrosoftCode} aria-label={t('settings.accounts.copyCode')}>
-								{#if codeCopied}<CheckCircle2 size={14} /> {t('common.copied')}{:else}<Copy size={14} /> {t('common.copy')}{/if}
-							</button>
-						</div>
+							<p>
+								{t('onboarding.goTo')}
+								<a href={msVerificationUri} target="_blank" rel="noreferrer">{msVerificationUri}</a>
+								{t('settings.accounts.microsoftEnter')}
+							</p>
+							<div class="ms-code-row">
+								<code class="ms-code" tabindex="0">{msCode}</code>
+								<button
+									type="button"
+									class="copy-code-btn"
+									onclick={copyMicrosoftCode}
+									aria-label={t('settings.accounts.copyCode')}
+								>
+									{#if codeCopied}<CheckCircle2 size={14} /> {t('common.copied')}{:else}<Copy
+											size={14}
+										/>
+										{t('common.copy')}{/if}
+								</button>
+							</div>
 							<p class="hint">{t('settings.accounts.waitingConfirmation')}</p>
 						</div>
 					{:else}
-						<button type="button" class="mini-btn ms-btn" disabled={msBusy} onclick={handleAddMicrosoft}>
+						<button
+							type="button"
+							class="mini-btn ms-btn"
+							disabled={msBusy}
+							onclick={handleAddMicrosoft}
+						>
 							{#if msBusy}<Loader2 size={13} class="spin" />{:else}<Gamepad2 size={13} />{/if}
 							{t('settings.accounts.startMicrosoft')}
 						</button>
@@ -1119,7 +1244,7 @@
 	}
 
 	.choice:disabled {
-		opacity: .42;
+		opacity: 0.42;
 		cursor: not-allowed;
 	}
 
@@ -1134,7 +1259,9 @@
 	}
 
 	.swatch.active {
-		box-shadow: 0 0 0 2px var(--bg-card), 0 0 0 4px currentColor;
+		box-shadow:
+			0 0 0 2px var(--bg-card),
+			0 0 0 4px currentColor;
 	}
 
 	.wallpaper-grid {
@@ -1430,7 +1557,7 @@
 		border-radius: var(--border-radius-sm);
 		background: var(--bg-input);
 		color: var(--text-secondary);
-		font-size: .7rem;
+		font-size: 0.7rem;
 		font-weight: 700;
 		cursor: pointer;
 	}

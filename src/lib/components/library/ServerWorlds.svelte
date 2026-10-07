@@ -82,7 +82,9 @@
 							onclick={() => (confirmDelete = world.name)}
 							aria-label={t('serverWorlds.delete')}
 						>
-							{#if deletingName === world.name}<Loader2 size={13} class="spin" />{:else}<Trash2 size={13} />{/if}
+							{#if deletingName === world.name}<Loader2 size={13} class="spin" />{:else}<Trash2
+									size={13}
+								/>{/if}
 						</button>
 					{/if}
 				</div>

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import type {
 		InstanceData,
 		ModSearchHit,
@@ -76,35 +75,101 @@
 	// — se usan como filtro en la pestaña Descargar.
 	const CATEGORIES: Record<Kind, string[]> = {
 		mod: [
-			'adventure', 'cursed', 'decoration', 'economy', 'equipment', 'food',
-			'game-mechanics', 'library', 'magic', 'management', 'minigame', 'mobs',
-			'optimization', 'social', 'storage', 'technology', 'transportation',
-			'utility', 'worldgen'
+			'adventure',
+			'cursed',
+			'decoration',
+			'economy',
+			'equipment',
+			'food',
+			'game-mechanics',
+			'library',
+			'magic',
+			'management',
+			'minigame',
+			'mobs',
+			'optimization',
+			'social',
+			'storage',
+			'technology',
+			'transportation',
+			'utility',
+			'worldgen'
 		],
 		resourcepack: [
-			'audio', 'blocks', 'combat', 'decoration', 'cursed', 'equipment',
-			'entities', 'environment', 'fonts', 'gui', 'items', 'locale', 'models',
-			'modded', 'realistic', 'simplistic', 'themed', 'tweaks', 'utility',
+			'audio',
+			'blocks',
+			'combat',
+			'decoration',
+			'cursed',
+			'equipment',
+			'entities',
+			'environment',
+			'fonts',
+			'gui',
+			'items',
+			'locale',
+			'models',
+			'modded',
+			'realistic',
+			'simplistic',
+			'themed',
+			'tweaks',
+			'utility',
 			'vanilla-like'
 		],
 		shader: [
-			'atmosphere', 'bloom', 'cartoon', 'colored-lighting', 'cursed', 'fantasy',
-			'foliage', 'high', 'low', 'medium', 'path-tracing', 'pbr', 'potato',
-			'realistic', 'reflections', 'screenshot', 'semi-realistic', 'shadows',
+			'atmosphere',
+			'bloom',
+			'cartoon',
+			'colored-lighting',
+			'cursed',
+			'fantasy',
+			'foliage',
+			'high',
+			'low',
+			'medium',
+			'path-tracing',
+			'pbr',
+			'potato',
+			'realistic',
+			'reflections',
+			'screenshot',
+			'semi-realistic',
+			'shadows',
 			'vanilla-like'
 		],
 		// Modrinth trata plugins como un sub-tipo de mod (mismo taxonomy de
 		// categorías, confirmado contra la API real) — se reusa la misma
 		// lista en vez de mantener una copia aparte.
 		plugin: [
-			'adventure', 'cursed', 'decoration', 'economy', 'equipment', 'food',
-			'game-mechanics', 'library', 'magic', 'management', 'minigame', 'mobs',
-			'optimization', 'social', 'storage', 'technology', 'transportation',
-			'utility', 'worldgen'
+			'adventure',
+			'cursed',
+			'decoration',
+			'economy',
+			'equipment',
+			'food',
+			'game-mechanics',
+			'library',
+			'magic',
+			'management',
+			'minigame',
+			'mobs',
+			'optimization',
+			'social',
+			'storage',
+			'technology',
+			'transportation',
+			'utility',
+			'worldgen'
 		]
 	};
 
-	const EXTENSION: Record<Kind, string> = { mod: 'jar', shader: 'zip', resourcepack: 'zip', plugin: 'jar' };
+	const EXTENSION: Record<Kind, string> = {
+		mod: 'jar',
+		shader: 'zip',
+		resourcepack: 'zip',
+		plugin: 'jar'
+	};
 	const FILTER_LABEL: Record<Kind, string> = {
 		mod: 'Mod (.jar)',
 		shader: 'Shader pack (.zip)',
@@ -139,7 +204,8 @@
 	function apiInstall(projectId: string, versionId?: string) {
 		if (kind === 'mod')
 			return installMod(instance.name, projectId, instance.mc_version, instance.loader, versionId);
-		if (kind === 'shader') return installShader(instance.name, projectId, instance.mc_version, versionId);
+		if (kind === 'shader')
+			return installShader(instance.name, projectId, instance.mc_version, versionId);
 		if (kind === 'plugin')
 			return installPlugin(
 				instance.name,
@@ -165,7 +231,8 @@
 	function apiVersions(projectId: string) {
 		if (kind === 'mod') return getModVersions(projectId, instance.mc_version, instance.loader);
 		if (kind === 'shader') return getShaderVersions(projectId, instance.mc_version);
-		if (kind === 'plugin') return getPluginVersions(projectId, instance.mc_version, serverTypeForPlugins);
+		if (kind === 'plugin')
+			return getPluginVersions(projectId, instance.mc_version, serverTypeForPlugins);
 		return getResourcepackVersions(projectId, instance.mc_version);
 	}
 	function apiAddLocal(paths: string[]) {
@@ -245,13 +312,19 @@
 			} catch {
 				if (token === refreshToken) duplicateGroups = [];
 			}
+			try {
+				const freshRollback = await getModRollbackInfo(instance.name);
+				if (token === refreshToken) rollbackInfo = freshRollback;
+			} catch {
+				if (token === refreshToken) rollbackInfo = null;
+			}
 		}
 	}
 
 	$effect(() => {
-		instance.name;
-		kind;
-		refreshSignal;
+		void instance.name;
+		void kind;
+		void refreshSignal;
 		manageSelectedCategories = new Set();
 		refreshInstalled();
 	});
@@ -390,7 +463,9 @@
 		loadingChangelog = true;
 		const token = ++changelogToken;
 		try {
-			const text = (await getModVersionChangelog(update.new_version_id)) || t('contentManager.noChangelogNotes');
+			const text =
+				(await getModVersionChangelog(update.new_version_id)) ||
+				t('contentManager.noChangelogNotes');
 			if (token === changelogToken) changelogText = text;
 		} catch (e) {
 			if (token === changelogToken)
@@ -482,8 +557,8 @@
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 	$effect(() => {
 		if (subtab !== 'download') return;
-		query;
-		selectedCategories;
+		void query;
+		void selectedCategories;
 		clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(runSearch, 300);
 		return () => clearTimeout(debounceTimer);
@@ -539,10 +614,21 @@
 
 <div class="content-manager">
 	<div class="subtabs">
-		<button type="button" class="subtab" class:active={subtab === 'manage'} onclick={() => (subtab = 'manage')}>
-			{t('contentManager.manageTab')} {#if installed.length > 0}<span class="count">{installed.length}</span>{/if}
+		<button
+			type="button"
+			class="subtab"
+			class:active={subtab === 'manage'}
+			onclick={() => (subtab = 'manage')}
+		>
+			{t('contentManager.manageTab')}
+			{#if installed.length > 0}<span class="count">{installed.length}</span>{/if}
 		</button>
-		<button type="button" class="subtab" class:active={subtab === 'download'} onclick={() => (subtab = 'download')}>
+		<button
+			type="button"
+			class="subtab"
+			class:active={subtab === 'download'}
+			onclick={() => (subtab = 'download')}
+		>
 			{t('contentManager.downloadTab')}
 		</button>
 	</div>
@@ -556,7 +642,9 @@
 					class:active={manageSelectedCategories.size > 0}
 					onclick={() => (manageCategoriesOpen = !manageCategoriesOpen)}
 				>
-					{t('contentManager.categories')}{manageSelectedCategories.size > 0 ? ` (${manageSelectedCategories.size})` : ''}
+					{t('contentManager.categories')}{manageSelectedCategories.size > 0
+						? ` (${manageSelectedCategories.size})`
+						: ''}
 					<ChevronDown size={13} />
 				</button>
 				{#if manageCategoriesOpen}
@@ -568,7 +656,9 @@
 								class:active={manageSelectedCategories.has(cat)}
 								onclick={() => toggleManageCategory(cat)}
 							>
-								{#if manageSelectedCategories.has(cat)}<Check size={12} />{:else}<span class="option-spacer"></span>{/if}
+								{#if manageSelectedCategories.has(cat)}<Check size={12} />{:else}<span
+										class="option-spacer"
+									></span>{/if}
 								{categoryLabel(cat)}
 							</button>
 						{/each}
@@ -577,7 +667,12 @@
 			</div>
 		{/if}
 		<div class="manage-toolbar">
-			<button type="button" class="tool-btn" onclick={toggleSelectAll} disabled={installedFiltered.length === 0}>
+			<button
+				type="button"
+				class="tool-btn"
+				onclick={toggleSelectAll}
+				disabled={installedFiltered.length === 0}
+			>
 				{selected.size === installedFiltered.length && installedFiltered.length > 0
 					? t('contentManager.selectNone')
 					: t('contentManager.selectAll')}
@@ -593,7 +688,12 @@
 				{t('contentManager.addByFile')}
 			</button>
 			{#if kind === 'mod'}
-				<button type="button" class="tool-btn" disabled={checkingUpdates} onclick={handleCheckUpdatesSelected}>
+				<button
+					type="button"
+					class="tool-btn"
+					disabled={checkingUpdates}
+					onclick={handleCheckUpdatesSelected}
+				>
 					{#if checkingUpdates}<Loader2 size={13} class="spin" />{:else}<RefreshCw size={13} />{/if}
 					{t('contentManager.checkUpdates')}{selected.size > 0 ? ` (${selected.size})` : ''}
 				</button>
@@ -625,7 +725,12 @@
 						list: duplicateGroups.map((g) => g.join(' + ')).join(' · ')
 					})}
 				</span>
-				<button type="button" class="dup-action" disabled={cleaningDuplicates} onclick={handleCleanDuplicates}>
+				<button
+					type="button"
+					class="dup-action"
+					disabled={cleaningDuplicates}
+					onclick={handleCleanDuplicates}
+				>
 					{#if cleaningDuplicates}<Loader2 size={12} class="spin" />{:else}<Eraser size={12} />{/if}
 					{t('contentManager.cleanDuplicates')}
 				</button>
@@ -676,10 +781,16 @@
 							<div class="installed-icon installed-icon-fallback"></div>
 						{/if}
 						<span class="filename">{item.title ?? item.filename}</span>
-						{#if item.disabled}<span class="disabled-tag">{t('contentManager.disabledTag')}</span>{/if}
+						{#if item.disabled}<span class="disabled-tag">{t('contentManager.disabledTag')}</span
+							>{/if}
 						{#if update}
-							<button type="button" class="changelog-toggle" onclick={() => toggleChangelog(update)}>
-								<FileText size={11} /> {t('contentManager.changelogButton')}
+							<button
+								type="button"
+								class="changelog-toggle"
+								onclick={() => toggleChangelog(update)}
+							>
+								<FileText size={11} />
+								{t('contentManager.changelogButton')}
 							</button>
 						{/if}
 						{#if supportsToggle}
@@ -690,18 +801,27 @@
 								disabled={togglingFile === item.filename}
 								onclick={() => handleToggleEnabled(item)}
 								title={item.disabled ? t('contentManager.enable') : t('contentManager.disable')}
-								aria-label={item.disabled ? t('contentManager.enable') : t('contentManager.disable')}
+								aria-label={item.disabled
+									? t('contentManager.enable')
+									: t('contentManager.disable')}
 							>
 								<Power size={13} />
 							</button>
 						{/if}
-						<button type="button" class="icon-btn" onclick={() => handleRemoveOne(item.filename)} aria-label={t('contentManager.remove')}>
+						<button
+							type="button"
+							class="icon-btn"
+							onclick={() => handleRemoveOne(item.filename)}
+							aria-label={t('contentManager.remove')}
+						>
 							<Trash2 size={13} />
 						</button>
 					</div>
 					{#if update && changelogFor === update.new_version_id}
 						<div class="changelog-box">
-							{#if loadingChangelog}<Loader2 size={13} class="spin" />{:else}<p>{changelogText}</p>{/if}
+							{#if loadingChangelog}<Loader2 size={13} class="spin" />{:else}<p>
+									{changelogText}
+								</p>{/if}
 						</div>
 					{/if}
 				{/each}
@@ -715,7 +835,9 @@
 				class:active={selectedCategories.size > 0}
 				onclick={() => (categoriesOpen = !categoriesOpen)}
 			>
-				{t('contentManager.categories')}{selectedCategories.size > 0 ? ` (${selectedCategories.size})` : ''}
+				{t('contentManager.categories')}{selectedCategories.size > 0
+					? ` (${selectedCategories.size})`
+					: ''}
 				<ChevronDown size={13} />
 			</button>
 			{#if categoriesOpen}
@@ -727,7 +849,8 @@
 							class:active={selectedCategories.has(cat)}
 							onclick={() => toggleCategory(cat)}
 						>
-							{#if selectedCategories.has(cat)}<Check size={12} />{:else}<span class="option-spacer"></span>{/if}
+							{#if selectedCategories.has(cat)}<Check size={12} />{:else}<span class="option-spacer"
+								></span>{/if}
 							{categoryLabel(cat)}
 						</button>
 					{/each}
@@ -741,7 +864,11 @@
 			{:else}
 				<Search size={14} class="search-icon" />
 			{/if}
-			<input type="text" bind:value={query} placeholder={t('contentManager.searchPlaceholder', { noun: NOUN[kind] })} />
+			<input
+				type="text"
+				bind:value={query}
+				placeholder={t('contentManager.searchPlaceholder', { noun: NOUN[kind] })}
+			/>
 		</div>
 
 		{#if downloadError}<p class="error">{downloadError}</p>{/if}
@@ -751,12 +878,21 @@
 				<span class="section-label">{t('contentManager.favorites')}</span>
 				{#each favoriteMods as mod (mod.projectId)}
 					<div class="mod-card anim-fade-in">
-						{#if mod.iconUrl}<img src={mod.iconUrl} alt={mod.title} />{:else}<div class="mod-icon-fallback"></div>{/if}
+						{#if mod.iconUrl}<img src={mod.iconUrl} alt={mod.title} />{:else}<div
+								class="mod-icon-fallback"
+							></div>{/if}
 						<div class="mod-info">
 							<span class="mod-title">{mod.title}</span>
 						</div>
-						<button type="button" class="install-btn" disabled={installingId === mod.projectId} onclick={() => handleInstall(mod.projectId)}>
-							{#if installingId === mod.projectId}<Loader2 size={14} class="spin" />{:else}<Download size={14} />{/if}
+						<button
+							type="button"
+							class="install-btn"
+							disabled={installingId === mod.projectId}
+							onclick={() => handleInstall(mod.projectId)}
+						>
+							{#if installingId === mod.projectId}<Loader2 size={14} class="spin" />{:else}<Download
+									size={14}
+								/>{/if}
 						</button>
 					</div>
 				{/each}
@@ -768,7 +904,9 @@
 			{#each results as item (item.project_id)}
 				{@const alreadyInstalled = installedProjectIds.has(item.project_id)}
 				<div class="mod-card anim-fade-in">
-					{#if item.icon_url}<img src={item.icon_url} alt={item.title} />{:else}<div class="mod-icon-fallback"></div>{/if}
+					{#if item.icon_url}<img src={item.icon_url} alt={item.title} />{:else}<div
+							class="mod-icon-fallback"
+						></div>{/if}
 					<div class="mod-info">
 						<span class="mod-title">{item.title}</span>
 						<p class="mod-desc">{item.description}</p>
@@ -778,7 +916,12 @@
 							type="button"
 							class="favorite-btn"
 							class:active={isFavoriteMod(item.project_id)}
-							onclick={() => toggleFavoriteMod({ projectId: item.project_id, title: item.title, iconUrl: item.icon_url })}
+							onclick={() =>
+								toggleFavoriteMod({
+									projectId: item.project_id,
+									title: item.title,
+									iconUrl: item.icon_url
+								})}
 							aria-label={t('contentManager.favorite')}
 						>
 							<Star size={14} fill={isFavoriteMod(item.project_id) ? 'currentColor' : 'none'} />
@@ -794,10 +937,20 @@
 						<ChevronDown size={13} />
 					</button>
 					{#if alreadyInstalled}
-						<span class="installed-badge" title={t('contentManager.alreadyInstalled')}><Check size={13} /></span>
+						<span class="installed-badge" title={t('contentManager.alreadyInstalled')}
+							><Check size={13} /></span
+						>
 					{:else}
-						<button type="button" class="install-btn" disabled={installingId === item.project_id} onclick={() => handleInstall(item.project_id)}>
-							{#if installingId === item.project_id}<Loader2 size={14} class="spin" />{:else}<Download size={14} />{/if}
+						<button
+							type="button"
+							class="install-btn"
+							disabled={installingId === item.project_id}
+							onclick={() => handleInstall(item.project_id)}
+						>
+							{#if installingId === item.project_id}<Loader2
+									size={14}
+									class="spin"
+								/>{:else}<Download size={14} />{/if}
 						</button>
 					{/if}
 				</div>

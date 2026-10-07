@@ -1,9 +1,9 @@
-import adapter from "@sveltejs/adapter-static";
-import { sveltekit } from "@sveltejs/kit/vite";
-import { defineConfig } from "vite";
-import { readFileSync } from "node:fs";
+import adapter from '@sveltejs/adapter-static';
+import { sveltekit } from '@sveltejs/kit/vite';
+import { defineConfig } from 'vite';
+import { readFileSync } from 'node:fs';
 
-const pkg = JSON.parse(readFileSync("./package.json", "utf-8"));
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
@@ -11,16 +11,14 @@ export default defineConfig({
 		sveltekit({
 			compilerOptions: {
 				runes: ({ filename }) =>
-					filename.split(/[/\\]/).includes("node_modules")
-						? undefined
-						: true,
+					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter({ fallback: "index.html" }),
-		}),
+			adapter: adapter({ fallback: 'index.html' })
+		})
 	],
 
 	define: {
-		__APP_VERSION__: JSON.stringify(pkg.version),
+		__APP_VERSION__: JSON.stringify(pkg.version)
 	},
 
 	// Tailored for Tauri dev/build — see https://v2.tauri.app/start/frontend/sveltekit/
@@ -31,19 +29,19 @@ export default defineConfig({
 		host: host || false,
 		hmr: host
 			? {
-					protocol: "ws",
+					protocol: 'ws',
 					host,
-					port: 1421,
+					port: 1421
 				}
 			: undefined,
 		watch: {
-			ignored: ["**/src-tauri/**"],
-		},
+			ignored: ['**/src-tauri/**']
+		}
 	},
 
 	resolve: {
 		alias: {
-			"@static": new URL("./static", import.meta.url).pathname,
-		},
-	},
+			'@static': new URL('./static', import.meta.url).pathname
+		}
+	}
 });

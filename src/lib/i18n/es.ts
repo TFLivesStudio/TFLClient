@@ -204,9 +204,12 @@ export const es = {
 		modeExisting: 'Una instancia mía',
 		modeQuick: 'Quick Join',
 		noInstances: 'No tenés ninguna instancia de cliente todavía — usá Quick Join.',
-		quickHint: 'Crea (o reusa) una instancia Vanilla con esa versión y te conecta directo, sin pasar por el menú de Multijugador.',
-		quickPlayUnsupported: 'Esta versión es anterior a 1.20.2 y no soporta conexión directa — el juego va a abrir normal, conectate a mano desde el menú de Multijugador.',
-		crackedBlocked: 'Las cuentas offline solo pueden jugar en singleplayer — iniciá sesión con una cuenta Microsoft para unirte a un servidor.',
+		quickHint:
+			'Crea (o reusa) una instancia Vanilla con esa versión y te conecta directo, sin pasar por el menú de Multijugador.',
+		quickPlayUnsupported:
+			'Esta versión es anterior a 1.20.2 y no soporta conexión directa — el juego va a abrir normal, conectate a mano desde el menú de Multijugador.',
+		crackedBlocked:
+			'Las cuentas offline solo pueden jugar en singleplayer — iniciá sesión con una cuenta Microsoft para unirte a un servidor.',
 		join: 'Unirse',
 		joining: 'Conectando…'
 	},
@@ -228,7 +231,8 @@ export const es = {
 		loaderLabel: 'Loader',
 		loaderHint:
 			'La versión del loader (Fabric/Forge/NeoForge/Quilt) se resuelve sola — la más reciente/recomendada para esta versión de Minecraft.',
-		experimentalToggle: 'Mostrar versiones experimentales (snapshots, pre-releases, release candidates)',
+		experimentalToggle:
+			'Mostrar versiones experimentales (snapshots, pre-releases, release candidates)',
 		create: 'Crear'
 	},
 	createServer: {
@@ -254,7 +258,8 @@ export const es = {
 		delete: 'Borrar copia',
 		restored: 'Mundos restaurados. Antes se guardó una copia del estado anterior.',
 		restoreTitle: '¿Restaurar esta copia?',
-		restoreMessage: 'Los mundos actuales se van a reemplazar por los de la copia del {{date}}. Antes se guarda una copia de cómo están ahora, por si te arrepentís.'
+		restoreMessage:
+			'Los mundos actuales se van a reemplazar por los de la copia del {{date}}. Antes se guarda una copia de cómo están ahora, por si te arrepentís.'
 	},
 	importInstance: {
 		title: 'Importar instancia',
@@ -278,15 +283,18 @@ export const es = {
 		addByFile: 'Añadir por archivo',
 		checkUpdates: 'Buscar actualizaciones',
 		remove: 'Quitar',
-		autoModeDisablesAddByFile: 'Añadir por archivo está desactivado en modo Automático — activá "Manual" en Ajustes.',
+		autoModeDisablesAddByFile:
+			'Añadir por archivo está desactivado en modo Automático — activá "Manual" en Ajustes.',
 		allUpToDate: 'Todo al día — no hay actualizaciones.',
 		noChangelogNotes: 'Sin notas de cambios.',
 		changelogLoadFailed: 'No se pudo cargar: {{error}}',
-		partialLocalAdd: 'Se agregaron {{added}} de {{total}} archivos — el resto no tenía la extensión esperada o no se pudo copiar.',
+		partialLocalAdd:
+			'Se agregaron {{added}} de {{total}} archivos — el resto no tenía la extensión esperada o no se pudo copiar.',
 		removeFailedPartial: 'No se pudieron quitar {{failed}} de {{total}}: {{names}}',
 		duplicateOne: 'Hay un mod',
 		duplicateMany: 'Hay {{count}} mods',
-		duplicateWarning: 'instalado dos veces (versiones distintas del mismo mod a la vez) — puede causar crashes. Revisá: {{list}}',
+		duplicateWarning:
+			'instalado dos veces (versiones distintas del mismo mod a la vez) — puede causar crashes. Revisá: {{list}}',
 		updateAll: 'Actualizar todos',
 		notInstalledYet: 'Todavía no instalaste ningún {{kind}} acá.',
 		noneMatchCategories: 'Ningún {{kind}} instalado coincide con esas categorías.',
@@ -369,7 +377,8 @@ export const es = {
 	},
 	instanceLogWindow: {
 		suspectsTitle: 'Posibles mods culpables',
-		suspectsHint: 'Según el reporte del cierre. Desactivarlos no los borra — se pueden volver a activar desde Mods.',
+		suspectsHint:
+			'Según el reporte del cierre. Desactivarlos no los borra — se pueden volver a activar desde Mods.',
 		disableMod: 'Desactivar',
 		suspectDisabled: 'Desactivado',
 		rollbackHint: 'Si el juego empezó a fallar justo después de actualizar los mods:',
@@ -393,7 +402,8 @@ export const es = {
 			mixinConflict: 'Un mod (mixin) chocó con otro — probá sacar el último mod que instalaste.',
 			missingDependency:
 				'Falta una dependencia que un mod necesita — revisá si instalaste todo lo que pedía.',
-			duplicateMod: 'Tenés el mismo mod instalado dos veces — revisá la lista de mods de la instancia.',
+			duplicateMod:
+				'Tenés el mismo mod instalado dos veces — revisá la lista de mods de la instancia.',
 			nativeCrash:
 				'La JVM crasheó de forma nativa (no es un error de un mod puntual) — puede ser drivers de video desactualizados, o falta de RAM real de la compu. Java dejó un hs_err_pid*.log con el detalle en la carpeta de la instancia.'
 		},
@@ -425,11 +435,13 @@ export const es = {
 	},
 	tflSelection: {
 		eyebrow: 'Contenido destacado',
-		subtitle: 'Descubrí packs curados y añadilos a una instancia compatible, o creá una nueva al toque.',
+		subtitle:
+			'Descubrí packs curados y añadilos a una instancia compatible, o creá una nueva al toque.',
 		allTab: 'Todos',
 		empty: 'Todavía no hay modpacks en la selección.',
 		createNewOption: '＋ Crear instancia nueva — {{mcVersion}} ({{loader}})',
-		needsLoaderInstance: 'Necesitás una instancia con Fabric, Forge, NeoForge o Quilt para instalar este pack.',
+		needsLoaderInstance:
+			'Necesitás una instancia con Fabric, Forge, NeoForge o Quilt para instalar este pack.',
 		noMatchingInstance: 'Ninguna instancia tuya coincide con las versiones de este pack.',
 		added: 'Añadido',
 		add: 'Añadir',
@@ -437,7 +449,8 @@ export const es = {
 		noInstanceBuild: 'No hay un build de este pack para esa instancia'
 	},
 	modpacksPanel: {
-		vanillaNotSupported: 'Vanilla no soporta modpacks — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.',
+		vanillaNotSupported:
+			'Vanilla no soporta modpacks — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.',
 		hint: 'Instalar un modpack agrega sus mods y configuración a esta instancia — no reemplaza lo que ya tenías. Quitarlo borra exactamente lo que trajo, nada más.',
 		installedCount: 'Instalados ({{count}})',
 		update: 'Actualizar'
@@ -503,7 +516,8 @@ export const es = {
 		generic: 'Trabajando…'
 	},
 	modsPanel: {
-		vanillaHint: 'Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.'
+		vanillaHint:
+			'Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.'
 	},
 	resourcePacksPanel: {
 		hint: 'Los resource packs funcionan en cualquier instancia, con o sin mods — no necesitás nada extra instalado. Se activan desde el menú de Minecraft (Opciones → Paquetes de recursos).'
@@ -519,7 +533,8 @@ export const es = {
 	},
 	serverWorlds: {
 		hint: 'Mundos detectados en la carpeta del servidor.',
-		empty: 'Todavía no hay ningún mundo generado — se crea solo al iniciar el servidor por primera vez.',
+		empty:
+			'Todavía no hay ningún mundo generado — se crea solo al iniciar el servidor por primera vez.',
 		delete: 'Borrar mundo',
 		confirmDelete: '¿Seguro? Borrar'
 	},
@@ -541,14 +556,20 @@ export const es = {
 		tabFiles: 'Archivos',
 		tabConsole: 'Consola',
 		connectionLabel: 'Cómo conectarse',
-		connectionLanHint: 'Para jugar con otra PC en tu misma red Wi-Fi, pasales esa dirección tal cual.',
-		connectionPublicReady: 'Esta dirección ya sirve para cualquiera, esté donde esté — TFL Client abrió el puerto solo en tu router.',
+		connectionLanHint:
+			'Para jugar con otra PC en tu misma red Wi-Fi, pasales esa dirección tal cual.',
+		connectionPublicReady:
+			'Esta dirección ya sirve para cualquiera, esté donde esté — TFL Client abrió el puerto solo en tu router.',
 		connectionPublicManual:
 			'Esta dirección sirve para cualquiera, pero tu router no dejó abrirla sola: hay que abrir (port forward) el puerto {{port}} a mano — buscá "port forwarding" + el modelo de tu router.',
-		connectionLanFallback: 'Si están en la misma red Wi-Fi, también pueden usar {{address}} directamente.',
-		connectionUnavailable: 'No se pudo detectar la dirección de red — revisá que tengas conexión a internet o red local.',
-		connectionTunnelReady: 'Esta dirección ya sirve para cualquiera, esté donde esté — no depende de tu router.',
-		playitPitch: '¿Se sigue complicando la conexión? Vinculá una cuenta gratis de playit.gg (un click, sin tarjeta) y la dirección va a andar siempre, sin depender del router.',
+		connectionLanFallback:
+			'Si están en la misma red Wi-Fi, también pueden usar {{address}} directamente.',
+		connectionUnavailable:
+			'No se pudo detectar la dirección de red — revisá que tengas conexión a internet o red local.',
+		connectionTunnelReady:
+			'Esta dirección ya sirve para cualquiera, esté donde esté — no depende de tu router.',
+		playitPitch:
+			'¿Se sigue complicando la conexión? Vinculá una cuenta gratis de playit.gg (un click, sin tarjeta) y la dirección va a andar siempre, sin depender del router.',
 		playitLinkButton: 'Vincular playit.gg',
 		playitLinking: 'Esperando confirmación en el navegador…'
 	},
@@ -568,9 +589,11 @@ export const es = {
 		title: 'Cómo se conectan los demás a tu servidor',
 		lead: 'Cuando inicies el servidor, TFL Client intenta que la dirección funcione sola. Esto es lo que puede pasar:',
 		upnpTitle: 'Lo normal: automático',
-		upnpSub: 'Si tu router soporta UPnP (la mayoría), TFL Client abre el puerto solo — copiás la dirección y listo, no hay que hacer nada más.',
+		upnpSub:
+			'Si tu router soporta UPnP (la mayoría), TFL Client abre el puerto solo — copiás la dirección y listo, no hay que hacer nada más.',
 		playitTitle: 'Si tu router no coopera: playit.gg',
-		playitSub: 'Aparece un botón para vincular una cuenta gratis de playit.gg — un solo click, una sola vez, nunca más hace falta repetirlo.',
+		playitSub:
+			'Aparece un botón para vincular una cuenta gratis de playit.gg — un solo click, una sola vez, nunca más hace falta repetirlo.',
 		gotIt: 'Entendido'
 	}
 };

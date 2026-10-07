@@ -22,8 +22,10 @@ pub async fn active_user_fresh() -> MinecraftUser {
     if user.user_type == AccountType::Microsoft {
         if let Some(refresh) = user.refresh_token.clone() {
             match tokio::task::spawn_blocking(move || {
-                launchwerk::auth::microsoft::MicrosoftAuth::new(crate::core::TFL_MICROSOFT_CLIENT_ID.to_string())
-                    .refresh_token(&refresh)
+                launchwerk::auth::microsoft::MicrosoftAuth::new(
+                    crate::core::TFL_MICROSOFT_CLIENT_ID.to_string(),
+                )
+                .refresh_token(&refresh)
             })
             .await
             {
@@ -34,7 +36,9 @@ pub async fn active_user_fresh() -> MinecraftUser {
                     user = fresh;
                 }
                 Ok(Err(e)) => {
-                    warn!("No se pudo refrescar la sesión de Microsoft, se sigue con la guardada: {e}");
+                    warn!(
+                        "No se pudo refrescar la sesión de Microsoft, se sigue con la guardada: {e}"
+                    );
                 }
                 Err(e) => {
                     warn!("Falló la tarea de refresco de sesión: {e}");

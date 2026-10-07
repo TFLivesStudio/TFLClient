@@ -33,7 +33,11 @@ pub fn is_server_running(instance_name: &str) -> bool {
 }
 
 pub fn running_server_pid(instance_name: &str) -> Option<u32> {
-    RUNNING_SERVERS.lock().unwrap().get(instance_name).and_then(|r| r.pid)
+    RUNNING_SERVERS
+        .lock()
+        .unwrap()
+        .get(instance_name)
+        .and_then(|r| r.pid)
 }
 
 /// Si el UPnP del router aceptó el mapeo automático del puerto — la UI usa
@@ -86,9 +90,13 @@ pub async fn launch_server(instance_name: String) -> Result<(), String> {
     }
 
     let java_major = aqua::infer_java_version(&data.mc_version);
-    let java_path = java_manager::ensure_java(java_major).await.inspect_err(|e| {
-        error!("No se pudo resolver Java {java_major} para el servidor \"{instance_name}\": {e}");
-    })?;
+    let java_path = java_manager::ensure_java(java_major)
+        .await
+        .inspect_err(|e| {
+            error!(
+                "No se pudo resolver Java {java_major} para el servidor \"{instance_name}\": {e}"
+            );
+        })?;
 
     ensure_eula(&instance_dir).await?;
 
@@ -141,7 +149,9 @@ pub async fn launch_server(instance_name: String) -> Result<(), String> {
         tokio::spawn(async move {
             let port = crate::commands::servers::read_server_port(&instance_dir).await;
             let Some(local_ip) = port_forward::detect_local_ipv4() else {
-                warn!("UPnP: no se pudo detectar la IP LAN para \"{server_name}\", se omite el port forward automático");
+                warn!(
+                    "UPnP: no se pudo detectar la IP LAN para \"{server_name}\", se omite el port forward automático"
+                );
                 return;
             };
             match port_forward::try_open_port(local_ip, port).await {

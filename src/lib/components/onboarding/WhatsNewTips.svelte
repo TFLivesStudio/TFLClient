@@ -55,35 +55,61 @@
 <svelte:window onkeydown={(e) => mode !== 'none' && e.key === 'Escape' && dismiss()} />
 
 {#if mode !== 'none'}
-	<div class="overlay" onclick={dismiss} onkeydown={(e) => e.key === 'Escape' && dismiss()} role="button" tabindex="-1">
-		<div class="panel anim-fade-in" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+	<div
+		class="overlay"
+		onclick={dismiss}
+		onkeydown={(e) => e.key === 'Escape' && dismiss()}
+		role="button"
+		tabindex="-1"
+	>
+		<div
+			class="panel anim-fade-in"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+		>
 			<div class="panel-header">
-				<div class="title-row"><Sparkles size={16} /><h2>{mode === 'first-run' ? t('whatsNewTips.welcomeTitle') : t('whatsNewTips.updatesTitle', { version: __APP_VERSION__ })}</h2></div>
-				<button type="button" class="close-btn" onclick={dismiss} aria-label={t('settings.close')}><X size={16} /></button>
+				<div class="title-row">
+					<Sparkles size={16} />
+					<h2>
+						{mode === 'first-run'
+							? t('whatsNewTips.welcomeTitle')
+							: t('whatsNewTips.updatesTitle', { version: __APP_VERSION__ })}
+					</h2>
+				</div>
+				<button type="button" class="close-btn" onclick={dismiss} aria-label={t('settings.close')}
+					><X size={16} /></button
+				>
 			</div>
 
 			{#if mode === 'first-run'}
 				<ul class="tips">
-					{#each TIP_KEYS as tipKey}
+					{#each TIP_KEYS as tipKey (tipKey)}
 						<li>{t(tipKey)}</li>
 					{/each}
 				</ul>
 			{:else if updateNotes.length > 0}
-				<p class="update-text">{t('whatsNewTips.updatedToVersionWithNotes', { version: __APP_VERSION__ })}</p>
+				<p class="update-text">
+					{t('whatsNewTips.updatedToVersionWithNotes', { version: __APP_VERSION__ })}
+				</p>
 				<ul class="tips">
-					{#each updateNotes as note}
+					{#each updateNotes as note, i (i)}
 						<li>{note}</li>
 					{/each}
 				</ul>
 				<button type="button" class="release-link" onclick={openRelease}>
-					<ExternalLink size={13} /> {t('whatsNewTips.viewTechnicalDetail')}
+					<ExternalLink size={13} />
+					{t('whatsNewTips.viewTechnicalDetail')}
 				</button>
 			{:else}
 				<p class="update-text">
 					{t('whatsNewTips.updatedToVersionNoNotes', { version: __APP_VERSION__ })}
 				</p>
 				<button type="button" class="release-link" onclick={openRelease}>
-					<ExternalLink size={13} /> {t('whatsNewTips.viewFullRelease')}
+					<ExternalLink size={13} />
+					{t('whatsNewTips.viewFullRelease')}
 				</button>
 			{/if}
 

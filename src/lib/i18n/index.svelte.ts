@@ -10,15 +10,19 @@ const DICTIONARIES: Record<Locale, Dictionary> = { es, en };
 // forma real de `es.ts`, no hay forma de pasarle una key que no exista.
 type DotPaths<T, Prefix extends string = ''> = T extends string
 	? Prefix
-	: { [K in keyof T & string]: DotPaths<T[K], `${Prefix}${Prefix extends '' ? '' : '.'}${K}`> }[keyof T &
-			string];
+	: {
+			[K in keyof T & string]: DotPaths<T[K], `${Prefix}${Prefix extends '' ? '' : '.'}${K}`>;
+		}[keyof T & string];
 
 export type TranslationKey = DotPaths<Dictionary>;
 
 const STORAGE_KEY = 'tfl-locale';
 
 export const i18nState = $state<{ locale: Locale }>({
-	locale: (typeof localStorage !== 'undefined' ? (localStorage.getItem(STORAGE_KEY) as Locale | null) : null) ?? 'es'
+	locale:
+		(typeof localStorage !== 'undefined'
+			? (localStorage.getItem(STORAGE_KEY) as Locale | null)
+			: null) ?? 'es'
 });
 
 export function setLocale(locale: Locale) {

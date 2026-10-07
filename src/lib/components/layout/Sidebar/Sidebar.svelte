@@ -7,7 +7,18 @@
 	import { t } from '$lib/i18n/index.svelte';
 	import { getInstanceIconPath } from '$lib/api/tflApi';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
-	import { Plus, User as UserIcon, LogOut, Settings, Search, Boxes, Sparkles, WifiOff, Globe, Shirt } from 'lucide-svelte';
+	import {
+		Plus,
+		User as UserIcon,
+		LogOut,
+		Settings,
+		Search,
+		Boxes,
+		Sparkles,
+		WifiOff,
+		Globe,
+		Shirt
+	} from 'lucide-svelte';
 
 	let {
 		instances,
@@ -114,10 +125,20 @@
 		<div class="section-label">
 			<span>{t('sidebar.yourInstances')}</span>
 			<div class="section-label-actions">
-				<button type="button" class="create-btn" onclick={onJoinServer} aria-label={t('sidebar.joinServer')}>
+				<button
+					type="button"
+					class="create-btn"
+					onclick={onJoinServer}
+					aria-label={t('sidebar.joinServer')}
+				>
 					<Globe size={14} strokeWidth={2.25} />
 				</button>
-				<button type="button" class="create-btn" onclick={onCreate} aria-label={t('sidebar.createInstance')}>
+				<button
+					type="button"
+					class="create-btn"
+					onclick={onCreate}
+					aria-label={t('sidebar.createInstance')}
+				>
 					<Plus size={14} strokeWidth={2.25} />
 				</button>
 			</div>
@@ -137,7 +158,8 @@
 					<Boxes size={28} />
 					<p>{t('sidebar.noInstancesYet')}</p>
 					<button type="button" class="empty-create" onclick={onCreate}>
-						<Plus size={13} strokeWidth={2.5} /> {t('sidebar.createFirst')}
+						<Plus size={13} strokeWidth={2.5} />
+						{t('sidebar.createFirst')}
 					</button>
 				</div>
 			{:else if filtered.length === 0}
@@ -211,11 +233,21 @@
 				>
 			</div>
 			{#if user.user_type !== 'Cracked'}
-				<button type="button" class="logout-btn" onclick={onOpenSkinManager} aria-label={t('skinManager.title')}>
+				<button
+					type="button"
+					class="logout-btn"
+					onclick={onOpenSkinManager}
+					aria-label={t('skinManager.title')}
+				>
 					<Shirt size={14} />
 				</button>
 			{/if}
-			<button type="button" class="logout-btn" onclick={onOpenSettings} aria-label={t('sidebar.openSettings')}>
+			<button
+				type="button"
+				class="logout-btn"
+				onclick={onOpenSettings}
+				aria-label={t('sidebar.openSettings')}
+			>
 				<Settings size={14} />
 			</button>
 			<button type="button" class="logout-btn" onclick={onLogout} aria-label={t('sidebar.logout')}>

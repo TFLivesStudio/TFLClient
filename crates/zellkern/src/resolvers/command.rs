@@ -285,7 +285,9 @@ impl<'a> CommandBuilder<'a> {
                     continue;
                 }
                 let tokens = arg.get_if_applies();
-                let Some(first) = tokens.first() else { continue };
+                let Some(first) = tokens.first() else {
+                    continue;
+                };
                 // Se filtra por el primer token (el nombre de la flag), no
                 // token por token — `--quickPlayMultiplayer`/`${...}` viajan
                 // como un par en el mismo `WithRule`, y el manifest no

@@ -23,7 +23,11 @@
 		// fallaba (permiso, disco), el usuario veía el prompt cerrarse como
 		// si hubiera elegido algo, sin que quedara persistido ni avisado del
 		// error — al reiniciar volvía a preguntar sin explicación.
-		const next = { ...appState.settings, native_dialog_mode: mode, native_dialog_mode_prompted: true };
+		const next = {
+			...appState.settings,
+			native_dialog_mode: mode,
+			native_dialog_mode_prompted: true
+		};
 		try {
 			await updateSettings(next);
 			appState.settings.native_dialog_mode = mode;
@@ -45,7 +49,12 @@
 				{t('nativeDialogModePrompt.lead')}
 			</p>
 			<div class="options">
-				<button type="button" class="option primary" disabled={!!busy} onclick={() => choose('auto')}>
+				<button
+					type="button"
+					class="option primary"
+					disabled={!!busy}
+					onclick={() => choose('auto')}
+				>
 					<span class="option-icon"><Zap size={18} /></span>
 					<span class="option-text">
 						<span class="option-title">{t('nativeDialogModePrompt.autoRecommended')}</span>
@@ -71,8 +80,12 @@
 			<span class="banner-title">{t('nativeDialogModePrompt.title')}</span>
 			<span class="banner-sub">{t('nativeDialogModePrompt.bannerSub')}</span>
 			<div class="banner-actions">
-				<button type="button" disabled={!!busy} onclick={() => choose('auto')}>{t('settings.dialogs.auto')}</button>
-				<button type="button" disabled={!!busy} onclick={() => choose('manual')}>{t('settings.dialogs.manual')}</button>
+				<button type="button" disabled={!!busy} onclick={() => choose('auto')}
+					>{t('settings.dialogs.auto')}</button
+				>
+				<button type="button" disabled={!!busy} onclick={() => choose('manual')}
+					>{t('settings.dialogs.manual')}</button
+				>
 			</div>
 			{#if error}<p class="prompt-error">{error}</p>{/if}
 		</div>

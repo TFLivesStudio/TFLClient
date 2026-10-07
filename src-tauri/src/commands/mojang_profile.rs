@@ -53,7 +53,9 @@ async fn require_microsoft_token() -> Result<String, String> {
 
 fn map_status(status: reqwest::StatusCode) -> String {
     match status.as_u16() {
-        401 | 403 => "La sesión de Microsoft no es válida — probá cerrar sesión y volver a entrar.".into(),
+        401 | 403 => {
+            "La sesión de Microsoft no es válida — probá cerrar sesión y volver a entrar.".into()
+        }
         429 => "Mojang está limitando pedidos por ahora — probá de nuevo en un minuto.".into(),
         _ => format!("Mojang devolvió un error ({status})"),
     }
@@ -105,7 +107,9 @@ pub async fn set_skin_from_file(path: String, variant: String) -> Result<(), Str
         .file_name(filename)
         .mime_str("image/png")
         .map_err(|e| e.to_string())?;
-    let form = reqwest::multipart::Form::new().text("variant", variant).part("file", part);
+    let form = reqwest::multipart::Form::new()
+        .text("variant", variant)
+        .part("file", part);
 
     let resp = HTTP
         .post(format!("{API_BASE}/minecraft/profile/skins"))

@@ -162,10 +162,20 @@
 		</div>
 
 		<div class="tabs">
-			<button type="button" class="tab-btn" class:active={tab === 'skin'} onclick={() => (tab = 'skin')}>
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'skin'}
+				onclick={() => (tab = 'skin')}
+			>
 				{t('skinManager.tabSkin')}
 			</button>
-			<button type="button" class="tab-btn" class:active={tab === 'cape'} onclick={() => (tab = 'cape')}>
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'cape'}
+				onclick={() => (tab = 'cape')}
+			>
 				{t('skinManager.tabCape')}
 			</button>
 		</div>
@@ -200,11 +210,20 @@
 						title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
 						onclick={uploadSkin}
 					>
-						{#if busy === 'upload'}<Loader2 size={14} class="spin" />{:else}<Upload size={14} />{/if}
+						{#if busy === 'upload'}<Loader2 size={14} class="spin" />{:else}<Upload
+								size={14}
+							/>{/if}
 						{t('skinManager.uploadSkin')}
 					</button>
-					<button type="button" class="action-btn" disabled={busy === 'reset'} onclick={doResetSkin}>
-						{#if busy === 'reset'}<Loader2 size={14} class="spin" />{:else}<RotateCcw size={14} />{/if}
+					<button
+						type="button"
+						class="action-btn"
+						disabled={busy === 'reset'}
+						onclick={doResetSkin}
+					>
+						{#if busy === 'reset'}<Loader2 size={14} class="spin" />{:else}<RotateCcw
+								size={14}
+							/>{/if}
 						{t('skinManager.resetSkin')}
 					</button>
 					{#if dialogsBlocked}
@@ -317,7 +336,6 @@
 		border-color: var(--accent);
 		color: var(--text-primary);
 	}
-
 
 	.error {
 		color: var(--color-error);

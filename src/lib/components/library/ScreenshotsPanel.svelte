@@ -80,7 +80,8 @@
 			{t('screenshotsPanel.hint')}
 		</p>
 		<button type="button" class="folder-btn" onclick={() => openScreenshotsFolder(instance.name)}>
-			<FolderOpen size={13} /> {t('screenshotsPanel.openFolder')}
+			<FolderOpen size={13} />
+			{t('screenshotsPanel.openFolder')}
 		</button>
 	</div>
 
@@ -114,7 +115,9 @@
 							onclick={(e) => handleCopy(shot, e)}
 							aria-label={t('screenshotsPanel.copyImage')}
 						>
-							{#if copiedFilename === shot.filename}<Check size={12} />{:else}<Copy size={12} />{/if}
+							{#if copiedFilename === shot.filename}<Check size={12} />{:else}<Copy
+									size={12}
+								/>{/if}
 						</button>
 						<button
 							type="button"
@@ -140,10 +143,20 @@
 		tabindex="-1"
 	>
 		<div class="lightbox-actions">
-			<button type="button" class="lightbox-btn" onclick={(e) => handleCopy(preview!, e)} aria-label={t('screenshotsPanel.copyImage')}>
+			<button
+				type="button"
+				class="lightbox-btn"
+				onclick={(e) => handleCopy(preview!, e)}
+				aria-label={t('screenshotsPanel.copyImage')}
+			>
 				{#if copiedFilename === preview.filename}<Check size={16} />{:else}<Copy size={16} />{/if}
 			</button>
-			<button type="button" class="lightbox-btn" onclick={() => (preview = null)} aria-label={t('settings.close')}>
+			<button
+				type="button"
+				class="lightbox-btn"
+				onclick={() => (preview = null)}
+				aria-label={t('settings.close')}
+			>
 				<X size={18} />
 			</button>
 		</div>

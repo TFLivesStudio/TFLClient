@@ -137,8 +137,7 @@
 					(v) => v.mc_version === mcVersion && v.loader === loader
 				);
 				if (!variant) throw new Error(t('tflSelection.noVersionBuild'));
-				const baseName =
-					entry.versions.length > 1 ? `${entry.title} (${mcVersion})` : entry.title;
+				const baseName = entry.versions.length > 1 ? `${entry.title} (${mcVersion})` : entry.title;
 				instance = await createInstance(uniqueInstanceName(baseName), mcVersion, loader as Loader);
 				onInstanceCreated?.(instance);
 			} else {
@@ -148,7 +147,12 @@
 			}
 
 			if (entry.source === 'modrinth') {
-				await installModpack(instance.name, entry.project_id!, instance.mc_version, instance.loader);
+				await installModpack(
+					instance.name,
+					entry.project_id!,
+					instance.mc_version,
+					instance.loader
+				);
 			} else {
 				const variant = entry.versions.find(
 					(v) => v.loader === instance.loader && v.mc_version === instance.mc_version
@@ -204,7 +208,10 @@
 		</div>
 		<div class="selection-hero">
 			<div class="hero-mark"><Tfl width="28" height="28" /></div>
-			<div><span class="eyebrow">{t('tflSelection.eyebrow')}</span><p class="subtitle">{t('tflSelection.subtitle')}</p></div>
+			<div>
+				<span class="eyebrow">{t('tflSelection.eyebrow')}</span>
+				<p class="subtitle">{t('tflSelection.subtitle')}</p>
+			</div>
 		</div>
 
 		{#if loading}
@@ -271,7 +278,9 @@
 								disabled={installingFor === entry.id || noOptions}
 								onclick={() => handleInstall(entry)}
 							>
-								<span class="install-label">{doneFor.has(entry.id) ? t('tflSelection.added') : t('tflSelection.add')}</span>
+								<span class="install-label"
+									>{doneFor.has(entry.id) ? t('tflSelection.added') : t('tflSelection.add')}</span
+								>
 								{#if installingFor === entry.id}
 									<Loader2 size={14} class="spin" />
 								{:else if doneFor.has(entry.id)}
@@ -353,9 +362,37 @@
 		line-height: 1.45;
 	}
 
-	.selection-hero { display: flex; align-items: center; gap: 13px; padding: 13px; border: 1px solid color-mix(in srgb, var(--accent) 27%, var(--border)); border-radius: var(--border-radius); background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 15%, transparent), transparent 62%), var(--bg-input); }
-	.hero-mark { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px; flex: 0 0 auto; color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent); }
-	.eyebrow { display: block; color: var(--accent); font-size: .64rem; letter-spacing: .13em; font-weight: 800; text-transform: uppercase; margin-bottom: 3px; }
+	.selection-hero {
+		display: flex;
+		align-items: center;
+		gap: 13px;
+		padding: 13px;
+		border: 1px solid color-mix(in srgb, var(--accent) 27%, var(--border));
+		border-radius: var(--border-radius);
+		background:
+			linear-gradient(120deg, color-mix(in srgb, var(--accent) 15%, transparent), transparent 62%),
+			var(--bg-input);
+	}
+	.hero-mark {
+		display: grid;
+		place-items: center;
+		width: 48px;
+		height: 48px;
+		border-radius: 15px;
+		flex: 0 0 auto;
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 16%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+	}
+	.eyebrow {
+		display: block;
+		color: var(--accent);
+		font-size: 0.64rem;
+		letter-spacing: 0.13em;
+		font-weight: 800;
+		text-transform: uppercase;
+		margin-bottom: 3px;
+	}
 
 	.loading-row {
 		display: flex;
@@ -411,10 +448,24 @@
 		border-radius: var(--border-radius);
 		border: 1px solid var(--border);
 		background: color-mix(in srgb, var(--bg-input) 90%, transparent);
-		transition: border-color .16s, transform .16s;
+		transition:
+			border-color 0.16s,
+			transform 0.16s;
 	}
-	.entry-card:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--accent) 42%, var(--border)); }
-	.entry-glow { position: absolute; width: 150px; height: 150px; right: -80px; top: -80px; border-radius: 999px; pointer-events: none; background: radial-gradient(circle, rgba(var(--accent-rgb), .12), transparent 67%); }
+	.entry-card:hover {
+		transform: translateY(-1px);
+		border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+	}
+	.entry-glow {
+		position: absolute;
+		width: 150px;
+		height: 150px;
+		right: -80px;
+		top: -80px;
+		border-radius: 999px;
+		pointer-events: none;
+		background: radial-gradient(circle, rgba(var(--accent-rgb), 0.12), transparent 67%);
+	}
 
 	.entry-card img,
 	.entry-icon-fallback {
@@ -477,7 +528,7 @@
 		justify-content: center;
 		gap: 6px;
 		padding: 7px 10px;
-		font-size: .72rem;
+		font-size: 0.72rem;
 		font-weight: 800;
 		border-radius: var(--border-radius-sm);
 		border: 1px solid var(--accent);
@@ -485,7 +536,9 @@
 		color: var(--accent-text);
 		cursor: pointer;
 	}
-	.install-label { margin-left: 3px; }
+	.install-label {
+		margin-left: 3px;
+	}
 
 	.install-btn:disabled {
 		opacity: 0.7;
