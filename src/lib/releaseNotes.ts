@@ -151,5 +151,9 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Arreglado: el botón "Deshacer última actualización" de los mods no aparecía después de actualizar.',
 		'Arreglado: copiar una captura de pantalla al portapapeles fallaba.',
 		'Por dentro: mucho orden en el código del launcher (más fácil y rápido de mejorar de ahora en más) y medición interna de rendimiento para detectar si alguna versión lo empeora.'
+	],
+	'0.11.0-beta.2': [
+		'Arreglado: la skin y la capa no aparecían en el gestor de skins.',
+		'Arreglado: el ícono de una instancia no se actualizaba en la lista lateral hasta reiniciar el launcher. Ahora cambia al instante.'
 	]
 };
