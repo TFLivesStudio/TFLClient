@@ -1,0 +1,17 @@
+# Toolchain de Rust fijado para TODO: tu máquina, el job de calidad (ci.yml)
+# y las tres plataformas del build de release (build.yml). El workflow lee
+# `channel` de este archivo (ver .github/actions/setup-rust), así que este es
+# el ÚNICO lugar donde vive la versión.
+#
+# Cómo subir de versión (a propósito, nunca por sorpresa):
+#   1. Cambiar `channel` a la nueva estable (p. ej. "1.95.0").
+#   2. `rustup toolchain install` y luego `cargo fmt --all -- --check`,
+#      `cargo clippy --workspace --all-targets`, `cargo test --workspace --lib`.
+#      Una estable nueva puede traer lints/formato nuevos: arreglarlos en el
+#      mismo commit.
+#   3. Commitear el cambio con `chore: subir Rust a X.Y.Z` y dejar que corra
+#      el CI antes de publicar un release.
+[toolchain]
+channel = "1.94.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"
