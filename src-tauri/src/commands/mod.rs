@@ -1,11 +1,11 @@
 pub mod auth;
+pub mod content;
 pub mod crash_diagnosis;
 pub mod favorite_servers;
 pub mod import_launchers;
 pub mod instance;
 pub mod loaders;
 pub mod modpacks;
-pub mod mods;
 pub mod mojang_profile;
 pub mod playit;
 pub mod servers;

@@ -1,9 +1,9 @@
 //! Copias de seguridad de los mundos (`saves/`) de una instancia: crear a
 //! mano, ver la lista, restaurar y borrar. Las copias automáticas que ya se
-//! hacían antes de actualizar mods (`mods::backup_world_dir`) caen en la
+//! hacían antes de actualizar mods (`world_backup::backup_world_dir`) caen en la
 //! misma carpeta, así que aparecen acá también.
 
-use crate::services::{instance_manager, launcher};
+use crate::services::{instance_manager, launcher, world_backup};
 use serde::Serialize;
 use std::path::Path;
 use tauri::command;
@@ -60,10 +60,16 @@ pub async fn get_world_backups(instance_name: String) -> Result<Vec<WorldBackup>
 }
 
 /// `None` si la instancia todavía no tiene mundos (nada que respaldar).
+/// Nombres de archivo de las copias, la más reciente primero.
+#[command]
+pub async fn list_world_backups(instance_name: String) -> Result<Vec<String>, String> {
+    world_backup::list_world_backup_names(&instance_name).await
+}
+
 #[command]
 pub async fn create_world_backup(instance_name: String) -> Result<Option<WorldBackup>, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
-    let Some(path) = crate::commands::mods::backup_world_dir(&instance.dir()).await? else {
+    let Some(path) = crate::services::world_backup::backup_world_dir(&instance.dir()).await? else {
         return Ok(None);
     };
     let id = Path::new(&path)
@@ -102,7 +108,7 @@ pub async fn restore_world_backup(instance_name: String, id: String) -> Result<(
         return Err("Esa copia ya no existe".into());
     }
 
-    crate::commands::mods::backup_world_dir(&instance.dir()).await?;
+    crate::services::world_backup::backup_world_dir(&instance.dir()).await?;
 
     let saves_dir = instance.dir().join("saves");
     tokio::task::spawn_blocking(move || replace_saves_from_zip(&zip_path, &saves_dir))
@@ -165,7 +171,7 @@ mod tests {
         std::fs::create_dir_all(saves.join("World1")).unwrap();
         std::fs::write(saves.join("World1").join("level.dat"), b"original").unwrap();
         let zip_path = base.join("saves-1.zip");
-        crate::commands::mods::zip_dir(&saves, &zip_path).unwrap();
+        crate::services::zip_util::zip_dir(&saves, &zip_path).unwrap();
 
         // El estado actual cambia después de la copia: se tiene que pisar.
         std::fs::write(saves.join("World1").join("level.dat"), b"modificado").unwrap();

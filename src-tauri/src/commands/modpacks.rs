@@ -9,7 +9,8 @@ use crate::services::instance_manager;
 use serde::{Deserialize, Serialize};
 use tauri::command;
 
-use super::mods::{ModSearchHit, best_version};
+use crate::services::content;
+use crate::services::content::types::ContentSearchHit;
 
 const MODRINTH_API: &str = "https://api.modrinth.com/v2";
 
@@ -33,7 +34,7 @@ pub async fn search_modpacks(
     query: String,
     mc_version: String,
     loader: String,
-) -> Result<Vec<ModSearchHit>, String> {
+) -> Result<Vec<ContentSearchHit>, String> {
     let facets = format!(
         r#"[["project_type:modpack"],["categories:{}"],["versions:{}"]]"#,
         loader.to_lowercase(),
@@ -49,7 +50,7 @@ pub async fn search_modpacks(
     Ok(resp
         .hits
         .into_iter()
-        .map(|h| ModSearchHit {
+        .map(|h| ContentSearchHit {
             project_id: h.project_id,
             title: h.title,
             description: h.description,
@@ -96,7 +97,8 @@ pub async fn install_modpack(
     mc_version: String,
     loader: String,
 ) -> Result<InstalledModpack, String> {
-    let version = best_version(&project_id, &mc_version, &loader, true)
+    let version = content::service()
+        .latest_version(&project_id, &mc_version, Some(&loader))
         .await?
         .ok_or_else(|| {
             format!("No hay versión de este modpack compatible con {mc_version}/{loader}")
