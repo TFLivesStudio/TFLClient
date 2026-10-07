@@ -347,7 +347,10 @@ mod tests {
         fn new() -> Self {
             let path = std::env::temp_dir().join(format!("tfl_jre_test_{}", uuid::Uuid::new_v4()));
             fs::create_dir_all(&path).unwrap();
-            Self(path)
+            // En macOS el temp_dir() es un symlink (/var -> /private/var): los
+            // tests comparan contra rutas canonicalizadas, así que la base
+            // también tiene que serlo.
+            Self(path.canonicalize().unwrap())
         }
 
         fn path(&self) -> &Path {
