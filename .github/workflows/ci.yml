@@ -1,0 +1,111 @@
+name: CI
+
+# Compuertas de calidad. Se ejecuta en push a main y en cada PR, y además lo
+# reutiliza el workflow de release (build.yml) como prerequisito vía
+# `workflow_call`: si algo de acá falla, NO se construye ni publica nada.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Para actualizar un pin de acción a otra versión: ver el comentario al inicio
+# de build.yml ("Cómo actualizar los pins").
+
+jobs:
+  frontend:
+    name: Frontend (check + lint)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.2'
+
+      # --frozen-lockfile: falla si bun.lock no está al día con package.json.
+      - name: Instalar dependencias
+        run: bun install --frozen-lockfile
+
+      - name: svelte-check
+        run: bun run check
+
+      - name: Prettier + ESLint
+        run: bun run lint
+
+      # Solo informativo: hoy hay avisos en dependencias de desarrollo
+      # (devalue, brace-expansion, ...) que no se envían en la app. No bloquea.
+      - name: bun audit (informativo, no bloquea)
+        continue-on-error: true
+        run: bun audit
+
+  rust:
+    name: Rust (fmt + clippy + tests + audit)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # Mismas dependencias de sistema que build.yml para Linux.
+      - name: Instalar dependencias de sistema (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libxdo-dev \
+            xdg-utils
+
+      # Rust exacto de rust-toolchain.toml + cache.
+      - uses: ./.github/actions/setup-rust
+
+      # tauri::generate_context!() espera que exista el directorio del
+      # frontend (`frontendDist`, ../build). En perfil dev no embebe nada, pero
+      # crear un directorio vacío es gratis y evita un fallo de compilación si
+      # eso cambia. El build real de release sí construye el frontend.
+      - name: Crear directorio de frontend vacío (para generate_context!)
+        run: mkdir -p build
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+      # OJO: sin `-D warnings` a propósito. Hay ~20 warnings de clippy
+      # preexistentes (0 errores); bloquear por ellos frenaría todos los
+      # releases. Cuando se limpien, agregar `-- -D warnings` acá.
+      # --locked: falla si Cargo.lock no está al día con los Cargo.toml.
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --locked
+
+      # Solo tests de librería (rápidos), no los de integración.
+      - name: cargo test
+        run: cargo test --workspace --lib --locked
+
+      # cargo-audit instalado como binario precompilado con checksum, versión
+      # fija. Las excepciones (todas "unmaintained"/"unsound" transitivas) están
+      # justificadas una por una en .cargo/audit.toml.
+      - name: Instalar cargo-audit
+        uses: taiki-e/install-action@f7e5d7c961414b23f5b25b2da9294395d08513ad # v2.87.26
+        with:
+          tool: cargo-audit@0.22.2
+
+      - name: cargo audit
+        run: cargo audit

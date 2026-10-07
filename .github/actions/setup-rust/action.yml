@@ -1,0 +1,48 @@
+name: Preparar Rust (versión fijada)
+description: >
+  Instala EXACTAMENTE la versión de Rust que declara rust-toolchain.toml (única
+  fuente de verdad), verifica que rustc la reporte y activa el cache de cargo.
+  Lo usan ci.yml y build.yml para que calidad y las tres plataformas del
+  release compilen con el mismo compilador. Requiere un checkout previo.
+
+runs:
+  using: composite
+  steps:
+    - name: Leer versión de rust-toolchain.toml
+      id: toolchain
+      shell: bash
+      run: |
+        set -euo pipefail
+        version="$(sed -n 's/^channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' rust-toolchain.toml | head -n 1 | tr -d '\r')"
+        if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error file=rust-toolchain.toml::channel debe ser una versión exacta X.Y.Z (encontré: '$version')."
+          exit 1
+        fi
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
+    # Para actualizar el pin de esta acción: ver el comentario en build.yml.
+    # master @ 2026-10-01; la versión de Rust se elige con `toolchain`.
+    - name: Instalar Rust
+      uses: dtolnay/rust-toolchain@7e38f4b43b4db5c8dd498af069a4f6196df1d067 # master (2026-10-01)
+      with:
+        toolchain: ${{ steps.toolchain.outputs.version }}
+        components: rustfmt, clippy
+
+    - name: Verificar versión de Rust
+      shell: bash
+      env:
+        EXPECTED: ${{ steps.toolchain.outputs.version }}
+      run: |
+        set -euo pipefail
+        rustc --version
+        cargo --version
+        actual="$(rustc --version | cut -d' ' -f2)"
+        if [ "$actual" != "$EXPECTED" ]; then
+          echo "::error::rustc es $actual pero rust-toolchain.toml pide $EXPECTED."
+          exit 1
+        fi
+
+    - name: Cache de Rust
+      uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      with:
+        workspaces: '. -> target'
