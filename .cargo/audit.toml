@@ -1,0 +1,37 @@
+# Configuración de `cargo audit` (se ejecuta en .github/workflows/ci.yml).
+#
+# Política: una VULNERABILIDAD (advisory sin "Warning:") rompe el CI y se
+# arregla con `cargo update -p <crate>`. Los ids de abajo son avisos de
+# "unmaintained" / "unsound" de dependencias TRANSITIVAS de Tauri/GTK/etc. que
+# no podemos arreglar desde acá (hay que esperar a que el crate de arriba
+# migre). Cargo-audit ya los trata como advertencias que no cortan el CI; los
+# listamos explícitos para que el ruido no tape un aviso nuevo y para dejar
+# registrado por qué no se tocan. REVISAR esta lista cada vez que se actualice
+# Tauri (`cargo update -p tauri`): con suerte la mayoría desaparece.
+#
+# Triage hecho el 2026-10-07 contra el Cargo.lock del repo.
+[advisories]
+ignore = [
+	# glib 0.18.5 — unsound (VariantStrIter). Lo trae gtk 0.18 <- libappindicator
+	# <- tray-icon <- tauri (Linux). Solución real: gtk-rs >= 0.20, que depende de
+	# que Tauri/wry/tao migren; no lo controlamos nosotros.
+	"RUSTSEC-2024-0429",
+
+	# proc-macro-error 1.0.4 — unmaintained. Solo en tiempo de compilación, lo trae
+	# glib-macros 0.18 (misma cadena gtk-rs de arriba). Sin código en runtime.
+	"RUSTSEC-2024-0370",
+
+	# atomic-polyfill 1.0.3 — unmaintained. Lo trae heapless 0.7 <- postcard 1.1
+	# (usado por el crate `ablage` y por la app). Se arregla cuando postcard
+	# actualice heapless; no hay versión de postcard 1.x que lo evite.
+	"RUSTSEC-2023-0089",
+
+	# Familia `unic-*` 0.9 — unmaintained (5 avisos). Todos vienen por
+	# urlpattern 0.3 <- tauri-utils (dependencia de build de Tauri). Es código de
+	# compilación/parseo de config, no se ejecuta con datos del usuario.
+	"RUSTSEC-2025-0081", # unic-char-property
+	"RUSTSEC-2025-0075", # unic-char-range
+	"RUSTSEC-2025-0080", # unic-common
+	"RUSTSEC-2025-0100", # unic-ucd-ident
+	"RUSTSEC-2025-0098", # unic-ucd-version
+]

@@ -1,13 +1,56 @@
 name: Build TFL Client
 
+# Cómo actualizar los pins de acciones (todas están fijadas a un commit SHA
+# completo, con la versión como comentario, para que un tag movido o
+# comprometido en el repo de la acción no pueda inyectar código en el build):
+#   1. Mirar la versión nueva:   gh api repos/<dueño>/<repo>/releases --jq '.[].tag_name' | head
+#   2. Resolver el SHA:          gh api repos/<dueño>/<repo>/git/ref/tags/<tag>
+#      Si `object.type` es "tag" (tag anotado), desreferenciar:
+#                                gh api repos/<dueño>/<repo>/git/tags/<object.sha> --jq .object.sha
+#   3. Reemplazar SHA y comentario `# vX.Y.Z` en TODOS los workflows y en
+#      .github/actions/ (buscar con: grep -rn "<dueño>/<repo>@" .github).
+#   4. Probar con un workflow_dispatch (no publica Release) antes de cortar tag.
+# Pins actuales: actions/checkout v4.4.0, actions/upload-artifact v4.6.2,
+# Swatinem/rust-cache v2.9.2, dtolnay/rust-toolchain (master 2026-10-01),
+# oven-sh/setup-bun v2.2.0, tauri-apps/tauri-action v0.6.2 (action-v0.6.2),
+# taiki-e/install-action v2.87.26, actions/setup-java v4.9.1,
+# gradle/actions v4.4.4.
+
 on:
   workflow_dispatch:
   push:
     tags:
       - 'v*'
 
+# Mínimo por defecto; cada job declara el suyo. El Release lo crea tauri-action
+# con RELEASE_TOKEN (un PAT), no con el GITHUB_TOKEN del workflow, así que ningún
+# job necesita permisos de escritura.
+permissions:
+  contents: read
+
+# Dos builds del mismo tag/rama no corren en paralelo (pisarían el mismo
+# Release). El segundo espera; no se cancela uno en curso a mitad de publicar.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  # Compuertas de calidad (frontend + rust + audit). Sin secrets a propósito.
+  quality:
+    name: Calidad
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: quality
+    permissions:
+      contents: read
+    # Environment "release": GitHub lo crea solo la primera vez. El dueño del
+    # repo puede moverle los secrets y exigir revisores (ver
+    # docs/RELEASE_SECURITY.md). Mientras no haya reglas, no cambia nada.
+    environment: release
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -21,7 +64,23 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # Antes de compilar nada: la versión de package.json, tauri.conf.json,
+      # src-tauri/Cargo.toml y Cargo.lock tiene que ser una sola, y en un tag
+      # vX.Y.Z tiene que coincidir con el tag. Si no, el updater publicaría
+      # metadatos de una versión distinta a la del instalador. En un
+      # workflow_dispatch (build de prueba) solo avisa.
+      - name: Verificar versión (archivos y tag)
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            node scripts/release-version.mjs --check --tag "$GITHUB_REF_NAME"
+          else
+            node scripts/release-version.mjs --check || echo "::warning::Las versiones de los archivos no coinciden (build de prueba, no bloquea)."
+          fi
 
       - name: Instalar dependencias de sistema (Linux)
         if: startsWith(matrix.platform, 'ubuntu')
@@ -40,23 +99,60 @@ jobs:
             libxdo-dev \
             xdg-utils
 
-      - name: Instalar Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache de Rust
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: '. -> target'
+      # Rust exacto de rust-toolchain.toml (igual que el job de calidad) + cache.
+      - name: Instalar Rust (versión fijada) y cache
+        uses: ./.github/actions/setup-rust
 
       - name: Instalar Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.2'
 
       - name: Instalar dependencias del frontend
-        run: bun install
+        run: bun install --frozen-lockfile
+
+      # Firma/notarización de macOS: PLOMERÍA PREPARADA, sin efecto hoy.
+      # Tauri lee APPLE_* con var_os(): un secret inexistente llega como cadena
+      # VACÍA, y una cadena vacía cuenta como "definida" (intentaría importar un
+      # certificado vacío, y APPLE_SIGNING_IDENTITY="" pisaría la firma ad-hoc "-"
+      # de tauri.conf.json). Por eso este paso exporta cada variable a
+      # $GITHUB_ENV SOLO si el secret tiene contenido. Mientras no se carguen los
+      # secrets, no exporta nada y el build macOS queda exactamente como hoy.
+      # Ver "macOS: firma y notarización" en docs/RELEASE_SECURITY.md.
+      - name: Configurar firma de macOS (solo si hay credenciales)
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          IN_APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          IN_APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          IN_APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          IN_APPLE_ID: ${{ secrets.APPLE_ID }}
+          IN_APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          IN_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          exported=0
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            value="$(printenv "IN_$name" || true)"
+            if [ -n "$value" ]; then
+              delim="EOF_$(uuidgen)"
+              {
+                echo "$name<<$delim"
+                echo "$value"
+                echo "$delim"
+              } >> "$GITHUB_ENV"
+              exported=$((exported + 1))
+            fi
+          done
+          if [ "$exported" -eq 0 ]; then
+            echo "Sin credenciales de Apple: se mantiene la firma ad-hoc de tauri.conf.json."
+          else
+            echo "Se exportaron $exported variable(s) de firma de Apple."
+          fi
 
       - name: Build + bundle (Tauri)
         id: tauri
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2 (action-v0.6.2)
         env:
           # El GITHUB_TOKEN default de Actions es solo-lectura acá (política
           # de la org) — no puede crear Releases. RELEASE_TOKEN es un PAT
@@ -89,12 +185,12 @@ jobs:
         shell: bash
         run: |
           set -e
-          if [ "${{ matrix.platform }}" = "macos-latest" ]; then
+          if [ "$PLATFORM" = "macos-latest" ]; then
             cp "$(find target/release/bundle/dmg -name '*.dmg' | head -1)" TFLClient-macOS.dmg
-            gh release upload "${{ github.ref_name }}" TFLClient-macOS.dmg --clobber -R "${{ github.repository }}"
-          elif [ "${{ matrix.platform }}" = "windows-latest" ]; then
+            gh release upload "$REF_NAME" TFLClient-macOS.dmg --clobber -R "$REPO"
+          elif [ "$PLATFORM" = "windows-latest" ]; then
             cp "$(find target/release/bundle/nsis -name '*.exe' | head -1)" TFLClient-Windows-Setup.exe
-            gh release upload "${{ github.ref_name }}" TFLClient-Windows-Setup.exe --clobber -R "${{ github.repository }}"
+            gh release upload "$REF_NAME" TFLClient-Windows-Setup.exe --clobber -R "$REPO"
           else
             # Nombres fijos para las tres variantes — install-linux.sh
             # (ver ese script) elige la que corresponda según el sistema,
@@ -102,13 +198,16 @@ jobs:
             cp "$(find target/release/bundle/appimage -name '*.AppImage' | head -1)" TFLClient-Linux.AppImage
             cp "$(find target/release/bundle/deb -name '*.deb' | head -1)" TFLClient-Linux.deb
             cp "$(find target/release/bundle/rpm -name '*.rpm' | head -1)" TFLClient-Linux.rpm
-            gh release upload "${{ github.ref_name }}" TFLClient-Linux.AppImage TFLClient-Linux.deb TFLClient-Linux.rpm --clobber -R "${{ github.repository }}"
+            gh release upload "$REF_NAME" TFLClient-Linux.AppImage TFLClient-Linux.deb TFLClient-Linux.rpm --clobber -R "$REPO"
           fi
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          PLATFORM: ${{ matrix.platform }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
 
       - name: Subir instaladores como artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: tflclient-${{ matrix.platform }}
           path: |
