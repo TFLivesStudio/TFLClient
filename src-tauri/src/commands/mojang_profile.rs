@@ -84,10 +84,44 @@ pub async fn get_mojang_profile() -> Result<MojangProfile, String> {
         warn!("get_mojang_profile: respuesta no es JSON válido ({e}): {raw}");
         format!("Mojang devolvió una respuesta inesperada: {e}")
     })?;
-    Ok(MojangProfile {
+    let mut profile = MojangProfile {
         skins: serde_json::from_value(json["skins"].clone()).unwrap_or_default(),
         capes: serde_json::from_value(json["capes"].clone()).unwrap_or_default(),
-    })
+    };
+    for skin in &mut profile.skins {
+        skin.url = https_url(&skin.url);
+    }
+    for cape in &mut profile.capes {
+        cape.url = https_url(&cape.url);
+    }
+    Ok(profile)
+}
+
+/// Mojang devuelve las texturas como `http://textures.minecraft.net/...`. La
+/// CSP de producción solo permite imágenes por https, así que sin esto el
+/// visor 3D y las miniaturas de capas no cargan. El host sirve https igual.
+fn https_url(url: &str) -> String {
+    match url.strip_prefix("http://") {
+        Some(rest) => format!("https://{rest}"),
+        None => url.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::https_url;
+
+    #[test]
+    fn texturas_de_mojang_pasan_a_https() {
+        assert_eq!(
+            https_url("http://textures.minecraft.net/texture/abc"),
+            "https://textures.minecraft.net/texture/abc"
+        );
+        assert_eq!(
+            https_url("https://textures.minecraft.net/texture/abc"),
+            "https://textures.minecraft.net/texture/abc"
+        );
+    }
 }
 
 /// `variant` es "classic" o "slim" (brazos finos tipo Alex). El archivo se

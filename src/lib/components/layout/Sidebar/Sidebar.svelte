@@ -4,6 +4,7 @@
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { getMascotFor } from '$lib/mascots';
 	import { network } from '$lib/state/network.svelte';
+	import { iconVersions } from '$lib/state/instanceState.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { getInstanceIconPath } from '$lib/api';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
@@ -89,17 +90,20 @@
 	);
 
 	// La lista mostraba solo la inicial — nunca pedía el ícono real de cada
-	// instancia, a diferencia del header de Detalles (que sí lo carga). Se
-	// pide una sola vez por instancia (cacheado por uuid); si el ícono
-	// cambia después, se ve actualizado recién al reabrir el launcher — no
-	// vale la pena invalidar el cache acá por algo tan poco frecuente.
+	// instancia. Se pide una vez por instancia y se vuelve a pedir cuando
+	// cambia su versión de ícono (ver `bumpInstanceIcon`), para que un ícono
+	// nuevo se vea sin reiniciar el launcher.
 	let iconUrls = $state<Record<string, string | null>>({});
+	const iconLoaded: Record<string, string> = {};
 	$effect(() => {
 		for (const inst of instances) {
-			if (inst.uuid in iconUrls) continue;
+			const version = iconVersions[inst.name] ?? 0;
+			const key = `${inst.name}:${version}`;
+			if (iconLoaded[inst.uuid] === key) continue;
+			iconLoaded[inst.uuid] = key;
 			getInstanceIconPath(inst.name)
 				.then((path) => {
-					iconUrls[inst.uuid] = path ? convertFileSrc(path) : null;
+					iconUrls[inst.uuid] = path ? `${convertFileSrc(path)}?v=${version}` : null;
 				})
 				.catch(() => {
 					iconUrls[inst.uuid] = null;

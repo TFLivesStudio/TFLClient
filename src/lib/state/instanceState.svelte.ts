@@ -12,6 +12,16 @@ export const instanceNav = $state<{ pendingInitialTab: string | undefined; navNo
 	navNonce: 0
 });
 
+// El ícono de una instancia siempre se guarda como "icon.png": el path no
+// cambia aunque el contenido sí, y el WebView lo sirve cacheado. Cada cambio
+// de ícono sube la versión de esa instancia (por nombre) y quien lo muestra
+// la agrega al query string para saltarse la caché.
+export const iconVersions = $state<Record<string, number>>({});
+
+export function bumpInstanceIcon(name: string) {
+	iconVersions[name] = Date.now();
+}
+
 export async function refreshInstances() {
 	appState.instances = await getInstances();
 }

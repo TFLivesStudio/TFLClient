@@ -28,6 +28,7 @@
 	import { gameSession } from '$lib/state/gameSession.svelte';
 	import { serverSessions } from '$lib/state/serverSessions.svelte';
 	import { appState } from '$lib/state/state.svelte';
+	import { bumpInstanceIcon } from '$lib/state/instanceState.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import ModsPanel from './ModsPanel.svelte';
 	import ShadersPanel from './ShadersPanel.svelte';
@@ -929,7 +930,10 @@
 	<InstanceIconPicker
 		instanceName={instance.name}
 		onClose={() => (showIconPicker = false)}
-		onChanged={loadIcon}
+		onChanged={() => {
+			bumpInstanceIcon(instance.name);
+			loadIcon();
+		}}
 	/>
 {/if}
 
