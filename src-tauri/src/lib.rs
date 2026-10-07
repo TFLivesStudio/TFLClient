@@ -259,6 +259,15 @@ pub fn run() {
             commands::mojang_profile::hide_cape,
             commands::shortcuts::create_instance_shortcut,
         ])
-        .run(tauri::generate_context!())
+        .run(tauri_context())
         .expect("error while running tauri application");
 }
+
+/// `generate_context!` solo se puede expandir una vez por crate: la app y los
+/// tests de ACL (`acl_tests.rs`) comparten esta función.
+pub(crate) fn tauri_context<R: tauri::Runtime>() -> tauri::Context<R> {
+    tauri::generate_context!()
+}
+
+#[cfg(test)]
+mod acl_tests;

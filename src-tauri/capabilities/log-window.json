@@ -1,0 +1,17 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "log-window",
+	"description": "Ventanas de log en vivo (log-*): solo escuchar eventos, cerrarse y los pocos comandos de la pantalla de log. Sin updater, ajustes ni archivos.",
+	"windows": ["log-*"],
+	"permissions": [
+		"core:event:allow-listen",
+		"core:event:allow-unlisten",
+		"core:window:allow-close",
+		"allow-get-running-instance-stats",
+		"allow-stop-running-instance",
+		"allow-get-crash-report",
+		"allow-diagnose-crash",
+		"allow-set-mod-enabled",
+		"allow-rollback-mod-update"
+	]
+}

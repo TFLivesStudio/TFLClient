@@ -26,3 +26,6 @@ vite.config.ts.timestamp-*
 /target
 src-tauri/target
 src-tauri/gen
+
+# Permisos de comandos generados por src-tauri/build.rs
+src-tauri/permissions/

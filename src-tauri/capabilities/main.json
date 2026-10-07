@@ -1,0 +1,23 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "main-window",
+	"description": "Ventana principal de TFL Client: solo lo que la interfaz usa de verdad (nada de core:default, dialog ni DevTools).",
+	"windows": ["main"],
+	"permissions": [
+		"app-commands-all",
+		"core:event:allow-listen",
+		"core:event:allow-unlisten",
+		"core:resources:allow-close",
+		"core:image:allow-from-path",
+		"core:window:allow-close",
+		"core:window:allow-minimize",
+		"core:window:allow-toggle-maximize",
+		"core:window:allow-internal-toggle-maximize",
+		"core:window:allow-is-maximized",
+		"core:window:allow-start-dragging",
+		"clipboard-manager:allow-write-text",
+		"clipboard-manager:allow-write-image",
+		"process:allow-restart",
+		"updater:default"
+	]
+}
