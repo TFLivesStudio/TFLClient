@@ -73,11 +73,17 @@ export const es = {
 			label: 'Actualizaciones',
 			autoEnabled: 'Auto-actualizar: Activado',
 			autoDisabled: 'Auto-actualizar: Desactivado',
-			hint: 'Con esto activado, el launcher chequea y baja actualizaciones solo al abrir, en segundo plano — vos elegís cuándo instalar con el aviso que aparece.',
+			hint: 'Con esto activado, el launcher chequea y baja actualizaciones solo al abrir, en segundo plano, sin interrumpirte — vos elegís cuándo reiniciar para aplicarlas. Con esto apagado solo se busca a mano desde acá.',
 			check: 'Buscar actualizaciones',
 			upToDate: 'Ya tenés la última versión.',
 			available: 'Actualización disponible: v{{version}}',
-			download: 'Descargar e instalar'
+			download: 'Descargar actualización',
+			downloading: 'Descargando actualización… {{percent}}%',
+			downloadingUnknown: 'Descargando actualización…',
+			ready: 'Actualización v{{version}} lista para instalar.',
+			restart: 'Reiniciar para actualizar',
+			installing: 'Instalando…',
+			retry: 'Reintentar'
 		},
 		accent: {
 			label: 'Color de acento',
@@ -491,8 +497,17 @@ export const es = {
 	},
 	updateBadge: {
 		available: 'Actualización disponible',
+		availableSub: 'v{{version}}',
+		download: 'Descargar',
+		downloading: 'Descargando actualización…',
+		downloadingSub: 'v{{version}} — {{percent}}%',
+		downloadingSubUnknown: 'v{{version}}',
+		ready: 'Actualización lista',
+		readySub: 'v{{version}} — se aplica al reiniciar',
+		restart: 'Reiniciar para actualizar',
 		installing: 'Instalando…',
-		clickToInstall: 'v{{version}} — click para instalar'
+		error: 'No se pudo actualizar',
+		retry: 'Reintentar'
 	},
 	commandPalette: {
 		action: 'Acción',

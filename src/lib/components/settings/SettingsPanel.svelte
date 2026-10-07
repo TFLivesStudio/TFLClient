@@ -2,9 +2,15 @@
 	import { onMount } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-	import { check as checkForUpdate, type Update } from '@tauri-apps/plugin-updater';
-	import { relaunch } from '@tauri-apps/plugin-process';
 	import { appState } from '$lib/state/state.svelte';
+	import {
+		updateState,
+		checkForUpdates,
+		downloadUpdate,
+		installDownloadedUpdate,
+		retryUpdate
+	} from '$lib/state/updateState.svelte';
+	import { canStartCheck, progressPercent } from '$lib/state/updateMachine';
 	import { t, i18nState, setLocale, type TranslationKey } from '$lib/i18n/index.svelte';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { MASCOTS, getMascotFor, setMascotFor, type MascotId } from '$lib/mascots';
@@ -249,38 +255,17 @@
 
 	let javaStatuses = $state<JavaStatus[]>([]);
 
-	let updateChecking = $state(false);
-	let updateInstalling = $state(false);
-	let updateInfo = $state<Update | null>(null);
-	let updateError = $state<string | null>(null);
-	let updateChecked = $state(false);
+	// El chequeo/descarga/instalación viven en el store compartido
+	// (updateState): el badge flotante y este panel muestran el mismo estado.
+	// Con auto-actualizar apagado, el chequeo manual solo avisa — la descarga
+	// la dispara el usuario con el botón.
+	const updatePercent = $derived(progressPercent(updateState));
 
-	async function handleCheckForUpdate() {
-		updateChecking = true;
-		updateError = null;
-		try {
-			updateInfo = await checkForUpdate();
-			updateChecked = true;
-		} catch (e) {
-			// Endpoint todavía no configurado (host de updates pendiente) — no es un
-			// error del usuario, solo significa que la infra de updates no está lista.
-			updateError = String(e);
-		} finally {
-			updateChecking = false;
-		}
-	}
-
-	async function handleInstallUpdate() {
-		if (!updateInfo) return;
-		updateInstalling = true;
-		updateError = null;
-		try {
-			await updateInfo.downloadAndInstall();
-			await relaunch();
-		} catch (e) {
-			updateError = String(e);
-			updateInstalling = false;
-		}
+	function handleCheckForUpdate() {
+		void checkForUpdates({
+			userInitiated: true,
+			autoDownload: appState.settings?.auto_updates === true
+		});
 	}
 
 	onMount(async () => {
@@ -768,10 +753,10 @@
 					<button
 						type="button"
 						class="save-btn"
-						disabled={updateChecking || updateInstalling}
+						disabled={!canStartCheck(updateState)}
 						onclick={handleCheckForUpdate}
 					>
-						{#if updateChecking}
+						{#if updateState.phase === 'checking'}
 							<Loader2 size={13} class="spin" />
 						{:else}
 							<RefreshCw size={13} />
@@ -779,28 +764,41 @@
 						{t('settings.updates.check')}
 					</button>
 
-					{#if updateChecked && !updateInfo && !updateError}
+					{#if updateState.phase === 'none' && updateState.upToDate}
 						<p class="hint">{t('settings.updates.upToDate')}</p>
 					{/if}
 
-					{#if updateInfo}
-						<p class="hint">{t('settings.updates.available', { version: updateInfo.version })}</p>
-						<button
-							type="button"
-							class="save-btn"
-							disabled={updateInstalling}
-							onclick={handleInstallUpdate}
-						>
-							{#if updateInstalling}
-								<Loader2 size={13} class="spin" />
-							{:else}
-								<Download size={13} />
-							{/if}
+					{#if updateState.phase === 'available'}
+						<p class="hint">
+							{t('settings.updates.available', { version: updateState.version ?? '' })}
+						</p>
+						<button type="button" class="save-btn" onclick={downloadUpdate}>
+							<Download size={13} />
 							{t('settings.updates.download')}
 						</button>
+					{:else if updateState.phase === 'downloading'}
+						<p class="hint">
+							{updatePercent === null
+								? t('settings.updates.downloadingUnknown')
+								: t('settings.updates.downloading', { percent: updatePercent })}
+						</p>
+					{:else if updateState.phase === 'downloaded'}
+						<p class="hint">
+							{t('settings.updates.ready', { version: updateState.version ?? '' })}
+						</p>
+						<button type="button" class="save-btn" onclick={installDownloadedUpdate}>
+							<RefreshCw size={13} />
+							{t('settings.updates.restart')}
+						</button>
+					{:else if updateState.phase === 'installing'}
+						<p class="hint">{t('settings.updates.installing')}</p>
+					{:else if updateState.phase === 'error' && updateState.error}
+						<p class="error">{updateState.error.message}</p>
+						<button type="button" class="save-btn" onclick={retryUpdate}>
+							<RefreshCw size={13} />
+							{t('settings.updates.retry')}
+						</button>
 					{/if}
-
-					{#if updateError}<p class="error">{updateError}</p>{/if}
 				</section>
 			{:else if tab === 'appearance'}
 				<section>
