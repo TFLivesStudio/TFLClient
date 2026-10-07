@@ -143,5 +143,12 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.10.16': [
 		'Arreglado: la versión 0.10.15 no llegó a publicarse completa para macOS y Linux por un error de empaquetado. Esta trae todo lo de 0.10.15 (importar instancias, favoritos, backups de mundos, desactivar mods y más) para las 3 plataformas.'
+	],
+	'0.11.0': [
+		'Actualizaciones más claras: un aviso discreto cuando hay una versión nueva, se descarga sola en segundo plano con barra de progreso, y al terminar te deja "Reiniciar para actualizar" cuando quieras. Si algo falla, hay un botón para reintentar.',
+		'Más seguro: el launcher ahora corre con permisos mínimos (la ventana de logs solo puede hacer lo suyo y una protección más estricta contra contenido externo). No cambia nada de cómo se usa.',
+		'Arreglado: el botón "Deshacer última actualización" de los mods no aparecía después de actualizar.',
+		'Arreglado: copiar una captura de pantalla al portapapeles fallaba.',
+		'Por dentro: mucho orden en el código del launcher (más fácil y rápido de mejorar de ahora en más) y medición interna de rendimiento para detectar si alguna versión lo empeora.'
 	]
 };
