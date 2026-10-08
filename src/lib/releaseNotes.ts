@@ -155,5 +155,14 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	'0.11.0-beta.2': [
 		'Arreglado: la skin y la capa no aparecían en el gestor de skins.',
 		'Arreglado: el ícono de una instancia no se actualizaba en la lista lateral hasta reiniciar el launcher. Ahora cambia al instante.'
+	],
+	'0.11.0': [
+		'Versiones beta: en Ajustes → Sistema → Actualizaciones podés activar las betas para recibir las novedades antes. Te avisa que pueden tener errores y lo podés desactivar cuando quieras.',
+		'Actualizaciones más claras: un aviso discreto cuando hay una versión nueva, descarga en segundo plano con barra de progreso y "Reiniciar para actualizar" cuando quieras. Si algo falla, hay un botón para reintentar.',
+		'Más seguro: el launcher corre con permisos mínimos y una protección más estricta contra contenido externo. No cambia nada de cómo se usa.',
+		'Arreglado: la skin y la capa no aparecían en el gestor de skins.',
+		'Arreglado: el ícono de una instancia no se actualizaba en la lista lateral hasta reiniciar.',
+		'Arreglado: el botón "Deshacer última actualización" de los mods no aparecía, y copiar una captura al portapapeles fallaba.',
+		'Por dentro: mucho orden en el código del launcher y medición interna de rendimiento para detectar si alguna versión lo empeora.'
 	]
 };
