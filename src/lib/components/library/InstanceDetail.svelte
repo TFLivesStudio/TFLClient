@@ -29,6 +29,7 @@
 	import { serverSessions } from '$lib/state/serverSessions.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import { bumpInstanceIcon } from '$lib/state/instanceState.svelte';
+	import { multiInstanceWarningKind } from '$lib/state/launch';
 	import { t } from '$lib/i18n/index.svelte';
 	import ModsPanel from './ModsPanel.svelte';
 	import ShadersPanel from './ShadersPanel.svelte';
@@ -239,22 +240,11 @@
 		return t('instanceDetail.playedDaysAgo', { days });
 	});
 
-	// 'same-account': otra instancia ya corriendo usa la misma cuenta activa
-	// — puede fallar el multijugador (mismo jugador en dos lados) y suma
-	// carga de CPU/RAM. 'different-account': cuentas distintas, solo pega en
-	// rendimiento (igual no se puede jugar las dos a la vez con una persona).
-	function multiInstanceWarningKind(): 'same-account' | 'different-account' | null {
-		if (otherRunning.length === 0) return null;
-		const myUuid = appState.currentUser?.uuid;
-		const sameAccount = otherRunning.some((r) => r.account_uuid === myUuid);
-		return sameAccount ? 'same-account' : 'different-account';
-	}
-
 	let showMultiInstanceConfirm = $state(false);
 	let multiInstanceDontAskAgain = $state(false);
 
 	async function handlePlay() {
-		const kind = multiInstanceWarningKind();
+		const kind = multiInstanceWarningKind(otherRunning, appState.currentUser?.uuid);
 		if (kind && appState.settings?.multi_instance_warning_dismissed !== true) {
 			showMultiInstanceConfirm = true;
 			return;
@@ -915,7 +905,7 @@
 {#if showMultiInstanceConfirm}
 	<ConfirmDialog
 		title={t('instanceDetail.multiInstanceTitle')}
-		message={multiInstanceWarningKind() === 'same-account'
+		message={multiInstanceWarningKind(otherRunning, appState.currentUser?.uuid) === 'same-account'
 			? t('instanceDetail.multiInstanceSameAccount')
 			: t('instanceDetail.multiInstanceDifferentAccount')}
 		confirmLabel={t('instanceDetail.multiInstanceProceed')}

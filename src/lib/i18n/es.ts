@@ -203,7 +203,10 @@ export const es = {
 		openSettings: 'Ajustes',
 		logout: 'Cerrar sesión',
 		joinServer: 'Unirse a servidor',
-		contextOpen: 'Abrir'
+		contextOpen: 'Abrir',
+		home: 'Home',
+		collapse: 'Colapsar',
+		expand: 'Expandir'
 	},
 	joinServer: {
 		favorites: 'Favoritos',
@@ -483,7 +486,12 @@ export const es = {
 		modsCardTitle: 'Mods y modpacks',
 		modsCardHint: 'Por instancia',
 		javaCardTitle: 'Java automático',
-		javaCardHint: 'Sin configuración manual'
+		javaCardHint: 'Sin configuración manual',
+		continuePlaying: 'Seguir jugando',
+		play: 'Jugar',
+		launching: 'Abriendo…',
+		otherInstances: 'Otras instancias',
+		createInstance: 'Crear instancia'
 	},
 	whatsNewTips: {
 		welcomeTitle: 'Bienvenido a TFL Client',

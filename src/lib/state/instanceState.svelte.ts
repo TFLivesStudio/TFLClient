@@ -30,6 +30,13 @@ export function selectInstance(instance: InstanceData) {
 	appState.selectedInstance = instance;
 }
 
+/** Vuelve a la home (botón "Home" del sidebar, o tras cerrar una instancia
+ * desde ahí) — simplemente deselecciona, AppShell ya decide mostrar
+ * WelcomeState cuando no hay instancia seleccionada. */
+export function goHome() {
+	appState.selectedInstance = null;
+}
+
 /** Selecciona la instancia y abre InstanceDetail directamente en `tab`. */
 export function openInstanceTab(instance: InstanceData, tab: string) {
 	instanceNav.pendingInitialTab = tab;

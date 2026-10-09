@@ -4,7 +4,9 @@
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { getMascotFor } from '$lib/mascots';
 	import { network } from '$lib/state/network.svelte';
-	import { iconVersions } from '$lib/state/instanceState.svelte';
+	import { iconVersions, goHome } from '$lib/state/instanceState.svelte';
+	import { appState } from '$lib/state/state.svelte';
+	import { updateSettings } from '$lib/api';
 	import { t } from '$lib/i18n/index.svelte';
 	import { getInstanceIconPath } from '$lib/api';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
@@ -18,7 +20,10 @@
 		Sparkles,
 		WifiOff,
 		Globe,
-		Shirt
+		Shirt,
+		Home,
+		PanelLeftClose,
+		PanelLeftOpen
 	} from 'lucide-svelte';
 
 	let {
@@ -46,6 +51,22 @@
 		onOpenSkinManager: () => void;
 		onInstanceContextMenu: (instance: InstanceData, x: number, y: number) => void;
 	} = $props();
+
+	// Modo compacto (solo íconos) — persistido en Ajustes, mismo patrón
+	// optimista que `multi_instance_warning_dismissed` en InstanceDetail.svelte:
+	// se actualiza el estado local ya mismo y se guarda en paralelo; si falla
+	// el guardado no vale la pena bloquear la UI por eso, se reintenta solo.
+	const collapsed = $derived(appState.settings?.sidebar_collapsed === true);
+	function toggleCollapsed() {
+		if (!appState.settings) return;
+		const next = !collapsed;
+		appState.settings.sidebar_collapsed = next;
+		updateSettings({ ...appState.settings, sidebar_collapsed: next }).catch(() => {
+			// revertir si no se pudo guardar, para no mostrar un estado que
+			// después se pierde solo al reabrir el launcher
+			if (appState.settings) appState.settings.sidebar_collapsed = !next;
+		});
+	}
 
 	const LOADER_COLOR: Record<string, string> = {
 		vanilla: 'var(--loader-vanilla)',
@@ -112,13 +133,49 @@
 	});
 </script>
 
-<aside class="sidebar">
-	<button type="button" class="tfl-selection-btn" onclick={onOpenTflSelection}>
-		<Sparkles size={15} />
-		TFL Selection
+<aside class="sidebar" class:collapsed>
+	<div class="sidebar-top">
+		<!-- Arriba y no al pie: el banner de actualización lista
+			 (UpdateBadge.svelte) es "position: fixed; bottom" y tapa esa franja
+			 del sidebar cuando hay una actualización — abajo quedaba inútil. -->
+		<button
+			type="button"
+			class="collapse-toggle"
+			onclick={toggleCollapsed}
+			title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
+			aria-label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
+		>
+			{#if collapsed}
+				<PanelLeftOpen size={15} />
+			{:else}
+				<PanelLeftClose size={15} />
+			{/if}
+		</button>
+	</div>
+
+	<button
+		type="button"
+		class="home-btn"
+		class:active={selected === null}
+		onclick={goHome}
+		title={t('sidebar.home')}
+		aria-label={t('sidebar.home')}
+	>
+		<Home size={15} />
+		{#if !collapsed}<span>{t('sidebar.home')}</span>{/if}
 	</button>
 
-	{#if !network.online}
+	<button
+		type="button"
+		class="tfl-selection-btn"
+		onclick={onOpenTflSelection}
+		title={collapsed ? 'TFL Selection' : undefined}
+	>
+		<Sparkles size={15} />
+		{#if !collapsed}TFL Selection{/if}
+	</button>
+
+	{#if !network.online && !collapsed}
 		<div class="offline-badge">
 			<WifiOff size={12} />
 			<span>{t('sidebar.offline')}</span>
@@ -127,12 +184,13 @@
 
 	<div class="instances">
 		<div class="section-label">
-			<span>{t('sidebar.yourInstances')}</span>
+			{#if !collapsed}<span>{t('sidebar.yourInstances')}</span>{/if}
 			<div class="section-label-actions">
 				<button
 					type="button"
 					class="create-btn"
 					onclick={onJoinServer}
+					title={t('sidebar.joinServer')}
 					aria-label={t('sidebar.joinServer')}
 				>
 					<Globe size={14} strokeWidth={2.25} />
@@ -141,6 +199,7 @@
 					type="button"
 					class="create-btn"
 					onclick={onCreate}
+					title={t('sidebar.createInstance')}
 					aria-label={t('sidebar.createInstance')}
 				>
 					<Plus size={14} strokeWidth={2.25} />
@@ -148,7 +207,7 @@
 			</div>
 		</div>
 
-		{#if instances.length > 0}
+		{#if instances.length > 0 && !collapsed}
 			<div class="search-box">
 				<Search size={13} />
 				<input type="text" placeholder={t('sidebar.search')} bind:value={query} />
@@ -160,14 +219,19 @@
 			{#if instances.length === 0}
 				<div class="empty">
 					<Boxes size={28} />
-					<p>{t('sidebar.noInstancesYet')}</p>
-					<button type="button" class="empty-create" onclick={onCreate}>
+					{#if !collapsed}<p>{t('sidebar.noInstancesYet')}</p>{/if}
+					<button
+						type="button"
+						class="empty-create"
+						onclick={onCreate}
+						title={collapsed ? t('sidebar.createFirst') : undefined}
+					>
 						<Plus size={13} strokeWidth={2.5} />
-						{t('sidebar.createFirst')}
+						{#if !collapsed}{t('sidebar.createFirst')}{/if}
 					</button>
 				</div>
 			{:else if filtered.length === 0}
-				<p class="empty-search">{t('sidebar.noResultsFor', { query })}</p>
+				{#if !collapsed}<p class="empty-search">{t('sidebar.noResultsFor', { query })}</p>{/if}
 			{:else}
 				{#each filtered as instance (instance.uuid)}
 					<button
@@ -175,6 +239,7 @@
 						class="instance-item"
 						class:active={selected?.uuid === instance.uuid}
 						style="--loader-color: {LOADER_COLOR[instance.loader]}"
+						title={collapsed ? instance.name : undefined}
 						onclick={() => onSelect(instance)}
 						oncontextmenu={(e) => {
 							e.preventDefault();
@@ -201,10 +266,12 @@
 								{instance.name.charAt(0).toUpperCase()}
 							{/if}
 						</span>
-						<span class="instance-text">
-							<span class="instance-name">{instance.name}</span>
-							<span class="instance-version">{instance.mc_version} · {instance.loader}</span>
-						</span>
+						{#if !collapsed}
+							<span class="instance-text">
+								<span class="instance-name">{instance.name}</span>
+								<span class="instance-version">{instance.mc_version} · {instance.loader}</span>
+							</span>
+						{/if}
 					</button>
 				{/each}
 			{/if}
@@ -213,7 +280,7 @@
 
 	{#if user}
 		<div class="user-chip">
-			<span class="user-head">
+			<span class="user-head" title={collapsed ? user.username : undefined}>
 				{#if user.user_type === 'Cracked'}
 					<!-- Cuentas offline no tienen skin real — mascota simple en
 						 vez del Steve genérico que devolvería Crafatar por
@@ -230,33 +297,45 @@
 					{/if}
 				{/if}
 			</span>
-			<div class="user-info">
-				<span class="user-name">{user.username}</span>
-				<span class="user-type"
-					>{user.user_type === 'Cracked' ? t('sidebar.offlineAccountType') : user.user_type}</span
-				>
-			</div>
-			{#if user.user_type !== 'Cracked'}
+			{#if !collapsed}
+				<div class="user-info">
+					<span class="user-name">{user.username}</span>
+					<span class="user-type"
+						>{user.user_type === 'Cracked' ? t('sidebar.offlineAccountType') : user.user_type}</span
+					>
+				</div>
+			{/if}
+			<div class="user-actions">
+				{#if user.user_type !== 'Cracked'}
+					<button
+						type="button"
+						class="logout-btn"
+						onclick={onOpenSkinManager}
+						title={t('skinManager.title')}
+						aria-label={t('skinManager.title')}
+					>
+						<Shirt size={14} />
+					</button>
+				{/if}
 				<button
 					type="button"
 					class="logout-btn"
-					onclick={onOpenSkinManager}
-					aria-label={t('skinManager.title')}
+					onclick={onOpenSettings}
+					title={t('sidebar.openSettings')}
+					aria-label={t('sidebar.openSettings')}
 				>
-					<Shirt size={14} />
+					<Settings size={14} />
 				</button>
-			{/if}
-			<button
-				type="button"
-				class="logout-btn"
-				onclick={onOpenSettings}
-				aria-label={t('sidebar.openSettings')}
-			>
-				<Settings size={14} />
-			</button>
-			<button type="button" class="logout-btn" onclick={onLogout} aria-label={t('sidebar.logout')}>
-				<LogOut size={14} />
-			</button>
+				<button
+					type="button"
+					class="logout-btn"
+					onclick={onLogout}
+					title={t('sidebar.logout')}
+					aria-label={t('sidebar.logout')}
+				>
+					<LogOut size={14} />
+				</button>
+			</div>
 		</div>
 	{/if}
 </aside>
@@ -273,12 +352,33 @@
 		flex-direction: column;
 		padding: 14px 12px;
 		gap: 12px;
+		transition: width 0.16s ease;
 	}
 
+	/* Modo compacto: solo íconos, pedido por el cliente para no perder
+	   espacio de pantalla con una lista larga de instancias. El ancho fijo
+	   acá (no una var global) porque solo afecta a este componente —
+	   --sidebar-width la sigue usando TitleBar.svelte para alinear su
+	   propio layout con el ancho normal. */
+	.sidebar.collapsed {
+		width: 76px;
+		padding-left: 10px;
+		padding-right: 10px;
+		/* El banner de actualización lista es "position: fixed; bottom: 16px"
+		   sobre TODA la ventana, no solo sobre el contenido — en este modo
+		   angosto los íconos de usuario (skin/ajustes/cerrar sesión) quedan
+		   apilados justo en esa franja. Se les deja aire abajo para que no
+		   queden tapados mientras el banner esté visible. */
+		padding-bottom: 88px;
+		align-items: center;
+	}
+
+	.home-btn,
 	.tfl-selection-btn {
 		display: flex;
 		align-items: center;
 		gap: 8px;
+		width: 100%;
 		padding: 8px 10px;
 		border-radius: var(--border-radius-sm);
 		border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
@@ -292,9 +392,28 @@
 			border-color 0.15s;
 	}
 
+	.home-btn {
+		border-color: var(--border);
+		background: var(--bg-card);
+		color: var(--text-secondary);
+	}
+
+	.home-btn.active {
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+		background: color-mix(in srgb, var(--accent) 14%, var(--bg-card));
+		color: var(--accent);
+	}
+
+	.home-btn:hover,
 	.tfl-selection-btn:hover {
 		background: color-mix(in srgb, var(--accent) 20%, var(--bg-card));
 		border-color: var(--accent);
+	}
+
+	.sidebar.collapsed .home-btn,
+	.sidebar.collapsed .tfl-selection-btn {
+		justify-content: center;
+		padding: 8px;
 	}
 
 	.offline-badge {
@@ -331,6 +450,10 @@
 		letter-spacing: 0.5px;
 		text-transform: uppercase;
 		color: var(--text-muted);
+	}
+
+	.sidebar.collapsed .section-label {
+		justify-content: center;
 	}
 
 	.section-label-actions {
@@ -492,6 +615,11 @@
 		opacity: 1;
 	}
 
+	.sidebar.collapsed .instance-item {
+		justify-content: center;
+		padding: 8px;
+	}
+
 	.instance-avatar {
 		flex-shrink: 0;
 		width: 32px;
@@ -612,6 +740,12 @@
 		text-overflow: ellipsis;
 	}
 
+	.user-actions {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+	}
+
 	.logout-btn {
 		display: flex;
 		align-items: center;
@@ -627,5 +761,42 @@
 
 	.logout-btn:hover {
 		color: var(--color-error);
+	}
+
+	.sidebar.collapsed .user-chip {
+		flex-direction: column;
+		padding: 8px 4px;
+		gap: 8px;
+	}
+
+	.sidebar.collapsed .user-actions {
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+
+	.sidebar-top {
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	.sidebar.collapsed .sidebar-top {
+		justify-content: center;
+	}
+
+	.collapse-toggle {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		border-radius: var(--border-radius-sm);
+		border: none;
+		background: transparent;
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+
+	.collapse-toggle:hover {
+		color: var(--text-primary);
 	}
 </style>

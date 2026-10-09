@@ -34,6 +34,7 @@ export interface Settings {
 	native_dialog_mode_prompted: boolean;
 	server_connection_info_shown: boolean;
 	multi_instance_warning_dismissed: boolean;
+	sidebar_collapsed: boolean;
 }
 
 export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt';

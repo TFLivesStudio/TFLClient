@@ -153,6 +153,10 @@ pub struct SettingsManager {
     /// cualquier momento desde Ajustes, igual que `native_dialog_mode`.
     #[serde(default)]
     pub multi_instance_warning_dismissed: bool,
+    /// Sidebar en modo compacto (solo íconos) — editable desde el botón al
+    /// pie del sidebar, se recuerda entre reinicios.
+    #[serde(default)]
+    pub sidebar_collapsed: bool,
     #[serde(skip)]
     pub dirty: bool,
 }
@@ -184,6 +188,7 @@ impl Default for SettingsManager {
             native_dialog_mode_prompted: false,
             server_connection_info_shown: false,
             multi_instance_warning_dismissed: false,
+            sidebar_collapsed: false,
             dirty: false,
         }
     }

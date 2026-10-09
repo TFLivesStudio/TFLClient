@@ -206,7 +206,10 @@ export const en: Dictionary = {
 		openSettings: 'Settings',
 		logout: 'Log out',
 		joinServer: 'Join server',
-		contextOpen: 'Open'
+		contextOpen: 'Open',
+		home: 'Home',
+		collapse: 'Collapse',
+		expand: 'Expand'
 	},
 	joinServer: {
 		favorites: 'Favorites',
@@ -486,7 +489,12 @@ export const en: Dictionary = {
 		modsCardTitle: 'Mods and modpacks',
 		modsCardHint: 'Per instance',
 		javaCardTitle: 'Automatic Java',
-		javaCardHint: 'No manual setup'
+		javaCardHint: 'No manual setup',
+		continuePlaying: 'Continue playing',
+		play: 'Play',
+		launching: 'Launching…',
+		otherInstances: 'Other instances',
+		createInstance: 'Create instance'
 	},
 	whatsNewTips: {
 		welcomeTitle: 'Welcome to TFL Client',
