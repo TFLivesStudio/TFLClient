@@ -11,9 +11,58 @@
 	import { gameSession } from '$lib/state/gameSession.svelte';
 	import { selectInstance, iconVersions } from '$lib/state/instanceState.svelte';
 	import { multiInstanceWarningKind } from '$lib/state/launch';
-	import { launchInstance, getMojangProfile, getInstanceIconPath, updateSettings } from '$lib/api';
-	import type { InstanceData, MojangProfile } from '$lib/types/types';
-	import { Plus, Sparkles, PackageOpen, Zap, Play } from 'lucide-svelte';
+	import {
+		launchInstance,
+		getMojangProfile,
+		getInstanceIconPath,
+		updateSettings,
+		getInstanceScreenshots,
+		getFavoriteServers,
+		getRecentActivity,
+		getSystemStatus
+	} from '$lib/api';
+	import type {
+		InstanceData,
+		MojangProfile,
+		FavoriteServer,
+		ActivityEntry,
+		SystemStatus
+	} from '$lib/types/types';
+	import {
+		Plus,
+		Sparkles,
+		PackageOpen,
+		Zap,
+		Play,
+		Shirt,
+		Server as ServerIcon,
+		History,
+		Coffee,
+		Cpu,
+		MemoryStick,
+		HardDrive,
+		ChevronLeft,
+		ChevronRight
+	} from 'lucide-svelte';
+
+	/** "Hoy" / "Ayer" / "Hace N días" — mismo cálculo que
+	 * `instanceDetail.lastPlayedLabel`, generalizado acá porque se usa para
+	 * el banner Y para cada fila de actividad reciente. */
+	function relativeDayLabel(unixSecs: number): string {
+		const diffMs = Date.now() - unixSecs * 1000;
+		const days = Math.floor(diffMs / 86_400_000);
+		if (days <= 0) return t('instanceDetail.playedToday');
+		if (days === 1) return t('instanceDetail.playedYesterday');
+		return t('instanceDetail.playedDaysAgo', { days });
+	}
+
+	function durationLabel(secs: number): string {
+		const h = Math.floor(secs / 3600);
+		const m = Math.floor((secs % 3600) / 60);
+		return h > 0
+			? t('instanceDetail.playTimeHours', { h, m })
+			: t('instanceDetail.playTimeMinutes', { m });
+	}
 
 	// La instancia a retomar: la de cliente (no servidor) jugada más
 	// recientemente. Si ninguna se jugó todavía, cae igual en la primera —
@@ -28,12 +77,11 @@
 	const playTimeLabel = $derived.by(() => {
 		const secs = featured?.play_time_secs ?? 0;
 		if (!featured || secs < 60) return null;
-		const h = Math.floor(secs / 3600);
-		const m = Math.floor((secs % 3600) / 60);
-		return h > 0
-			? t('instanceDetail.playTimeHours', { h, m })
-			: t('instanceDetail.playTimeMinutes', { m });
+		return durationLabel(secs);
 	});
+	const lastPlayedLabel = $derived(
+		featured && featured.last_played ? relativeDayLabel(featured.last_played) : null
+	);
 
 	// Íconos de la card destacada y de las "otras instancias" — mismo patrón
 	// que Sidebar.svelte (cacheado por uuid, se vuelve a pedir si cambia la
@@ -56,6 +104,92 @@
 				});
 		}
 	});
+
+	// Fondo del banner: la captura más reciente de la instancia destacada (si
+	// tiene alguna) — nada de arte inventado. Sin capturas, el banner se ve
+	// con el degradado de siempre (ver CSS de .banner).
+	let bannerBg = $state<string | null>(null);
+	$effect(() => {
+		bannerBg = null;
+		if (!featured) return;
+		const name = featured.name;
+		getInstanceScreenshots(name)
+			.then((shots) => {
+				if (featured?.name !== name || shots.length === 0) return;
+				const latest = shots.reduce((a, b) => (b.modified_ms > a.modified_ms ? b : a));
+				bannerBg = convertFileSrc(latest.path);
+			})
+			.catch(() => {
+				bannerBg = null;
+			});
+	});
+
+	// Servidores favoritos — no hay forma de saber a qué servidor se unió
+	// alguien DENTRO del juego, así que esto son los guardados a mano
+	// (mismos que "Unirse a servidor"), no un historial real de conexiones.
+	let servers = $state<FavoriteServer[]>([]);
+	$effect(() => {
+		getFavoriteServers()
+			.then((list) => {
+				servers = list.slice(0, 4);
+			})
+			.catch(() => {
+				servers = [];
+			});
+	});
+
+	// Actividad reciente — sesiones de juego terminadas, lo más nuevo
+	// primero (ver `services::activity_log` en el backend).
+	let activity = $state<ActivityEntry[]>([]);
+	$effect(() => {
+		getRecentActivity(5)
+			.then((list) => {
+				activity = list;
+			})
+			.catch(() => {
+				activity = [];
+			});
+	});
+	// Mapa separado del de arriba (ese usa uuid; acá solo se tiene el nombre
+	// guardado en el log de actividad, y la instancia pudo haberse borrado).
+	let activityIconUrls = $state<Record<string, string | null>>({});
+	const activityIconLoaded: Record<string, true> = {};
+	$effect(() => {
+		for (const a of activity) {
+			if (activityIconLoaded[a.instance_name]) continue;
+			activityIconLoaded[a.instance_name] = true;
+			getInstanceIconPath(a.instance_name)
+				.then((path) => {
+					activityIconUrls[a.instance_name] = path ? convertFileSrc(path) : null;
+				})
+				.catch(() => {
+					activityIconUrls[a.instance_name] = null;
+				});
+		}
+	});
+
+	// Estado del sistema — solo números (Java/RAM/Disco), sin heurística de
+	// "problema detectado": eso lo decide quien mira los números.
+	let systemStatus = $state<SystemStatus | null>(null);
+	$effect(() => {
+		getSystemStatus()
+			.then((s) => {
+				systemStatus = s;
+			})
+			.catch(() => {
+				systemStatus = null;
+			});
+	});
+	function formatGb(gb: number): string {
+		return `${gb.toFixed(gb < 10 ? 1 : 0)} GB`;
+	}
+
+	// Carrusel de "otras instancias" — scroll horizontal nativo, los botones
+	// solo mueven el scroll (sin librería nueva).
+	let carouselEl = $state<HTMLDivElement | undefined>(undefined);
+	function scrollCarousel(dir: 1 | -1) {
+		carouselEl?.scrollBy({ left: dir * 220, behavior: 'smooth' });
+	}
 
 	// Personaje grande (pedido del cliente, estilo LabyMod). Cuentas
 	// Microsoft: mismo visor 3D que ya usa SkinManagerModal.svelte (misma
@@ -190,78 +324,222 @@
 	</div>
 {:else}
 	<div class="home-rich">
-		<div class="character-panel">
-			{#if isPremium}
-				<canvas bind:this={canvasEl} width="220" height="320"></canvas>
-			{:else if appState.currentUser}
-				<div class="mascot-big">
-					<Mascot id={getMascotFor(appState.currentUser.uuid)} size={160} />
-				</div>
-			{:else}
-				<div class="welcome-orb big"><Tfl width="42" height="42" /></div>
-			{/if}
-		</div>
-
-		<div class="home-main">
-			{#if featured}
-				<div class="continue-card">
-					<span class="continue-label">{t('home.continuePlaying')}</span>
-					<div class="continue-row">
-						<span class="continue-icon">
-							{#if iconUrls[featured.uuid]}
-								<img src={iconUrls[featured.uuid]} alt="" />
-							{:else}
-								{featured.name.charAt(0).toUpperCase()}
+		{#if featured}
+			<div
+				class="banner"
+				class:has-bg={!!bannerBg}
+				style={bannerBg ? `--banner-bg: url(${bannerBg})` : ''}
+			>
+				<span class="banner-eyebrow">{t('home.continuePlaying')}</span>
+				<div class="banner-row">
+					<span class="banner-icon">
+						{#if iconUrls[featured.uuid]}
+							<img src={iconUrls[featured.uuid]} alt="" />
+						{:else}
+							{featured.name.charAt(0).toUpperCase()}
+						{/if}
+					</span>
+					<div class="banner-info">
+						<span class="banner-name">{featured.name}</span>
+						<span class="banner-meta">
+							{featured.mc_version} · {featured.loader}
+							{#if lastPlayedLabel}
+								· {lastPlayedLabel}
+							{/if}
+							{#if playTimeLabel}
+								· {playTimeLabel}
 							{/if}
 						</span>
-						<div class="continue-info">
-							<span class="continue-name">{featured.name}</span>
-							<span class="continue-meta">
-								{featured.mc_version} · {featured.loader}
-								{#if playTimeLabel}
-									· {playTimeLabel}
-								{/if}
-							</span>
-						</div>
-						<button type="button" class="play-btn" disabled={launching} onclick={handlePlay}>
-							<Play size={15} />
-							{launching ? t('home.launching') : t('home.play')}
-						</button>
 					</div>
-					{#if launchError}<p class="launch-error">{launchError}</p>{/if}
+					<button type="button" class="play-btn" disabled={launching} onclick={handlePlay}>
+						<Play size={15} />
+						{launching ? t('home.launching') : t('home.play')}
+					</button>
 				</div>
-			{/if}
+				{#if launchError}<p class="launch-error">{launchError}</p>{/if}
+			</div>
+		{/if}
 
-			{#if others.length > 0}
-				<div class="others-block">
-					<span class="others-label">{t('home.otherInstances')}</span>
-					<div class="others-grid">
-						{#each others as instance (instance.uuid)}
-							<button type="button" class="other-card" onclick={() => selectInstance(instance)}>
-								<span class="other-icon">
-									{#if iconUrls[instance.uuid]}
-										<img src={iconUrls[instance.uuid]} alt="" />
-									{:else}
-										{instance.name.charAt(0).toUpperCase()}
-									{/if}
-								</span>
-								<span class="other-name">{instance.name}</span>
+		<div class="dash-grid">
+			<div class="panel character-panel">
+				<div class="character-figure">
+					{#if isPremium}
+						<canvas bind:this={canvasEl} width="150" height="220"></canvas>
+					{:else if appState.currentUser}
+						<div class="mascot-big">
+							<Mascot id={getMascotFor(appState.currentUser.uuid)} size={110} />
+						</div>
+					{:else}
+						<div class="welcome-orb big"><Tfl width="36" height="36" /></div>
+					{/if}
+				</div>
+				{#if isPremium}
+					<div class="skins-row">
+						{#each (profile?.skins ?? []).slice(0, 3) as skin (skin.id)}
+							<button
+								type="button"
+								class="skin-slot"
+								title={t('home.openSkinManager')}
+								onclick={() => openModal('skinManager')}
+							>
+								<span class="skin-layer base" style="background-image: url({skin.url})"></span>
+								<span class="skin-layer overlay" style="background-image: url({skin.url})"></span>
 							</button>
 						{/each}
+						<button
+							type="button"
+							class="skin-slot skin-slot-add"
+							title={t('home.openSkinManager')}
+							onclick={() => openModal('skinManager')}
+						>
+							<Shirt size={14} />
+						</button>
+					</div>
+				{/if}
+			</div>
+
+			<div class="panel">
+				<div class="panel-title">
+					<ServerIcon size={13} />
+					<span>{t('home.yourServers')}</span>
+					<button type="button" class="panel-link" onclick={() => openModal('joinServer')}>
+						{t('home.seeAll')}
+					</button>
+				</div>
+				{#if servers.length === 0}
+					<p class="panel-empty">{t('home.noServersSaved')}</p>
+				{:else}
+					<ul class="panel-list">
+						{#each servers as server (server.id)}
+							<li class="server-row">
+								<span class="server-name">{server.name}</span>
+								<span class="server-address">{server.address}</span>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+
+			<div class="panel">
+				<div class="panel-title">
+					<History size={13} />
+					<span>{t('home.recentActivity')}</span>
+				</div>
+				{#if activity.length === 0}
+					<p class="panel-empty">{t('home.noActivityYet')}</p>
+				{:else}
+					<ul class="panel-list">
+						{#each activity as entry (entry.id)}
+							<li class="activity-row">
+								<span class="activity-icon">
+									{#if activityIconUrls[entry.instance_name]}
+										<img src={activityIconUrls[entry.instance_name]} alt="" />
+									{:else}
+										{entry.instance_name.charAt(0).toUpperCase()}
+									{/if}
+								</span>
+								<div class="activity-info">
+									<span class="activity-name">{entry.instance_name}</span>
+									<span class="activity-meta"
+										>{relativeDayLabel(entry.ended_at)} · {durationLabel(entry.duration_secs)}</span
+									>
+								</div>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+
+			<div class="panel">
+				<div class="panel-title">
+					<Cpu size={13} />
+					<span>{t('home.systemStatus')}</span>
+				</div>
+				{#if systemStatus}
+					<ul class="status-list">
+						<li>
+							<Coffee size={13} />
+							<span
+								>{systemStatus.java_major
+									? t('home.javaInstalled', { major: systemStatus.java_major })
+									: t('home.javaMissing')}</span
+							>
+						</li>
+						<li>
+							<MemoryStick size={13} />
+							<span
+								>{t('home.ramStatus', {
+									assigned: (systemStatus.ram_assigned_mb / 1024).toFixed(1),
+									total: (systemStatus.ram_total_mb / 1024).toFixed(1)
+								})}</span
+							>
+						</li>
+						<li>
+							<HardDrive size={13} />
+							<span
+								>{t('home.diskStatus', {
+									free: formatGb(systemStatus.disk_free_gb),
+									total: formatGb(systemStatus.disk_total_gb)
+								})}</span
+							>
+						</li>
+					</ul>
+				{/if}
+			</div>
+		</div>
+
+		{#if others.length > 0}
+			<div class="others-block">
+				<div class="others-head">
+					<span class="others-label">{t('home.otherInstances')}</span>
+					<div class="others-nav">
+						<button
+							type="button"
+							class="carousel-btn"
+							onclick={() => scrollCarousel(-1)}
+							aria-label={t('home.scrollLeft')}
+						>
+							<ChevronLeft size={14} />
+						</button>
+						<button
+							type="button"
+							class="carousel-btn"
+							onclick={() => scrollCarousel(1)}
+							aria-label={t('home.scrollRight')}
+						>
+							<ChevronRight size={14} />
+						</button>
 					</div>
 				</div>
-			{/if}
-
-			<div class="quick-actions">
-				<button type="button" class="secondary-cta" onclick={() => openModal('createChooser')}>
-					<Plus size={15} strokeWidth={2.5} />
-					{t('home.createInstance')}
-				</button>
-				<button type="button" class="secondary-cta" onclick={() => openModal('tflSelection')}>
-					<Sparkles size={15} />
-					{t('home.exploreTflSelection')}
-				</button>
+				<div class="others-grid" bind:this={carouselEl}>
+					{#each others as instance (instance.uuid)}
+						<button type="button" class="other-card" onclick={() => selectInstance(instance)}>
+							<span class="other-icon">
+								{#if iconUrls[instance.uuid]}
+									<img src={iconUrls[instance.uuid]} alt="" />
+								{:else}
+									{instance.name.charAt(0).toUpperCase()}
+								{/if}
+							</span>
+							<span class="other-text">
+								<span class="other-name">{instance.name}</span>
+								<span class="other-meta">{instance.mc_version} · {instance.loader}</span>
+							</span>
+						</button>
+					{/each}
+				</div>
 			</div>
+		{/if}
+
+		<div class="quick-actions">
+			<button type="button" class="secondary-cta" onclick={() => openModal('createChooser')}>
+				<Plus size={15} strokeWidth={2.5} />
+				{t('home.createInstance')}
+			</button>
+			<button type="button" class="secondary-cta" onclick={() => openModal('tflSelection')}>
+				<Sparkles size={15} />
+				{t('home.exploreTflSelection')}
+			</button>
 		</div>
 	</div>
 
@@ -436,100 +714,94 @@
 	   cliente. */
 	.home-rich {
 		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 48px;
-		height: 100%;
-		max-width: 920px;
-		margin: auto;
-		padding: 48px 28px;
-		flex-wrap: wrap;
-	}
-
-	.character-panel {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-	}
-
-	.character-panel canvas {
-		filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.45));
-	}
-
-	.mascot-big {
-		filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.45));
-	}
-
-	.home-main {
-		display: flex;
 		flex-direction: column;
-		gap: 20px;
-		width: min(100%, 420px);
+		gap: 18px;
+		height: 100%;
+		max-width: 1040px;
+		margin: auto;
+		padding: 36px 28px;
+		overflow-y: auto;
 	}
 
-	.continue-card {
+	/* Banner "seguir jugando" — fondo real (última captura de la instancia)
+	   si hay una, degradado si no. El degradado oscuro encima es lo que
+	   garantiza que el texto se lea con cualquier captura de fondo. */
+	.banner {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
-		padding: 18px;
+		padding: 20px 22px;
 		border-radius: var(--border-radius-lg);
 		border: 1px solid var(--border);
-		background: color-mix(in srgb, var(--bg-card) 90%, transparent);
+		background:
+			linear-gradient(
+				120deg,
+				color-mix(in srgb, var(--bg-card) 92%, transparent) 0%,
+				color-mix(in srgb, var(--accent) 10%, var(--bg-card) 92%) 100%
+			),
+			var(--bg-card);
 		box-shadow: var(--shadow-md);
+		background-size: cover;
+		background-position: center;
+	}
+	.banner.has-bg {
+		background-image:
+			linear-gradient(0deg, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.42)), var(--banner-bg, none);
 	}
 
-	.continue-label {
+	.banner-eyebrow {
 		font-size: 0.68rem;
 		font-weight: 700;
 		letter-spacing: 0.5px;
 		text-transform: uppercase;
-		color: var(--text-muted);
+		color: color-mix(in srgb, var(--accent) 70%, white 10%);
 	}
 
-	.continue-row {
+	.banner-row {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: 14px;
 	}
 
-	.continue-icon {
+	.banner-icon {
 		flex-shrink: 0;
-		width: 48px;
-		height: 48px;
+		width: 52px;
+		height: 52px;
 		border-radius: var(--border-radius);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		overflow: hidden;
-		font-size: 1.1rem;
+		font-size: 1.2rem;
 		font-weight: 800;
 		color: var(--accent);
-		background: color-mix(in srgb, var(--accent) 16%, transparent);
+		background: color-mix(in srgb, var(--accent) 20%, var(--bg-card));
 	}
-	.continue-icon img {
+	.banner-icon img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
 	}
 
-	.continue-info {
+	.banner-info {
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
 		min-width: 0;
 		flex: 1;
 	}
-	.continue-name {
-		font-size: 1rem;
-		font-weight: 700;
+	.banner-name {
+		font-size: 1.15rem;
+		font-weight: 800;
+		color: var(--text-primary);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	.continue-meta {
-		font-size: 0.72rem;
-		color: var(--text-muted);
+	.banner-meta {
+		font-size: 0.75rem;
+		color: var(--text-secondary);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -543,7 +815,7 @@
 		background: var(--accent);
 		color: var(--accent-text);
 		border: none;
-		padding: 10px 18px;
+		padding: 11px 20px;
 		border-radius: var(--border-radius-sm);
 		font-weight: 700;
 		font-size: 0.82rem;
@@ -564,39 +836,151 @@
 		color: var(--color-error);
 	}
 
-	.others-block {
+	/* Grilla de paneles: personaje+skins, servidores, actividad, estado del
+	   sistema — se acomodan en columnas según el ancho disponible. */
+	.dash-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: 14px;
+	}
+
+	.panel {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 14px;
+		border-radius: var(--border-radius);
+		border: 1px solid var(--border);
+		background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+		min-width: 0;
+	}
+
+	.panel-title {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 0.68rem;
+		font-weight: 700;
+		letter-spacing: 0.4px;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.panel-title :global(svg) {
+		color: var(--accent);
+		flex-shrink: 0;
+	}
+	.panel-link {
+		margin-left: auto;
+		background: none;
+		border: none;
+		padding: 0;
+		color: var(--accent);
+		font-size: 0.68rem;
+		font-weight: 700;
+		text-transform: none;
+		letter-spacing: normal;
+		cursor: pointer;
+	}
+	.panel-link:hover {
+		text-decoration: underline;
+	}
+
+	.panel-empty {
+		font-size: 0.74rem;
+		color: var(--text-muted);
+	}
+
+	.panel-list {
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
 	}
-	.others-label {
-		font-size: 0.68rem;
-		font-weight: 700;
-		letter-spacing: 0.5px;
-		text-transform: uppercase;
+
+	.character-panel {
+		align-items: center;
+	}
+	.character-figure {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 150px;
+	}
+	.character-figure canvas {
+		filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.45));
+	}
+	.mascot-big {
+		filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.45));
+	}
+
+	.skins-row {
+		display: flex;
+		gap: 6px;
+	}
+	.skin-slot {
+		position: relative;
+		width: 32px;
+		height: 32px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-input);
+		overflow: hidden;
+		cursor: pointer;
+		padding: 0;
+	}
+	.skin-slot:hover {
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+	}
+	/* Mismo recorte de cara (64x64 → cabeza, base + capa "hat") que ya usa
+	   Sidebar.svelte para la cabecita del usuario. */
+	.skin-slot .skin-layer {
+		position: absolute;
+		inset: 0;
+		background-repeat: no-repeat;
+		background-size: 256px 256px;
+		image-rendering: pixelated;
+	}
+	.skin-slot .skin-layer.base {
+		background-position: -32px -32px;
+	}
+	.skin-slot .skin-layer.overlay {
+		background-position: -160px -32px;
+	}
+	.skin-slot-add {
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		color: var(--text-muted);
 	}
-	.others-grid {
-		display: flex;
-		gap: 8px;
-		flex-wrap: wrap;
+	.skin-slot-add:hover {
+		color: var(--accent);
 	}
-	.other-card {
+
+	.server-row {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+	}
+	.server-name {
+		font-size: 0.8rem;
+		font-weight: 600;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.server-address {
+		font-size: 0.68rem;
+		color: var(--text-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.activity-row {
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		padding: 8px 12px 8px 8px;
-		border-radius: var(--border-radius);
-		border: 1px solid var(--border);
-		background: color-mix(in srgb, var(--bg-card) 88%, transparent);
-		color: var(--text-primary);
-		cursor: pointer;
-		max-width: 160px;
 	}
-	.other-card:hover {
-		border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
-	}
-	.other-icon {
+	.activity-icon {
 		flex-shrink: 0;
 		width: 26px;
 		height: 26px;
@@ -605,7 +989,122 @@
 		align-items: center;
 		justify-content: center;
 		overflow: hidden;
-		font-size: 0.7rem;
+		font-size: 0.68rem;
+		font-weight: 800;
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 16%, transparent);
+	}
+	.activity-icon img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.activity-info {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		min-width: 0;
+	}
+	.activity-name {
+		font-size: 0.78rem;
+		font-weight: 600;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.activity-meta {
+		font-size: 0.66rem;
+		color: var(--text-muted);
+	}
+
+	.status-list {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.status-list li {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 0.74rem;
+		color: var(--text-secondary);
+	}
+	.status-list :global(svg) {
+		flex-shrink: 0;
+		color: var(--text-muted);
+	}
+
+	.others-block {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.others-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.others-label {
+		font-size: 0.68rem;
+		font-weight: 700;
+		letter-spacing: 0.5px;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.others-nav {
+		display: flex;
+		gap: 4px;
+	}
+	.carousel-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-card);
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+	.carousel-btn:hover {
+		color: var(--text-primary);
+	}
+	.others-grid {
+		display: flex;
+		gap: 10px;
+		overflow-x: auto;
+		scroll-snap-type: x proximity;
+		padding-bottom: 4px;
+		scrollbar-width: thin;
+	}
+	.other-card {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 10px 14px 10px 10px;
+		border-radius: var(--border-radius);
+		border: 1px solid var(--border);
+		background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+		color: var(--text-primary);
+		cursor: pointer;
+		flex-shrink: 0;
+		min-width: 170px;
+		scroll-snap-align: start;
+	}
+	.other-card:hover {
+		border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+	}
+	.other-icon {
+		flex-shrink: 0;
+		width: 32px;
+		height: 32px;
+		border-radius: var(--border-radius-sm);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
+		font-size: 0.75rem;
 		font-weight: 800;
 		color: var(--accent);
 		background: color-mix(in srgb, var(--accent) 16%, transparent);
@@ -615,9 +1114,22 @@
 		height: 100%;
 		object-fit: cover;
 	}
+	.other-text {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		min-width: 0;
+	}
 	.other-name {
 		font-size: 0.78rem;
 		font-weight: 600;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.other-meta {
+		font-size: 0.66rem;
+		color: var(--text-muted);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -641,9 +1153,12 @@
 		.secondary-cta {
 			justify-content: center;
 		}
-		.home-rich {
-			flex-direction: column;
-			gap: 24px;
+		.banner-row {
+			flex-wrap: wrap;
+		}
+		.play-btn {
+			width: 100%;
+			justify-content: center;
 		}
 	}
 </style>

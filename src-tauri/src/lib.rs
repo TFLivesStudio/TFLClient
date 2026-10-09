@@ -270,6 +270,8 @@ pub fn run() {
             commands::mojang_profile::set_active_cape,
             commands::mojang_profile::hide_cape,
             commands::shortcuts::create_instance_shortcut,
+            commands::activity::get_recent_activity,
+            commands::system_status::get_system_status,
         ])
         .run(tauri_context())
         .expect("error while running tauri application");

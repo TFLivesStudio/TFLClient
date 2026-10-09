@@ -491,7 +491,20 @@ export const es = {
 		play: 'Jugar',
 		launching: 'Abriendo…',
 		otherInstances: 'Otras instancias',
-		createInstance: 'Crear instancia'
+		createInstance: 'Crear instancia',
+		openSkinManager: 'Abrir gestor de skins',
+		yourServers: 'Tus servidores',
+		seeAll: 'Ver todos →',
+		noServersSaved: 'Sin servidores guardados todavía',
+		recentActivity: 'Actividad reciente',
+		noActivityYet: 'Todavía no jugaste ninguna sesión',
+		systemStatus: 'Estado del sistema',
+		javaInstalled: 'Java {{major}} instalado',
+		javaMissing: 'Java sin instalar',
+		ramStatus: 'RAM: {{assigned}} / {{total}} GB',
+		diskStatus: 'Disco: {{free}} libres de {{total}}',
+		scrollLeft: 'Ver anteriores',
+		scrollRight: 'Ver siguientes'
 	},
 	whatsNewTips: {
 		welcomeTitle: 'Bienvenido a TFL Client',

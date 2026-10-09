@@ -258,6 +258,24 @@ export interface ImportCandidate {
 	mod_count: number;
 }
 
+export interface ActivityEntry {
+	id: string;
+	instance_name: string;
+	mc_version: string;
+	loader: string;
+	duration_secs: number;
+	ended_at: number;
+}
+
+export interface SystemStatus {
+	java_major: number | null;
+	ram_assigned_mb: number;
+	ram_total_mb: number;
+	disk_free_gb: number;
+	disk_total_gb: number;
+	instances_dir: string;
+}
+
 export interface FavoriteServer {
 	id: string;
 	name: string;

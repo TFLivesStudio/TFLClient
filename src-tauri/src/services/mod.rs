@@ -1,3 +1,4 @@
+pub mod activity_log;
 pub mod content;
 pub mod instance_manager;
 pub mod java_manager;

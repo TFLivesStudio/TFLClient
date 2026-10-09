@@ -1,5 +1,6 @@
 use crate::core::PathManager;
 use crate::core::event_bus::{AppEvent, emit};
+use crate::services::activity_log;
 use crate::services::instance_manager::LoaderKind;
 use crate::services::{SettingsManager, instance_manager, java_manager, progress};
 use aqua::{DownloadManager, FabricBatch, ForgeBatch, NeoForgeBatch, QuiltBatch};
@@ -464,8 +465,26 @@ async fn launch_inner(
         let code = handle.wait().await;
         LAUNCHWERK.remove(id);
         RUNNING.lock().unwrap().remove(&instance_name);
-        let _ = instance_manager::add_play_time(&instance_name, session_start.elapsed().as_secs())
+        let session_secs = session_start.elapsed().as_secs();
+        let _ = instance_manager::add_play_time(&instance_name, session_secs).await;
+        // "Actividad reciente" de la home — sesiones muy cortas (prueba,
+        // crash instantáneo) se filtran adentro de `record`. Se vuelve a
+        // pedir la instancia porque acá solo se tiene el nombre: es una
+        // lectura chica de disco, no vale la pena cargar mc_version/loader
+        // "por las dudas" en el resto de la función para este único uso.
+        if let Ok(data) = instance_manager::get_instance(&instance_name).await {
+            let loader = serde_json::to_string(&data.loader)
+                .unwrap_or_default()
+                .trim_matches('"')
+                .to_string();
+            activity_log::record(
+                instance_name.clone(),
+                data.mc_version.clone(),
+                loader,
+                session_secs,
+            )
             .await;
+        }
         emit(AppEvent::InstanceExited {
             instance: instance_name.clone(),
             code,

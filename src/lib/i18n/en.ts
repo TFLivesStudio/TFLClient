@@ -494,7 +494,20 @@ export const en: Dictionary = {
 		play: 'Play',
 		launching: 'Launching…',
 		otherInstances: 'Other instances',
-		createInstance: 'Create instance'
+		createInstance: 'Create instance',
+		openSkinManager: 'Open skin manager',
+		yourServers: 'Your servers',
+		seeAll: 'See all →',
+		noServersSaved: 'No servers saved yet',
+		recentActivity: 'Recent activity',
+		noActivityYet: "You haven't played any session yet",
+		systemStatus: 'System status',
+		javaInstalled: 'Java {{major}} installed',
+		javaMissing: 'Java not installed',
+		ramStatus: 'RAM: {{assigned}} / {{total}} GB',
+		diskStatus: 'Disk: {{free}} free of {{total}}',
+		scrollLeft: 'See previous',
+		scrollRight: 'See next'
 	},
 	whatsNewTips: {
 		welcomeTitle: 'Welcome to TFL Client',

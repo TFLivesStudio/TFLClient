@@ -1,3 +1,4 @@
+pub mod activity;
 pub mod auth;
 pub mod content;
 pub mod crash_diagnosis;
@@ -11,6 +12,7 @@ pub mod playit;
 pub mod servers;
 pub mod settings;
 pub mod shortcuts;
+pub mod system_status;
 pub mod tfl_selection;
 pub mod updater;
 pub mod versions;
