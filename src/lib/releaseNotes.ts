@@ -175,5 +175,10 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Nueva home: tu personaje en grande (skin real si tenés cuenta Microsoft) y la última instancia que jugaste, lista para abrir con un click.',
 		'Sidebar colapsable: un botón lo deja en modo compacto (solo íconos) para ganar espacio — se acuerda entre reinicios.',
 		'Nuevo botón "Home" en el sidebar para volver a la pantalla principal en cualquier momento (antes no se podía).'
+	],
+	'0.11.2-beta.1': [
+		'Esta es una versión BETA. Si algo anda mal, avisanos; podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Home mucho más completa: banner con la última captura de tu instancia, mini panel de skins, tus servidores favoritos, actividad reciente (las últimas sesiones jugadas) y estado del sistema (Java, RAM, disco).',
+		'"Otras instancias" ahora es un carrusel con flechas en vez de una fila fija.'
 	]
 };
