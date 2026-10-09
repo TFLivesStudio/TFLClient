@@ -164,5 +164,11 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Arreglado: el ícono de una instancia no se actualizaba en la lista lateral hasta reiniciar.',
 		'Arreglado: el botón "Deshacer última actualización" de los mods no aparecía, y copiar una captura al portapapeles fallaba.',
 		'Por dentro: mucho orden en el código del launcher y medición interna de rendimiento para detectar si alguna versión lo empeora.'
+	],
+	'0.11.1-beta.1': [
+		'Esta es una versión BETA. Si algo anda mal, avisanos; podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Nueva home: tu personaje en grande (skin real si tenés cuenta Microsoft) y la última instancia que jugaste, lista para abrir con un click.',
+		'Sidebar colapsable: un botón lo deja en modo compacto (solo íconos) para ganar espacio — se acuerda entre reinicios.',
+		'Nuevo botón "Home" en el sidebar para volver a la pantalla principal en cualquier momento (antes no se podía).'
 	]
 };
