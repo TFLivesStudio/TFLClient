@@ -12,6 +12,10 @@ export const en: Dictionary = {
 		copy: 'Copy',
 		copied: 'Copied'
 	},
+	ui: {
+		close: 'Close',
+		retry: 'Retry'
+	},
 	onboarding: {
 		tagline: 'Sign in to start playing',
 		microsoftTitle: 'Microsoft account',

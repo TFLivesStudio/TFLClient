@@ -133,7 +133,22 @@
 	--font-brand: 'Monocraft', var(--font-family);
 	--font-size-base: 14px;
 
-	/* Escala tipográfica — 3 niveles de jerarquía para títulos: modal/panel
+	/* DEPRECADA (Entrega A — Visual Foundation, ver abajo). Viola el mínimo
+	   de legibilidad que pide el spec: --text-xs ≈ 9.5px es ilegible, y
+	   ningún token de aquí tiene un --line-height dedicado. Se deja
+	   intacta porque el resto de la app ya la usa en todos lados — migrar
+	   esos componentes es trabajo de otra entrega, no de esta — pero
+	   cualquier componente NUEVO debe usar la escala de abajo. Mapeo
+	   aproximado para cuando toque migrar los viejos:
+	     --text-xs   (0.68rem ≈  9.5px) → --text-caption  (12px)
+	     --text-sm   (0.78rem ≈ 10.9px) → --text-caption  (12px)
+	     --text-base (0.85rem ≈ 13.6px) → --text-small    (13px)
+	     --text-md   (0.95rem ≈ 15.2px) → --text-subtitle (16px)
+	     --text-lg   (1.05rem ≈ 16.8px) → --text-subtitle (16px)
+	     --text-xl   (1.2rem  ≈ 19.2px) → --text-heading  (19px)
+	     --text-2xl  (1.3rem  ≈ 20.8px) → --text-heading  (19px)
+
+	   Escala tipográfica — 3 niveles de jerarquía para títulos: modal/panel
 	   (--text-lg), pantalla completa como onboarding/empty-state
 	   (--text-xl), contenido principal como el nombre de instancia
 	   (--text-2xl). */
@@ -144,6 +159,73 @@
 	--text-lg: 1.05rem;
 	--text-xl: 1.2rem;
 	--text-2xl: 1.3rem;
+
+	/* Escala tipográfica nueva (Entrega A) — mínimo 12px, cada nivel con su
+	   --line-height. Usarla en todo componente nuevo de src/lib/components/ui/
+	   y, a futuro, para migrar gradualmente la escala vieja de arriba. */
+	--text-caption: 12px;
+	--line-height-caption: 16px;
+	--text-small: 13px;
+	--line-height-small: 18px;
+	--text-body: 14px; /* alias de --font-size-base */
+	--line-height-body: 20px;
+	--text-subtitle: 16px;
+	--line-height-subtitle: 22px;
+	--text-heading: 19px;
+	--line-height-heading: 26px;
+	--text-hero: 26px;
+	--line-height-hero: 32px;
+
+	/* Tamaños de controles (botones/inputs/selects) e íconos — Entrega A.
+	   3 tamaños de control (compact/normal/prominent) + 3 de ícono, para
+	   que Button/IconButton/Input/Select nuevos no hardcodeen alturas. */
+	--control-size-compact: 32px;
+	--control-size-normal: 36px;
+	--control-size-prominent: 44px;
+	--icon-size-sm: 16px;
+	--icon-size-md: 18px;
+	--icon-size-lg: 20px;
+
+	/* Escala de z-index semántica — Entrega A. Reemplaza los valores
+	   sueltos a futuro (ConfirmDialog usa 300, ContextMenu usa 200 a mano
+	   todavía — migrarlos es trabajo de otra entrega); todo componente
+	   NUEVO debe usar estos tokens en vez de un número inventado. */
+	--z-ambient: 0;
+	--z-content: 1;
+	--z-elevated: 10;
+	--z-sticky: 20;
+	--z-dropdown: 50;
+	--z-overlay: 100;
+	--z-modal: 200;
+	--z-toast: 300;
+	--z-tooltip: 400;
+
+	/* Motion tokens — Entrega A, sección 5.5 del encargo: centraliza la
+	   duración/curva de las micro-interacciones en vez de que cada
+	   componente nuevo la hardcodee. Los hardcodeos existentes (0.17s,
+	   0.28s, etc. más abajo en este archivo) quedan como están — no es
+	   esta entrega la que los migra — pero todo componente nuevo debe
+	   consultar estos tokens, que SÍ cambian por perfil de calidad (ver
+	   los bloques html[data-quality=...] / html[data-reduce-motion] más
+	   abajo, junto al resto de la lógica de perfiles). */
+	--duration-micro: 150ms;
+	--duration-panel: 220ms;
+	--easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+	--easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+
+	/* Jerarquía de superficies semántica — Entrega A, sección 3 del
+	   encargo (Canvas → Workspace → Surface → Interactive surface →
+	   Elevated/selected surface → Overlay). Reaprovecha los tokens
+	   --raw-*, --bg-* y --glass-tint* que ya existen en vez de armar un
+	   sistema de color paralelo: --surface-elevated es la única que
+	   necesita su propio color-mix (más tinte de acento que --bg-card,
+	   para notarse como "un nivel más arriba" sin inventar un raw nuevo). */
+	--surface-canvas: var(--bg-main);
+	--surface-workspace: var(--bg-sidebar);
+	--surface-card: var(--bg-card);
+	--surface-interactive: var(--bg-item-active);
+	--surface-elevated: color-mix(in srgb, var(--accent) var(--glass-tint-strong), var(--raw-card));
+	--surface-overlay: var(--bg-overlay);
 
 	/* Colores de marca por loader — coinciden con el ecosistema real de cada uno. */
 	--loader-vanilla: #8a8f98;
@@ -480,6 +562,29 @@ html[data-reduce-motion]:not([data-quality='experience']) *::after {
 html[data-no-blur] * {
 	backdrop-filter: none !important;
 	-webkit-backdrop-filter: none !important;
+}
+
+/* Motion tokens por perfil — Entrega A, sección 5.5. Mismo mecanismo de
+   guard redundante que el bloque de arriba (Experience siempre con los
+   valores "completos" sin depender de que data-reduce-motion esté
+   limpio), y el bloque de data-reduce-motion pisa todo con !important por
+   si el usuario fuerza reduce-motion desde fuera del selector de calidad
+   (ej. a futuro, una preferencia de accesibilidad del SO). Los literales
+   0.17s/0.28s/etc. que ya existen en este archivo NO leen estos tokens
+   todavía — eso es migración para otra entrega — pero cualquier
+   componente nuevo (ver src/lib/components/ui/) sí los consulta, así que
+   ya responden a Lite/Balanced/Experience desde el día uno. */
+html[data-quality='lite'] {
+	--duration-micro: 0ms;
+	--duration-panel: 0ms;
+}
+html[data-quality='experience']:not([data-reduce-motion]) {
+	--duration-micro: 180ms;
+	--duration-panel: 260ms;
+}
+html[data-reduce-motion] {
+	--duration-micro: 0ms !important;
+	--duration-panel: 0ms !important;
 }
 
 /* Estilo de tarjeta — "rica" (default, con miniatura/ícono/efecto glow) vs

@@ -9,6 +9,13 @@ export const es = {
 		copy: 'Copiar',
 		copied: 'Copiado'
 	},
+	// Namespace de los componentes compartidos de src/lib/components/ui/
+	// (Entrega A — Visual Foundation). Textos propios de un primitivo
+	// genérico (ej. el botón de cerrar de Dialog), no de una pantalla.
+	ui: {
+		close: 'Cerrar',
+		retry: 'Reintentar'
+	},
 	onboarding: {
 		tagline: 'Iniciá sesión para empezar a jugar',
 		microsoftTitle: 'Cuenta Microsoft',
