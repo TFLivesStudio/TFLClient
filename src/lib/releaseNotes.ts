@@ -188,5 +188,12 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Los perfiles de calidad (Ajustes → Rendimiento) ahora se notan de verdad: Lite saca todo movimiento decorativo y deja el personaje quieto; Experience suma animaciones de personaje, transiciones y más efectos — antes Balanced y Experience se veían casi idénticos.',
 		'Nuevo: podés pedirle al launcher que reduzca animaciones sin tener que bajar todo tu perfil a Lite (Ajustes → Rendimiento → "Reducir animaciones").',
 		'Por dentro: toda la interfaz pasa a usar un mismo sistema de diseño (tamaños, colores, espaciados) en vez de que cada pantalla tuviera el suyo — más fácil de mantener parejo de acá en adelante.'
+	],
+	'0.12.0': [
+		'Rediseño visual más grande hasta ahora: la beta se validó sin problemas y ya es la versión normal.',
+		'Home rehecha de nuevo: ahora tu personaje y el botón JUGAR comparten un mismo banner grande en vez de estar separados en cards sueltas — se ve de un vistazo qué instancia vas a abrir y con quién.',
+		'La sidebar se adapta sola al tamaño de la ventana: en una ventana chica se compacta a solo íconos para no comerte espacio, sin pisar si vos ya la habías dejado compacta a mano.',
+		'Los perfiles de calidad (Ajustes → Rendimiento) ahora se notan de verdad: Lite saca todo movimiento decorativo y deja el personaje quieto; Experience suma animaciones de personaje, transiciones y más efectos.',
+		'Nuevo: podés pedirle al launcher que reduzca animaciones sin tener que bajar todo tu perfil a Lite (Ajustes → Rendimiento → "Reducir animaciones").'
 	]
 };
