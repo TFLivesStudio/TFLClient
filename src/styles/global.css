@@ -546,15 +546,22 @@ body,
 		color 0.28s ease;
 }
 
-/* Perfil de calidad — Lite/Balanced/Experience (ver settings). El
-   guard :not([data-quality='experience']) es a propósito redundante con
-   la lógica de JS que limpia data-reduce-motion fuera de Lite: así
-   Experience siempre tiene la experiencia visual completa (mismo motion
-   en todos los clientes/entornos) pase lo que pase con ese atributo,
-   nunca depende únicamente de que el JS lo haya limpiado a tiempo. */
-html[data-reduce-motion]:not([data-quality='experience']) *,
-html[data-reduce-motion]:not([data-quality='experience']) *::before,
-html[data-reduce-motion]:not([data-quality='experience']) *::after {
+/* Perfil de calidad — Lite/Balanced/Experience (ver settings). Entrega D,
+   sección 5.4 del encargo: "[data-reduce-motion] SIEMPRE gana", sin
+   excepción para Experience. Hasta Entrega C, data-reduce-motion solo
+   podía ser cierto si quality_profile==='Lite' (ver applyQualityVisuals en
+   appearanceState.svelte.ts) — por eso este bloque antes tenía un guard
+   :not([data-quality='experience']) "defensivo" (la combinación
+   reduce-motion+experience no era alcanzable de verdad, solo protegía una
+   posible carrera de JS). Entrega D conecta el override independiente
+   `reduce_animations` (SettingsPanel → pestaña Rendimiento), que SÍ puede
+   estar activo con quality='experience' a propósito del usuario — con el
+   guard viejo, esa combinación real habría dejado corriendo animaciones
+   con duración hardcodeada (ej. .anim-fade-in) pese a la preferencia
+   explícita. Sin guard: reduce-motion ahora pisa cualquier calidad. */
+html[data-reduce-motion] *,
+html[data-reduce-motion] *::before,
+html[data-reduce-motion] *::after {
 	animation-duration: 0.001ms !important;
 	transition-duration: 0.001ms !important;
 }
@@ -564,16 +571,18 @@ html[data-no-blur] * {
 	-webkit-backdrop-filter: none !important;
 }
 
-/* Motion tokens por perfil — Entrega A, sección 5.5. Mismo mecanismo de
-   guard redundante que el bloque de arriba (Experience siempre con los
-   valores "completos" sin depender de que data-reduce-motion esté
-   limpio), y el bloque de data-reduce-motion pisa todo con !important por
-   si el usuario fuerza reduce-motion desde fuera del selector de calidad
-   (ej. a futuro, una preferencia de accesibilidad del SO). Los literales
-   0.17s/0.28s/etc. que ya existen en este archivo NO leen estos tokens
-   todavía — eso es migración para otra entrega — pero cualquier
-   componente nuevo (ver src/lib/components/ui/) sí los consulta, así que
-   ya responden a Lite/Balanced/Experience desde el día uno. */
+/* Motion tokens por perfil — Entrega A, sección 5.5. A diferencia del
+   bloque de arriba (que Entrega D dejó sin excepción para Experience), acá
+   el :not([data-reduce-motion]) en la regla de Experience SÍ es seguro:
+   el bloque de abajo (html[data-reduce-motion], sin ningún :not) siempre
+   se declara después y pisa con !important, así que gana sin importar la
+   calidad activa — exactamente lo que pide la sección 5.4 ("reduce-motion
+   SIEMPRE gana"), ahora alcanzable de verdad con el override independiente
+   `reduce_animations` (ver SettingsPanel.svelte / appearanceState.svelte.ts).
+   Los literales 0.17s/0.28s/etc. que ya existen en este archivo NO leen
+   estos tokens todavía — eso es migración para otra entrega — pero
+   cualquier componente nuevo (ver src/lib/components/ui/) sí los consulta,
+   así que ya responden a Lite/Balanced/Experience desde el día uno. */
 html[data-quality='lite'] {
 	--duration-micro: 0ms;
 	--duration-panel: 0ms;

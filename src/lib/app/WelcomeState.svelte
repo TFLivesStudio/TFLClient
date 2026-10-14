@@ -377,4 +377,42 @@
 			flex-direction: column;
 		}
 	}
+
+	/* Entrega D, sección 5.3: "transiciones de navegación, aparición... de
+	   paneles" tiene que notarse desde el primer contacto en Experience, no
+	   ser cosmético-mínimo — hoy (post A/B/C) la Home no diferenciaba nada
+	   entre perfiles más allá de lo que ya hacían SkinViewer3D/Button/etc.
+	   Entrada en cascada de los bloques de nivel superior (hero, grilla de
+	   paneles, carrusel, accesos rápidos) solo en Experience — Balanced ya
+	   tiene su propio feedback de hover (Button/IconButton de Entrega A) y
+	   Lite no debe tener movimiento decorativo (sección 5.1). CSS puro vía
+	   atributo en <html> (sección 5.5: nada de un nuevo `if (quality===...)`
+	   en este script) y usa --duration-panel/--easing-decelerate en vez de
+	   un valor propio, así reduce-motion (ver global.css, guard sin
+	   excepción para Experience tras el fix de esta misma entrega) y el
+	   perfil de calidad lo siguen controlando igual que a cualquier otra
+	   animación. */
+	:global(html[data-quality='experience']) .home-rich > :global(*) {
+		animation: tfl-home-panel-in var(--duration-panel) var(--easing-decelerate) both;
+	}
+	:global(html[data-quality='experience']) .home-rich > :global(*:nth-child(2)) {
+		animation-delay: 60ms;
+	}
+	:global(html[data-quality='experience']) .home-rich > :global(*:nth-child(3)) {
+		animation-delay: 120ms;
+	}
+	:global(html[data-quality='experience']) .home-rich > :global(*:nth-child(4)) {
+		animation-delay: 180ms;
+	}
+
+	@keyframes tfl-home-panel-in {
+		from {
+			opacity: 0;
+			transform: translateY(6px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
 </style>

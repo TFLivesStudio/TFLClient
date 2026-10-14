@@ -49,7 +49,13 @@ export const es = {
 			lightDisabledTitle: 'Modo claro no compatible con superficie OLED'
 		},
 		quality: {
-			label: 'Perfil de calidad'
+			label: 'Perfil de calidad',
+			reduceMotion: {
+				label: 'Reducir animaciones',
+				hint: 'Override independiente del perfil de calidad: apaga animaciones/transiciones decorativas sin tener que bajar a Lite. Elegir Lite lo activa igual que siempre; esto te deja pedirlo a mano en Balanced o Experience.',
+				on: 'Reducir animaciones: Activado',
+				off: 'Reducir animaciones: Desactivado'
+			}
 		},
 		ram: {
 			label: 'Memoria (RAM) global',

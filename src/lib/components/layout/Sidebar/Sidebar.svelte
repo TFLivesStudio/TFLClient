@@ -657,9 +657,9 @@
 		   completa. */
 		overflow: hidden;
 		transition:
-			background 0.15s,
-			border-color 0.15s,
-			transform 0.12s;
+			background var(--duration-micro) var(--easing-standard),
+			border-color var(--duration-micro) var(--easing-standard),
+			transform var(--duration-micro) var(--easing-standard);
 	}
 
 	.instance-item::before {
@@ -672,7 +672,7 @@
 		border-radius: 3px;
 		background: var(--loader-color);
 		opacity: 0;
-		transition: opacity 0.15s;
+		transition: opacity var(--duration-micro) var(--easing-standard);
 	}
 
 	.instance-item:hover {

@@ -49,7 +49,13 @@ export const en: Dictionary = {
 			lightDisabledTitle: 'Light mode not compatible with OLED surface'
 		},
 		quality: {
-			label: 'Quality profile'
+			label: 'Quality profile',
+			reduceMotion: {
+				label: 'Reduce animations',
+				hint: 'Independent override from the quality profile: turns off decorative animations/transitions without dropping to Lite. Picking Lite still enables it like before; this lets you request it manually on Balanced or Experience.',
+				on: 'Reduce animations: On',
+				off: 'Reduce animations: Off'
+			}
 		},
 		ram: {
 			label: 'Global memory (RAM)',

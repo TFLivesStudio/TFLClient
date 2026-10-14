@@ -105,7 +105,17 @@ export async function restoreAppearance() {
 export function applyQualityVisuals(settings: NonNullable<typeof appState.settings>) {
 	const root = document.documentElement;
 	root.setAttribute('data-quality', settings.quality_profile.toLowerCase());
-	root.toggleAttribute('data-reduce-motion', settings.quality_profile === 'Lite');
+	// Entrega D, sección 5.4: `reduce_animations` estaba tipado en Settings
+	// (backend y frontend) pero nada lo leía todavía — data-reduce-motion
+	// salía únicamente de quality_profile==='Lite'. Ahora es un override
+	// independiente editable en Ajustes → Rendimiento (ver SettingsPanel.svelte),
+	// así que reduce-motion queda activo si CUALQUIERA de los dos lo pide —
+	// elegir Lite sigue forzándolo igual que antes, y además un usuario en
+	// Balanced/Experience puede pedirlo a mano sin bajar de perfil.
+	root.toggleAttribute(
+		'data-reduce-motion',
+		settings.quality_profile === 'Lite' || settings.reduce_animations
+	);
 	root.toggleAttribute('data-no-blur', settings.disable_blur_effects);
 	// Único consumidor real de disable_infinite_animations (antes se
 	// guardaba en el backend pero ninguna CSS lo leía — por eso Balanced
