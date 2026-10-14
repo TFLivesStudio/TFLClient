@@ -180,5 +180,13 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Esta es una versión BETA. Si algo anda mal, avisanos; podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Home mucho más completa: banner con la última captura de tu instancia, mini panel de skins, tus servidores favoritos, actividad reciente (las últimas sesiones jugadas) y estado del sistema (Java, RAM, disco).',
 		'"Otras instancias" ahora es un carrusel con flechas en vez de una fila fija.'
+	],
+	'0.12.0-beta.1': [
+		'Esta es una versión BETA con el rediseño visual más grande hasta ahora — justo por eso es la primera en salir como beta: si algo se ve raro en tu pantalla, contanos qué y dónde. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Home rehecha de nuevo: ahora tu personaje y el botón JUGAR comparten un mismo banner grande en vez de estar separados en cards sueltas — se ve de un vistazo qué instancia vas a abrir y con quién.',
+		'La sidebar se adapta sola al tamaño de la ventana: en una ventana chica se compacta a solo íconos para no comerte espacio, sin pisar si vos ya la habías dejado compacta a mano.',
+		'Los perfiles de calidad (Ajustes → Rendimiento) ahora se notan de verdad: Lite saca todo movimiento decorativo y deja el personaje quieto; Experience suma animaciones de personaje, transiciones y más efectos — antes Balanced y Experience se veían casi idénticos.',
+		'Nuevo: podés pedirle al launcher que reduzca animaciones sin tener que bajar todo tu perfil a Lite (Ajustes → Rendimiento → "Reducir animaciones").',
+		'Por dentro: toda la interfaz pasa a usar un mismo sistema de diseño (tamaños, colores, espaciados) en vez de que cada pantalla tuviera el suyo — más fácil de mantener parejo de acá en adelante.'
 	]
 };
