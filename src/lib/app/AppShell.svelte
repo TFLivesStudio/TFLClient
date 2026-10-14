@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import TitleBar from '$lib/components/layout/TitleBar/TitleBar.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar/Sidebar.svelte';
 	import Onboarding from '$lib/components/onboarding/Onboarding.svelte';
@@ -9,6 +10,7 @@
 	import Tfl from '$lib/icons/Tfl.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import { appearance } from '$lib/state/appearanceState.svelte';
+	import { initViewportListener } from '$lib/state/viewport.svelte';
 	import { handleLogout, handleOnboardingDone } from '$lib/state/accountState.svelte';
 	import {
 		handleInstanceChanged,
@@ -16,6 +18,14 @@
 		selectInstance
 	} from '$lib/state/instanceState.svelte';
 	import { flow, openInstanceContextMenu, openModal, ui } from '$lib/state/uiState.svelte';
+
+	// Responsive del shell (Entrega B, sección 4) — ver viewport.svelte.ts.
+	// Se inicializa una sola vez acá, al mismo nivel que TitleBar/Sidebar (los
+	// dos lo consumen), en vez de en bootstrap.ts (fuera del alcance de esta
+	// entrega) — es idempotente, no pasa nada si se llama de más.
+	onMount(() => {
+		initViewportListener();
+	});
 </script>
 
 <div class="app-shell">
@@ -72,7 +82,14 @@
 		flex-direction: column;
 		height: 100vh;
 		width: 100vw;
-		background: var(--bg-main);
+		/* Fondo general del shell — --surface-canvas (Entrega A) en vez de
+		   --bg-main suelto, para que TitleBar/Sidebar (--surface-workspace) y
+		   el contenido (--surface-canvas) vengan todos de la misma capa
+		   semántica de superficies en vez de cada pieza eligiendo su propio
+		   --bg-* por separado (sección 1 del encargo). Son el mismo valor en
+		   global.css hoy — esto no cambia nada visualmente, solo la fuente. */
+		background: var(--surface-canvas);
+		overflow: hidden;
 	}
 
 	.loading-screen {
@@ -80,7 +97,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--bg-main);
+		background: var(--surface-canvas);
 	}
 
 	.loading-mark {
@@ -106,13 +123,24 @@
 		display: flex;
 		flex: 1;
 		min-height: 0;
+		min-width: 0;
 	}
 
 	.main-content {
 		position: relative;
-		z-index: 1;
+		z-index: var(--z-content);
 		flex: 1;
 		min-width: 0;
 		overflow-y: auto;
+		/* Nunca scroll horizontal, en ninguna de las dos vistas que vive este
+		   nodo (WelcomeState/InstanceDetail, sección 16 del encargo) ni en la
+		   ventana mínima soportada (800x600). */
+		overflow-x: hidden;
+		/* Evita el salto de layout al navegar Home↔InstanceDetail (sección
+		   1 del encargo: "la navegación no debe provocar saltos innecesarios
+		   del layout") cuando una vista tiene scrollbar vertical y la otra
+		   no — sin esto, el ancho de .main-content cambia en ~15px apenas
+		   aparece/desaparece la scrollbar nativa al cambiar de vista. */
+		scrollbar-gutter: stable;
 	}
 </style>

@@ -4,6 +4,11 @@
 	import { Minus, Square, Copy, X } from 'lucide-svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
 	import { t } from '$lib/i18n/index.svelte';
+	import {
+		SIDEBAR_COLLAPSED_WIDTH,
+		SIDEBAR_EXPANDED_WIDTH,
+		isSidebarEffectiveCollapsed
+	} from '$lib/state/viewport.svelte';
 
 	const win = getCurrentWindow();
 	let maximized = $state(false);
@@ -19,12 +24,24 @@
 			unlisten.then((f) => f());
 		};
 	});
+
+	// Mismas constantes que Sidebar.svelte (viewport.svelte.ts) para el ancho
+	// del bloque de marca — así nunca queda desalineado con el borde derecho
+	// real de la sidebar al colapsar/expandir o al angostar la ventana
+	// (Entrega B, sección 6.2). Ninguno de los dos componentes decide su
+	// propio número.
+	const brandCollapsed = $derived(isSidebarEffectiveCollapsed());
 </script>
 
 <div class="titlebar" data-tauri-drag-region>
-	<div class="titlebar-brand" data-tauri-drag-region>
+	<div
+		class="titlebar-brand"
+		class:collapsed={brandCollapsed}
+		data-tauri-drag-region
+		style="width: {brandCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH}px"
+	>
 		<Tfl width="16" height="16" />
-		<span>TFL Client</span>
+		{#if !brandCollapsed}<span>TFL Client</span>{/if}
 	</div>
 	<div class="titlebar-drag" data-tauri-drag-region></div>
 
@@ -63,13 +80,13 @@
 <style>
 	.titlebar {
 		position: relative;
-		z-index: 1;
+		z-index: var(--z-content);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		height: var(--titlebar-height);
 		flex-shrink: 0;
-		background: var(--bg-sidebar);
+		background: var(--surface-workspace);
 		border-bottom: 1px solid var(--border);
 		user-select: none;
 	}
@@ -78,11 +95,22 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		width: var(--sidebar-width);
+		/* El ancho real lo pone el style="width: ...px" inline (mismas
+		   constantes que Sidebar.svelte, ver script arriba) — transition
+		   acá nomás para que el cambio de ancho se vea animado, no saltado. */
 		height: 100%;
 		padding: 0 12px;
 		flex-shrink: 0;
+		overflow: hidden;
 		border-right: 1px solid var(--border);
+		transition:
+			width var(--duration-panel) var(--easing-standard),
+			padding var(--duration-panel) var(--easing-standard);
+	}
+
+	.titlebar-brand.collapsed {
+		justify-content: center;
+		padding: 0;
 	}
 
 	.titlebar-brand :global(svg) {
@@ -92,7 +120,8 @@
 
 	.titlebar-brand span {
 		font-family: var(--font-brand);
-		font-size: 0.78rem;
+		font-size: var(--text-caption);
+		line-height: var(--line-height-caption);
 		color: var(--text-primary);
 		white-space: nowrap;
 		overflow: hidden;
@@ -119,7 +148,7 @@
 		border: none;
 		color: var(--text-secondary);
 		cursor: pointer;
-		transition: background-color 0.12s;
+		transition: background-color var(--duration-micro) var(--easing-standard);
 	}
 
 	.titlebar-btn:hover {

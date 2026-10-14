@@ -12,6 +12,10 @@ export const en: Dictionary = {
 		copy: 'Copy',
 		copied: 'Copied'
 	},
+	ui: {
+		close: 'Close',
+		retry: 'Retry'
+	},
 	onboarding: {
 		tagline: 'Sign in to start playing',
 		microsoftTitle: 'Microsoft account',
@@ -45,7 +49,13 @@ export const en: Dictionary = {
 			lightDisabledTitle: 'Light mode not compatible with OLED surface'
 		},
 		quality: {
-			label: 'Quality profile'
+			label: 'Quality profile',
+			reduceMotion: {
+				label: 'Reduce animations',
+				hint: 'Independent override from the quality profile: turns off decorative animations/transitions without dropping to Lite. Picking Lite still enables it like before; this lets you request it manually on Balanced or Experience.',
+				on: 'Reduce animations: On',
+				off: 'Reduce animations: Off'
+			}
 		},
 		ram: {
 			label: 'Global memory (RAM)',
@@ -507,7 +517,15 @@ export const en: Dictionary = {
 		ramStatus: 'RAM: {{assigned}} / {{total}} GB',
 		diskStatus: 'Disk: {{free}} free of {{total}}',
 		scrollLeft: 'See previous',
-		scrollRight: 'See next'
+		scrollRight: 'See next',
+		neverPlayed: "You haven't played it yet",
+		runningBadge: 'Running',
+		skinLoadError: "Couldn't load the skin",
+		noAccountCaption: 'Sign in to see your character',
+		noServersSavedHint: 'Save a server from "Join server" to see it here.',
+		noActivityYetHint: "Once you finish a play session, it'll show up in this list.",
+		systemStatusUnavailable: "Couldn't read system status",
+		systemStatusRetry: 'Retry'
 	},
 	whatsNewTips: {
 		welcomeTitle: 'Welcome to TFL Client',
@@ -628,7 +646,8 @@ export const en: Dictionary = {
 		resetSkin: 'Reset to default',
 		noCapes: 'This account has no capes — they come from Mojang events/promotions.',
 		noCape: 'No cape',
-		viewerHint: 'Drag to rotate, scroll to zoom'
+		viewerHint: 'Drag to rotate, scroll to zoom',
+		skinLoadError: "Couldn't load the skin texture — try again in a moment"
 	},
 	serverConnectionInfo: {
 		title: 'How others connect to your server',

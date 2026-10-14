@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { SkinViewer } from 'skinview3d';
+	import { onMount } from 'svelte';
 	import {
 		getMojangProfile,
 		setSkinFromFile,
@@ -11,6 +10,7 @@
 	} from '$lib/api';
 	import { appState } from '$lib/state/state.svelte';
 	import { t } from '$lib/i18n/index.svelte';
+	import { SkinViewer3D } from '$lib/components/ui';
 	import type { MojangProfile } from '$lib/types/types';
 	import { X, Upload, RotateCcw, Loader2, Ban } from 'lucide-svelte';
 
@@ -27,33 +27,24 @@
 	// skinview3d es la misma librería que usan NameMC y similares: gratis,
 	// MIT, sin cuenta ni suscripción, corre entero en el cliente (three.js),
 	// no depende de ningún servicio externo más que la URL de la textura.
-	let canvasEl = $state<HTMLCanvasElement | undefined>(undefined);
-	let viewer: SkinViewer | undefined;
-	onMount(() => {
-		if (!canvasEl) return;
-		viewer = new SkinViewer({ canvas: canvasEl, width: 200, height: 280 });
-		viewer.autoRotate = true;
-		viewer.autoRotateSpeed = 0.8;
-		viewer.zoom = 0.85;
-	});
-	onDestroy(() => viewer?.dispose());
-
-	// Se actualiza cuando cambia el skin o la capa activa (carga inicial,
-	// después de subir, restaurar, o elegir/sacar una capa) — nunca antes de
-	// que `viewer` exista, por eso se llama desde `load()` en vez de un
-	// `$effect` (evita la carrera con el `onMount` de arriba).
-	function syncViewer() {
-		if (!viewer) return;
-		if (activeSkin) viewer.loadSkin(activeSkin.url);
-		if (activeCape) viewer.loadCape(activeCape.url);
-		else viewer.loadCape(null);
-	}
+	// El ciclo de vida del canvas/viewer (crear, cargar textura, dispose) ya
+	// no vive acá — está centralizado en `SkinViewer3D` (Entrega C, sección
+	// 1 del encargo), que WelcomeState.svelte también usa, con el mismo
+	// autoRotateSpeed/zoom que este modal ya tenía (0.8/0.85).
+	let skinLoadError = $state(false);
 
 	// Subir skin usa el diálogo nativo de archivos, mismo riesgo conocido que
 	// ícono/wallpaper propio (ver InstanceIconPicker.svelte) — mismo gate.
 	const dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');
 	const activeSkin = $derived(profile?.skins.find((s) => s.state === 'ACTIVE') ?? null);
 	const activeCape = $derived(profile?.capes.find((c) => c.state === 'ACTIVE') ?? null);
+
+	// Reintentar con otra textura (subir/restaurar/cambiar de cuenta) no debe
+	// quedar pegado en un error de carga previo.
+	$effect(() => {
+		void activeSkin?.url;
+		skinLoadError = false;
+	});
 
 	async function load() {
 		loading = true;
@@ -62,7 +53,6 @@
 			profile = await getMojangProfile();
 			const current = profile.skins.find((s) => s.state === 'ACTIVE');
 			if (current) variant = current.variant.toLowerCase() as 'classic' | 'slim';
-			syncViewer();
 		} catch (e) {
 			error = String(e);
 		} finally {
@@ -153,12 +143,26 @@
 
 		<div class="viewer-row">
 			<div class="viewer-wrap">
-				<canvas bind:this={canvasEl}></canvas>
+				{#if !loading}
+					<SkinViewer3D
+						width={200}
+						height={280}
+						autoRotateSpeed={0.8}
+						zoom={0.85}
+						skinUrl={activeSkin?.url ?? null}
+						capeUrl={activeCape?.url ?? null}
+						onSkinError={() => (skinLoadError = true)}
+					/>
+				{/if}
 				{#if loading}
 					<div class="viewer-loading"><Loader2 size={20} class="spin" /></div>
 				{/if}
 			</div>
-			<p class="hint viewer-hint">{t('skinManager.viewerHint')}</p>
+			{#if skinLoadError}
+				<p class="hint viewer-hint error">{t('skinManager.skinLoadError')}</p>
+			{:else}
+				<p class="hint viewer-hint">{t('skinManager.viewerHint')}</p>
+			{/if}
 		</div>
 
 		<div class="tabs">
@@ -364,17 +368,6 @@
 		overflow: hidden;
 	}
 
-	.viewer-wrap canvas {
-		display: block;
-		width: 100%;
-		height: 100%;
-		cursor: grab;
-	}
-
-	.viewer-wrap canvas:active {
-		cursor: grabbing;
-	}
-
 	.viewer-loading {
 		position: absolute;
 		inset: 0;
@@ -387,6 +380,10 @@
 
 	.viewer-hint {
 		text-align: center;
+	}
+
+	.viewer-hint.error {
+		color: var(--color-error);
 	}
 
 	.skin-controls {

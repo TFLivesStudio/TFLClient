@@ -9,6 +9,13 @@ export const es = {
 		copy: 'Copiar',
 		copied: 'Copiado'
 	},
+	// Namespace de los componentes compartidos de src/lib/components/ui/
+	// (Entrega A — Visual Foundation). Textos propios de un primitivo
+	// genérico (ej. el botón de cerrar de Dialog), no de una pantalla.
+	ui: {
+		close: 'Cerrar',
+		retry: 'Reintentar'
+	},
 	onboarding: {
 		tagline: 'Iniciá sesión para empezar a jugar',
 		microsoftTitle: 'Cuenta Microsoft',
@@ -42,7 +49,13 @@ export const es = {
 			lightDisabledTitle: 'Modo claro no compatible con superficie OLED'
 		},
 		quality: {
-			label: 'Perfil de calidad'
+			label: 'Perfil de calidad',
+			reduceMotion: {
+				label: 'Reducir animaciones',
+				hint: 'Override independiente del perfil de calidad: apaga animaciones/transiciones decorativas sin tener que bajar a Lite. Elegir Lite lo activa igual que siempre; esto te deja pedirlo a mano en Balanced o Experience.',
+				on: 'Reducir animaciones: Activado',
+				off: 'Reducir animaciones: Desactivado'
+			}
 		},
 		ram: {
 			label: 'Memoria (RAM) global',
@@ -504,7 +517,15 @@ export const es = {
 		ramStatus: 'RAM: {{assigned}} / {{total}} GB',
 		diskStatus: 'Disco: {{free}} libres de {{total}}',
 		scrollLeft: 'Ver anteriores',
-		scrollRight: 'Ver siguientes'
+		scrollRight: 'Ver siguientes',
+		neverPlayed: 'Todavía no la jugaste',
+		runningBadge: 'Corriendo',
+		skinLoadError: 'No se pudo cargar el skin',
+		noAccountCaption: 'Iniciá sesión para ver tu personaje',
+		noServersSavedHint: 'Guardá un servidor desde "Unirse a servidor" para verlo acá.',
+		noActivityYetHint: 'Cuando termines una sesión de juego, va a aparecer en esta lista.',
+		systemStatusUnavailable: 'No se pudo leer el estado del sistema',
+		systemStatusRetry: 'Reintentar'
 	},
 	whatsNewTips: {
 		welcomeTitle: 'Bienvenido a TFL Client',
@@ -628,7 +649,8 @@ export const es = {
 		resetSkin: 'Restaurar por defecto',
 		noCapes: 'Esta cuenta no tiene ninguna capa — se consiguen con eventos/promociones de Mojang.',
 		noCape: 'Sin capa',
-		viewerHint: 'Arrastrá para girar, rueda del mouse para zoom'
+		viewerHint: 'Arrastrá para girar, rueda del mouse para zoom',
+		skinLoadError: 'No se pudo cargar la textura del skin — probá de nuevo en un momento'
 	},
 	serverConnectionInfo: {
 		title: 'Cómo se conectan los demás a tu servidor',

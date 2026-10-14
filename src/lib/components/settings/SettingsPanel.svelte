@@ -424,11 +424,41 @@
 		const updated = await setQualityProfile(profile);
 		appState.settings = updated;
 		document.documentElement.setAttribute('data-quality', profile.toLowerCase());
-		document.documentElement.toggleAttribute('data-reduce-motion', profile === 'Lite');
+		// Misma fórmula que toggleReduceAnimations/applyQualityVisuals (ver
+		// appearanceState.svelte.ts) — setQualityProfile ya recalculó
+		// `updated.reduce_animations` con el default granular del nuevo
+		// perfil en el backend (true solo para Lite, igual que antes de esta
+		// entrega), el OR acá es solo para no repetir dos fuentes de verdad
+		// distintas para la misma condición en el resto de la app.
+		document.documentElement.toggleAttribute(
+			'data-reduce-motion',
+			profile === 'Lite' || updated.reduce_animations
+		);
 		document.documentElement.toggleAttribute('data-no-blur', updated.disable_blur_effects);
 		document.documentElement.toggleAttribute(
 			'data-no-infinite-fx',
 			updated.disable_infinite_animations
+		);
+	}
+
+	// Override independiente de accesibilidad (Entrega D, sección 5.4) —
+	// `reduce_animations` ya existía en el tipo `Settings` (frontend y
+	// backend) desde antes, pero ningún control de Ajustes lo exponía y
+	// ninguna lectura de data-reduce-motion lo consultaba: elegir Lite era
+	// la ÚNICA forma de pedir menos movimiento. Esto lo vuelve editable sin
+	// tener que bajar de perfil — igual que disable_blur_effects/
+	// disable_infinite_animations (mismo patrón ya existente), elegir un
+	// perfil nuevo en handleQuality SÍ recalcula este flag con el default
+	// del perfil, así que un cambio de perfil posterior puede volver a
+	// apagarlo; eso ya pasaba para los otros dos flags granulares antes de
+	// esta entrega, no es algo que este botón cambie.
+	async function toggleReduceAnimations() {
+		if (!appState.settings) return;
+		appState.settings.reduce_animations = !appState.settings.reduce_animations;
+		await updateSettings(appState.settings);
+		document.documentElement.toggleAttribute(
+			'data-reduce-motion',
+			appState.settings.quality_profile === 'Lite' || appState.settings.reduce_animations
 		);
 	}
 
@@ -696,6 +726,23 @@
 							>
 						{/each}
 					</div>
+				</section>
+
+				<section>
+					<span class="section-label">
+						{t('settings.quality.reduceMotion.label')}
+						<InfoTooltip text={t('settings.quality.reduceMotion.hint')} />
+					</span>
+					<button
+						type="button"
+						class="choice auto-update-toggle"
+						class:active={appState.settings?.reduce_animations}
+						onclick={toggleReduceAnimations}
+					>
+						{appState.settings?.reduce_animations
+							? t('settings.quality.reduceMotion.on')
+							: t('settings.quality.reduceMotion.off')}
+					</button>
 				</section>
 
 				<section>

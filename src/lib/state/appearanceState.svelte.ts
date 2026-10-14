@@ -2,15 +2,37 @@ import { convertFileSrc } from '@tauri-apps/api/core';
 import { getCustomWallpaperPath } from '$lib/api';
 import { appState } from '$lib/state/state.svelte';
 
-// SettingsPanel cambia data-ambience directo en <html> (localStorage +
-// setAttribute), no hay ningún store — para saber cuándo mostrar las
-// partículas hace falta observar el atributo (ver `observeAppearance`).
-export const appearance = $state<{ ambience: string; reduceMotion: boolean }>({
+export type QualityVisualProfile = 'lite' | 'balanced' | 'experience';
+
+// SettingsPanel cambia data-ambience/data-quality/data-no-blur/
+// data-no-infinite-fx directo en <html> (localStorage + setAttribute/
+// toggleAttribute), no hay ningún store — para saber cuándo mostrar las
+// partículas (u otro comportamiento ramificado por perfil) hace falta
+// observar esos atributos (ver `observeAppearance`). Entrega A (Visual
+// Foundation) agrega quality/noBlur/noInfiniteFx a este objeto para que
+// sea la fuente de verdad reactiva ÚNICA de los perfiles visuales —
+// cualquier componente Svelte nuevo (ver src/lib/components/ui/) lee
+// `appearance.quality`/`appearance.noBlur`/`appearance.noInfiniteFx` en
+// vez de leer document.documentElement a mano, sección 5.5 del encargo.
+export const appearance = $state<{
+	ambience: string;
+	reduceMotion: boolean;
+	quality: QualityVisualProfile;
+	noBlur: boolean;
+	noInfiniteFx: boolean;
+}>({
 	ambience:
 		typeof document !== 'undefined'
 			? (document.documentElement.getAttribute('data-ambience') ?? 'aurora')
 			: 'aurora',
-	reduceMotion: false
+	reduceMotion: false,
+	quality:
+		typeof document !== 'undefined'
+			? ((document.documentElement.getAttribute('data-quality') as QualityVisualProfile | null) ??
+				'balanced')
+			: 'balanced',
+	noBlur: false,
+	noInfiniteFx: false
 });
 
 /** Sincroniza `appearance` con los atributos de <html> y la mantiene al día. */
@@ -19,12 +41,22 @@ export function observeAppearance(): MutationObserver {
 	const sync = () => {
 		appearance.ambience = root.getAttribute('data-ambience') ?? 'aurora';
 		appearance.reduceMotion = root.hasAttribute('data-reduce-motion');
+		appearance.quality =
+			(root.getAttribute('data-quality') as QualityVisualProfile | null) ?? 'balanced';
+		appearance.noBlur = root.hasAttribute('data-no-blur');
+		appearance.noInfiniteFx = root.hasAttribute('data-no-infinite-fx');
 	};
 	sync();
 	const observer = new MutationObserver(sync);
 	observer.observe(root, {
 		attributes: true,
-		attributeFilter: ['data-ambience', 'data-reduce-motion']
+		attributeFilter: [
+			'data-ambience',
+			'data-reduce-motion',
+			'data-quality',
+			'data-no-blur',
+			'data-no-infinite-fx'
+		]
 	});
 	return observer;
 }
@@ -73,7 +105,17 @@ export async function restoreAppearance() {
 export function applyQualityVisuals(settings: NonNullable<typeof appState.settings>) {
 	const root = document.documentElement;
 	root.setAttribute('data-quality', settings.quality_profile.toLowerCase());
-	root.toggleAttribute('data-reduce-motion', settings.quality_profile === 'Lite');
+	// Entrega D, sección 5.4: `reduce_animations` estaba tipado en Settings
+	// (backend y frontend) pero nada lo leía todavía — data-reduce-motion
+	// salía únicamente de quality_profile==='Lite'. Ahora es un override
+	// independiente editable en Ajustes → Rendimiento (ver SettingsPanel.svelte),
+	// así que reduce-motion queda activo si CUALQUIERA de los dos lo pide —
+	// elegir Lite sigue forzándolo igual que antes, y además un usuario en
+	// Balanced/Experience puede pedirlo a mano sin bajar de perfil.
+	root.toggleAttribute(
+		'data-reduce-motion',
+		settings.quality_profile === 'Lite' || settings.reduce_animations
+	);
 	root.toggleAttribute('data-no-blur', settings.disable_blur_effects);
 	// Único consumidor real de disable_infinite_animations (antes se
 	// guardaba en el backend pero ninguna CSS lo leía — por eso Balanced
