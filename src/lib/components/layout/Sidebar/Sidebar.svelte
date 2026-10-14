@@ -2,10 +2,17 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
+	import { IconButton, Tooltip } from '$lib/components/ui';
 	import { getMascotFor } from '$lib/mascots';
 	import { network } from '$lib/state/network.svelte';
 	import { iconVersions, goHome } from '$lib/state/instanceState.svelte';
 	import { appState } from '$lib/state/state.svelte';
+	import {
+		SIDEBAR_COLLAPSED_WIDTH,
+		SIDEBAR_EXPANDED_WIDTH,
+		isSidebarEffectiveCollapsed,
+		isSidebarForcedCompact
+	} from '$lib/state/viewport.svelte';
 	import { updateSettings } from '$lib/api';
 	import { t } from '$lib/i18n/index.svelte';
 	import { getInstanceIconPath } from '$lib/api';
@@ -56,10 +63,13 @@
 	// optimista que `multi_instance_warning_dismissed` en InstanceDetail.svelte:
 	// se actualiza el estado local ya mismo y se guarda en paralelo; si falla
 	// el guardado no vale la pena bloquear la UI por eso, se reintenta solo.
-	const collapsed = $derived(appState.settings?.sidebar_collapsed === true);
+	// NO se reimplementa este mecanismo (Entrega B, sección 6.3) — `manualCollapsed`
+	// sigue siendo la única fuente de verdad persistida, `toggleCollapsed` el
+	// único lugar que la escribe.
+	const manualCollapsed = $derived(appState.settings?.sidebar_collapsed === true);
 	function toggleCollapsed() {
 		if (!appState.settings) return;
-		const next = !collapsed;
+		const next = !manualCollapsed;
 		appState.settings.sidebar_collapsed = next;
 		updateSettings({ ...appState.settings, sidebar_collapsed: next }).catch(() => {
 			// revertir si no se pudo guardar, para no mostrar un estado que
@@ -67,6 +77,15 @@
 			if (appState.settings) appState.settings.sidebar_collapsed = !next;
 		});
 	}
+
+	// Responsive (Entrega B, sección 4) — `collapsed` es el colapso EFECTIVO
+	// que de verdad se renderiza: preferencia manual OR falta de espacio en
+	// la ventana. `forcedCompact` distingue el segundo caso del primero para
+	// poder deshabilitar el toggle manual cuando no tendría efecto visible
+	// (ver comentario largo en viewport.svelte.ts) — así nunca se termina
+	// grabando sin querer una preferencia que el usuario no pidió.
+	const collapsed = $derived(isSidebarEffectiveCollapsed());
+	const forcedCompact = $derived(isSidebarForcedCompact());
 
 	const LOADER_COLOR: Record<string, string> = {
 		vanilla: 'var(--loader-vanilla)',
@@ -133,47 +152,77 @@
 	});
 </script>
 
-<aside class="sidebar" class:collapsed>
+<aside
+	class="sidebar"
+	class:collapsed
+	style="width: {collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH}px"
+>
 	<div class="sidebar-top">
 		<!-- Arriba y no al pie: el banner de actualización lista
 			 (UpdateBadge.svelte) es "position: fixed; bottom" y tapa esa franja
 			 del sidebar cuando hay una actualización — abajo quedaba inútil. -->
-		<button
-			type="button"
-			class="collapse-toggle"
+		<IconButton
+			label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
+			variant="ghost"
+			size="compact"
+			disabled={forcedCompact}
 			onclick={toggleCollapsed}
-			title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
-			aria-label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
 		>
 			{#if collapsed}
-				<PanelLeftOpen size={15} />
+				<PanelLeftOpen size={16} />
 			{:else}
-				<PanelLeftClose size={15} />
+				<PanelLeftClose size={16} />
 			{/if}
-		</button>
+		</IconButton>
 	</div>
 
-	<button
-		type="button"
-		class="home-btn"
-		class:active={selected === null}
-		onclick={goHome}
-		title={t('sidebar.home')}
-		aria-label={t('sidebar.home')}
-	>
-		<Home size={15} />
-		{#if !collapsed}<span>{t('sidebar.home')}</span>{/if}
-	</button>
+	{#if collapsed}
+		<Tooltip content={t('sidebar.home')} position="right">
+			<button
+				type="button"
+				class="home-btn"
+				class:active={selected === null}
+				onclick={goHome}
+				aria-label={t('sidebar.home')}
+			>
+				<Home size={16} />
+			</button>
+		</Tooltip>
+	{:else}
+		<button
+			type="button"
+			class="home-btn"
+			class:active={selected === null}
+			onclick={goHome}
+			aria-label={t('sidebar.home')}
+		>
+			<Home size={16} />
+			<span>{t('sidebar.home')}</span>
+		</button>
+	{/if}
 
-	<button
-		type="button"
-		class="tfl-selection-btn"
-		onclick={onOpenTflSelection}
-		title={collapsed ? 'TFL Selection' : undefined}
-	>
-		<Sparkles size={15} />
-		{#if !collapsed}TFL Selection{/if}
-	</button>
+	{#if collapsed}
+		<Tooltip content="TFL Selection" position="right">
+			<button
+				type="button"
+				class="tfl-selection-btn"
+				onclick={onOpenTflSelection}
+				aria-label="TFL Selection"
+			>
+				<Sparkles size={16} />
+			</button>
+		</Tooltip>
+	{:else}
+		<button
+			type="button"
+			class="tfl-selection-btn"
+			onclick={onOpenTflSelection}
+			aria-label="TFL Selection"
+		>
+			<Sparkles size={16} />
+			TFL Selection
+		</button>
+	{/if}
 
 	{#if !network.online && !collapsed}
 		<div class="offline-badge">
@@ -186,24 +235,22 @@
 		<div class="section-label">
 			{#if !collapsed}<span>{t('sidebar.yourInstances')}</span>{/if}
 			<div class="section-label-actions">
-				<button
-					type="button"
-					class="create-btn"
+				<IconButton
+					label={t('sidebar.joinServer')}
+					variant="secondary"
+					size="compact"
 					onclick={onJoinServer}
-					title={t('sidebar.joinServer')}
-					aria-label={t('sidebar.joinServer')}
 				>
-					<Globe size={14} strokeWidth={2.25} />
-				</button>
-				<button
-					type="button"
-					class="create-btn"
+					<Globe size={16} strokeWidth={2.25} />
+				</IconButton>
+				<IconButton
+					label={t('sidebar.createInstance')}
+					variant="secondary"
+					size="compact"
 					onclick={onCreate}
-					title={t('sidebar.createInstance')}
-					aria-label={t('sidebar.createInstance')}
 				>
-					<Plus size={14} strokeWidth={2.25} />
-				</button>
+					<Plus size={16} strokeWidth={2.25} />
+				</IconButton>
 			</div>
 		</div>
 
@@ -220,59 +267,74 @@
 				<div class="empty">
 					<Boxes size={28} />
 					{#if !collapsed}<p>{t('sidebar.noInstancesYet')}</p>{/if}
-					<button
-						type="button"
-						class="empty-create"
-						onclick={onCreate}
-						title={collapsed ? t('sidebar.createFirst') : undefined}
-					>
-						<Plus size={13} strokeWidth={2.5} />
-						{#if !collapsed}{t('sidebar.createFirst')}{/if}
-					</button>
+					{#if collapsed}
+						<Tooltip content={t('sidebar.createFirst')} position="right">
+							<button
+								type="button"
+								class="empty-create"
+								onclick={onCreate}
+								aria-label={t('sidebar.createFirst')}
+							>
+								<Plus size={13} strokeWidth={2.5} />
+							</button>
+						</Tooltip>
+					{:else}
+						<button
+							type="button"
+							class="empty-create"
+							onclick={onCreate}
+							aria-label={t('sidebar.createFirst')}
+						>
+							<Plus size={13} strokeWidth={2.5} />
+							{t('sidebar.createFirst')}
+						</button>
+					{/if}
 				</div>
 			{:else if filtered.length === 0}
 				{#if !collapsed}<p class="empty-search">{t('sidebar.noResultsFor', { query })}</p>{/if}
 			{:else}
 				{#each filtered as instance (instance.uuid)}
-					<button
-						type="button"
-						class="instance-item"
-						class:active={selected?.uuid === instance.uuid}
-						style="--loader-color: {LOADER_COLOR[instance.loader]}"
-						title={collapsed ? instance.name : undefined}
-						onclick={() => onSelect(instance)}
-						oncontextmenu={(e) => {
-							e.preventDefault();
-							onInstanceContextMenu(instance, e.clientX, e.clientY);
-						}}
-						onmousedown={(e) => {
-							// El evento "contextmenu" del click derecho no dispara de
-							// forma confiable en esta webview (se probó en vivo: ni
-							// siquiera aparece el menú nativo del sistema, algo se lo
-							// come antes de llegar al JS). "mousedown" con botón
-							// derecho es más bajo nivel y sí llega siempre — queda
-							// como camino principal, oncontextmenu como refuerzo si
-							// en algún entorno sí dispara.
-							if (e.button === 2) {
+					<Tooltip content={instance.name} position="right" disabled={!collapsed}>
+						<button
+							type="button"
+							class="instance-item"
+							class:active={selected?.uuid === instance.uuid}
+							style="--loader-color: {LOADER_COLOR[instance.loader]}"
+							aria-label={instance.name}
+							onclick={() => onSelect(instance)}
+							oncontextmenu={(e) => {
 								e.preventDefault();
 								onInstanceContextMenu(instance, e.clientX, e.clientY);
-							}
-						}}
-					>
-						<span class="instance-avatar">
-							{#if iconUrls[instance.uuid]}
-								<img src={iconUrls[instance.uuid]} alt="" />
-							{:else}
-								{instance.name.charAt(0).toUpperCase()}
-							{/if}
-						</span>
-						{#if !collapsed}
-							<span class="instance-text">
-								<span class="instance-name">{instance.name}</span>
-								<span class="instance-version">{instance.mc_version} · {instance.loader}</span>
+							}}
+							onmousedown={(e) => {
+								// El evento "contextmenu" del click derecho no dispara de
+								// forma confiable en esta webview (se probó en vivo: ni
+								// siquiera aparece el menú nativo del sistema, algo se lo
+								// come antes de llegar al JS). "mousedown" con botón
+								// derecho es más bajo nivel y sí llega siempre — queda
+								// como camino principal, oncontextmenu como refuerzo si
+								// en algún entorno sí dispara.
+								if (e.button === 2) {
+									e.preventDefault();
+									onInstanceContextMenu(instance, e.clientX, e.clientY);
+								}
+							}}
+						>
+							<span class="instance-avatar">
+								{#if iconUrls[instance.uuid]}
+									<img src={iconUrls[instance.uuid]} alt="" />
+								{:else}
+									{instance.name.charAt(0).toUpperCase()}
+								{/if}
 							</span>
-						{/if}
-					</button>
+							{#if !collapsed}
+								<span class="instance-text">
+									<span class="instance-name">{instance.name}</span>
+									<span class="instance-version">{instance.mc_version} · {instance.loader}</span>
+								</span>
+							{/if}
+						</button>
+					</Tooltip>
 				{/each}
 			{/if}
 		</div>
@@ -307,34 +369,26 @@
 			{/if}
 			<div class="user-actions">
 				{#if user.user_type !== 'Cracked'}
-					<button
-						type="button"
-						class="logout-btn"
+					<IconButton
+						label={t('skinManager.title')}
+						variant="ghost"
+						size="compact"
 						onclick={onOpenSkinManager}
-						title={t('skinManager.title')}
-						aria-label={t('skinManager.title')}
 					>
-						<Shirt size={14} />
-					</button>
+						<Shirt size={16} />
+					</IconButton>
 				{/if}
-				<button
-					type="button"
-					class="logout-btn"
+				<IconButton
+					label={t('sidebar.openSettings')}
+					variant="ghost"
+					size="compact"
 					onclick={onOpenSettings}
-					title={t('sidebar.openSettings')}
-					aria-label={t('sidebar.openSettings')}
 				>
-					<Settings size={14} />
-				</button>
-				<button
-					type="button"
-					class="logout-btn"
-					onclick={onLogout}
-					title={t('sidebar.logout')}
-					aria-label={t('sidebar.logout')}
-				>
-					<LogOut size={14} />
-				</button>
+					<Settings size={16} />
+				</IconButton>
+				<IconButton label={t('sidebar.logout')} variant="ghost" size="compact" onclick={onLogout}>
+					<LogOut size={16} />
+				</IconButton>
 			</div>
 		</div>
 	{/if}
@@ -343,25 +397,28 @@
 <style>
 	.sidebar {
 		position: relative;
-		z-index: 1;
-		width: var(--sidebar-width);
+		z-index: var(--z-content);
+		/* El ancho real lo pone el style="width: ...px" inline del <aside>
+		   (SIDEBAR_COLLAPSED_WIDTH/SIDEBAR_EXPANDED_WIDTH, viewport.svelte.ts)
+		   en vez de una regla CSS fija acá — TitleBar.svelte importa las
+		   MISMAS constantes para su bloque de marca, así los dos nunca pueden
+		   desalinearse al cambiar de modo (Entrega B, sección 6.2). No le
+		   agregues un `width` acá de nuevo. */
 		flex-shrink: 0;
-		background: var(--bg-sidebar);
+		overflow-x: hidden;
+		background: var(--surface-workspace);
 		border-right: 1px solid var(--border);
 		display: flex;
 		flex-direction: column;
 		padding: 14px 12px;
 		gap: 12px;
-		transition: width 0.16s ease;
+		transition: width var(--duration-panel) var(--easing-standard);
 	}
 
-	/* Modo compacto: solo íconos, pedido por el cliente para no perder
-	   espacio de pantalla con una lista larga de instancias. El ancho fijo
-	   acá (no una var global) porque solo afecta a este componente —
-	   --sidebar-width la sigue usando TitleBar.svelte para alinear su
-	   propio layout con el ancho normal. */
+	/* Modo compacto: solo íconos — tanto por preferencia manual
+	   (appState.settings.sidebar_collapsed) como forzado por falta de
+	   espacio en la ventana (ver `collapsed`/`forcedCompact` arriba). */
 	.sidebar.collapsed {
-		width: 76px;
 		padding-left: 10px;
 		padding-right: 10px;
 		/* El banner de actualización lista es "position: fixed; bottom: 16px"
@@ -373,40 +430,62 @@
 		align-items: center;
 	}
 
+	/* El wrapper de <Tooltip> (Entrega A) es `display:inline-flex;
+	   flex-direction:row` por defecto — como flex item de un contenedor
+	   columna (.sidebar/.instance-list) se ESTIRA en ancho (align-items:
+	   stretch, el default), pero su propio hijo (el botón trigger) NO se
+	   estira solo porque el wrapper es row: el eje principal de un row no
+	   estira, solo el cruzado. Sin esto el botón envuelto queda del ancho de
+	   su contenido en vez de llenar la fila como antes de agregar el
+	   Tooltip. Afecta solo a los triggers que envolvemos con Tooltip en modo
+	   compacto (home, TFL Selection, instancias, "crear primera instancia");
+	   la burbuja del tooltip (si está abierta) es "position: absolute" así
+	   que no la toca este flex. */
+	.sidebar :global(.tfl-tooltip-wrap) {
+		display: flex;
+		width: 100%;
+	}
+	.sidebar :global(.tfl-tooltip-wrap > *) {
+		flex: 1;
+		min-width: 0;
+	}
+
 	.home-btn,
 	.tfl-selection-btn {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		width: 100%;
+		min-height: var(--control-size-normal);
 		padding: 8px 10px;
 		border-radius: var(--border-radius-sm);
 		border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-		background: color-mix(in srgb, var(--accent) 12%, var(--bg-card));
+		background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
 		color: var(--accent);
-		font-size: 0.8rem;
+		font-size: var(--text-small);
+		line-height: var(--line-height-small);
 		font-weight: 700;
 		cursor: pointer;
 		transition:
-			background 0.15s,
-			border-color 0.15s;
+			background var(--duration-micro) var(--easing-standard),
+			border-color var(--duration-micro) var(--easing-standard);
 	}
 
 	.home-btn {
 		border-color: var(--border);
-		background: var(--bg-card);
+		background: var(--surface-card);
 		color: var(--text-secondary);
 	}
 
 	.home-btn.active {
 		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-		background: color-mix(in srgb, var(--accent) 14%, var(--bg-card));
+		background: color-mix(in srgb, var(--accent) 14%, var(--surface-card));
 		color: var(--accent);
 	}
 
 	.home-btn:hover,
 	.tfl-selection-btn:hover {
-		background: color-mix(in srgb, var(--accent) 20%, var(--bg-card));
+		background: color-mix(in srgb, var(--accent) 20%, var(--surface-card));
 		border-color: var(--accent);
 	}
 
@@ -462,24 +541,21 @@
 		gap: 6px;
 	}
 
-	.create-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 20px;
-		height: 20px;
-		border-radius: var(--border-radius-sm);
-		border: none;
-		background: var(--accent);
-		color: var(--accent-text);
-		cursor: pointer;
+	/* Los IconButton de Entrega A son --control-size-compact (32px) — dos uno
+	   al lado del otro no entran en el ancho interior del riel colapsado
+	   (SIDEBAR_COLLAPSED_WIDTH 76px menos padding). Se apilan en vez de
+	   quedar lado a lado, para no desbordar horizontalmente (sección 4 del
+	   encargo: "nada de overflow horizontal en ningún tamaño"). */
+	.sidebar.collapsed .section-label-actions {
+		flex-direction: column;
 	}
 
 	.search-box {
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		padding: 6px 10px;
+		height: var(--control-size-compact);
+		padding: 0 10px;
 		border-radius: var(--border-radius-sm);
 		border: 1px solid var(--border);
 		background: var(--bg-input);
@@ -491,7 +567,7 @@
 		background: transparent;
 		border: none;
 		outline: none;
-		font-size: 0.78rem;
+		font-size: var(--text-small);
 		color: var(--text-primary);
 	}
 
@@ -542,14 +618,17 @@
 	.empty-create {
 		display: inline-flex;
 		align-items: center;
+		justify-content: center;
 		gap: 6px;
 		margin-top: 4px;
+		min-height: var(--control-size-compact);
 		padding: 6px 12px;
 		border-radius: var(--border-radius-sm);
 		border: 1px solid var(--border);
 		background: var(--bg-input);
 		color: var(--text-secondary);
-		font-size: 0.72rem;
+		font-size: var(--text-caption);
+		line-height: var(--line-height-caption);
 		font-weight: 600;
 		cursor: pointer;
 	}
@@ -568,7 +647,7 @@
 		padding: 8px 10px 8px 12px;
 		border-radius: var(--border-radius);
 		border: 1px solid transparent;
-		background: var(--bg-card);
+		background: var(--surface-card);
 		color: var(--text-primary);
 		cursor: pointer;
 		text-align: left;
@@ -607,7 +686,7 @@
 	}
 
 	.instance-item.active {
-		background: var(--bg-item-active);
+		background: var(--surface-interactive);
 		border-color: color-mix(in srgb, var(--loader-color) 40%, var(--border));
 	}
 
@@ -649,7 +728,8 @@
 	}
 
 	.instance-name {
-		font-size: 0.83rem;
+		font-size: var(--text-small);
+		line-height: var(--line-height-small);
 		font-weight: 600;
 		white-space: nowrap;
 		overflow: hidden;
@@ -657,7 +737,8 @@
 	}
 
 	.instance-version {
-		font-size: 0.68rem;
+		font-size: var(--text-caption);
+		line-height: var(--line-height-caption);
 		color: var(--text-muted);
 		white-space: nowrap;
 		overflow: hidden;
@@ -671,7 +752,7 @@
 		padding: 8px 10px;
 		border-radius: var(--border-radius);
 		border: 1px solid var(--border);
-		background: var(--bg-card);
+		background: var(--surface-card);
 	}
 
 	.user-head {
@@ -746,23 +827,6 @@
 		gap: 2px;
 	}
 
-	.logout-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 24px;
-		height: 24px;
-		border-radius: var(--border-radius-sm);
-		border: none;
-		background: transparent;
-		color: var(--text-muted);
-		cursor: pointer;
-	}
-
-	.logout-btn:hover {
-		color: var(--color-error);
-	}
-
 	.sidebar.collapsed .user-chip {
 		flex-direction: column;
 		padding: 8px 4px;
@@ -781,22 +845,5 @@
 
 	.sidebar.collapsed .sidebar-top {
 		justify-content: center;
-	}
-
-	.collapse-toggle {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 24px;
-		height: 24px;
-		border-radius: var(--border-radius-sm);
-		border: none;
-		background: transparent;
-		color: var(--text-muted);
-		cursor: pointer;
-	}
-
-	.collapse-toggle:hover {
-		color: var(--text-primary);
 	}
 </style>
