@@ -511,7 +511,15 @@ export const es = {
 		ramStatus: 'RAM: {{assigned}} / {{total}} GB',
 		diskStatus: 'Disco: {{free}} libres de {{total}}',
 		scrollLeft: 'Ver anteriores',
-		scrollRight: 'Ver siguientes'
+		scrollRight: 'Ver siguientes',
+		neverPlayed: 'Todavía no la jugaste',
+		runningBadge: 'Corriendo',
+		skinLoadError: 'No se pudo cargar el skin',
+		noAccountCaption: 'Iniciá sesión para ver tu personaje',
+		noServersSavedHint: 'Guardá un servidor desde "Unirse a servidor" para verlo acá.',
+		noActivityYetHint: 'Cuando termines una sesión de juego, va a aparecer en esta lista.',
+		systemStatusUnavailable: 'No se pudo leer el estado del sistema',
+		systemStatusRetry: 'Reintentar'
 	},
 	whatsNewTips: {
 		welcomeTitle: 'Bienvenido a TFL Client',
@@ -635,7 +643,8 @@ export const es = {
 		resetSkin: 'Restaurar por defecto',
 		noCapes: 'Esta cuenta no tiene ninguna capa — se consiguen con eventos/promociones de Mojang.',
 		noCape: 'Sin capa',
-		viewerHint: 'Arrastrá para girar, rueda del mouse para zoom'
+		viewerHint: 'Arrastrá para girar, rueda del mouse para zoom',
+		skinLoadError: 'No se pudo cargar la textura del skin — probá de nuevo en un momento'
 	},
 	serverConnectionInfo: {
 		title: 'Cómo se conectan los demás a tu servidor',
