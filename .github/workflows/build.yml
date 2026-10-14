@@ -111,6 +111,24 @@ jobs:
       - name: Instalar dependencias del frontend
         run: bun install --frozen-lockfile
 
+      # El cuerpo del Release sale de src/lib/releaseNotes.ts (notas reales
+      # para jugadores, ya escritas a mano en cada versión) en vez del texto
+      # fijo genérico de antes. "Verificar versión" más arriba ya bloqueó el
+      # build si a esta versión le falta la entrada, así que acá siempre
+      # debería existir.
+      - name: Generar notas del Release (desde releaseNotes.ts)
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(bun run scripts/release-notes-body.mjs "$GITHUB_REF_NAME")"
+          {
+            echo "body<<RELEASE_NOTES_EOF"
+            echo "$BODY"
+            echo "RELEASE_NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       # Firma/notarización de macOS: PLOMERÍA PREPARADA, sin efecto hoy.
       # Tauri lee APPLE_* con var_os(): un secret inexistente llega como cadena
       # VACÍA, y una cadena vacía cuenta como "definida" (intentaría importar un
@@ -172,7 +190,7 @@ jobs:
           # prerelease, que GitHub NO cuenta como "latest". Eso es lo que evita
           # que quien no activó las betas en Ajustes la reciba (el updater estable
           # lee releases/latest/download/latest.json). Ver docs/CANAL_BETA.md.
-          releaseBody: "${{ contains(github.ref_name, '-') && 'Versión BETA: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes.' || 'Ver el changelog del repo para el detalle de esta versión.' }}"
+          releaseBody: ${{ steps.notes.outputs.body || '' }}
           releaseDraft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
           includeUpdaterJson: true

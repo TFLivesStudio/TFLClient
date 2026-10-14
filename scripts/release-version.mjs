@@ -231,11 +231,30 @@ if (opts.check) {
 		if (!m || !parseSemver(m[1])) {
 			ok = false;
 			problems.push(`El tag "${opts.tag}" no tiene la forma vMAJOR.MINOR.PATCH[-pre].`);
-		} else if (distinct.size !== 1 || !distinct.has(m[1])) {
-			ok = false;
-			problems.push(
-				`El tag "${opts.tag}" (versión ${m[1]}) no coincide con las versiones de los archivos.`
-			);
+		} else {
+			if (distinct.size !== 1 || !distinct.has(m[1])) {
+				ok = false;
+				problems.push(
+					`El tag "${opts.tag}" (versión ${m[1]}) no coincide con las versiones de los archivos.`
+				);
+			}
+			// El Release de GitHub se arma con estas notas (scripts/release-notes-body.mjs);
+			// sin entrada acá, el Release sale vacío/genérico. Bloquear el build en vez de
+			// solo avisar es lo que evita publicar otra vez un Release vago.
+			const notesPath = join(root, 'src/lib/releaseNotes.ts');
+			if (!existsSync(notesPath)) {
+				ok = false;
+				problems.push('Falta src/lib/releaseNotes.ts.');
+			} else {
+				const notes = readFileSync(notesPath, 'utf8');
+				const hasEntry = new RegExp(`^\\s*'${escapeRe(m[1])}'\\s*:`, 'm').test(notes);
+				if (!hasEntry) {
+					ok = false;
+					problems.push(
+						`Falta la entrada '${m[1]}' en src/lib/releaseNotes.ts — el Release de GitHub necesita texto real para jugadores, no un placeholder genérico.`
+					);
+				}
+			}
 		}
 	}
 	console.log(opts.tag !== null ? `Tag: ${opts.tag}` : 'Versiones:');
