@@ -195,5 +195,10 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'La sidebar se adapta sola al tamaño de la ventana: en una ventana chica se compacta a solo íconos para no comerte espacio, sin pisar si vos ya la habías dejado compacta a mano.',
 		'Los perfiles de calidad (Ajustes → Rendimiento) ahora se notan de verdad: Lite saca todo movimiento decorativo y deja el personaje quieto; Experience suma animaciones de personaje, transiciones y más efectos.',
 		'Nuevo: podés pedirle al launcher que reduzca animaciones sin tener que bajar todo tu perfil a Lite (Ajustes → Rendimiento → "Reducir animaciones").'
+	],
+	'0.12.1-beta.1': [
+		'Esta es una versión BETA. Si algo anda mal, avisanos; podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'La ventana de log de una instancia corriendo ahora muestra CPU, RAM y disco como gráficos en tiempo real (en vez de un número suelto) en una barra nueva abajo. El tercer gráfico es disco de lectura/escritura — no hay forma confiable de medir GPU o internet por proceso en las 3 plataformas, así que fue la opción técnica, no la de gusto.',
+		'Los menús (clic derecho sobre una instancia) ahora abren y cierran con una animación suave y se pueden recorrer con las flechas del teclado — antes aparecían de golpe y solo se cerraban con Escape.'
 	]
 };
