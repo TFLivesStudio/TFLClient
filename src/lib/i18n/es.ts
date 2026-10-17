@@ -419,7 +419,11 @@ export const es = {
 		running: 'Corriendo…',
 		exited: 'Proceso finalizado{{codeSuffix}}',
 		exitedCodeSuffix: ' (código {{code}})',
-		stats: '· CPU {{cpu}}% · RAM {{ram}} MB',
+		gauges: {
+			cpu: 'CPU',
+			ram: 'RAM',
+			disk: 'Disco'
+		},
 		stop: 'Detener',
 		closeNotice: 'Cerrar aviso',
 		waitingOutput: 'Esperando salida del juego…',

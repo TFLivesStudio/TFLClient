@@ -15,6 +15,7 @@ export { default as EmptyState } from './EmptyState.svelte';
 export { default as ErrorState } from './ErrorState.svelte';
 export { default as Dialog } from './Dialog.svelte';
 export { default as Popover } from './Popover.svelte';
+export { default as GaugeRing } from './GaugeRing.svelte';
 export { default as SkinViewer3D } from './SkinViewer3D.svelte';
 
 // Componentes que ya existían antes de esta entrega — reexportados acá

@@ -19,6 +19,33 @@
 	} = $props();
 
 	let wrapEl = $state<HTMLDivElement | undefined>(undefined);
+	let contentEl = $state<HTMLDivElement | undefined>(undefined);
+
+	// Igual que ContextMenu.svelte: en vez de desaparecer de golpe cuando
+	// `open` pasa a false, se queda montado el tiempo que dure la
+	// animación de salida (leída de la CSS real, que ya respeta Lite/
+	// reduce-motion por los tokens --duration-* de global.css) y recién
+	// ahí se saca del DOM.
+	let rendered = $state(false);
+	let closingState = $state(false);
+
+	$effect(() => {
+		if (open) {
+			rendered = true;
+			closingState = false;
+			return;
+		}
+		if (!rendered) return;
+		closingState = true;
+		const ms = contentEl
+			? parseFloat(getComputedStyle(contentEl).animationDuration) * 1000 || 0
+			: 0;
+		const timer = setTimeout(() => {
+			rendered = false;
+			closingState = false;
+		}, ms);
+		return () => clearTimeout(timer);
+	});
 
 	function toggle() {
 		open = !open;
@@ -37,14 +64,18 @@
 
 <div class="tfl-popover-wrap" bind:this={wrapEl}>
 	{@render trigger({ toggle })}
-	{#if open}
+	{#if rendered}
 		<!-- Sin onclick/stopPropagation: el cierre por click-afuera ya lo
 			 decide `handleOutsideClick` arriba comprobando
 			 `wrapEl.contains(e.target)`, así que un click DENTRO de este
 			 div nunca llega a cerrarlo — agregar stopPropagation acá
 			 además cortaría el burbujeo de teclado hacia el handler de
 			 Escape en :svelte:window para cualquier cosa enfocada dentro. -->
-		<div class="tfl-popover-content pos-{placement}">
+		<div
+			bind:this={contentEl}
+			class="tfl-popover-content pos-{placement}"
+			class:closing={closingState}
+		>
 			{@render children()}
 		</div>
 	{/if}
@@ -68,6 +99,11 @@
 		animation: tfl-popover-in var(--duration-micro) var(--easing-decelerate);
 	}
 
+	.tfl-popover-content.closing {
+		animation: tfl-popover-out var(--duration-micro) var(--easing-standard) forwards;
+		pointer-events: none;
+	}
+
 	.tfl-popover-content.pos-top {
 		bottom: calc(100% + 8px);
 		left: 0;
@@ -88,11 +124,22 @@
 	@keyframes tfl-popover-in {
 		from {
 			opacity: 0;
-			transform: translateY(-2px);
+			transform: scale(0.96) translateY(-2px);
 		}
 		to {
 			opacity: 1;
-			transform: translateY(0);
+			transform: scale(1) translateY(0);
+		}
+	}
+
+	@keyframes tfl-popover-out {
+		from {
+			opacity: 1;
+			transform: scale(1) translateY(0);
+		}
+		to {
+			opacity: 0;
+			transform: scale(0.96) translateY(-2px);
 		}
 	}
 </style>

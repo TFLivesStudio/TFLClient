@@ -8,6 +8,7 @@
 		"core:event:allow-unlisten",
 		"core:window:allow-close",
 		"allow-get-running-instance-stats",
+		"allow-get-instance-ram-budget-mb",
 		"allow-stop-running-instance",
 		"allow-get-crash-report",
 		"allow-diagnose-crash",

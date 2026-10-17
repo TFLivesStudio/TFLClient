@@ -1,5 +1,5 @@
 use crate::services::instance_manager::{InstanceData, LoaderKind};
-use crate::services::{instance_manager, launcher};
+use crate::services::{SettingsManager, instance_manager, launcher};
 use aqua::{FabricBatch, QuiltBatch};
 use base64::Engine;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, command};
@@ -221,11 +221,16 @@ static PROCESS_MONITOR: std::sync::LazyLock<std::sync::Mutex<sysinfo::System>> =
 pub struct ProcessStats {
     pub cpu_percent: f32,
     pub memory_mb: u64,
+    /// Bytes leídos + escritos a disco desde el refresh anterior de ESTE
+    /// proceso (no un acumulado total) — ya viene así de sysinfo, así que
+    /// alcanza con pollear esto cada 1-2s para tener una tasa real.
+    pub disk_bytes_delta: u64,
 }
 
-/// Uso de CPU/RAM del proceso de Java en vivo de esa instancia — `None` si
-/// no está corriendo ahora mismo. Pensado para pollearse cada 1-2s desde
-/// su ventana de log mientras el juego está abierto.
+/// Uso de CPU/RAM/disco del proceso de Java en vivo de esa instancia —
+/// `None` si no está corriendo ahora mismo. Pensado para pollearse cada
+/// 1-2s desde su ventana de log mientras el juego está abierto (la barra
+/// de gráficos de `InstanceLogWindow.svelte`).
 #[command]
 pub fn get_running_instance_stats(instance_name: String) -> Option<ProcessStats> {
     let pid = launcher::running_instance_pid(&instance_name)?;
@@ -233,10 +238,50 @@ pub fn get_running_instance_stats(instance_name: String) -> Option<ProcessStats>
     let mut sys = PROCESS_MONITOR.lock().unwrap();
     sys.refresh_process(sysinfo_pid);
     let process = sys.process(sysinfo_pid)?;
+    let disk = process.disk_usage();
     Some(ProcessStats {
         cpu_percent: process.cpu_usage(),
         memory_mb: process.memory() / 1024 / 1024,
+        disk_bytes_delta: disk.read_bytes + disk.written_bytes,
     })
+}
+
+/// "Techo" del gauge de RAM de la ventana de log — no el cálculo completo
+/// de lanzamiento (que además escala por cantidad de mods, ver
+/// `services::launcher::launch`), solo una referencia visual de cuánta RAM
+/// tiene asignada esta instancia. Se pide una sola vez al abrir la ventana,
+/// no en cada poll.
+#[command]
+pub async fn get_instance_ram_budget_mb(instance_name: String) -> u32 {
+    let global_max = SettingsManager::read().max_memory;
+    instance_ram_budget_mb(
+        instance_manager::get_instance(&instance_name)
+            .await
+            .ok()
+            .and_then(|d| d.max_memory),
+        global_max,
+    )
+}
+
+/// Separado de `get_instance_ram_budget_mb` para poder probarlo sin tocar
+/// disco ni el estado global de `SettingsManager`.
+fn instance_ram_budget_mb(instance_override: Option<u32>, global_max: u32) -> u32 {
+    instance_override.unwrap_or(global_max)
+}
+
+#[cfg(test)]
+mod ram_budget_tests {
+    use super::instance_ram_budget_mb;
+
+    #[test]
+    fn usa_el_override_de_la_instancia_si_lo_tiene() {
+        assert_eq!(instance_ram_budget_mb(Some(6144), 2048), 6144);
+    }
+
+    #[test]
+    fn cae_al_global_sin_override() {
+        assert_eq!(instance_ram_budget_mb(None, 2048), 2048);
+    }
 }
 
 #[command]

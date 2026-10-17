@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 
 	export interface ContextMenuItem {
 		id: string;
@@ -29,13 +29,28 @@
 	let busy = $state<string | null>(null);
 	let done = $state<string | null>(null);
 	let menuEl = $state<HTMLDivElement | undefined>(undefined);
+	let itemEls = $state<(HTMLButtonElement | undefined)[]>([]);
+	let activeIndex = $state(0);
+	// Cierre animado: ver estilo tfl-menu-out abajo. En vez de duplicar el
+	// criterio de Lite/reduce-motion acá, se lee la duración real que la
+	// CSS ya está aplicando (los tokens --duration-* se achatan a 0 solos
+	// bajo [data-quality='lite']/[data-reduce-motion], ver global.css) —
+	// mismo mecanismo que ya usa Dialog.svelte para la entrada.
+	let closing = $state(false);
+
+	function closeAnimated() {
+		if (closing) return;
+		closing = true;
+		const ms = menuEl ? parseFloat(getComputedStyle(menuEl).animationDuration) * 1000 || 0 : 0;
+		setTimeout(onClose, ms);
+	}
 
 	// Si el menú se abrió muy cerca del borde de la ventana, se corrige la
 	// posición después de montar (ya con el tamaño real) para que no quede
 	// cortado — un menú contextual que se sale de la pantalla es inusable.
 	let adjustedX = $state(x);
 	let adjustedY = $state(y);
-	onMount(() => {
+	onMount(async () => {
 		if (!menuEl) return;
 		const rect = menuEl.getBoundingClientRect();
 		const margin = 8;
@@ -45,7 +60,38 @@
 		if (y + rect.height > window.innerHeight - margin) {
 			adjustedY = Math.max(margin, window.innerHeight - rect.height - margin);
 		}
+		// Primer ítem enfocado al abrir — igual que el patrón Menu de
+		// headlessui, así las flechas funcionan apenas aparece sin que el
+		// usuario tenga que tocar Tab primero.
+		await tick();
+		itemEls[0]?.focus();
 	});
+
+	function moveFocus(nextIndex: number) {
+		activeIndex = ((nextIndex % items.length) + items.length) % items.length;
+		itemEls[activeIndex]?.focus();
+	}
+
+	function handleMenuKeydown(e: KeyboardEvent) {
+		switch (e.key) {
+			case 'ArrowDown':
+				e.preventDefault();
+				moveFocus(activeIndex + 1);
+				break;
+			case 'ArrowUp':
+				e.preventDefault();
+				moveFocus(activeIndex - 1);
+				break;
+			case 'Home':
+				e.preventDefault();
+				moveFocus(0);
+				break;
+			case 'End':
+				e.preventDefault();
+				moveFocus(items.length - 1);
+				break;
+		}
+	}
 
 	async function runItem(item: ContextMenuItem) {
 		if (busy) return;
@@ -53,12 +99,12 @@
 		try {
 			await item.run();
 			done = item.id;
-			setTimeout(onClose, 500);
+			setTimeout(closeAnimated, 500);
 		} catch {
 			// El error real ya lo maneja/loguea la acción en sí (lib/api
 			// propaga el mensaje de Rust) — acá no hay dónde mostrarlo con
 			// detalle, así que solo se cierra sin fingir que salió bien.
-			onClose();
+			closeAnimated();
 		} finally {
 			busy = null;
 		}
@@ -66,8 +112,8 @@
 </script>
 
 <svelte:window
-	onkeydown={(e) => e.key === 'Escape' && onClose()}
-	onclick={onClose}
+	onkeydown={(e) => e.key === 'Escape' && closeAnimated()}
+	onclick={closeAnimated}
 	oncontextmenu={(e) => {
 		// Si el "contextmenu" nativo del click que ABRIÓ este menú termina
 		// disparando igual (además del mousedown que ya lo abrió, ver
@@ -77,23 +123,29 @@
 		// en otro lado (no manejado por nadie más).
 		if (e.defaultPrevented) return;
 		e.preventDefault();
-		onClose();
+		closeAnimated();
 	}}
 />
 
 <div
 	bind:this={menuEl}
 	class="context-menu"
+	class:closing
 	style="left: {adjustedX}px; top: {adjustedY}px;"
 	onclick={(e) => e.stopPropagation()}
+	onkeydown={handleMenuKeydown}
 	role="menu"
 	tabindex="-1"
 >
-	{#each items as item (item.id)}
+	{#each items as item, i (item.id)}
 		<button
+			bind:this={itemEls[i]}
 			type="button"
 			class="menu-item"
 			class:danger={item.danger}
+			role="menuitem"
+			tabindex={i === activeIndex ? 0 : -1}
+			onfocus={() => (activeIndex = i)}
 			onclick={() => runItem(item)}
 		>
 			{#if item.icon}
@@ -114,14 +166,25 @@
 		position: fixed;
 		z-index: 200;
 		min-width: 200px;
-		background: var(--bg-card);
+		background: var(--surface-elevated);
 		border: 1px solid var(--border);
-		border-radius: var(--border-radius-sm);
+		border-radius: var(--border-radius);
 		box-shadow: var(--shadow-lg);
 		padding: 4px;
 		display: flex;
 		flex-direction: column;
 		gap: 1px;
+		/* Entrada/salida tipo headlessui (scale-95 → scale-100 + fade) — la
+		   duración sale de --duration-panel, que ya se achata a 0 en Lite/
+		   reduce-motion (global.css), así que closeAnimated() arriba lee eso
+		   solo sin necesitar el store de appearance acá. */
+		animation: tfl-menu-in var(--duration-panel) var(--easing-decelerate);
+		transform-origin: top left;
+	}
+
+	.context-menu.closing {
+		animation: tfl-menu-out var(--duration-panel) var(--easing-standard) forwards;
+		pointer-events: none;
 	}
 
 	.menu-item {
@@ -138,8 +201,10 @@
 		cursor: pointer;
 	}
 
-	.menu-item:hover {
+	.menu-item:hover,
+	.menu-item:focus-visible {
 		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		outline: none;
 	}
 
 	.menu-item.danger {
@@ -150,5 +215,27 @@
 		margin-left: auto;
 		color: var(--text-muted);
 		font-size: 0.72rem;
+	}
+
+	@keyframes tfl-menu-in {
+		from {
+			opacity: 0;
+			transform: scale(0.96) translateY(-2px);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1) translateY(0);
+		}
+	}
+
+	@keyframes tfl-menu-out {
+		from {
+			opacity: 1;
+			transform: scale(1) translateY(0);
+		}
+		to {
+			opacity: 0;
+			transform: scale(0.96) translateY(-2px);
+		}
 	}
 </style>

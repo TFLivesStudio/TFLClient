@@ -419,7 +419,11 @@ export const en: Dictionary = {
 		running: 'Running…',
 		exited: 'Process finished{{codeSuffix}}',
 		exitedCodeSuffix: ' (code {{code}})',
-		stats: '· CPU {{cpu}}% · RAM {{ram}} MB',
+		gauges: {
+			cpu: 'CPU',
+			ram: 'RAM',
+			disk: 'Disk'
+		},
 		stop: 'Stop',
 		closeNotice: 'Close notice',
 		waitingOutput: 'Waiting for game output…',

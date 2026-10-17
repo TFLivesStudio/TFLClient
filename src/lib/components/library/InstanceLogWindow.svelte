@@ -6,7 +6,8 @@
 	import { t, type TranslationKey } from '$lib/i18n/index.svelte';
 	import { diagnoseCrash, setModEnabled, rollbackModUpdate } from '$lib/api';
 	import type { CrashSuspect } from '$lib/types/types';
-	import { Square, X, Loader2 } from 'lucide-svelte';
+	import { GaugeRing } from '$lib/components/ui';
+	import { Square, X, Loader2, Cpu, MemoryStick, HardDrive } from 'lucide-svelte';
 
 	const instanceName =
 		(window as unknown as { __TFL_LOG_INSTANCE__?: string }).__TFL_LOG_INSTANCE__ ?? '';
@@ -21,7 +22,10 @@
 	interface ProcessStats {
 		cpu_percent: number;
 		memory_mb: number;
+		disk_bytes_delta: number;
 	}
+
+	const STATS_POLL_MS = 1000;
 
 	let lines = $state<LogLine[]>([]);
 	let exitCode = $state<number | null | undefined>(undefined);
@@ -32,12 +36,47 @@
 	let unlisten: UnlistenFn | undefined;
 	let statsInterval: ReturnType<typeof setInterval> | undefined;
 
+	// Techo del gauge de RAM — se pide una sola vez al abrir la ventana
+	// (no cambia mientras la instancia está corriendo), no en cada poll.
+	let ramBudgetMb = $state<number | null>(null);
+
+	// Tasa de disco en tiempo real: sysinfo da bytes desde el último refresh
+	// (no un acumulado), así que la tasa sale de dividir eso por el tiempo
+	// real transcurrido entre polls. El disco no tiene un "100%" natural
+	// como la RAM/CPU, así que el gauge se autoescala contra un pico
+	// reciente que decae de a poco — un medidor de actividad típico, en vez
+	// de inventar una constante de "disco lleno".
+	let diskRateBps = $state(0);
+	let diskPeakBps = $state(1);
+	let lastPollAt: number | null = null;
+
 	async function pollStats() {
+		const now = performance.now();
+		const elapsedSec = lastPollAt !== null ? (now - lastPollAt) / 1000 : STATS_POLL_MS / 1000;
+		lastPollAt = now;
 		try {
 			stats = await invoke<ProcessStats | null>('get_running_instance_stats', { instanceName });
+			if (stats && elapsedSec > 0) {
+				const rate = stats.disk_bytes_delta / elapsedSec;
+				diskRateBps = rate;
+				diskPeakBps = Math.max(rate, diskPeakBps * 0.98);
+			} else {
+				diskRateBps = 0;
+			}
 		} catch {
 			stats = null;
+			diskRateBps = 0;
 		}
+	}
+
+	const cpuGaugeValue = $derived(stats ? Math.min(100, stats.cpu_percent) : 0);
+	const ramGaugeValue = $derived(stats && ramBudgetMb ? (stats.memory_mb / ramBudgetMb) * 100 : 0);
+	const diskGaugeValue = $derived(diskPeakBps > 0 ? (diskRateBps / diskPeakBps) * 100 : 0);
+
+	function formatBps(bps: number): string {
+		if (bps < 1024) return `${bps.toFixed(0)} B/s`;
+		if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`;
+		return `${(bps / 1024 / 1024).toFixed(1)} MB/s`;
 	}
 
 	// Deja de pollear apenas el proceso termina — no tiene sentido seguir
@@ -47,6 +86,7 @@
 			clearInterval(statsInterval);
 			statsInterval = undefined;
 			stats = null;
+			diskRateBps = 0;
 		}
 	});
 
@@ -234,8 +274,15 @@
 				}
 			}
 		);
+		invoke<number>('get_instance_ram_budget_mb', { instanceName })
+			.then((mb) => {
+				ramBudgetMb = mb;
+			})
+			.catch(() => {
+				ramBudgetMb = null;
+			});
 		pollStats();
-		statsInterval = setInterval(pollStats, 2000);
+		statsInterval = setInterval(pollStats, STATS_POLL_MS);
 	});
 
 	onDestroy(() => {
@@ -255,12 +302,6 @@
 					{t('instanceLogWindow.exited', {
 						codeSuffix:
 							exitCode !== null ? t('instanceLogWindow.exitedCodeSuffix', { code: exitCode }) : ''
-					})}
-				{/if}
-				{#if stats}
-					{t('instanceLogWindow.stats', {
-						cpu: stats.cpu_percent.toFixed(0),
-						ram: stats.memory_mb
 					})}
 				{/if}
 			</span>
@@ -333,6 +374,31 @@
 			<p class="empty">{t('instanceLogWindow.waitingOutput')}</p>
 		{/if}
 	</div>
+
+	<footer class="gauge-bar">
+		<GaugeRing
+			value={cpuGaugeValue}
+			label={t('instanceLogWindow.gauges.cpu')}
+			displayValue={stats ? `${stats.cpu_percent.toFixed(0)}%` : '—'}
+			icon={Cpu}
+		/>
+		<GaugeRing
+			value={ramGaugeValue}
+			label={t('instanceLogWindow.gauges.ram')}
+			displayValue={stats
+				? ramBudgetMb
+					? `${stats.memory_mb} / ${ramBudgetMb} MB`
+					: `${stats.memory_mb} MB`
+				: '—'}
+			icon={MemoryStick}
+		/>
+		<GaugeRing
+			value={diskGaugeValue}
+			label={t('instanceLogWindow.gauges.disk')}
+			displayValue={stats ? formatBps(diskRateBps) : '—'}
+			icon={HardDrive}
+		/>
+	</footer>
 </div>
 
 <style>
@@ -519,6 +585,16 @@
 	.empty {
 		color: #5c6270;
 		font-size: 0.78rem;
+	}
+
+	.gauge-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-around;
+		gap: 12px;
+		padding: 10px 16px;
+		border-top: 1px solid rgba(255, 255, 255, 0.08);
+		flex-shrink: 0;
 	}
 
 	:global(.spin) {
