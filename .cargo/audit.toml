@@ -34,4 +34,28 @@ ignore = [
 	"RUSTSEC-2025-0080", # unic-common
 	"RUSTSEC-2025-0100", # unic-ucd-ident
 	"RUSTSEC-2025-0098", # unic-ucd-version
+
+	# zip 4.6.1 — 3 vulnerabilidades reales (symlink traversal/SUID, una
+	# crítica). SOLO en Windows: tauri-plugin-updater 2.11.0 fija
+	# `zip = "4"` como dependencia de plataforma Windows para su feature
+	# "zip" (prendida por default), que usamos para el instalador NSIS.
+	# El propio `cargo update -p zip` de más arriba de este archivo ya
+	# actualizó la `zip` que usamos directo (src-tauri, aqua, launchwerk,
+	# zellkern, cubrinth) a 9.0.5 — esto es la de tauri-plugin-updater, no
+	# la nuestra. No hay versión 2.x de tauri-plugin-updater con zip
+	# actualizado todavía (solo existe 3.0.0-alpha, no apto para producción
+	# hoy); apagar la feature "zip" arriesgaría romper el updater en
+	# Windows sin poder probarlo. Las tres vienen del mismo zip@4.6.1,
+	# revisar junto con `cargo update -p tauri-plugin-updater`.
+	"RUSTSEC-2026-0367",
+	"RUSTSEC-2026-0368",
+	"RUSTSEC-2026-0369",
+
+	# zbus_names / zvariant / zvariant_derive — unmaintained (3 avisos, no
+	# vulnerabilidades). Vienen de zbus 5.19 (soporte D-Bus de Linux),
+	# traído por tauri-plugin-opener y tauri-plugin-single-instance — no
+	# algo que controlemos desde acá.
+	"RUSTSEC-2026-0370", # zvariant
+	"RUSTSEC-2026-0371", # zbus_names
+	"RUSTSEC-2026-0372", # zvariant_derive
 ]

@@ -24,7 +24,7 @@ pub fn parse_mrpack(path: &Path) -> Result<MrpackMetadata, MrpackError> {
 
     let manifest_idx = archive
         .file_names()
-        .position(|name| name == "modrinth.index.json")
+        .position(|name| matches!(name.as_deref(), Ok("modrinth.index.json")))
         .ok_or_else(|| {
             MrpackError::Invalid("No modrinth.index.json found in mrpack".to_string())
         })?;
@@ -57,7 +57,7 @@ pub async fn install_mrpack(
 
     let manifest_idx = archive
         .file_names()
-        .position(|name| name == "modrinth.index.json")
+        .position(|name| matches!(name.as_deref(), Ok("modrinth.index.json")))
         .ok_or_else(|| {
             MrpackError::Invalid("No modrinth.index.json found in mrpack".to_string())
         })?;
@@ -156,7 +156,7 @@ async fn extract_overrides(
     let mut written = Vec::new();
     for i in 0..archive.len() {
         let entry = archive.by_index(i)?;
-        let entry_name = entry.name().to_string();
+        let entry_name = entry.name()?.to_string();
         let is_dir = entry.is_dir();
 
         // Reject paths that escape the archive root (e.g. `../` or absolute paths).
@@ -213,7 +213,7 @@ async fn extract_icon(
     for i in 0..archive.len() {
         let entry = archive.by_index(i)?;
         let is_dir = entry.is_dir();
-        let name = entry.name().to_string();
+        let name = entry.name()?.to_string();
         drop(entry);
 
         if is_dir || name != "icon.png" {

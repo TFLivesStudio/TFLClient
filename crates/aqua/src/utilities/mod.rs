@@ -364,7 +364,10 @@ pub fn extract_zip_to_dir(zip_path: &Path, dest_dir: &Path) -> Result<(), AquaEr
             .by_index(i)
             .map_err(|e| AquaError::ForgeExtract(format!("Cannot read ZIP entry: {e}")))?;
 
-        let name = entry.name().to_string();
+        let name = entry
+            .name()
+            .map_err(|e| AquaError::ForgeExtract(format!("Cannot read ZIP entry name: {e}")))?
+            .to_string();
 
         // `enclosed_name()` rejects entries that escape the archive root.
         let Some(enclosed) = entry.enclosed_name() else {
