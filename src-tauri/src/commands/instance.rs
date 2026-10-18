@@ -219,6 +219,10 @@ static PROCESS_MONITOR: std::sync::LazyLock<std::sync::Mutex<sysinfo::System>> =
 
 #[derive(serde::Serialize)]
 pub struct ProcessStats {
+    /// Normalizado 0-100 sobre el total de núcleos lógicos del sistema (no
+    /// 0-100 por núcleo como da `Process::cpu_usage()` crudo — un proceso
+    /// multihilo a tope en 4 núcleos daría 400% si no se dividiera, y eso
+    /// en el gauge de la ventana de log se ve roto).
     pub cpu_percent: f32,
     pub memory_mb: u64,
     /// Bytes leídos + escritos a disco desde el refresh anterior de ESTE
@@ -239,11 +243,35 @@ pub fn get_running_instance_stats(instance_name: String) -> Option<ProcessStats>
     sys.refresh_process(sysinfo_pid);
     let process = sys.process(sysinfo_pid)?;
     let disk = process.disk_usage();
+    let cores = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1) as f32;
     Some(ProcessStats {
-        cpu_percent: process.cpu_usage(),
+        cpu_percent: normalize_cpu_percent(process.cpu_usage(), cores),
         memory_mb: process.memory() / 1024 / 1024,
         disk_bytes_delta: disk.read_bytes + disk.written_bytes,
     })
+}
+
+/// Separado para poder probarlo sin depender de `sysinfo`/`Process` reales.
+fn normalize_cpu_percent(raw_per_core_percent: f32, cores: f32) -> f32 {
+    (raw_per_core_percent / cores.max(1.0)).min(100.0)
+}
+
+#[cfg(test)]
+mod cpu_percent_tests {
+    use super::normalize_cpu_percent;
+
+    #[test]
+    fn divide_entre_nucleos() {
+        assert_eq!(normalize_cpu_percent(400.0, 4.0), 100.0);
+        assert_eq!(normalize_cpu_percent(200.0, 4.0), 50.0);
+    }
+
+    #[test]
+    fn nunca_supera_100_aunque_sysinfo_de_mas_por_redondeo() {
+        assert_eq!(normalize_cpu_percent(101.0, 1.0), 100.0);
+    }
 }
 
 /// "Techo" del gauge de RAM de la ventana de log — no el cálculo completo
