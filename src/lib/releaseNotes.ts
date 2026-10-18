@@ -203,5 +203,11 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.12.1-beta.2': [
 		'Arreglado: el gráfico de CPU en la ventana de log podía mostrar más de 100% (250%, 143%, etc.) en procesadores de varios núcleos. Ahora siempre queda entre 0 y 100%.'
+	],
+	'0.12.1': [
+		'La ventana de log de una instancia corriendo ahora muestra CPU, RAM y disco como gráficos en tiempo real (en vez de un número suelto) en una barra nueva abajo. El tercer gráfico es disco de lectura/escritura — no hay forma confiable de medir GPU o internet por proceso en las 3 plataformas, así que fue la opción técnica, no la de gusto.',
+		'Los menús (clic derecho sobre una instancia) ahora abren y cierran con una animación suave y se pueden recorrer con las flechas del teclado — antes aparecían de golpe y solo se cerraban con Escape.',
+		'Arreglado: el gráfico de CPU podía mostrar más de 100% (250%, 143%, etc.) en procesadores de varios núcleos. Ahora siempre queda entre 0 y 100%.',
+		'Arreglo de seguridad por dentro: se actualizó la librería de compresión ZIP que usa el launcher por vulnerabilidades reportadas (una crítica) — no afecta el uso normal, solo hacía falta la actualización.'
 	]
 };
