@@ -209,5 +209,9 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Los menús (clic derecho sobre una instancia) ahora abren y cierran con una animación suave y se pueden recorrer con las flechas del teclado — antes aparecían de golpe y solo se cerraban con Escape.',
 		'Arreglado: el gráfico de CPU podía mostrar más de 100% (250%, 143%, etc.) en procesadores de varios núcleos. Ahora siempre queda entre 0 y 100%.',
 		'Arreglo de seguridad por dentro: se actualizó la librería de compresión ZIP que usa el launcher por vulnerabilidades reportadas (una crítica) — no afecta el uso normal, solo hacía falta la actualización.'
+	],
+	'0.12.2-beta.1': [
+		'Esta es una versión BETA. Si algo anda mal, avisanos; podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arreglado: en Mac con chip Apple Silicon (M1/M2/M3/M4/M5), instancias vanilla viejas (anteriores a la 1.19) cerraban solas apenas abrían el juego. El launcher pedía Java para ese chip, pero esas versiones de Minecraft no tienen esa variante lista — ahora el launcher detecta el caso y usa la versión de Java correcta.'
 	]
 };
