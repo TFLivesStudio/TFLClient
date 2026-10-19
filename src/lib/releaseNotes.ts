@@ -213,5 +213,8 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	'0.12.2-beta.1': [
 		'Esta es una versión BETA. Si algo anda mal, avisanos; podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Arreglado: en Mac con chip Apple Silicon (M1/M2/M3/M4/M5), instancias vanilla viejas (anteriores a la 1.19) cerraban solas apenas abrían el juego. El launcher pedía Java para ese chip, pero esas versiones de Minecraft no tienen esa variante lista — ahora el launcher detecta el caso y usa la versión de Java correcta.'
+	],
+	'0.12.2': [
+		'Arreglado: en Mac con chip Apple Silicon (M1/M2/M3/M4/M5), instancias vanilla viejas (anteriores a la 1.19) cerraban solas apenas abrían el juego. El launcher pedía Java para ese chip, pero esas versiones de Minecraft no tienen esa variante lista — ahora el launcher detecta el caso y usa la versión de Java correcta.'
 	]
 };
