@@ -3,7 +3,7 @@
 //! está presente, se descarga (aqua::jre) antes de lanzar.
 use crate::core::PathManager;
 use crate::services::progress;
-use aqua::{DownloadManager, JreBatch, JreProviderChain};
+use aqua::{DownloadManager, JreBatch, JreProviderChain, required_arch_for_mc};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
@@ -24,8 +24,17 @@ fn runtimes_dir() -> PathBuf {
     PathManager::get().get_shared_dir().join("runtimes")
 }
 
-fn jre_home(major: u8) -> PathBuf {
-    runtimes_dir().join(format!("jre{major}"))
+/// `arch` solo difiere de la nativa del host para el caso de Minecraft
+/// viejo en Mac Apple Silicon (ver `required_arch_for_mc`) — se le agrega
+/// sufijo a la carpeta para no pisar/colisionar con un JRE arm64 nativo
+/// ya instalado para ese mismo major (otra instancia más nueva puede
+/// necesitar los dos a la vez).
+fn jre_home(major: u8, arch: &str) -> PathBuf {
+    if arch == aqua::current_arch() {
+        runtimes_dir().join(format!("jre{major}"))
+    } else {
+        runtimes_dir().join(format!("jre{major}-{arch}"))
+    }
 }
 
 fn java_bin(home: &Path) -> PathBuf {
@@ -47,7 +56,7 @@ pub fn status() -> Vec<JavaStatus> {
     MANAGED_MAJORS
         .iter()
         .map(|&major| {
-            let bin = java_bin(&jre_home(major));
+            let bin = java_bin(&jre_home(major, aqua::current_arch()));
             let installed = bin.exists();
             JavaStatus {
                 major,
@@ -60,8 +69,12 @@ pub fn status() -> Vec<JavaStatus> {
 
 /// Devuelve la ruta al binario de Java para la versión mayor pedida,
 /// descargándola primero (con progreso real vía `AppEvent`) si hace falta.
-pub async fn ensure_java(major: u8) -> Result<PathBuf, String> {
-    let home = jre_home(major);
+/// `mc_version` decide la arquitectura del JRE (ver `required_arch_for_mc`
+/// — en Mac Apple Silicon, Minecraft viejo necesita Java x64 vía Rosetta
+/// porque sus natives de LWJGL no tienen build arm64).
+pub async fn ensure_java(major: u8, mc_version: &str) -> Result<PathBuf, String> {
+    let arch = required_arch_for_mc(mc_version);
+    let home = jre_home(major, arch);
     let bin = java_bin(&home);
     if bin.exists() {
         return Ok(bin);
@@ -74,7 +87,7 @@ pub async fn ensure_java(major: u8) -> Result<PathBuf, String> {
         return Ok(bin);
     }
 
-    let pkg = JreProviderChain::get_latest_package(major)
+    let pkg = JreProviderChain::get_latest_package(major, arch)
         .await
         .map_err(|e| e.to_string())?;
 

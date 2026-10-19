@@ -90,7 +90,7 @@ pub async fn launch_server(instance_name: String) -> Result<(), String> {
     }
 
     let java_major = aqua::infer_java_version(&data.mc_version);
-    let java_path = java_manager::ensure_java(java_major)
+    let java_path = java_manager::ensure_java(java_major, &data.mc_version)
         .await
         .inspect_err(|e| {
             error!(

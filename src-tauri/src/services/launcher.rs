@@ -308,7 +308,7 @@ async fn launch_inner(
     // como (para Forge/NeoForge) el propio instalador del loader.
     let java_major = aqua::infer_java_version(&data.mc_version);
     let perf_java = crate::core::perf::span("launch.java");
-    let java_path = java_manager::ensure_java(java_major)
+    let java_path = java_manager::ensure_java(java_major, &data.mc_version)
         .await
         .inspect_err(|e| {
             error!("No se pudo resolver Java {java_major} para \"{instance_name}\": {e}");

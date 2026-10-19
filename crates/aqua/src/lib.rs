@@ -13,7 +13,10 @@ pub use downloaders::{
     QuiltBatch,
 };
 pub use errors::AquaError;
-pub use jre::{ArchiveFormat, JrePackage, JreProviderChain, JreStatus, JreVendor};
+pub use jre::{
+    ArchiveFormat, JrePackage, JreProviderChain, JreStatus, JreVendor, current_arch,
+    required_arch_for_mc,
+};
 pub use manifest::resolve_version_data;
 pub use progress::{DownloadProgress, DownloadReporter, DownloadStage, ProgressSender};
 pub use types::*;

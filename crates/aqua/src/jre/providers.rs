@@ -20,9 +20,12 @@ impl JreVendor {
         }
     }
 
-    pub async fn resolve(self, major_version: u8) -> Result<JrePackage, AquaError> {
+    pub async fn resolve(
+        self,
+        major_version: u8,
+        arch: &'static str,
+    ) -> Result<JrePackage, AquaError> {
         let os = current_os();
-        let arch = current_arch();
         match self {
             Self::Zulu => resolve_zulu(major_version, os, arch).await,
             Self::Adoptium => resolve_adoptium(major_version, os, arch).await,
@@ -37,10 +40,17 @@ pub struct JreProviderChain;
 impl JreProviderChain {
     const VENDORS: &[JreVendor] = &[JreVendor::Zulu, JreVendor::Adoptium];
 
-    pub async fn get_latest_package(major_version: u8) -> Result<JrePackage, AquaError> {
+    /// `arch` normalmente es `current_arch()` (la del host) — pero
+    /// `required_arch_for_mc` puede forzar "x64" en Mac Apple Silicon para
+    /// versiones de Minecraft viejas cuyo LWJGL no tiene `.dylib` arm64
+    /// (ver ese doc para el detalle del bug que esto arregla).
+    pub async fn get_latest_package(
+        major_version: u8,
+        arch: &'static str,
+    ) -> Result<JrePackage, AquaError> {
         let mut last_err = None;
         for vendor in Self::VENDORS {
-            match vendor.resolve(major_version).await {
+            match vendor.resolve(major_version, arch).await {
                 Ok(pkg) => return Ok(pkg),
                 Err(e) => {
                     log::warn!("JRE provider {} failed: {}", vendor.name(), e);
@@ -65,13 +75,63 @@ fn current_os() -> &'static str {
     }
 }
 
-fn current_arch() -> &'static str {
+pub fn current_arch() -> &'static str {
     if cfg!(target_arch = "x86_64") {
         "x64"
     } else if cfg!(target_arch = "aarch64") {
         "arm64"
     } else {
         "x64"
+    }
+}
+
+/// Arquitectura de JRE a pedir para esta versión de Minecraft. Normalmente
+/// es `current_arch()` — pero Mojang nunca publicó natives arm64 de LWJGL
+/// para Minecraft viejo (anterior a 1.19): en Mac Apple Silicon, un Java
+/// arm64 nativo no puede cargar esos `.dylib` x86_64 y el juego cierra con
+/// "[LWJGL] Failed to load a library" / exit 255. Para esos casos forzamos
+/// Java x64, que corre vía Rosetta y sí encuentra sus natives.
+pub fn required_arch_for_mc(mc_version: &str) -> &'static str {
+    if cfg!(target_os = "macos") && current_arch() == "arm64" && lacks_arm64_natives(mc_version) {
+        "x64"
+    } else {
+        current_arch()
+    }
+}
+
+/// Separado de `required_arch_for_mc` para poder probarlo sin depender del
+/// `cfg!` de plataforma (el runner de CI que corre tests no es macOS).
+fn lacks_arm64_natives(mc_version: &str) -> bool {
+    matches!(
+        zellkern::parse_version(mc_version),
+        Some(v) if v.major == 1 && v.minor < 19
+    )
+}
+
+#[cfg(test)]
+mod required_arch_tests {
+    use super::lacks_arm64_natives;
+
+    #[test]
+    fn minecraft_viejo_no_tiene_natives_arm64() {
+        assert!(lacks_arm64_natives("1.18.2"));
+        assert!(lacks_arm64_natives("1.12.2"));
+    }
+
+    #[test]
+    fn minecraft_1_19_en_adelante_si_tiene_natives_arm64() {
+        assert!(!lacks_arm64_natives("1.19"));
+        assert!(!lacks_arm64_natives("1.21.4"));
+    }
+
+    #[test]
+    fn versionado_por_año_siempre_tiene_natives_arm64() {
+        assert!(!lacks_arm64_natives("26.2"));
+    }
+
+    #[test]
+    fn version_no_parseable_no_fuerza_x64() {
+        assert!(!lacks_arm64_natives("snapshot-raro"));
     }
 }
 
