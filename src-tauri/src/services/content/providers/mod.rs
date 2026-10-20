@@ -30,21 +30,70 @@
 //!   best-effort para el servicio: un error ahí degrada a "sin resolver",
 //!   no aborta la operación.
 
-use super::types::{ContentKind, ContentProject, ContentSearchHit, ContentVersion};
+use super::types::{
+    ContentProject, ContentProjectDetail, ContentSearchPage, ContentVersion, SearchIndex,
+};
 use std::collections::HashMap;
 use std::future::Future;
 
 pub mod modrinth;
+
+/// Tipo de proyecto para armar una búsqueda contra el proveedor — a
+/// diferencia de `ContentKind` (que es sobre INSTALAR, ver ese tipo), esto
+/// solo describe cómo pedirle resultados al proveedor. Tiene una variante
+/// más (`Modpack`) porque los modpacks se buscan igual que el resto pero
+/// se instalan con un motor completamente distinto (`cubrinth::mrpack`),
+/// nunca a través de `ContentKind`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProjectType {
+    Mod,
+    Shader,
+    ResourcePack,
+    Plugin,
+    Modpack,
+}
+
+impl ProjectType {
+    /// `project_type` de Modrinth para este tipo.
+    pub fn as_modrinth_param(self) -> &'static str {
+        match self {
+            ProjectType::Mod => "mod",
+            ProjectType::Shader => "shader",
+            ProjectType::ResourcePack => "resourcepack",
+            ProjectType::Plugin => "plugin",
+            ProjectType::Modpack => "modpack",
+        }
+    }
+
+    /// Los shaders y resource packs no se filtran por mod loader
+    /// (Fabric/Forge/…) en Modrinth — son compatibles con vanilla o vía un
+    /// mod aparte (Iris/OptiFine para shaders), no por loader propio.
+    /// Filtrar por loader ahí no tendría sentido y dejaría la búsqueda
+    /// vacía. Los plugins sí filtran, pero por software de SERVIDOR
+    /// (paper/purpur/spigot/bukkit) en el mismo parámetro `loader` — es el
+    /// mismo facet `categories:x` de Modrinth, solo cambia qué valor
+    /// llega ahí desde el frontend. Los modpacks también filtran, por el
+    /// loader real de la instancia (igual que los mods).
+    pub fn filters_by_loader(self) -> bool {
+        matches!(
+            self,
+            ProjectType::Mod | ProjectType::Plugin | ProjectType::Modpack
+        )
+    }
+}
 
 /// Parámetros de una búsqueda ya normalizados.
 pub struct SearchQuery<'a> {
     pub query: &'a str,
     pub mc_version: &'a str,
     /// `Some` solo si el tipo de contenido se filtra por loader (ver
-    /// `ContentKind::filters_by_loader`).
+    /// `ProjectType::filters_by_loader`).
     pub loader: Option<&'a str>,
     pub categories: &'a [String],
-    pub kind: ContentKind,
+    pub project_type: ProjectType,
+    pub offset: u32,
+    pub limit: u32,
+    pub index: SearchIndex,
 }
 
 /// Operaciones que los servicios necesitan de un proveedor. Los futuros son
@@ -53,7 +102,13 @@ pub trait ContentProvider: Send + Sync {
     fn search(
         &self,
         query: &SearchQuery<'_>,
-    ) -> impl Future<Output = Result<Vec<ContentSearchHit>, String>> + Send;
+    ) -> impl Future<Output = Result<ContentSearchPage, String>> + Send;
+
+    /// Ficha completa de UN proyecto — a demanda (no durante la búsqueda).
+    fn project_detail(
+        &self,
+        project_id: &str,
+    ) -> impl Future<Output = Result<ContentProjectDetail, String>> + Send;
 
     /// Versiones de un proyecto compatibles con `mc_version` (y con `loader`
     /// si viene), la más nueva primero.

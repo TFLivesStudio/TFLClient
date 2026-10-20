@@ -4,8 +4,8 @@
 use super::{ContentProvider, SearchQuery};
 use crate::core::{get_json_retrying, post_json_retrying};
 use crate::services::content::types::{
-    ContentDependency, ContentFile, ContentKind, ContentProject, ContentSearchHit, ContentVersion,
-    DependencyKind,
+    ContentDependency, ContentFile, ContentGalleryImage, ContentProject, ContentProjectDetail,
+    ContentSearchHit, ContentSearchPage, ContentVersion, DependencyKind,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,20 +15,13 @@ const MODRINTH_API: &str = "https://api.modrinth.com/v2";
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ModrinthProvider;
 
-/// `project_type` de Modrinth para cada tipo de contenido.
-fn project_type(kind: ContentKind) -> &'static str {
-    match kind {
-        ContentKind::Mod => "mod",
-        ContentKind::Shader => "shader",
-        ContentKind::ResourcePack => "resourcepack",
-        ContentKind::Plugin => "plugin",
-    }
-}
-
 /// Facets de la búsqueda: grupos que se combinan con AND entre sí, y con OR
 /// adentro de cada grupo.
 fn search_facets(q: &SearchQuery<'_>) -> String {
-    let mut facet_groups = vec![format!(r#"["project_type:{}"]"#, project_type(q.kind))];
+    let mut facet_groups = vec![format!(
+        r#"["project_type:{}"]"#,
+        q.project_type.as_modrinth_param()
+    )];
     if let Some(loader) = q.loader {
         facet_groups.push(format!(r#"["categories:{}"]"#, loader.to_lowercase()));
     }
@@ -53,6 +46,7 @@ fn search_facets(q: &SearchQuery<'_>) -> String {
 #[derive(Debug, Deserialize)]
 struct SearchResponse {
     hits: Vec<RawHit>,
+    total_hits: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -116,6 +110,81 @@ struct RawProject {
 #[derive(Debug, Deserialize)]
 struct ProjectDependenciesResponse {
     projects: Vec<RawDependencyProject>,
+}
+
+/// `GET /project/{id}` — campos verificados contra la API real (no todos
+/// los que documenta Modrinth, solo los que pide la ficha de detalle). No
+/// trae autor: ese endpoint solo da un `team` id, no un nombre — ver
+/// `ContentProjectDetail`.
+#[derive(Debug, Deserialize)]
+struct RawProjectDetail {
+    id: String,
+    title: String,
+    icon_url: Option<String>,
+    description: String,
+    #[serde(default)]
+    body: String,
+    #[serde(default)]
+    categories: Vec<String>,
+    #[serde(default)]
+    game_versions: Vec<String>,
+    #[serde(default)]
+    loaders: Vec<String>,
+    downloads: u64,
+    followers: u64,
+    published: String,
+    updated: String,
+    #[serde(default)]
+    source_url: Option<String>,
+    #[serde(default)]
+    wiki_url: Option<String>,
+    #[serde(default)]
+    discord_url: Option<String>,
+    #[serde(default)]
+    issues_url: Option<String>,
+    #[serde(default)]
+    gallery: Vec<RawGalleryImage>,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawGalleryImage {
+    url: String,
+    #[serde(default)]
+    title: Option<String>,
+    #[serde(default)]
+    featured: bool,
+}
+
+impl From<RawProjectDetail> for ContentProjectDetail {
+    fn from(p: RawProjectDetail) -> Self {
+        ContentProjectDetail {
+            project_id: p.id,
+            title: p.title,
+            icon_url: p.icon_url,
+            description: p.description,
+            body: p.body,
+            categories: p.categories,
+            game_versions: p.game_versions,
+            loaders: p.loaders,
+            downloads: p.downloads,
+            followers: p.followers,
+            published: p.published,
+            updated: p.updated,
+            source_url: p.source_url,
+            wiki_url: p.wiki_url,
+            discord_url: p.discord_url,
+            issues_url: p.issues_url,
+            gallery: p
+                .gallery
+                .into_iter()
+                .map(|g| ContentGalleryImage {
+                    url: g.url,
+                    title: g.title,
+                    featured: g.featured,
+                })
+                .collect(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -193,27 +262,41 @@ fn into_versions_by_hash(raw: HashMap<String, RawVersion>) -> HashMap<String, Co
 }
 
 impl ContentProvider for ModrinthProvider {
-    async fn search(&self, q: &SearchQuery<'_>) -> Result<Vec<ContentSearchHit>, String> {
+    async fn search(&self, q: &SearchQuery<'_>) -> Result<ContentSearchPage, String> {
         let facets = search_facets(q);
         let url = format!(
-            "{MODRINTH_API}/search?query={}&facets={}",
+            "{MODRINTH_API}/search?query={}&facets={}&limit={}&offset={}&index={}",
             urlencoding::encode(q.query),
-            urlencoding::encode(&facets)
+            urlencoding::encode(&facets),
+            q.limit,
+            q.offset,
+            q.index.as_modrinth_param()
         );
         let resp: SearchResponse = get_json_retrying(&url).await?;
 
-        Ok(resp
-            .hits
-            .into_iter()
-            .map(|h| ContentSearchHit {
-                project_id: h.project_id,
-                title: h.title,
-                description: h.description,
-                icon_url: h.icon_url,
-                downloads: h.downloads,
-                author: h.author,
-            })
-            .collect())
+        Ok(ContentSearchPage {
+            hits: resp
+                .hits
+                .into_iter()
+                .map(|h| ContentSearchHit {
+                    project_id: h.project_id,
+                    title: h.title,
+                    description: h.description,
+                    icon_url: h.icon_url,
+                    downloads: h.downloads,
+                    author: h.author,
+                })
+                .collect(),
+            total_hits: resp.total_hits,
+            offset: q.offset,
+            limit: q.limit,
+        })
+    }
+
+    async fn project_detail(&self, project_id: &str) -> Result<ContentProjectDetail, String> {
+        let raw: RawProjectDetail =
+            get_json_retrying(&format!("{MODRINTH_API}/project/{project_id}")).await?;
+        Ok(raw.into())
     }
 
     async fn list_versions(
@@ -315,6 +398,8 @@ impl ContentProvider for ModrinthProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::services::content::providers::ProjectType;
+    use crate::services::content::types::SearchIndex;
 
     const SAMPLE_VERSION: &str = r#"{
         "id": "ver1",
@@ -404,7 +489,10 @@ mod tests {
             mc_version: "1.21.1",
             loader: Some("Fabric"),
             categories: &cats,
-            kind: ContentKind::Mod,
+            project_type: ProjectType::Mod,
+            offset: 0,
+            limit: 20,
+            index: SearchIndex::Relevance,
         };
         assert_eq!(
             search_facets(&q),
@@ -416,11 +504,112 @@ mod tests {
             mc_version: "1.21.1",
             loader: None,
             categories: &[],
-            kind: ContentKind::Shader,
+            project_type: ProjectType::Shader,
+            offset: 20,
+            limit: 20,
+            index: SearchIndex::Downloads,
         };
         assert_eq!(
             search_facets(&q),
             r#"[["project_type:shader"],["versions:1.21.1"]]"#
         );
+    }
+
+    #[test]
+    fn project_type_as_modrinth_param_matches_each_variant() {
+        assert_eq!(ProjectType::Mod.as_modrinth_param(), "mod");
+        assert_eq!(ProjectType::Shader.as_modrinth_param(), "shader");
+        assert_eq!(
+            ProjectType::ResourcePack.as_modrinth_param(),
+            "resourcepack"
+        );
+        assert_eq!(ProjectType::Plugin.as_modrinth_param(), "plugin");
+        assert_eq!(ProjectType::Modpack.as_modrinth_param(), "modpack");
+    }
+
+    #[test]
+    fn filters_by_loader_includes_mod_plugin_and_modpack_only() {
+        assert!(ProjectType::Mod.filters_by_loader());
+        assert!(ProjectType::Plugin.filters_by_loader());
+        assert!(ProjectType::Modpack.filters_by_loader());
+        assert!(!ProjectType::Shader.filters_by_loader());
+        assert!(!ProjectType::ResourcePack.filters_by_loader());
+    }
+
+    #[test]
+    fn search_index_try_from_accepts_every_supported_value() {
+        assert_eq!(
+            SearchIndex::try_from("relevance").unwrap(),
+            SearchIndex::Relevance
+        );
+        assert_eq!(
+            SearchIndex::try_from("downloads").unwrap(),
+            SearchIndex::Downloads
+        );
+        assert_eq!(
+            SearchIndex::try_from("follows").unwrap(),
+            SearchIndex::Follows
+        );
+        assert_eq!(
+            SearchIndex::try_from("newest").unwrap(),
+            SearchIndex::Newest
+        );
+        assert_eq!(
+            SearchIndex::try_from("updated").unwrap(),
+            SearchIndex::Updated
+        );
+    }
+
+    #[test]
+    fn search_index_try_from_rejects_unsupported_values() {
+        assert!(SearchIndex::try_from("trending").is_err());
+        assert!(SearchIndex::try_from("").is_err());
+    }
+
+    const SAMPLE_PROJECT_DETAIL: &str = r##"{
+        "id": "AANobbMI",
+        "title": "Sodium",
+        "icon_url": "https://cdn.modrinth.com/data/AANobbMI/icon.webp",
+        "description": "Rendering engine replacement",
+        "body": "# Sodium\nSome *markdown* body.",
+        "categories": ["optimization"],
+        "game_versions": ["1.21.1", "1.21.2"],
+        "loaders": ["fabric", "neoforge", "quilt"],
+        "downloads": 250361799,
+        "followers": 41983,
+        "published": "2021-01-03T00:53:34.185936Z",
+        "updated": "2026-10-15T17:51:44.107526Z",
+        "source_url": "https://github.com/CaffeineMC/sodium",
+        "wiki_url": "https://github.com/CaffeineMC/sodium/wiki",
+        "discord_url": "https://caffeinemc.net/discord",
+        "issues_url": "https://github.com/CaffeineMC/sodium/issues",
+        "gallery": [
+            {"url": "https://cdn.modrinth.com/img1.webp", "title": "Lighting", "featured": true}
+        ]
+    }"##;
+
+    #[test]
+    fn project_detail_json_maps_to_normalized_type() {
+        let raw: RawProjectDetail = serde_json::from_str(SAMPLE_PROJECT_DETAIL).unwrap();
+        let detail: ContentProjectDetail = raw.into();
+        assert_eq!(detail.project_id, "AANobbMI");
+        assert_eq!(detail.title, "Sodium");
+        assert_eq!(detail.loaders, vec!["fabric", "neoforge", "quilt"]);
+        assert_eq!(detail.gallery.len(), 1);
+        assert_eq!(detail.gallery[0].title.as_deref(), Some("Lighting"));
+        assert!(detail.gallery[0].featured);
+    }
+
+    #[test]
+    fn project_detail_json_tolerates_missing_optional_fields() {
+        let raw: RawProjectDetail = serde_json::from_str(
+            r#"{"id":"p","title":"t","icon_url":null,"description":"d","downloads":0,"followers":0,"published":"","updated":""}"#,
+        )
+        .unwrap();
+        let detail: ContentProjectDetail = raw.into();
+        assert_eq!(detail.body, "");
+        assert_eq!(detail.categories, Vec::<String>::new());
+        assert_eq!(detail.gallery.len(), 0);
+        assert_eq!(detail.source_url, None);
     }
 }

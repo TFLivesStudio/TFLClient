@@ -24,6 +24,7 @@ pub mod filesystem;
 pub mod install;
 pub mod installed;
 pub mod local_files;
+pub mod project_cache;
 pub mod providers;
 pub mod rollback;
 pub mod search;
