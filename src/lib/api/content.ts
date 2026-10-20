@@ -2,20 +2,39 @@
 import { invoke } from './invoke';
 import type {
 	Loader,
-	ModSearchHit,
 	InstalledModInfo,
 	ModUpdateAvailable,
 	ModVersionSummary,
 	ServerType,
-	ModRollbackInfo
+	ModRollbackInfo,
+	ContentSearchPage,
+	ContentProjectDetail,
+	SortIndex
 } from '$lib/types/types';
+
+/** Página por defecto del explorador — ~20 resultados, pedido explícito. */
+export const DEFAULT_PAGE_SIZE = 20;
 
 export const searchMods = (
 	query: string,
 	mcVersion: string,
 	loader: Loader,
-	categories: string[] = []
-) => invoke<ModSearchHit[]>('search_mods', { query, mcVersion, loader, categories });
+	categories: string[] = [],
+	offset = 0,
+	limit = DEFAULT_PAGE_SIZE,
+	index: SortIndex = 'relevance'
+) =>
+	invoke<ContentSearchPage>('search_mods', {
+		query,
+		mcVersion,
+		loader,
+		categories,
+		offset,
+		limit,
+		index
+	});
+export const getModProjectDetail = (projectId: string) =>
+	invoke<ContentProjectDetail>('get_mod_project_detail', { projectId });
 export const installMod = (
 	instanceName: string,
 	projectId: string,
@@ -58,8 +77,24 @@ export const discardModRollback = (instanceName: string) =>
 	invoke<void>('discard_mod_rollback', { instanceName });
 export const getModVersions = (projectId: string, mcVersion: string, loader: Loader) =>
 	invoke<ModVersionSummary[]>('get_mod_versions', { projectId, mcVersion, loader });
-export const searchShaders = (query: string, mcVersion: string, categories: string[] = []) =>
-	invoke<ModSearchHit[]>('search_shaders', { query, mcVersion, categories });
+export const searchShaders = (
+	query: string,
+	mcVersion: string,
+	categories: string[] = [],
+	offset = 0,
+	limit = DEFAULT_PAGE_SIZE,
+	index: SortIndex = 'relevance'
+) =>
+	invoke<ContentSearchPage>('search_shaders', {
+		query,
+		mcVersion,
+		categories,
+		offset,
+		limit,
+		index
+	});
+export const getShaderProjectDetail = (projectId: string) =>
+	invoke<ContentProjectDetail>('get_shader_project_detail', { projectId });
 export const installShader = (
 	instanceName: string,
 	projectId: string,
@@ -80,8 +115,24 @@ export const getInstalledShadersInfo = (instanceName: string) =>
 	invoke<InstalledModInfo[]>('get_installed_shaders_info', { instanceName });
 export const getShaderVersions = (projectId: string, mcVersion: string) =>
 	invoke<ModVersionSummary[]>('get_shader_versions', { projectId, mcVersion });
-export const searchResourcepacks = (query: string, mcVersion: string, categories: string[] = []) =>
-	invoke<ModSearchHit[]>('search_resourcepacks', { query, mcVersion, categories });
+export const searchResourcepacks = (
+	query: string,
+	mcVersion: string,
+	categories: string[] = [],
+	offset = 0,
+	limit = DEFAULT_PAGE_SIZE,
+	index: SortIndex = 'relevance'
+) =>
+	invoke<ContentSearchPage>('search_resourcepacks', {
+		query,
+		mcVersion,
+		categories,
+		offset,
+		limit,
+		index
+	});
+export const getResourcepackProjectDetail = (projectId: string) =>
+	invoke<ContentProjectDetail>('get_resourcepack_project_detail', { projectId });
 export const installResourcepack = (
 	instanceName: string,
 	projectId: string,
@@ -106,8 +157,22 @@ export const searchPlugins = (
 	query: string,
 	mcVersion: string,
 	serverType: ServerType,
-	categories: string[] = []
-) => invoke<ModSearchHit[]>('search_plugins', { query, mcVersion, serverType, categories });
+	categories: string[] = [],
+	offset = 0,
+	limit = DEFAULT_PAGE_SIZE,
+	index: SortIndex = 'relevance'
+) =>
+	invoke<ContentSearchPage>('search_plugins', {
+		query,
+		mcVersion,
+		serverType,
+		categories,
+		offset,
+		limit,
+		index
+	});
+export const getPluginProjectDetail = (projectId: string) =>
+	invoke<ContentProjectDetail>('get_plugin_project_detail', { projectId });
 export const installPlugin = (
 	instanceName: string,
 	projectId: string,
@@ -138,3 +203,8 @@ export const addLocalShaderFiles = (instanceName: string, paths: string[]) =>
 	invoke<number>('add_local_shader_files', { instanceName, paths });
 export const addLocalResourcepackFiles = (instanceName: string, paths: string[]) =>
 	invoke<number>('add_local_resourcepack_files', { instanceName, paths });
+
+/** Links de la ficha de proyecto (Modrinth, repo, wiki, Discord, issues) —
+ * siempre en el navegador externo, nunca dentro del launcher. */
+export const openContentProjectLink = (url: string) =>
+	invoke<void>('open_content_project_link', { url });
