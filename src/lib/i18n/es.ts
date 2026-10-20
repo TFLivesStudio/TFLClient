@@ -7,7 +7,8 @@ export const es = {
 		back: 'Volver',
 		continue: 'Continuar',
 		copy: 'Copiar',
-		copied: 'Copiado'
+		copied: 'Copiado',
+		install: 'Instalar'
 	},
 	// Namespace de los componentes compartidos de src/lib/components/ui/
 	// (Entrega A — Visual Foundation). Textos propios de un primitivo
@@ -345,7 +346,18 @@ export const es = {
 		disabledTag: 'desactivado',
 		rollbackButton: 'Deshacer última actualización ({{count}})',
 		rollbackHint: 'Devuelve los mods a la versión que tenían antes de "Actualizar todos".',
-		rolledBack: '{{count}} mods volvieron a su versión anterior.'
+		rolledBack: '{{count}} mods volvieron a su versión anterior.',
+		exploreWide: 'Explorar en vista amplia',
+		viewDetail: 'Ver ficha completa',
+		backToResults: 'Volver a los resultados',
+		errorNetwork: 'No se pudo conectar con Modrinth — revisá tu conexión.',
+		errorTimeout: 'Modrinth tardó demasiado en responder.',
+		errorInvalid: 'Modrinth devolvió algo que no se pudo leer.',
+		errorProviderDown: 'Modrinth no responde en este momento.',
+		errorRateLimited: 'Demasiadas solicitudes — esperá un momento y volvé a intentar.',
+		retry: 'Reintentar',
+		noResults: 'Sin resultados para esta búsqueda.',
+		clearCategories: 'Limpiar filtros'
 	},
 	instanceDetail: {
 		playTimeHours: '{{h}} h {{m}} min jugadas',
@@ -488,7 +500,51 @@ export const es = {
 			'Vanilla no soporta modpacks — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.',
 		hint: 'Instalar un modpack agrega sus mods y configuración a esta instancia — no reemplaza lo que ya tenías. Quitarlo borra exactamente lo que trajo, nada más.',
 		installedCount: 'Instalados ({{count}})',
-		update: 'Actualizar'
+		update: 'Actualizar',
+		overwriteWarningTitle: 'Ya hay un modpack instalado',
+		overwriteWarningMessage:
+			'Esta instancia ya tiene un modpack instalado. Instalar otro puede sobrescribir archivos de configuración compartidos. ¿Continuar?',
+		overwriteWarningConfirm: 'Instalar igual'
+	},
+	pagination: {
+		showing: 'Mostrando {{start}}–{{end}} de {{total}} resultados',
+		prev: 'Anterior',
+		next: 'Siguiente',
+		pageOf: 'Página {{page}} de {{totalPages}}'
+	},
+	sort: {
+		label: 'Ordenar por',
+		relevance: 'Relevancia',
+		downloads: 'Más descargados',
+		follows: 'Más seguidos',
+		newest: 'Más recientes',
+		updated: 'Actualizados recientemente'
+	},
+	contentExplorer: {
+		title: 'Explorando {{noun}} para {{instance}}',
+		subtitle: '{{mcVersion}} · {{loader}}',
+		back: 'Volver a la instancia',
+		filters: 'Filtros',
+		compatibilityAdvanced: 'Ver contenido de otras versiones',
+		compatibilityAdvancedHint:
+			'Solo para explorar — si instalás algo que no es compatible con esta instancia, el launcher te avisa antes.',
+		incompatibleWithInstance: 'No compatible con esta instancia'
+	},
+	projectDetail: {
+		downloads: '{{count}} descargas',
+		followers: '{{count}} seguidores',
+		updated: 'Actualizado: {{date}}',
+		published: 'Publicado: {{date}}',
+		versions: 'Versiones',
+		changelog: 'Novedades',
+		gallery: 'Galería',
+		links: 'Enlaces',
+		sourceLink: 'Código fuente',
+		wikiLink: 'Wiki',
+		discordLink: 'Discord',
+		issuesLink: 'Reportar un problema',
+		openOnModrinth: 'Ver en Modrinth',
+		loadFailed: 'No se pudo cargar la ficha del proyecto.'
 	},
 	shadersPanel: {
 		qualityLabel: 'Calidad gráfica (rápido)',
