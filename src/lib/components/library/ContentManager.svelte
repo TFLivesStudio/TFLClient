@@ -1,16 +1,12 @@
 <script lang="ts">
 	import type {
 		InstanceData,
-		ModSearchHit,
 		InstalledModInfo,
 		ModUpdateAvailable,
-		ModVersionSummary,
 		ModRollbackInfo
 	} from '$lib/types/types';
 	import { appState } from '$lib/state/state.svelte';
 	import {
-		searchMods,
-		installMod,
 		getInstalledModsInfo,
 		checkModUpdates,
 		updateAllMods,
@@ -22,22 +18,12 @@
 		getModRollbackInfo,
 		rollbackModUpdate,
 		removeMod,
-		getModVersions,
-		searchShaders,
-		installShader,
 		getInstalledShadersInfo,
 		removeShader,
-		getShaderVersions,
-		searchResourcepacks,
-		installResourcepack,
 		getInstalledResourcepacksInfo,
 		removeResourcepack,
-		getResourcepackVersions,
-		searchPlugins,
-		installPlugin,
 		getInstalledPluginsInfo,
 		removePlugin,
-		getPluginVersions,
 		pickContentFiles,
 		addLocalModFiles,
 		addLocalShaderFiles,
@@ -45,6 +31,8 @@
 		addLocalPluginFiles
 	} from '$lib/api';
 	import { favoriteMods, isFavoriteMod, toggleFavoriteMod } from '$lib/state/modFavorites.svelte';
+	import { createContentExplorer, errorMessageKey } from '$lib/state/contentExplorer.svelte';
+	import { openContentExplorer } from '$lib/state/uiState.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import {
 		Search,
@@ -53,15 +41,19 @@
 		Loader2,
 		RefreshCw,
 		AlertTriangle,
-		Star,
 		FileText,
 		Upload,
 		Check,
 		ChevronDown,
 		Power,
 		Undo2,
-		Eraser
+		Eraser,
+		Maximize2
 	} from 'lucide-svelte';
+	import Pagination from '$lib/components/ui/Pagination.svelte';
+	import SortSelect from '$lib/components/ui/SortSelect.svelte';
+	import ContentResultRow from './ContentResultRow.svelte';
+	import ProjectDetailView from './ProjectDetailView.svelte';
 
 	type Kind = 'mod' | 'shader' | 'resourcepack' | 'plugin';
 
@@ -189,33 +181,6 @@
 		plugin: 'plugin'
 	};
 
-	// Plugins filtran por software de servidor (paper/purpur) en vez de
-	// loader de cliente — "vanilla" no soporta plugins en absoluto
-	// (ContentManager ni se monta para ese caso, ver PluginsPanel.svelte).
-	const serverTypeForPlugins = $derived(instance.server_type ?? 'paper');
-
-	function apiSearch(q: string, categories: string[]) {
-		if (kind === 'mod') return searchMods(q, instance.mc_version, instance.loader, categories);
-		if (kind === 'shader') return searchShaders(q, instance.mc_version, categories);
-		if (kind === 'plugin')
-			return searchPlugins(q, instance.mc_version, serverTypeForPlugins, categories);
-		return searchResourcepacks(q, instance.mc_version, categories);
-	}
-	function apiInstall(projectId: string, versionId?: string) {
-		if (kind === 'mod')
-			return installMod(instance.name, projectId, instance.mc_version, instance.loader, versionId);
-		if (kind === 'shader')
-			return installShader(instance.name, projectId, instance.mc_version, versionId);
-		if (kind === 'plugin')
-			return installPlugin(
-				instance.name,
-				projectId,
-				instance.mc_version,
-				serverTypeForPlugins,
-				versionId
-			);
-		return installResourcepack(instance.name, projectId, instance.mc_version, versionId);
-	}
 	function apiInstalledInfo() {
 		if (kind === 'mod') return getInstalledModsInfo(instance.name);
 		if (kind === 'shader') return getInstalledShadersInfo(instance.name);
@@ -227,13 +192,6 @@
 		if (kind === 'shader') return removeShader(instance.name, filename);
 		if (kind === 'plugin') return removePlugin(instance.name, filename);
 		return removeResourcepack(instance.name, filename);
-	}
-	function apiVersions(projectId: string) {
-		if (kind === 'mod') return getModVersions(projectId, instance.mc_version, instance.loader);
-		if (kind === 'shader') return getShaderVersions(projectId, instance.mc_version);
-		if (kind === 'plugin')
-			return getPluginVersions(projectId, instance.mc_version, serverTypeForPlugins);
-		return getResourcepackVersions(projectId, instance.mc_version);
 	}
 	function apiAddLocal(paths: string[]) {
 		if (kind === 'mod') return addLocalModFiles(instance.name, paths);
@@ -504,15 +462,11 @@
 	}
 
 	// ── Descargar ──────────────────────────────────────────────────────
-	let query = $state('');
-	let selectedCategories = $state<Set<string>>(new Set());
-	let results = $state<ModSearchHit[]>([]);
-	let searching = $state(false);
-	let installingId = $state<string | null>(null);
-	let downloadError = $state<string | null>(null);
-	let openVersionsFor = $state<string | null>(null);
-	let versionOptions = $state<ModVersionSummary[]>([]);
-	let loadingVersions = $state(false);
+	// Búsqueda/paginación/orden/instalación vive en el composable
+	// compartido (ver contentExplorer.svelte.ts) — la vista amplia
+	// (ContentExplorerView.svelte) usa exactamente el mismo, así no hay
+	// dos implementaciones de la misma lógica de búsqueda.
+	const explorer = createContentExplorer(() => ({ instance, kind }));
 	let categoriesOpen = $state(false);
 	let categoryDropdownEl = $state<HTMLDivElement | undefined>(undefined);
 
@@ -536,77 +490,22 @@
 		return words.map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
 	}
 
-	let searchToken = 0;
-	async function runSearch() {
-		const token = ++searchToken;
-		searching = true;
-		downloadError = null;
-		try {
-			const hits = await apiSearch(query, [...selectedCategories]);
-			if (token === searchToken) results = hits;
-		} catch (e) {
-			if (token === searchToken) downloadError = String(e);
-		} finally {
-			if (token === searchToken) searching = false;
-		}
-	}
-
-	// A diferencia de una búsqueda con texto, acá se dispara igual con
-	// query vacío — es lo que trae el listado por defecto (populares) al
-	// entrar a la pestaña, sin que el usuario tenga que escribir nada.
-	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+	// Solo busca mientras la pestaña Descargar está abierta (no gasta red
+	// de fondo si el usuario nunca la abre) — se dispara igual con query
+	// vacío, es lo que trae el listado "populares" por defecto.
 	$effect(() => {
 		if (subtab !== 'download') return;
-		void query;
-		void selectedCategories;
-		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(runSearch, 300);
-		return () => clearTimeout(debounceTimer);
+		void instance.name;
+		void kind;
+		explorer.resetForNewContext();
 	});
-
-	function toggleCategory(cat: string) {
-		const next = new Set(selectedCategories);
-		if (next.has(cat)) next.delete(cat);
-		else next.add(cat);
-		selectedCategories = next;
-	}
 
 	const installedProjectIds = $derived(
 		new Set(installed.map((i) => i.project_id).filter((p): p is string => !!p))
 	);
 
 	async function handleInstall(projectId: string, versionId?: string) {
-		installingId = projectId;
-		downloadError = null;
-		try {
-			await apiInstall(projectId, versionId);
-			await refreshInstalled();
-			openVersionsFor = null;
-		} catch (e) {
-			downloadError = String(e);
-		} finally {
-			installingId = null;
-		}
-	}
-
-	let versionsToken = 0;
-	async function toggleVersions(projectId: string) {
-		if (openVersionsFor === projectId) {
-			openVersionsFor = null;
-			return;
-		}
-		openVersionsFor = projectId;
-		versionOptions = [];
-		loadingVersions = true;
-		const token = ++versionsToken;
-		try {
-			const options = await apiVersions(projectId);
-			if (token === versionsToken) versionOptions = options;
-		} catch {
-			if (token === versionsToken) versionOptions = [];
-		} finally {
-			if (token === versionsToken) loadingVersions = false;
-		}
+		await explorer.install(projectId, versionId, refreshInstalled);
 	}
 </script>
 
@@ -827,53 +726,101 @@
 				{/each}
 			</div>
 		{/if}
+	{:else if explorer.detailProjectId}
+		<ProjectDetailView
+			{kind}
+			projectId={explorer.detailProjectId}
+			hit={explorer.detailHit}
+			detail={explorer.detail}
+			loading={explorer.detailLoading}
+			error={explorer.detailError}
+			onBack={() => explorer.closeDetail()}
+			onInstall={(versionId) => handleInstall(explorer.detailProjectId!, versionId)}
+			installing={explorer.installingId === explorer.detailProjectId}
+			installed={installedProjectIds.has(explorer.detailProjectId)}
+			loadVersions={(id) => explorer.getVersionsFor(id)}
+		/>
 	{:else}
-		<div class="category-dropdown" bind:this={categoryDropdownEl}>
+		<div class="download-toolbar">
+			<div class="category-dropdown" bind:this={categoryDropdownEl}>
+				<button
+					type="button"
+					class="category-trigger"
+					class:active={explorer.selectedCategories.size > 0}
+					onclick={() => (categoriesOpen = !categoriesOpen)}
+				>
+					{t('contentManager.categories')}{explorer.selectedCategories.size > 0
+						? ` (${explorer.selectedCategories.size})`
+						: ''}
+					<ChevronDown size={13} />
+				</button>
+				{#if categoriesOpen}
+					<div class="category-panel">
+						{#each CATEGORIES[kind] as cat (cat)}
+							<button
+								type="button"
+								class="category-option"
+								class:active={explorer.selectedCategories.has(cat)}
+								onclick={() => explorer.toggleCategory(cat)}
+							>
+								{#if explorer.selectedCategories.has(cat)}<Check size={12} />{:else}<span
+										class="option-spacer"
+									></span>{/if}
+								{categoryLabel(cat)}
+							</button>
+						{/each}
+						{#if explorer.selectedCategories.size > 0}
+							<button
+								type="button"
+								class="category-option clear"
+								onclick={() => explorer.clearCategories()}
+							>
+								{t('contentManager.clearCategories')}
+							</button>
+						{/if}
+					</div>
+				{/if}
+			</div>
+			<SortSelect
+				value={explorer.sortIndex}
+				hasQuery={explorer.hasQuery}
+				disabled={explorer.loading}
+				onchange={(v) => explorer.setSort(v)}
+			/>
 			<button
 				type="button"
-				class="category-trigger"
-				class:active={selectedCategories.size > 0}
-				onclick={() => (categoriesOpen = !categoriesOpen)}
+				class="explore-wide-btn"
+				onclick={() => openContentExplorer({ instance, kind })}
 			>
-				{t('contentManager.categories')}{selectedCategories.size > 0
-					? ` (${selectedCategories.size})`
-					: ''}
-				<ChevronDown size={13} />
+				<Maximize2 size={13} />
+				{t('contentManager.exploreWide')}
 			</button>
-			{#if categoriesOpen}
-				<div class="category-panel">
-					{#each CATEGORIES[kind] as cat (cat)}
-						<button
-							type="button"
-							class="category-option"
-							class:active={selectedCategories.has(cat)}
-							onclick={() => toggleCategory(cat)}
-						>
-							{#if selectedCategories.has(cat)}<Check size={12} />{:else}<span class="option-spacer"
-								></span>{/if}
-							{categoryLabel(cat)}
-						</button>
-					{/each}
-				</div>
-			{/if}
 		</div>
 
 		<div class="search-row">
-			{#if searching}
+			{#if explorer.loading}
 				<Loader2 size={14} class="spin search-icon" />
 			{:else}
 				<Search size={14} class="search-icon" />
 			{/if}
 			<input
 				type="text"
-				bind:value={query}
+				value={explorer.query}
+				oninput={(e) => explorer.setQuery((e.target as HTMLInputElement).value)}
 				placeholder={t('contentManager.searchPlaceholder', { noun: NOUN[kind] })}
 			/>
 		</div>
 
-		{#if downloadError}<p class="error">{downloadError}</p>{/if}
+		{#if explorer.errorKind}
+			<p class="error">
+				{t(errorMessageKey(explorer.errorKind))}
+				<button type="button" class="retry-btn" onclick={() => explorer.setQuery(explorer.query)}>
+					{t('contentManager.retry')}
+				</button>
+			</p>
+		{/if}
 
-		{#if kind === 'mod' && !query.trim() && favoriteMods.length > 0}
+		{#if kind === 'mod' && !explorer.hasQuery && favoriteMods.length > 0}
 			<div class="results">
 				<span class="section-label">{t('contentManager.favorites')}</span>
 				{#each favoriteMods as mod (mod.projectId)}
@@ -887,95 +834,59 @@
 						<button
 							type="button"
 							class="install-btn"
-							disabled={installingId === mod.projectId}
+							disabled={explorer.installingId === mod.projectId}
 							onclick={() => handleInstall(mod.projectId)}
 						>
-							{#if installingId === mod.projectId}<Loader2 size={14} class="spin" />{:else}<Download
+							{#if explorer.installingId === mod.projectId}<Loader2
 									size={14}
-								/>{/if}
+									class="spin"
+								/>{:else}<Download size={14} />{/if}
 						</button>
 					</div>
 				{/each}
 			</div>
 		{/if}
 
-		<div class="results">
-			{#if results.length > 0}<span class="section-label">{t('contentManager.results')}</span>{/if}
-			{#each results as item (item.project_id)}
-				{@const alreadyInstalled = installedProjectIds.has(item.project_id)}
-				<div class="mod-card anim-fade-in">
-					{#if item.icon_url}<img src={item.icon_url} alt={item.title} />{:else}<div
-							class="mod-icon-fallback"
-						></div>{/if}
-					<div class="mod-info">
-						<span class="mod-title">{item.title}</span>
-						<p class="mod-desc">{item.description}</p>
-					</div>
-					{#if kind === 'mod'}
-						<button
-							type="button"
-							class="favorite-btn"
-							class:active={isFavoriteMod(item.project_id)}
-							onclick={() =>
-								toggleFavoriteMod({
-									projectId: item.project_id,
-									title: item.title,
-									iconUrl: item.icon_url
-								})}
-							aria-label={t('contentManager.favorite')}
-						>
-							<Star size={14} fill={isFavoriteMod(item.project_id) ? 'currentColor' : 'none'} />
-						</button>
-					{/if}
-					<button
-						type="button"
-						class="version-toggle"
-						onclick={() => toggleVersions(item.project_id)}
-						aria-label={t('contentManager.viewVersions')}
-						title={t('contentManager.viewVersions')}
-					>
-						<ChevronDown size={13} />
-					</button>
-					{#if alreadyInstalled}
-						<span class="installed-badge" title={t('contentManager.alreadyInstalled')}
-							><Check size={13} /></span
-						>
-					{:else}
-						<button
-							type="button"
-							class="install-btn"
-							disabled={installingId === item.project_id}
-							onclick={() => handleInstall(item.project_id)}
-						>
-							{#if installingId === item.project_id}<Loader2
-									size={14}
-									class="spin"
-								/>{:else}<Download size={14} />{/if}
-						</button>
-					{/if}
-				</div>
-				{#if openVersionsFor === item.project_id}
-					<div class="version-row">
-						{#if loadingVersions}
-							<Loader2 size={13} class="spin" />
-						{:else if versionOptions.length === 0}
-							<span class="hint">{t('contentManager.noCompatibleVersions')}</span>
-						{:else}
-							{#each versionOptions as v (v.id)}
-								<button
-									type="button"
-									class="version-option"
-									disabled={installingId === item.project_id}
-									onclick={() => handleInstall(item.project_id, v.id)}
-								>
-									{v.version_number || v.name}
-								</button>
-							{/each}
-						{/if}
-					</div>
-				{/if}
-			{/each}
-		</div>
+		{#if !explorer.loading && !explorer.errorKind && explorer.results.length === 0}
+			<p class="hint">{t('contentManager.noResults')}</p>
+		{:else}
+			<div class="results">
+				{#if explorer.results.length > 0}<span class="section-label"
+						>{t('contentManager.results')}</span
+					>{/if}
+				{#each explorer.results as item (item.project_id)}
+					<ContentResultRow
+						{item}
+						installed={installedProjectIds.has(item.project_id)}
+						installing={explorer.installingId === item.project_id}
+						showFavorite={kind === 'mod'}
+						isFavorite={isFavoriteMod(item.project_id)}
+						versionsOpen={explorer.openVersionsFor === item.project_id}
+						versionOptions={explorer.versionOptions}
+						loadingVersions={explorer.loadingVersions}
+						onInstall={(versionId) => handleInstall(item.project_id, versionId)}
+						onToggleFavorite={() =>
+							toggleFavoriteMod({
+								projectId: item.project_id,
+								title: item.title,
+								iconUrl: item.icon_url
+							})}
+						onToggleVersions={() => explorer.toggleVersions(item.project_id)}
+						onOpenDetail={() => explorer.openDetail(item.project_id, item)}
+					/>
+				{/each}
+			</div>
+			{#if explorer.totalHits > explorer.limit}
+				<Pagination
+					offset={explorer.offset}
+					limit={explorer.limit}
+					totalHits={explorer.totalHits}
+					loading={explorer.loading}
+					onPrev={() => explorer.goToPrevPage()}
+					onNext={() => explorer.goToNextPage()}
+				/>
+			{/if}
+		{/if}
 	{/if}
 </div>
 
@@ -1180,39 +1091,6 @@
 		overflow-y: auto;
 	}
 
-	.favorite-btn,
-	.version-toggle {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 30px;
-		height: 30px;
-		flex-shrink: 0;
-		border-radius: var(--border-radius-sm);
-		border: 1px solid var(--border);
-		background: var(--bg-input);
-		color: var(--text-muted);
-		cursor: pointer;
-	}
-
-	.favorite-btn.active {
-		color: #f5c518;
-		border-color: color-mix(in srgb, #f5c518 45%, var(--border));
-	}
-
-	.installed-badge {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		flex-shrink: 0;
-		border-radius: var(--border-radius-sm);
-		border: 1px solid color-mix(in srgb, #22c55e 45%, var(--border));
-		background: color-mix(in srgb, #22c55e 16%, var(--bg-input));
-		color: #22c55e;
-	}
-
 	.installed-row {
 		display: flex;
 		align-items: center;
@@ -1369,6 +1247,60 @@
 		flex-shrink: 0;
 	}
 
+	.category-option.clear {
+		justify-content: center;
+		grid-column: 1 / -1;
+		margin-top: 2px;
+		border-top: 1px solid var(--border);
+		border-radius: 0;
+		color: var(--text-muted);
+		font-weight: 600;
+	}
+
+	.download-toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.download-toolbar :global(.tfl-field) {
+		width: auto;
+		min-width: 160px;
+	}
+
+	.explore-wide-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin-left: auto;
+		padding: 5px 10px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-input);
+		color: var(--text-secondary);
+		font-size: 0.72rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.explore-wide-btn:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.retry-btn {
+		margin-left: 8px;
+		padding: 2px 8px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--color-error);
+		background: transparent;
+		color: var(--color-error);
+		font-size: 0.68rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
 	.search-row {
 		position: relative;
 		display: flex;
@@ -1427,14 +1359,6 @@
 		font-weight: 600;
 	}
 
-	.mod-desc {
-		font-size: 0.7rem;
-		color: var(--text-muted);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
 	.install-btn {
 		display: flex;
 		align-items: center;
@@ -1450,34 +1374,6 @@
 	}
 
 	.install-btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.version-row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 5px;
-		padding: 6px 10px 10px;
-		margin-top: -4px;
-	}
-
-	.version-option {
-		padding: 4px 9px;
-		border-radius: var(--border-radius-sm);
-		border: 1px solid var(--border);
-		background: var(--bg-input);
-		color: var(--text-secondary);
-		font-size: 0.68rem;
-		cursor: pointer;
-	}
-
-	.version-option:hover:not(:disabled) {
-		border-color: var(--accent);
-		color: var(--accent);
-	}
-
-	.version-option:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
 	}
