@@ -219,5 +219,12 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.12.3': [
 		'Arreglado: el código para iniciar sesión con Microsoft no se podía copiar ni pegar con el click derecho. Ahora funciona normal (seguís teniendo también el botón de copiar al lado del código).'
+	],
+	'0.13.0-beta.1': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Rediseño grande de Mods/Shaders/Resource Packs/Plugins/Modpacks → Descargar: ahora es un explorador real del catálogo de Modrinth, no un buscador de 10 resultados. Paginación de verdad (podés avanzar página por página), selector de orden (más descargados/seguidos/recientes/actualizados), y ahora también podés explorar sin escribir nada en la búsqueda.',
+		'Nuevo botón "Explorar en vista amplia" que abre una pantalla grande dentro del launcher (sin ventana nueva) para explorar con más espacio, con filtros y categorías más cómodos.',
+		'Nuevo: ficha completa de cada mod/shader/pack — descripción completa, categorías, versiones, galería de imágenes y links oficiales, sin salir del launcher para instalar.',
+		'Modpacks ahora también deja explorar sin escribir texto, y avisa antes de instalar uno si la instancia ya tiene otro modpack instalado (puede pisar configuración compartida).'
 	]
 };
