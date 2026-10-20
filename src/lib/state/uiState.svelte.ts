@@ -50,6 +50,38 @@ export function closeModal(name: ModalName) {
 	modals[name] = false;
 }
 
+/** Tipo de contenido que el explorador amplio puede mostrar — espejo del
+ * `Kind` de ContentManager.svelte más `'modpack'` (Modpacks no pasa por
+ * ContentManager, pero sí comparte el mismo explorador amplio). */
+export type ContentExplorerKind = 'mod' | 'shader' | 'resourcepack' | 'plugin' | 'modpack';
+
+export interface ContentExplorerParams {
+	instance: InstanceData;
+	kind: ContentExplorerKind;
+}
+
+/** Vista amplia de exploración de contenido — slot APARTE de `modals`
+ * (que es solo booleano por nombre) porque esta vista necesita parámetros
+ * de navegación (qué instancia, qué tipo de contenido). Generalizar
+ * `modals` a parámetros tipados tocaría los 8 modales existentes sin
+ * necesidad; esto es más simple y no les afecta. */
+export const contentExplorer = $state<{
+	open: boolean;
+	params: ContentExplorerParams | null;
+}>({
+	open: false,
+	params: null
+});
+
+export function openContentExplorer(params: ContentExplorerParams) {
+	contentExplorer.params = params;
+	contentExplorer.open = true;
+}
+
+export function closeContentExplorer() {
+	contentExplorer.open = false;
+}
+
 export function openInstanceContextMenu(instance: InstanceData, x: number, y: number) {
 	ui.contextMenu = { x, y, instance };
 }
@@ -69,7 +101,8 @@ export function isCommandPaletteBlocked(): boolean {
 		modals.skinManager ||
 		modals.serverConnectionInfo ||
 		modals.settings ||
-		modals.tflSelection
+		modals.tflSelection ||
+		contentExplorer.open
 	);
 }
 

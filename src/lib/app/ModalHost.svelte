@@ -8,6 +8,7 @@
 	import ServerConnectionInfoModal from '$lib/components/library/ServerConnectionInfoModal.svelte';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 	import TflSelection from '$lib/components/library/TflSelection.svelte';
+	import ContentExplorerView from '$lib/components/library/ContentExplorerView.svelte';
 	import ContextMenu from '$lib/components/ui/ContextMenu.svelte';
 	import { buildInstanceContextMenuItems } from '$lib/app/instanceContextMenu';
 	import { appState } from '$lib/state/state.svelte';
@@ -19,6 +20,8 @@
 	import {
 		closeInstanceContextMenu,
 		closeModal,
+		closeContentExplorer,
+		contentExplorer,
 		modals,
 		openModal,
 		ui
@@ -105,5 +108,13 @@
 		instances={appState.instances}
 		onClose={() => closeModal('tflSelection')}
 		onInstanceCreated={() => refreshInstances()}
+	/>
+{/if}
+
+{#if contentExplorer.open && contentExplorer.params}
+	<ContentExplorerView
+		instance={contentExplorer.params.instance}
+		kind={contentExplorer.params.kind}
+		onClose={closeContentExplorer}
 	/>
 {/if}
