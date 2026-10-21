@@ -250,5 +250,14 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Arreglado: en macOS no se podía elegir un ícono/wallpaper personalizado ni agregar mods/shaders/packs desde archivo — el diálogo nativo se quedaba colgado y nunca abría.',
 		'Arreglado: la pestaña activa en el menú lateral del detalle de instancia (Mods, Shaders, Mundos y backups, etc.) se veía con el borde recortado contra el panel.',
 		'Nuevo: elegí entre gráfica de líneas o circular para CPU/RAM/disco en la consola (configuración de la consola).'
+	],
+	'0.13.1': [
+		'Nuevo explorador de contenido en Mods/Shaders/Resource Packs/Plugins/Modpacks → Descargar: catálogo real de Modrinth con paginación de verdad, orden (descargados/seguidos/recientes/actualizados), exploración sin escribir texto, ficha completa de cada proyecto (descripción, categorías, versiones, galería, links oficiales) y una vista amplia a pantalla completa sin abrir ventanas nuevas.',
+		'Rediseño visual completo: estilos Modern y Pixel con materiales y fondos personalizables, nueva Biblioteca con lista/cuadrícula y favoritos, Home renovada con tu última instancia como protagonista, y detalle de instancia con navegación técnica lateral.',
+		'Ajustes reorganizados por tarea y con búsqueda: General, Apariencia, Minecraft y Java, Cuentas, Consola y Actualizaciones.',
+		'Consola de juego y servidor con gráficas históricas reales de CPU, RAM y disco (elegí entre líneas o circular), niveles de log diferenciados, colores y orden personalizables, sincronizadas entre ventanas.',
+		'Estudio de personaje con cuentas, skins y capas; en Lite la skin es estática por defecto con opción de activar 3D a mano.',
+		'Arreglado: en macOS no se podía elegir un ícono/wallpaper personalizado ni agregar mods/shaders/packs desde archivo — el diálogo nativo se quedaba colgado.',
+		'Arreglado: la paginación del explorador de contenido podía quedarse trabada en la página 1.'
 	]
 };
