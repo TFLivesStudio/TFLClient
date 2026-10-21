@@ -29,4 +29,6 @@ Los codecs dependen del WebView/OS. Sin descargar codecs: detectar fallo y mante
 
 ## Cambio de base durante la misión
 
-A las 15:36 UTC se publicó `v0.13.1` estable y se fusionó PR #6. Se incorporó `origin/main` (`cf049e7`) mediante merge, conservando también el cambio del icono TFL en Discover. La siguiente beta es `0.13.2-beta.1`, superior por SemVer a esa estable. No se publicó release ni tag. La base de rendimiento conservada es beta.4, de la que provienen los mismos renderers y controles de la estable.
+A las 15:36 UTC se publicó `v0.13.1` estable y se fusionó PR #6. Se incorporó `origin/main` (`cf049e7`) mediante merge, conservando también el cambio del icono TFL en Discover. La siguiente beta es `0.14.0-beta.1`, superior por SemVer a esa estable. No se publicó release ni tag. La base de rendimiento conservada es beta.4, de la que provienen los mismos renderers y controles de la estable.
+
+A continuación se incorporó también `bf049c3` de main, que prepara 0.13.2 y corrige el deadlock de Detener en `launchwerk`. La búsqueda profunda reemplaza semánticamente la corrección del filtro de pestañas de `80c45ef`: no conserva pestañas ocultas ni contenido ajeno a los resultados. Para aislar este cambio funcional de los parches estables en curso, la versión definitiva preparada es `0.14.0-beta.1`.

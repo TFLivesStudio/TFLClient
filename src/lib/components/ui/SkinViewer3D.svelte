@@ -201,7 +201,7 @@
 		draw();
 	}
 	function draw() {
-		if (viewer?.renderPaused) viewer.render();
+		if (viewer?.renderPaused && !effects.current.animateViewer) viewer.render();
 	}
 </script>
 

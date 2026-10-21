@@ -82,6 +82,20 @@ async function bounds(p) {
 try {
 	const p = await open();
 	await settings(p);
+	await p.evaluate(() => {
+		localStorage.setItem('tfl-accent', 'violet');
+		document.documentElement.setAttribute('data-accent', 'violet');
+	});
+	await settings(p, 'Apariencia');
+	assert.equal(
+		await p.getByRole('button', { name: 'Violet', exact: true }).getAttribute('aria-pressed'),
+		'true'
+	);
+	await p.getByRole('button', { name: 'Restaurar naranja TFL', exact: true }).click();
+	assert.equal(
+		await p.getByRole('button', { name: 'TFL', exact: true }).getAttribute('aria-pressed'),
+		'true'
+	);
 	const seen = [];
 	for (const page of PAGES) {
 		await settings(p, page.label[0]);
@@ -391,6 +405,7 @@ try {
 	await mediaPage.keyboard.press('Escape');
 	await mediaPage.getByRole('button', { name: 'Abrir Horizontes', exact: true }).click();
 	await mediaPage.locator('.living-scene [data-scene="cave"]').waitFor();
+	await mediaPage.waitForTimeout(350);
 	await shot(mediaPage, 'instance-scene-override');
 	await mediaPage.close();
 	checks.push('local-video-import-preview-in-use-delete-instance-override');
@@ -410,7 +425,7 @@ try {
 		JSON.stringify({ fixture: true, checks, errors }, null, 2)
 	);
 	console.log(
-		`PASS experience: ${checks.length} evidence entries; full matrix and functional assertions.`
+		`PASS experience: ${checks.length} evidence entries; ${process.env.EXPERIENCE_SKIP_MATRIX ? 'functional assertions' : 'full matrix and functional assertions'}.`
 	);
 } finally {
 	await browser.close();

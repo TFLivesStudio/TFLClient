@@ -33,7 +33,8 @@
 	let custom = $state(false),
 		hex = $state(visual.customAccent || '#ff7a2e');
 
-	const active = $derived(visual.customAccent || getLegacy());
+	let legacy = $state(getLegacy());
+	const active = $derived(visual.customAccent || legacy);
 	function getLegacy() {
 		const key = typeof localStorage !== 'undefined' ? localStorage.getItem('tfl-accent') : '';
 		const map: Record<string, string> = {
@@ -109,6 +110,7 @@
 	class="reset"
 	onclick={() => {
 		onReset();
+		legacy = getLegacy();
 		setVisual('customAccent', '');
 		hex = '#ff7a2e';
 		custom = false;

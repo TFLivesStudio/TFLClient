@@ -1,6 +1,6 @@
 # Experience & Settings Rework
 
-Base inicial: `v0.13.1-beta.4`. Se integró `origin/main` (`cf049e7`, publicación de `0.13.1` estable durante la misión). Versión preparada: **0.13.2-beta.1**. Rama independiente `feat/experience-settings-rework`; sin tag ni release.
+Base inicial: `v0.13.1-beta.4`. Se integró `origin/main` hasta `bf049c3`, incluyendo la publicación de `0.13.1` y la corrección de Detener que prepara `0.13.2`. Versión preparada: **0.14.0-beta.1**. Rama independiente `feat/experience-settings-rework`; sin tag ni release.
 
 ## Ajustes por tarea
 
@@ -55,6 +55,8 @@ El doble clic de título/icono coordina el primer clic antes de abrir una ficha.
 ## Materiales nativos y builds
 
 La base sigue siendo CSS matte/soft glass/glass, con degradación sólida en Lite y sin blur. Se revisaron las opciones nativas de Tauri: Mica/Acrylic dependen de la versión de Windows y del compositor; Vibrancy requiere cambios de ventana/material en macOS. La ventana actual es opaca y compartida por plataformas. No se activan cambios nativos de transparencia sin validación real, especialmente con el historial de macOS. Los materiales CSS son la alternativa funcional disponible, también en Linux.
+
+El comando de revisión pasa el perfil a Cargo: `bunx tauri build --config src-tauri/tauri.review.conf.json -- --profile review`. Se verificó el tratamiento del perfil en la CLI Tauri 2.11.4; no es una opción directa `tauri build --profile`.
 
 El perfil oficial `release` permanece idéntico. El perfil opt-in `review` usa opt-level 2, ThinLTO y 8 unidades de generación, con incremental apagado. `.github/workflows/review.yml` construye instaladores manuales con caché existente y sin secretos ni artefactos del updater. El overlay de configuración de review no modifica el flujo oficial de firma/publicación. No se promete una mejora de segundos nativos hasta tener mediciones comparables en runners; sccache y linkers alternativos quedan documentados como opciones posteriores, para no mezclar caches, toolchains y estabilidad en esta misión.
 
