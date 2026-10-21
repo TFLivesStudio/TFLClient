@@ -1,0 +1,48 @@
+$ svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+Loading svelte-check in workspace: /workspace/TFLClient-visual-refresh
+Getting Svelte diagnostics...
+
+/workspace/TFLClient-visual-refresh/src/lib/components/ui/ContextMenu.svelte:51:25
+Warn: This reference only captures the initial value of `x`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+	// cortado — un menú contextual que se sale de la pantalla es inusable.
+	let adjustedX = $state(x);
+	let adjustedY = $state(y);
+
+/workspace/TFLClient-visual-refresh/src/lib/components/ui/ContextMenu.svelte:52:25
+Warn: This reference only captures the initial value of `y`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+	let adjustedX = $state(x);
+	let adjustedY = $state(y);
+	onMount(async () => {
+
+/workspace/TFLClient-visual-refresh/src/lib/components/onboarding/Onboarding.svelte:125:7
+Warn: noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex (svelte)
+					<div class="code-row">
+						<code class="code" tabindex="0">{msCode}</code>
+						<button type="button" class="copy-code" onclick={copyMicrosoftCode}>
+
+/workspace/TFLClient-visual-refresh/src/lib/components/library/InstanceDetail.svelte:125:36
+Warn: This reference only captures the initial value of `initialTab`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+	let tab = $state<TabKey>(
+		(validTabs as string[]).includes(initialTab ?? '') ? (initialTab as TabKey) : 'details'
+	);
+
+/workspace/TFLClient-visual-refresh/src/lib/components/library/InstanceDetail.svelte:125:57
+Warn: This reference only captures the initial value of `initialTab`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+	let tab = $state<TabKey>(
+		(validTabs as string[]).includes(initialTab ?? '') ? (initialTab as TabKey) : 'details'
+	);
+
+/workspace/TFLClient-visual-refresh/src/lib/components/settings/SettingsPanel.svelte:1114:9
+Warn: noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex (svelte)
+							<div class="ms-code-row">
+								<code class="ms-code" tabindex="0">{msCode}</code>
+								<button
+
+====================================
+svelte-check found 0 errors and 6 warnings in 4 files

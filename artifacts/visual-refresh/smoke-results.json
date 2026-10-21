@@ -1,0 +1,32 @@
+{
+  "fixture": true,
+  "results": [
+    "home-modern-lite",
+    "home-modern-balanced",
+    "home-modern-experience",
+    "home-pixel-lite",
+    "home-pixel-balanced",
+    "home-pixel-experience",
+    "home-800x600",
+    "detail-800x600",
+    "home-1100x700",
+    "detail-1100x700",
+    "home-1366x768",
+    "detail-1366x768",
+    "home-1920x1080",
+    "detail-1920x1080",
+    "library",
+    "library-grid",
+    "discover",
+    "server-dashboard",
+    "settings",
+    "settings-pixel",
+    "notification-error",
+    "create-dialog",
+    "command-palette",
+    "skin-studio-no-skin",
+    "home-light-en",
+    "home-oled-reduced"
+  ],
+  "errors": []
+}

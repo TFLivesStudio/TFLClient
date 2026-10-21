@@ -1,0 +1,12 @@
+bun test v1.4.2 (744846f84)
+
+tests/unit/visual-policy.test.mjs:
+(pass) Lite prevents automatic 3D, blur, ambient, parallax and motion [1.93ms]
+(pass) both reduced motion sources and inactive windows override Experience [0.06ms]
+(pass) independent toggles disable their costly capabilities [0.03ms]
+(pass) persisted metadata is bounded and rejects arbitrary resource URLs [0.90ms]
+(pass) valid preferences round trip and custom accents use legible foreground [0.35ms]
+
+ 5 pass
+ 0 fail
+Ran 5 tests across 1 file. [37.00ms]

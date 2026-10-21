@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "b9a9968f568771033907486fc0c7a1b711d80d7c",
+  "baseCommit": "930c90580ce9268877d9603ea467d320d71ccce9",
+  "branch": "feat/visual-refresh-2",
+  "browserEvidence": "Actual frontend rendered in Chromium with simulated Tauri IPC; synthetic texture for skin probes",
+  "checks": {
+    "svelteCheck": "pass (six existing warnings)",
+    "lint": "pass",
+    "productionBuild": "pass",
+    "visualPolicyTests": "5 pass",
+    "rustFmt": "pass",
+    "rustWorkspaceCheck": "pass",
+    "rustWorkspaceTests": "pass (129 library tests plus 3 doctests)",
+    "rustClippy": "pass (existing warnings)",
+    "productionBrowserSmoke": "pass (26 screenshots)",
+    "compactWorkspaces": "pass",
+    "skinLifecycle": "pass"
+  },
+  "publication": "blocked: GitHub rejects available credential; no branch push or draft PR created",
+  "nativeCertification": "not completed: local WebKit helpers unavailable at system path; Windows/macOS not available"
+}
