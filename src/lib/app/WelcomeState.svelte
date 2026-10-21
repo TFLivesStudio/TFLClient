@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { react } from '$lib/scenes/reactions.svelte';
+	import { openSettingsAt } from '$lib/state/uiState.svelte';
+	import { tr } from '$lib/i18n/experience';
 	import { ArrowUpRight } from 'lucide-svelte';
 	import { visual } from '$lib/visual/preferences.svelte';
 	import { vr } from '$lib/i18n/refresh';
@@ -247,11 +250,13 @@
 	async function doLaunch() {
 		if (!featured) return;
 		launching = true;
+		react('launch');
 		launchError = null;
 		try {
 			await launchInstance(featured.name);
 		} catch (e) {
 			launchError = String(e);
+			react('error');
 		} finally {
 			launching = false;
 		}
@@ -362,6 +367,12 @@
 	{/if}
 {/if}
 
+<div class="home-customize">
+	<button type="button" class="vr-control" onclick={() => openSettingsAt('home')}
+		>{tr('Personalizar Inicio', 'Customize Home')}</button
+	>
+</div>
+
 <style>
 	.home-greeting {
 		display: flex;
@@ -452,5 +463,13 @@
 			opacity: 1;
 			transform: translateY(0);
 		}
+	}
+	.home-customize {
+		padding: 0 28px 24px;
+		display: flex;
+		justify-content: flex-end;
+	}
+	.home-customize button {
+		font-size: 11px;
 	}
 </style>

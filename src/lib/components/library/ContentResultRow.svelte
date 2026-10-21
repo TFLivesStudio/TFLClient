@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
+	import { tr } from '$lib/i18n/experience';
 	import type { ModSearchHit, ModVersionSummary } from '$lib/types/types';
 	import { Download, Star, ChevronDown, Check, Info, Loader2 } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
@@ -15,6 +17,7 @@
 		showFavorite = false,
 		isFavorite = false,
 		hasVersions = true,
+		quickInstall = true,
 		versionsOpen = false,
 		versionOptions = [],
 		loadingVersions = false,
@@ -29,6 +32,7 @@
 		showFavorite?: boolean;
 		isFavorite?: boolean;
 		hasVersions?: boolean;
+		quickInstall?: boolean;
 		versionsOpen?: boolean;
 		versionOptions?: ModVersionSummary[];
 		loadingVersions?: boolean;
@@ -38,6 +42,24 @@
 		onOpenDetail: () => void;
 	} = $props();
 
+	let detailTimer: ReturnType<typeof setTimeout> | undefined;
+	onDestroy(() => clearTimeout(detailTimer));
+	function detailClick(e: MouseEvent) {
+		if (!quickInstall || e.detail === 0) {
+			onOpenDetail();
+			return;
+		}
+		clearTimeout(detailTimer);
+		if (e.detail < 2) detailTimer = setTimeout(onOpenDetail, 550);
+	}
+	function quick(e: MouseEvent) {
+		if (!quickInstall) return;
+		clearTimeout(detailTimer);
+		e.preventDefault();
+		e.stopPropagation();
+		if (!installed && !installing) onInstall();
+	}
+
 	function formatDownloads(n: number): string {
 		if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
 		if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
@@ -46,7 +68,13 @@
 </script>
 
 <div class="result-row anim-fade-in">
-	<button type="button" class="result-icon-btn" onclick={onOpenDetail} aria-label={item.title}>
+	<button
+		type="button"
+		class="result-icon-btn"
+		onclick={detailClick}
+		ondblclick={quick}
+		aria-label={item.title}
+	>
 		{#if item.icon_url}
 			<img src={item.icon_url} alt="" />
 		{:else}
@@ -54,7 +82,18 @@
 		{/if}
 	</button>
 	<div class="result-info">
-		<button type="button" class="result-title-btn" onclick={onOpenDetail}>
+		<button
+			type="button"
+			class="result-title-btn"
+			onclick={detailClick}
+			ondblclick={quick}
+			title={quickInstall
+				? tr(
+						'Doble clic para instalar; un clic abre la ficha',
+						'Double-click to install; single click opens details'
+					)
+				: undefined}
+		>
 			<span class="result-title">{item.title}</span>
 		</button>
 		<span class="result-meta">
@@ -100,7 +139,13 @@
 				><Check size={13} /></span
 			>
 		{:else}
-			<button type="button" class="install-btn" disabled={installing} onclick={() => onInstall()}>
+			<button
+				type="button"
+				class="install-btn"
+				aria-label={`${tr('Instalar', 'Install')} ${item.title}`}
+				disabled={installing}
+				onclick={() => onInstall()}
+			>
 				{#if installing}<Loader2 size={14} class="spin" />{:else}<Download size={14} />{/if}
 			</button>
 		{/if}

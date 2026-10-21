@@ -19,6 +19,7 @@ fn log_window_label(instance_name: &str) -> String {
 }
 
 const ICON_EXTENSIONS: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
+const MANAGED_ICON_EXTENSIONS: [&str; 5] = ["svg", "png", "jpg", "jpeg", "webp"];
 
 /// Carpeta empaquetada con `bundle.resources` en tauri.conf.json — íconos
 /// de instancia CC0 (Simplexity-Development/Entity-Icons +
@@ -435,16 +436,20 @@ pub async fn set_instance_icon(name: String, source_path: String) -> Result<Stri
         .await
         .map_err(|e| e.to_string())?;
 
-    // Un ícono previo con otra extensión no debe quedar huérfano al lado
-    // del nuevo — get_instance_icon_path() solo mira uno a la vez.
-    for old_ext in ICON_EXTENSIONS {
-        let _ = tokio::fs::remove_file(dir.join(format!("icon.{old_ext}"))).await;
-    }
-
     let dest = dir.join(format!("icon.{ext}"));
-    tokio::fs::copy(&source, &dest)
+    let temp = dir.join("icon-upload.tmp");
+    tokio::fs::copy(&source, &temp)
         .await
         .map_err(|e| e.to_string())?;
+    tokio::fs::copy(&temp, &dest)
+        .await
+        .map_err(|e| e.to_string())?;
+    let _ = tokio::fs::remove_file(temp).await;
+    for old_ext in MANAGED_ICON_EXTENSIONS {
+        if old_ext != ext {
+            let _ = tokio::fs::remove_file(dir.join(format!("icon.{old_ext}"))).await;
+        }
+    }
     Ok(dest.to_string_lossy().to_string())
 }
 
@@ -468,7 +473,8 @@ pub async fn list_instance_icon_presets(app: AppHandle) -> Result<Vec<IconPreset
     let mut out = Vec::new();
     while let Ok(Some(entry)) = entries.next_entry().await {
         let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("png") {
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        if !["png", "svg"].contains(&ext) {
             continue;
         }
         let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
@@ -480,7 +486,10 @@ pub async fn list_instance_icon_presets(app: AppHandle) -> Result<Vec<IconPreset
         let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
         out.push(IconPreset {
             id: stem.to_string(),
-            data_url: format!("data:image/png;base64,{b64}"),
+            data_url: format!(
+                "data:image/{};base64,{b64}",
+                if ext == "svg" { "svg+xml" } else { "png" }
+            ),
         });
     }
     out.sort_by(|a, b| a.id.cmp(&b.id));
@@ -496,7 +505,12 @@ pub async fn set_instance_icon_from_preset(
     if preset_id.contains('/') || preset_id.contains('\\') || preset_id.contains("..") {
         return Err("Id de ícono inválido".into());
     }
-    let source = icon_presets_dir(&app)?.join(format!("{preset_id}.png"));
+    let presets = icon_presets_dir(&app)?;
+    let source = ["svg", "png"]
+        .into_iter()
+        .map(|ext| presets.join(format!("{preset_id}.{ext}")))
+        .find(|path| path.is_file())
+        .ok_or("Ese ícono no existe en el set")?;
     if !source.exists() {
         return Err("Ese ícono no existe en el set".into());
     }
@@ -506,13 +520,25 @@ pub async fn set_instance_icon_from_preset(
     tokio::fs::create_dir_all(&dir)
         .await
         .map_err(|e| e.to_string())?;
-    for old_ext in ICON_EXTENSIONS {
-        let _ = tokio::fs::remove_file(dir.join(format!("icon.{old_ext}"))).await;
-    }
-    let dest = dir.join("icon.png");
-    tokio::fs::copy(&source, &dest)
+    let ext = source
+        .extension()
+        .and_then(|e| e.to_str())
+        .ok_or("Formato inválido")?;
+    let dest = dir.join(format!("icon.{ext}"));
+    let temp = dir.join("icon-preset.tmp");
+    tokio::fs::copy(&source, &temp)
         .await
         .map_err(|e| e.to_string())?;
+    // Copy succeeds before the previous icon is replaced (also works on Windows).
+    tokio::fs::copy(&temp, &dest)
+        .await
+        .map_err(|e| e.to_string())?;
+    let _ = tokio::fs::remove_file(&temp).await;
+    for old_ext in MANAGED_ICON_EXTENSIONS {
+        if old_ext != ext {
+            let _ = tokio::fs::remove_file(dir.join(format!("icon.{old_ext}"))).await;
+        }
+    }
     Ok(dest.to_string_lossy().to_string())
 }
 
@@ -520,7 +546,7 @@ pub async fn set_instance_icon_from_preset(
 pub async fn get_instance_icon_path(name: String) -> Option<String> {
     let instance = instance_manager::get_instance(&name).await.ok()?;
     let dir = instance.dir();
-    for ext in ICON_EXTENSIONS {
+    for ext in MANAGED_ICON_EXTENSIONS {
         let p = dir.join(format!("icon.{ext}"));
         if p.exists() {
             return Some(p.to_string_lossy().to_string());
@@ -549,7 +575,8 @@ pub async fn get_instance_screenshots(name: String) -> Result<Vec<ScreenshotInfo
     };
     while let Ok(Some(entry)) = entries.next_entry().await {
         let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("png") {
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        if !["png", "svg"].contains(&ext) {
             continue;
         }
         let Some(filename) = path.file_name().and_then(|f| f.to_str()) else {

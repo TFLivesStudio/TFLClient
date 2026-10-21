@@ -5,6 +5,12 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.14.0-beta.1': [
+		'Ajustes se organiza por tareas y su buscador te lleva directamente a cada opción, con ayuda y validación de RAM, Java y variables de entorno.',
+		'Fondos y escenas: siete paisajes originales, vídeos locales con vista previa y una imagen estática en Lite. Puedes asignar una escena a cada instancia.',
+		'Diseña tu consola arrastrando sus tarjetas reales: cinco moldes, gráficas por métrica, colores y Aplicar/Cancelar/Deshacer, sin tocar el muestreo de CPU y RAM.',
+		'36 iconos vectoriales nuevos, campos de búsqueda más limpios en Pixel y doble clic para instalar mods, shaders, resource packs y plugins.'
+	],
 	'0.9.1': [
 		'Pantalla de bienvenida y "qué hay de nuevo" cada vez que el launcher se actualiza solo.',
 		'Fondo de pantalla "Aurora animada" nuevo en Ajustes → Estilo.',

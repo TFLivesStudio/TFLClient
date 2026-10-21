@@ -1,3 +1,4 @@
+import { transitionToInstance } from '$lib/visual/transition';
 import { getInstances } from '$lib/api';
 import { navigate } from '$lib/visual/navigation.svelte';
 import { appState } from '$lib/state/state.svelte';
@@ -28,7 +29,7 @@ export async function refreshInstances() {
 }
 
 export function selectInstance(instance: InstanceData) {
-	appState.selectedInstance = instance;
+	transitionToInstance(instance.uuid, () => (appState.selectedInstance = instance));
 }
 
 /** Vuelve a la home (botón "Home" del sidebar, o tras cerrar una instancia

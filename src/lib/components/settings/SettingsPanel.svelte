@@ -1,11 +1,25 @@
 <script lang="ts">
 	import ConsoleSettings from '$lib/components/console/ConsoleSettings.svelte';
-	import { w, type WorkbenchKey } from '$lib/i18n/workbench';
-	import VisualSettings from '$lib/components/refresh/VisualSettings.svelte';
+	import { tr } from '$lib/i18n/experience';
+	import {
+		PAGES,
+		searchSettings,
+		setting,
+		type SettingId,
+		type SettingsPage
+	} from '$lib/settings/catalog';
+	import { settingsIntent, openModal } from '$lib/state/uiState.svelte';
+	import SettingGroup from './SettingGroup.svelte';
+	import AppearanceSettings from './AppearanceSettings.svelte';
+	import SceneSettings from './SceneSettings.svelte';
+	import WallpaperSettings from './WallpaperSettings.svelte';
+	import LaunchSettings from './LaunchSettings.svelte';
+
 	import { modalFocus } from '$lib/visual/modalFocus';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+	import { applyQualityVisuals } from '$lib/state/appearanceState.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import {
 		updateState,
@@ -15,7 +29,7 @@
 		retryUpdate
 	} from '$lib/state/updateState.svelte';
 	import { canStartCheck, progressPercent } from '$lib/state/updateMachine';
-	import { t, i18nState, setLocale, type TranslationKey } from '$lib/i18n/index.svelte';
+	import { t, i18nState, setLocale } from '$lib/i18n/index.svelte';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
 	import { MASCOTS, getMascotFor, setMascotFor, type MascotId } from '$lib/mascots';
 	import {
@@ -35,7 +49,7 @@
 		setCustomWallpaper,
 		getCustomWallpaperPath
 	} from '$lib/api';
-	import type { QualityProfile, MinecraftUser, JavaStatus } from '$lib/types/types';
+	import type { QualityProfile, MinecraftUser, JavaStatus, Settings } from '$lib/types/types';
 	import { formatVersion } from '$lib/version';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import {
@@ -43,19 +57,16 @@
 		Check,
 		Trash2,
 		Plus,
-		Coffee,
 		Gamepad2,
 		Loader2,
 		SlidersHorizontal,
 		Users,
 		Palette,
-		PanelLeft,
 		WandSparkles,
 		Copy,
 		CheckCircle2,
 		Download,
 		RefreshCw,
-		Upload,
 		Terminal,
 		Search
 	} from 'lucide-svelte';
@@ -63,212 +74,55 @@
 
 	let { onClose }: { onClose: () => void } = $props();
 
-	const QUALITY: QualityProfile[] = ['Lite', 'Balanced', 'Experience'];
-	const ACCENTS: { id: string; key: TranslationKey; color: string }[] = [
-		{ id: 'orange', key: 'settings.accent.orange', color: '#ff7a2e' },
-		{ id: 'violet', key: 'settings.accent.violet', color: '#8b5cf6' },
-		{ id: 'teal', key: 'settings.accent.teal', color: '#14b8a6' },
-		{ id: 'blue', key: 'settings.accent.blue', color: '#3b82f6' },
-		{ id: 'rose', key: 'settings.accent.rose', color: '#f43f5e' },
-		{ id: 'lime', key: 'settings.accent.lime', color: '#84cc16' },
-		{ id: 'iris', key: 'settings.accent.iris', color: '#5b5bd6' },
-		{ id: 'jade', key: 'settings.accent.jade', color: '#29a383' },
-		{ id: 'crimson', key: 'settings.accent.crimson', color: '#e93d82' },
-		{ id: 'cyan', key: 'settings.accent.cyan', color: '#00a2c7' },
-		{ id: 'grass', key: 'settings.accent.grass', color: '#46a758' },
-		{ id: 'plum', key: 'settings.accent.plum', color: '#ab4aba' }
-	];
-	const SURFACES: { id: string; key: TranslationKey }[] = [
-		{ id: 'obsidian', key: 'settings.surface.obsidian' },
-		{ id: 'midnight', key: 'settings.surface.midnight' },
-		{ id: 'slate', key: 'settings.surface.slate' },
-		{ id: 'oled', key: 'settings.surface.oled' }
-	];
-	const AMBIENCES: { id: string; key: TranslationKey }[] = [
-		{ id: 'aurora', key: 'settings.ambience.aurora' },
-		{ id: 'cosmic', key: 'settings.ambience.cosmic' },
-		{ id: 'minimal', key: 'settings.ambience.minimal' },
-		{ id: 'particles', key: 'settings.ambience.particles' }
-	];
-	const FONTS: { id: string; key?: TranslationKey; label?: string; family: string }[] = [
-		{ id: 'system', key: 'settings.font.system', family: 'inherit' },
-		{ id: 'nunito', label: 'Nunito', family: "'Nunito', sans-serif" },
-		{ id: 'inter', label: 'Inter', family: "'Inter', sans-serif" },
-		{ id: 'poppins', label: 'Poppins', family: "'Poppins', sans-serif" },
-		{ id: 'jetbrains-mono', label: 'JetBrains Mono', family: "'JetBrains Mono', monospace" }
-	];
-	const WALLPAPERS: { id: string; key: TranslationKey; preview: string }[] = [
-		{ id: 'none', key: 'settings.wallpaper.items.none', preview: 'transparent' },
-		{
-			id: 'void-night',
-			key: 'settings.wallpaper.items.voidNight',
-			preview: 'linear-gradient(135deg, #02040a, #050d1a, #030810)'
-		},
-		{
-			id: 'nether',
-			key: 'settings.wallpaper.items.nether',
-			preview: 'linear-gradient(135deg, #140202, #250808, #0e0101)'
-		},
-		{
-			id: 'end',
-			key: 'settings.wallpaper.items.end',
-			preview: 'linear-gradient(135deg, #070212, #0e0520, #040110)'
-		},
-		{
-			id: 'deep-ocean',
-			key: 'settings.wallpaper.items.deepOcean',
-			preview: 'linear-gradient(135deg, #010f1a, #021a2e, #010c14)'
-		},
-		{
-			id: 'aurora-gradient',
-			key: 'settings.wallpaper.items.auroraGradient',
-			preview: 'linear-gradient(135deg, #040d10, #041410 40%, #0a0420 80%, #04100d)'
-		},
-		{
-			id: 'animated-aurora',
-			key: 'settings.wallpaper.items.animatedAurora',
-			preview: 'linear-gradient(135deg, #040d10, #041410 40%, #0a0420 80%, #04100d)'
-		},
-		{ id: 'obsidian-solid', key: 'settings.wallpaper.items.obsidianSolid', preview: '#08090c' },
-		{ id: 'charcoal', key: 'settings.wallpaper.items.charcoal', preview: '#0f1115' },
-		{
-			id: 'savanna',
-			key: 'settings.wallpaper.items.savanna',
-			preview: 'url(/wallpapers/mc-wallpaper-1.jpg)'
-		},
-		{
-			id: 'golden-sunset',
-			key: 'settings.wallpaper.items.goldenSunset',
-			preview: 'url(/wallpapers/mc-wallpaper-2.jpg)'
-		},
-		{
-			id: 'lake-night',
-			key: 'settings.wallpaper.items.lakeNight',
-			preview: 'url(/wallpapers/mc-wallpaper-3.jpg)'
-		},
-		{
-			id: 'neon-arcade',
-			key: 'settings.wallpaper.items.neonArcade',
-			preview: 'url(/wallpapers/mc-wallpaper-4.jpg)'
-		},
-		{
-			id: 'red-canyon',
-			key: 'settings.wallpaper.items.redCanyon',
-			preview: 'url(/wallpapers/mc-wallpaper-5.jpg)'
-		},
-		{
-			id: 'enchanted-valley',
-			key: 'settings.wallpaper.items.enchantedValley',
-			preview: 'url(/wallpapers/mc-wallpaper-6.jpg)'
-		},
-		{
-			id: 'snowy-peak',
-			key: 'settings.wallpaper.items.snowyPeak',
-			preview: 'url(/wallpapers/mc-wallpaper-7.jpg)'
-		},
-		{
-			id: 'stone-bridge',
-			key: 'settings.wallpaper.items.stoneBridge',
-			preview: 'url(/wallpapers/mc-wallpaper-8.jpg)'
-		},
-		{
-			id: 'misty-fortress',
-			key: 'settings.wallpaper.items.mistyFortress',
-			preview: 'url(/wallpapers/mc-wallpaper-9.jpg)'
-		},
-		{
-			id: 'village-tower',
-			key: 'settings.wallpaper.items.villageTower',
-			preview: 'url(/wallpapers/mc-wallpaper-10.jpg)'
-		},
-		{
-			id: 'deep-cave',
-			key: 'settings.wallpaper.items.deepCave',
-			preview: 'url(/wallpapers/mc-wallpaper-11.jpg)'
-		},
-		{
-			id: 'sunset-coast',
-			key: 'settings.wallpaper.items.sunsetCoast',
-			preview: 'url(/wallpapers/mc-wallpaper-12.jpg)'
-		},
-		{
-			id: 'abstract-blocks',
-			key: 'settings.wallpaper.items.abstractBlocks',
-			preview: 'url(/wallpapers/mc-wallpaper-13.jpg)'
-		}
-	];
-
-	let tab = $state<'general' | 'appearance' | 'game' | 'accounts' | 'console' | 'updates'>(
-		'general'
-	);
-
-	type SettingsTab = typeof tab;
-	const tabItems: { id: SettingsTab; icon: typeof Palette; keywords: string }[] = [
-		{
-			id: 'general',
-			icon: SlidersHorizontal,
-			keywords:
-				'idioma language español english archivos files dialogos dialogs almacenamiento storage cache caché'
-		},
-		{
-			id: 'appearance',
-			icon: Palette,
-			keywords:
-				'estilo style modern pixel minecrafti tema theme color acento accent fondo wallpaper fuente font calidad quality lite balanced experience animaciones motion efectos blur home inicio'
-		},
-		{
-			id: 'game',
-			icon: Gamepad2,
-			keywords:
-				'minecraft java ram memoria memory rendimiento performance jugar game multi instancia'
-		},
-		{
-			id: 'accounts',
-			icon: Users,
-			keywords: 'cuenta account microsoft offline sin conexion sesión login mascota mascot skin'
-		},
-		{
-			id: 'console',
-			icon: Terminal,
-			keywords:
-				'consola console log registro graficas charts cpu ram memoria colores errores error warn disco disk historial history'
-		},
-		{
-			id: 'updates',
-			icon: RefreshCw,
-			keywords: 'actualizaciones updates beta version versión descargar download instalar install'
-		}
-	];
-	let settingsQuery = $state('');
-	const matchingTabs = $derived(
-		tabItems.filter((item) =>
-			`${w(item.id)} ${w(`${item.id}Hint` as WorkbenchKey)} ${item.keywords}`
-				.toLowerCase()
-				.normalize('NFD')
-				.replace(/[\u0300-\u036f]/g, '')
-				.includes(
-					settingsQuery
-						.trim()
-						.toLowerCase()
-						.normalize('NFD')
-						.replace(/[\u0300-\u036f]/g, '')
-				)
-		)
-	);
-	// Si la búsqueda filtra afuera la pestaña activa, el contenido de abajo
-	// seguía mostrando esa pestaña vieja (ya sin su botón visible arriba) —
-	// se ve como que la búsqueda "no hace nada": el usuario filtra, los
-	// botones cambian, pero el panel grande queda igual. Saltar a la
-	// primera coincidencia mantiene la búsqueda realmente navegable.
+	let tab = $state<SettingsPage>('general');
+	const icons = {
+		general: SlidersHorizontal,
+		appearance: Palette,
+		scenes: WandSparkles,
+		game: Gamepad2,
+		accounts: Users,
+		console: Terminal,
+		updates: RefreshCw
+	};
+	let settingsQuery = $state(''),
+		returnQuery = $state(''),
+		highlighted = $state<SettingId | null>(null);
+	const locale = $derived(i18nState.locale === 'en' ? 1 : 0);
+	const currentPage = $derived(PAGES.find((p) => p.id === tab)!);
+	const results = $derived(searchSettings(settingsQuery, i18nState.locale));
+	let highlightTimer: ReturnType<typeof setTimeout> | undefined;
+	async function jump(id: SettingId) {
+		returnQuery = settingsQuery || returnQuery;
+		settingsQuery = '';
+		selectTab(setting(id).page);
+		await tick();
+		highlighted = id;
+		const target = document.querySelector<HTMLElement>(`[data-setting="${id}"]`);
+		target?.scrollIntoView({ block: 'start', behavior: 'instant' });
+		target?.focus({ preventScroll: true });
+		clearTimeout(highlightTimer);
+		highlightTimer = setTimeout(() => (highlighted = null), 3500);
+	}
 	$effect(() => {
-		if (matchingTabs.length && !matchingTabs.some((item) => item.id === tab))
-			tab = matchingTabs[0].id;
+		document
+			.querySelectorAll('[data-highlighted]')
+			.forEach((el) => el.removeAttribute('data-highlighted'));
+		if (highlighted)
+			document
+				.querySelector(`[data-setting="${highlighted}"]`)
+				?.setAttribute('data-highlighted', '');
 	});
-	let accent = $state(
-		typeof localStorage !== 'undefined'
-			? (localStorage.getItem('tfl-accent') ?? 'orange')
-			: 'orange'
-	);
+	$effect(() => {
+		if (settingsIntent.target) {
+			const target = settingsIntent.target;
+			settingsIntent.target = null;
+			void jump(target);
+		}
+	});
+	onMount(() => () => clearTimeout(highlightTimer));
+
+	let settingsError = $state(''),
+		ramMessage = $state('');
 	let surface = $state(
 		typeof localStorage !== 'undefined'
 			? (localStorage.getItem('tfl-surface') ?? 'obsidian')
@@ -352,7 +206,6 @@
 	});
 
 	function applyAccent(id: string) {
-		accent = id;
 		localStorage.setItem('tfl-accent', id);
 		if (id === 'orange') {
 			document.documentElement.removeAttribute('data-accent');
@@ -428,19 +281,25 @@
 		applyPreference('tfl-card-style', 'data-card-style', id, 'rich');
 	}
 
+	async function savePatch(patch: Partial<Settings>) {
+		if (!appState.settings) return false;
+		try {
+			const next = { ...appState.settings, ...patch };
+			await updateSettings(next);
+			appState.settings = next;
+			settingsError = '';
+			return true;
+		} catch (e) {
+			settingsError = String(e);
+			return false;
+		}
+	}
 	async function setTheme(theme: 'dark' | 'light') {
-		localStorage.setItem('tfl-theme', theme);
-		if (!appState.settings) return;
-		// OLED no tiene variante clara — el botón "Claro" ya viene
-		// deshabilitado mientras surface === 'oled' (ver markup), esto es
-		// solo el guard defensivo del lado de la función.
 		if (theme === 'light' && surface === 'oled') return;
-		document.documentElement.setAttribute('data-theme', theme);
-		// Cada superficie define su propia variante clara y oscura (ver
-		// global.css) — cambiar de tema ya no tiene que tocar ni resetear
-		// data-surface, la elección del usuario se mantiene en los dos.
-		appState.settings.theme = theme;
-		await updateSettings(appState.settings);
+		if (await savePatch({ theme })) {
+			localStorage.setItem('tfl-theme', theme);
+			document.documentElement.setAttribute('data-theme', theme);
+		}
 	}
 
 	let showBetaWarning = $state(false);
@@ -467,66 +326,26 @@
 	}
 
 	async function toggleAutoUpdates() {
-		if (!appState.settings) return;
-		appState.settings.auto_updates = !appState.settings.auto_updates;
-		await updateSettings(appState.settings);
+		await savePatch({ auto_updates: !appState.settings?.auto_updates });
 	}
-
 	async function setNativeDialogMode(mode: 'auto' | 'manual') {
-		if (!appState.settings) return;
-		appState.settings.native_dialog_mode = mode;
-		appState.settings.native_dialog_mode_prompted = true;
-		await updateSettings(appState.settings);
+		await savePatch({ native_dialog_mode: mode, native_dialog_mode_prompted: true });
 	}
-
 	async function toggleMultiInstanceWarning() {
-		if (!appState.settings) return;
-		appState.settings.multi_instance_warning_dismissed =
-			!appState.settings.multi_instance_warning_dismissed;
-		await updateSettings(appState.settings);
+		await savePatch({
+			multi_instance_warning_dismissed: !appState.settings?.multi_instance_warning_dismissed
+		});
 	}
 
 	async function handleQuality(profile: QualityProfile) {
-		if (!appState.settings) return;
-		const updated = await setQualityProfile(profile);
-		appState.settings = updated;
-		document.documentElement.setAttribute('data-quality', profile.toLowerCase());
-		// Misma fórmula que toggleReduceAnimations/applyQualityVisuals (ver
-		// appearanceState.svelte.ts) — setQualityProfile ya recalculó
-		// `updated.reduce_animations` con el default granular del nuevo
-		// perfil en el backend (true solo para Lite, igual que antes de esta
-		// entrega), el OR acá es solo para no repetir dos fuentes de verdad
-		// distintas para la misma condición en el resto de la app.
-		document.documentElement.toggleAttribute(
-			'data-reduce-motion',
-			profile === 'Lite' || updated.reduce_animations
-		);
-		document.documentElement.toggleAttribute('data-no-blur', updated.disable_blur_effects);
-		document.documentElement.toggleAttribute(
-			'data-no-infinite-fx',
-			updated.disable_infinite_animations
-		);
-	}
-
-	// Override independiente de accesibilidad (Entrega D, sección 5.4) —
-	// `reduce_animations` ya existía en el tipo `Settings` (frontend y
-	// backend) desde antes, pero ningún control de Ajustes lo exponía y
-	// ninguna lectura de data-reduce-motion lo consultaba: elegir Lite era
-	// la ÚNICA forma de pedir menos movimiento. Esto lo vuelve editable sin
-	// tener que bajar de perfil — igual que disable_blur_effects/
-	// disable_infinite_animations (mismo patrón ya existente), elegir un
-	// perfil nuevo en handleQuality SÍ recalcula este flag con el default
-	// del perfil, así que un cambio de perfil posterior puede volver a
-	// apagarlo; eso ya pasaba para los otros dos flags granulares antes de
-	// esta entrega, no es algo que este botón cambie.
-	async function toggleReduceAnimations() {
-		if (!appState.settings) return;
-		appState.settings.reduce_animations = !appState.settings.reduce_animations;
-		await updateSettings(appState.settings);
-		document.documentElement.toggleAttribute(
-			'data-reduce-motion',
-			appState.settings.quality_profile === 'Lite' || appState.settings.reduce_animations
-		);
+		try {
+			const updated = await setQualityProfile(profile);
+			appState.settings = updated;
+			applyQualityVisuals(updated);
+			settingsError = '';
+		} catch (e) {
+			settingsError = String(e);
+		}
 	}
 
 	function changeMascot(uuid: string, id: MascotId) {
@@ -547,11 +366,29 @@
 
 	async function saveRam() {
 		if (!appState.settings) return;
+		if (
+			!Number.isInteger(minRam) ||
+			!Number.isInteger(maxRam) ||
+			minRam < 512 ||
+			maxRam < minRam ||
+			maxRam > 1048576
+		) {
+			settingsError = tr(
+				'Usa valores enteros: mínimo 512 MB y máximo igual o mayor al mínimo.',
+				'Use whole numbers: minimum 512 MB and maximum at least the minimum.'
+			);
+			return;
+		}
 		savingRam = true;
+		settingsError = '';
+		ramMessage = '';
 		try {
-			appState.settings.min_memory = minRam;
-			appState.settings.max_memory = maxRam;
-			await updateSettings(appState.settings);
+			const next = { ...appState.settings, min_memory: minRam, max_memory: maxRam };
+			await updateSettings(next);
+			appState.settings = next;
+			ramMessage = tr('Memoria guardada', 'Memory saved');
+		} catch (e) {
+			settingsError = String(e);
 		} finally {
 			savingRam = false;
 		}
@@ -574,7 +411,11 @@
 	}
 
 	async function loadAccounts() {
-		users = await getUserList();
+		try {
+			users = await getUserList();
+		} catch (e) {
+			settingsError = String(e);
+		}
 	}
 
 	async function handleSwitch(uuid: string) {
@@ -633,10 +474,14 @@
 	}
 
 	async function loadJava() {
-		javaStatuses = await getJavaStatus();
+		try {
+			javaStatuses = await getJavaStatus();
+		} catch (e) {
+			settingsError = String(e);
+		}
 	}
 
-	function selectTab(t: 'general' | 'appearance' | 'game' | 'accounts' | 'console' | 'updates') {
+	function selectTab(t: SettingsPage) {
 		tab = t;
 		if (t === 'accounts') loadAccounts();
 		if (t === 'game') loadJava();
@@ -674,545 +519,431 @@
 				><Search size={14} /><input
 					type="search"
 					bind:value={settingsQuery}
-					placeholder={w('searchSettings')}
-					aria-label={w('searchSettings')}
+					placeholder={tr('Buscar…', 'Search…')}
+					aria-label={tr('Buscar ajustes', 'Search settings')}
 				/></label
 			>
-			{#each matchingTabs as item (item.id)}{@const Icon = item.icon}
-				<button
+			{#each PAGES as page (page.id)}{@const Icon = icons[page.id]}<button
 					type="button"
 					class="ptab"
-					class:active={tab === item.id}
-					aria-current={tab === item.id ? 'page' : undefined}
-					onclick={() => selectTab(item.id)}><Icon size={16} />{w(item.id)}</button
-				>
-			{/each}
-			{#if !matchingTabs.length}<p class="hint">{w('noSettings')}</p>{/if}
+					class:active={tab === page.id && !settingsQuery.trim()}
+					aria-current={tab === page.id && !settingsQuery.trim() ? 'page' : undefined}
+					onclick={() => {
+						settingsQuery = '';
+						returnQuery = '';
+						selectTab(page.id);
+					}}><Icon size={16} />{page.label[locale]}</button
+				>{/each}
 		</nav>
-
 		<div class="panel-body">
-			<header class="settings-page-heading">
-				<h3>{w(tab)}</h3>
-				<p>{w(`${tab}Hint` as WorkbenchKey)}</p>
-			</header>
-			{#if tab === 'general'}
-				<section>
-					<span class="section-label">{t('settings.language')}</span>
-					<div class="row">
-						<button
-							type="button"
-							class="choice"
-							class:active={i18nState.locale === 'es'}
-							onclick={() => setLocale('es')}>Español</button
-						>
-						<button
-							type="button"
-							class="choice"
-							class:active={i18nState.locale === 'en'}
-							onclick={() => setLocale('en')}>English</button
-						>
-					</div>
-				</section>
-				<section>
-					<span class="section-label">
-						{t('settings.dialogs.label')}
-						<InfoTooltip text={t('settings.dialogs.hint')} />
-					</span>
-					<div class="row">
-						<button
-							type="button"
-							class="choice"
-							class:active={(appState.settings?.native_dialog_mode ?? 'auto') === 'auto'}
-							onclick={() => setNativeDialogMode('auto')}
-						>
-							{t('settings.dialogs.auto')}
-						</button>
-						<button
-							type="button"
-							class="choice"
-							class:active={appState.settings?.native_dialog_mode === 'manual'}
-							onclick={() => setNativeDialogMode('manual')}
-						>
-							{t('settings.dialogs.manual')}
-						</button>
-					</div>
-				</section>
-				<section>
-					<span class="section-label">{t('settings.storage.label')}</span>
-					<button
-						type="button"
-						class="save-btn"
-						disabled={clearingCache}
-						onclick={handleClearCache}
-					>
-						{#if clearingCache}<Loader2 size={13} class="spin" />{:else}<Trash2 size={13} />{/if}
-						{t('settings.storage.clearCache')}
-					</button>
-					{#if cacheClearedMsg}<p class="hint">{cacheClearedMsg}</p>{/if}
-				</section>
-			{:else if tab === 'appearance'}
-				<section>
-					<span class="section-label">{t('settings.theme.label')}</span>
-					<div class="row">
-						<button
-							type="button"
-							class="choice"
-							class:active={appState.settings?.theme === 'dark'}
-							onclick={() => setTheme('dark')}>{t('settings.theme.dark')}</button
-						>
-						<button
-							type="button"
-							class="choice"
-							class:active={appState.settings?.theme === 'light'}
-							disabled={surface === 'oled'}
-							title={surface === 'oled' ? t('settings.theme.lightDisabledTitle') : undefined}
-							onclick={() => setTheme('light')}>{t('settings.theme.light')}</button
-						>
-					</div>
-				</section>
-
-				<VisualSettings onQuality={handleQuality} />
-				<section>
-					<span class="section-label">{t('settings.accent.label')}</span>
-					<div class="swatches">
-						{#each ACCENTS as a (a.id)}
-							<button
-								type="button"
-								class="swatch"
-								class:active={accent === a.id}
-								style="background: {a.color}; color: {a.color}"
-								onclick={() => applyAccent(a.id)}
-								aria-label={t(a.key)}
-							></button>
-						{/each}
-					</div>
-				</section>
-				<section>
-					<span class="section-label"><PanelLeft size={13} /> {t('settings.surface.label')}</span>
-					<div class="row">
-						{#each SURFACES as item (item.id)}<button
-								type="button"
-								class="choice"
-								class:active={surface === item.id}
-								disabled={item.id === 'oled' && appState.settings?.theme === 'light'}
-								title={item.id === 'oled' && appState.settings?.theme === 'light'
-									? t('settings.surface.incompatibleTitle')
-									: undefined}
-								onclick={() => applySurface(item.id)}>{t(item.key)}</button
-							>{/each}
-					</div>
-				</section>
-				<section>
-					<span class="section-label"
-						><WandSparkles size={13} /> {t('settings.ambience.label')}</span
-					>
-					<div class="row">
-						{#each AMBIENCES as item (item.id)}<button
-								type="button"
-								class="choice"
-								class:active={ambience === item.id}
-								onclick={() => applyAmbience(item.id)}>{t(item.key)}</button
-							>{/each}
-					</div>
-				</section>
-				<section>
-					<span class="section-label"
-						><WandSparkles size={13} /> {t('settings.wallpaper.label')}</span
-					>
-					<div class="wallpaper-grid">
-						{#each WALLPAPERS as item (item.id)}
-							<button
-								type="button"
-								class="wallpaper-swatch"
-								class:active={wallpaper === item.id}
-								style="background: {item.preview}; background-size: cover; background-position: center;"
-								onclick={() => applyWallpaper(item.id)}
-								aria-label={t(item.key)}
-								title={t(item.key)}
-							>
-								{#if wallpaper === item.id}<Check size={12} />{/if}
-							</button>
-						{/each}
-						{#if customWallpaperUrl}
-							<button
-								type="button"
-								class="wallpaper-swatch"
-								class:active={wallpaper === 'custom'}
-								style="background-image: url('{customWallpaperUrl}'); background-size: cover; background-position: center;"
-								onclick={selectCustomWallpaper}
-								aria-label={t('settings.wallpaper.yourImage')}
-								title={t('settings.wallpaper.yourImage')}
-							>
-								{#if wallpaper === 'custom'}<Check size={12} />{/if}
-							</button>
-						{/if}
-						<button
-							type="button"
-							class="wallpaper-swatch wallpaper-upload"
-							onclick={pickCustomWallpaper}
-							disabled={customWallpaperBusy || dialogsBlocked}
-							aria-label={customWallpaperUrl
-								? t('settings.wallpaper.change')
-								: t('settings.wallpaper.upload')}
-							title={dialogsBlocked
-								? t('settings.wallpaper.uploadDisabledTitle')
-								: customWallpaperUrl
-									? t('settings.wallpaper.change')
-									: t('settings.wallpaper.upload')}
-						>
-							<Upload size={13} />
-						</button>
-					</div>
-					{#if dialogsBlocked}<p class="mac-notice">
-							{t('settings.wallpaper.autoModeDisabled')}
-						</p>{/if}
-					{#if customWallpaperError}<p class="error-text">{customWallpaperError}</p>{/if}
-				</section>
-				<section>
-					<span class="section-label">{t('settings.density.label')}</span>
-					<div class="row">
-						<button
-							type="button"
-							class="choice"
-							class:active={density === 'comfortable'}
-							onclick={() => applyDensity('comfortable')}
-							>{t('settings.density.comfortable')}</button
-						><button
-							type="button"
-							class="choice"
-							class:active={density === 'compact'}
-							onclick={() => applyDensity('compact')}>{t('settings.density.compact')}</button
-						>
-					</div>
-				</section>
-				<section>
-					<span class="section-label">{t('settings.cardStyle.label')}</span>
-					<div class="row">
-						<button
-							type="button"
-							class="choice"
-							class:active={cardStyle === 'rich'}
-							onclick={() => applyCardStyle('rich')}>{t('settings.cardStyle.rich')}</button
-						>
-						<button
-							type="button"
-							class="choice"
-							class:active={cardStyle === 'minimal'}
-							onclick={() => applyCardStyle('minimal')}>{t('settings.cardStyle.minimal')}</button
-						>
-					</div>
-				</section>
-				<section>
-					<span class="section-label">{t('settings.font.label')}</span>
-					<div class="row">
-						{#each FONTS as f (f.id)}
-							<button
-								type="button"
-								class="choice"
-								class:active={font === f.id}
-								style="font-family: {f.family}"
-								onclick={() => applyFont(f.id)}
-							>
-								{f.key ? t(f.key) : f.label}
-							</button>
-						{/each}
-					</div>
-					<p class="hint">{t('settings.font.hint')}</p>
-				</section>
-
-				<section>
-					<span class="section-label">{t('settings.quality.label')}</span>
-					<div class="row">
-						{#each QUALITY as q (q)}
-							<button
-								type="button"
-								class="choice"
-								class:active={appState.settings?.quality_profile === q}
-								onclick={() => handleQuality(q)}>{q}</button
-							>
-						{/each}
-					</div>
-				</section>
-				<section>
-					<span class="section-label">
-						{t('settings.quality.reduceMotion.label')}
-						<InfoTooltip text={t('settings.quality.reduceMotion.hint')} />
-					</span>
-					<button
-						type="button"
-						class="choice auto-update-toggle"
-						class:active={appState.settings?.reduce_animations}
-						onclick={toggleReduceAnimations}
-					>
-						{appState.settings?.reduce_animations
-							? t('settings.quality.reduceMotion.on')
-							: t('settings.quality.reduceMotion.off')}
-					</button>
-				</section>
-			{:else if tab === 'game'}
-				<section>
-					<span class="section-label">
-						{t('settings.ram.label')}
-						{#if ramTotal}<span class="ram-total"
-								>{t('settings.ram.detected', { gb: Math.round(ramTotal / 1024) })}</span
-							>{/if}
-					</span>
-					<div class="ram-row">
-						<label>
-							{t('settings.ram.min')}
-							<input type="number" bind:value={minRam} min="512" step="256" />
-						</label>
-						<label>
-							{t('settings.ram.max')}
-							<input type="number" bind:value={maxRam} min="512" step="256" />
-						</label>
-					</div>
-					<button type="button" class="save-btn" disabled={savingRam} onclick={saveRam}>
-						<Check size={13} />
-						{t('settings.ram.save')}
-					</button>
-				</section>
-				<section>
-					<span class="section-label">
-						{t('settings.multiInstance.label')}
-						<InfoTooltip text={t('settings.multiInstance.hint')} />
-					</span>
-					<button
-						type="button"
-						class="choice auto-update-toggle"
-						class:active={!appState.settings?.multi_instance_warning_dismissed}
-						onclick={toggleMultiInstanceWarning}
-					>
-						{appState.settings?.multi_instance_warning_dismissed
-							? t('settings.multiInstance.off')
-							: t('settings.multiInstance.on')}
-					</button>
-				</section>
-
-				<section>
-					<span class="section-label">{t('settings.java.label')}</span>
-					<p class="hint">
-						{t('settings.java.hint')}
+			{#if settingsQuery.trim()}
+				<header class="settings-page-heading">
+					<h3>{tr('Resultados de búsqueda', 'Search results')}</h3>
+					<p>
+						{results.length} · {tr(
+							'Cada resultado abre la opción exacta.',
+							'Each result opens the exact setting.'
+						)}
 					</p>
-					<div class="java-list">
-						{#each javaStatuses as j (j.major)}
-							<div class="java-row">
-								<Coffee size={14} />
-								<span class="java-major">{t('settings.java.major', { major: j.major })}</span>
-								{#if j.installed}
-									<span class="java-tag installed">{t('settings.java.installed')}</span>
-								{:else}
-									<span class="java-tag">{t('settings.java.notInstalled')}</span>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</section>
-			{:else if tab === 'accounts'}
-				<section>
-					<span class="section-label">{t('settings.accounts.saved')}</span>
-					<div class="accounts-list">
-						{#each users as u (u.uuid)}
-							<div class="account-row" class:active={appState.currentUser?.uuid === u.uuid}>
-								{#if u.user_type === 'Cracked'}
-									<span class="account-avatar">
-										{#key mascotTick}
-											<Mascot id={getMascotFor(u.uuid)} size={24} />
-										{/key}
-									</span>
-								{/if}
-								<div class="account-info">
-									<span class="account-name">{u.username}</span>
-									<span class="account-type">{u.user_type}</span>
-								</div>
-								{#if appState.currentUser?.uuid !== u.uuid}
-									<button
-										type="button"
-										class="mini-btn"
-										disabled={accountBusy}
-										onclick={() => handleSwitch(u.uuid)}
-									>
-										{t('settings.accounts.use')}
-									</button>
-								{:else}
-									<span class="active-tag">{t('settings.accounts.active')}</span>
-								{/if}
+				</header>
+				<div class="settings-results">
+					{#each results as result (result.id)}<button
+							type="button"
+							class="settings-result"
+							onclick={() => jump(result.id)}
+							><small>{PAGES.find((p) => p.id === result.page)!.label[locale]}</small><strong
+								>{result.label[locale]}</strong
+							><span>{tr('Abrir opción', 'Open setting')} →</span></button
+						>{:else}<p role="status">
+							{tr(
+								'No encontramos esa opción. Prueba «memoria», «fondo» o «colores».',
+								'No matching option. Try “memory”, “background” or “colors”.'
+							)}
+						</p>{/each}
+				</div>
+			{:else}
+				{#if returnQuery}<button
+						type="button"
+						class="return-search"
+						onclick={() => {
+							settingsQuery = returnQuery;
+							returnQuery = '';
+						}}>← {tr('Volver a resultados', 'Back to results')} · {returnQuery}</button
+					>{/if}
+				<header class="settings-page-heading">
+					<h3>{currentPage.label[locale]}</h3>
+					<p>{currentPage.description[locale]}</p>
+				</header>
+				{#if tab === 'general'}<SettingGroup id="language"
+						><section>
+							<span class="section-label">{t('settings.language')}</span>
+							<div class="row">
 								<button
 									type="button"
-									class="mini-icon-btn"
-									disabled={accountBusy}
-									onclick={() => handleRemove(u.uuid)}
-									aria-label={t('settings.accounts.remove')}
+									class="choice"
+									class:active={i18nState.locale === 'es'}
+									onclick={() => setLocale('es')}>Español</button
 								>
-									<Trash2 size={13} />
+								<button
+									type="button"
+									class="choice"
+									class:active={i18nState.locale === 'en'}
+									onclick={() => setLocale('en')}>English</button
+								>
+							</div>
+						</section></SettingGroup
+					><SettingGroup id="files"
+						><section>
+							<span class="section-label">
+								{t('settings.dialogs.label')}
+								<InfoTooltip text={t('settings.dialogs.hint')} />
+							</span>
+							<div class="row">
+								<button
+									type="button"
+									class="choice"
+									class:active={(appState.settings?.native_dialog_mode ?? 'auto') === 'auto'}
+									onclick={() => setNativeDialogMode('auto')}
+								>
+									{t('settings.dialogs.auto')}
+								</button>
+								<button
+									type="button"
+									class="choice"
+									class:active={appState.settings?.native_dialog_mode === 'manual'}
+									onclick={() => setNativeDialogMode('manual')}
+								>
+									{t('settings.dialogs.manual')}
 								</button>
 							</div>
-							{#if u.user_type === 'Cracked' && appState.currentUser?.uuid === u.uuid}
-								<div class="mascot-picker">
-									{#key mascotTick}
-										{#each MASCOTS as m (m.id)}
+						</section></SettingGroup
+					><SettingGroup id="storage"
+						><section>
+							<span class="section-label">{t('settings.storage.label')}</span>
+							<button
+								type="button"
+								class="save-btn"
+								disabled={clearingCache}
+								onclick={handleClearCache}
+							>
+								{#if clearingCache}<Loader2 size={13} class="spin" />{:else}<Trash2
+										size={13}
+									/>{/if}
+								{t('settings.storage.clearCache')}
+							</button>
+							{#if cacheClearedMsg}<p class="hint">{cacheClearedMsg}</p>{/if}
+						</section></SettingGroup
+					>{:else if tab === 'appearance'}<AppearanceSettings
+						onQuality={handleQuality}
+						onTheme={setTheme}
+						onSurface={applySurface}
+						onAccent={applyAccent}
+						onFont={applyFont}
+						onDensity={applyDensity}
+						onCards={applyCardStyle}
+						{font}
+						{surface}
+						{density}
+						cards={cardStyle}
+					/>
+				{:else if tab === 'scenes'}<SceneSettings
+						><WallpaperSettings
+							{ambience}
+							{wallpaper}
+							{customWallpaperUrl}
+							{customWallpaperBusy}
+							{customWallpaperError}
+							{dialogsBlocked}
+							{applyAmbience}
+							{applyWallpaper}
+							{selectCustomWallpaper}
+							{pickCustomWallpaper}
+						/></SceneSettings
+					>
+				{:else if tab === 'game'}<SettingGroup id="ram"
+						><section>
+							<span class="section-label">
+								{t('settings.ram.label')}
+								{#if ramTotal}<span class="ram-total"
+										>{t('settings.ram.detected', { gb: Math.round(ramTotal / 1024) })}</span
+									>{/if}
+							</span>
+							<div class="ram-row">
+								<label>
+									{t('settings.ram.min')}
+									<input type="number" bind:value={minRam} min="512" step="256" />
+								</label>
+								<label>
+									{t('settings.ram.max')}
+									<input type="number" bind:value={maxRam} min="512" step="256" />
+								</label>
+							</div>
+							<p class="hint">
+								{tr(
+									'La RAM residente del sistema también necesita espacio. Los ajustes de cada instancia pueden reemplazar estos valores.',
+									'Leave memory available for the operating system. Individual instance settings can override these values.'
+								)}
+							</p>
+							<label class="ram-slider"
+								>{tr('Límite máximo (MB)', 'Maximum limit (MB)')}<input
+									type="range"
+									min="512"
+									max={Math.max(ramTotal ?? 16384, maxRam)}
+									step="256"
+									bind:value={maxRam}
+								/><output>{maxRam} MB</output></label
+							>{#if ramMessage}<p role="status" class="hint">{ramMessage}</p>{/if}<button
+								type="button"
+								class="save-btn"
+								disabled={savingRam}
+								onclick={saveRam}
+							>
+								<Check size={13} />
+								{t('settings.ram.save')}
+							</button>
+						</section></SettingGroup
+					><SettingGroup id="multi-instance"
+						><section>
+							<span class="section-label">
+								{t('settings.multiInstance.label')}
+								<InfoTooltip text={t('settings.multiInstance.hint')} />
+							</span>
+							<button
+								type="button"
+								class="choice auto-update-toggle"
+								class:active={!appState.settings?.multi_instance_warning_dismissed}
+								onclick={toggleMultiInstanceWarning}
+							>
+								{appState.settings?.multi_instance_warning_dismissed
+									? t('settings.multiInstance.off')
+									: t('settings.multiInstance.on')}
+							</button>
+						</section></SettingGroup
+					><LaunchSettings
+						statuses={javaStatuses}
+						onSaved={loadJava}
+					/>{:else if tab === 'accounts'}<SettingGroup id="accounts"
+						><section>
+							<span class="section-label">{t('settings.accounts.saved')}</span>
+							<div class="accounts-list">
+								{#each users as u (u.uuid)}
+									<div class="account-row" class:active={appState.currentUser?.uuid === u.uuid}>
+										{#if u.user_type === 'Cracked'}
+											<span class="account-avatar">
+												{#key mascotTick}
+													<Mascot id={getMascotFor(u.uuid)} size={24} />
+												{/key}
+											</span>
+										{/if}
+										<div class="account-info">
+											<span class="account-name">{u.username}</span>
+											<span class="account-type">{u.user_type}</span>
+										</div>
+										{#if appState.currentUser?.uuid !== u.uuid}
 											<button
 												type="button"
-												class="mascot-swatch"
-												class:active={getMascotFor(u.uuid) === m.id}
-												onclick={() => changeMascot(u.uuid, m.id)}
-												aria-label={m.label}
-												title={m.label}
+												class="mini-btn"
+												disabled={accountBusy}
+												onclick={() => handleSwitch(u.uuid)}
 											>
-												<Mascot id={m.id} size={26} />
+												{t('settings.accounts.use')}
 											</button>
-										{/each}
-									{/key}
+										{:else}
+											<span class="active-tag">{t('settings.accounts.active')}</span>
+										{/if}
+										<button
+											type="button"
+											class="mini-icon-btn"
+											disabled={accountBusy}
+											onclick={() => handleRemove(u.uuid)}
+											aria-label={t('settings.accounts.remove')}
+										>
+											<Trash2 size={13} />
+										</button>
+									</div>
+									{#if u.user_type === 'Cracked' && appState.currentUser?.uuid === u.uuid}
+										<div class="mascot-picker">
+											{#key mascotTick}
+												{#each MASCOTS as m (m.id)}
+													<button
+														type="button"
+														class="mascot-swatch"
+														class:active={getMascotFor(u.uuid) === m.id}
+														onclick={() => changeMascot(u.uuid, m.id)}
+														aria-label={m.label}
+														title={m.label}
+													>
+														<Mascot id={m.id} size={26} />
+													</button>
+												{/each}
+											{/key}
+										</div>
+									{/if}
+								{/each}
+							</div>
+						</section></SettingGroup
+					><SettingGroup id="account-microsoft"
+						><section>
+							<span class="section-label">{t('settings.accounts.addMicrosoft')}</span>
+							{#if msCode}
+								<div class="ms-pending">
+									<p>
+										{t('onboarding.goTo')}
+										<a href={msVerificationUri} target="_blank" rel="noreferrer"
+											>{msVerificationUri}</a
+										>
+										{t('settings.accounts.microsoftEnter')}
+									</p>
+									<div class="ms-code-row">
+										<code class="ms-code" tabindex="0">{msCode}</code>
+										<button
+											type="button"
+											class="copy-code-btn"
+											onclick={copyMicrosoftCode}
+											aria-label={t('settings.accounts.copyCode')}
+										>
+											{#if codeCopied}<CheckCircle2 size={14} /> {t('common.copied')}{:else}<Copy
+													size={14}
+												/>
+												{t('common.copy')}{/if}
+										</button>
+									</div>
+									<p class="hint">{t('settings.accounts.waitingConfirmation')}</p>
 								</div>
-							{/if}
-						{/each}
-					</div>
-				</section>
-
-				<section>
-					<span class="section-label">{t('settings.accounts.addMicrosoft')}</span>
-					{#if msCode}
-						<div class="ms-pending">
-							<p>
-								{t('onboarding.goTo')}
-								<a href={msVerificationUri} target="_blank" rel="noreferrer">{msVerificationUri}</a>
-								{t('settings.accounts.microsoftEnter')}
-							</p>
-							<div class="ms-code-row">
-								<code class="ms-code" tabindex="0">{msCode}</code>
+							{:else}
 								<button
 									type="button"
-									class="copy-code-btn"
-									onclick={copyMicrosoftCode}
-									aria-label={t('settings.accounts.copyCode')}
+									class="mini-btn ms-btn"
+									disabled={msBusy}
+									onclick={handleAddMicrosoft}
 								>
-									{#if codeCopied}<CheckCircle2 size={14} /> {t('common.copied')}{:else}<Copy
-											size={14}
-										/>
-										{t('common.copy')}{/if}
+									{#if msBusy}<Loader2 size={13} class="spin" />{:else}<Gamepad2 size={13} />{/if}
+									{t('settings.accounts.startMicrosoft')}
+								</button>
+							{/if}
+							{#if msError}<p class="error">{msError}</p>{/if}
+						</section></SettingGroup
+					><SettingGroup id="account-offline"
+						><section>
+							<span class="section-label">{t('settings.accounts.addOffline')}</span>
+							<div class="add-account-row">
+								<input
+									type="text"
+									bind:value={newOfflineName}
+									placeholder={t('onboarding.usernameLabel')}
+									maxlength="16"
+								/>
+								<button
+									type="button"
+									class="mini-btn"
+									disabled={accountBusy || !newOfflineName.trim()}
+									onclick={handleAddOffline}
+								>
+									<Plus size={13} />
 								</button>
 							</div>
-							<p class="hint">{t('settings.accounts.waitingConfirmation')}</p>
-						</div>
-					{:else}
-						<button
+							<p class="hint">{t('onboarding.offlineHint')}</p>
+						</section></SettingGroup
+					><SettingGroup
+						id="account-skin"
+						hint={tr(
+							'Abre el estudio para gestionar la skin de tu cuenta activa. Las mascotas de cuentas sin conexión se eligen en la lista de cuentas.',
+							'Open the studio to manage your active account skin. Choose offline mascots in the account list.'
+						)}
+						><button
 							type="button"
-							class="mini-btn ms-btn"
-							disabled={msBusy}
-							onclick={handleAddMicrosoft}
-						>
-							{#if msBusy}<Loader2 size={13} class="spin" />{:else}<Gamepad2 size={13} />{/if}
-							{t('settings.accounts.startMicrosoft')}
-						</button>
-					{/if}
-					{#if msError}<p class="error">{msError}</p>{/if}
-				</section>
+							class="save-btn"
+							onclick={() => {
+								onClose();
+								openModal('skinManager');
+							}}>{tr('Abrir estudio de skins', 'Open skin studio')}</button
+						></SettingGroup
+					>{:else if tab === 'console'}<ConsoleSettings />{:else if tab === 'updates'}<SettingGroup
+						id="updates"
+						><section>
+							<span class="section-label">
+								{t('settings.updates.label')}
+								<InfoTooltip text={t('settings.updates.hint')} />
+							</span>
+							<button
+								type="button"
+								class="choice auto-update-toggle"
+								class:active={appState.settings?.auto_updates}
+								onclick={toggleAutoUpdates}
+							>
+								{appState.settings?.auto_updates
+									? t('settings.updates.autoEnabled')
+									: t('settings.updates.autoDisabled')}
+							</button>
+							<button
+								type="button"
+								class="choice auto-update-toggle"
+								class:active={appState.settings?.beta_updates}
+								onclick={toggleBetaUpdates}
+							>
+								{appState.settings?.beta_updates
+									? t('settings.updates.betaEnabled')
+									: t('settings.updates.betaDisabled')}
+							</button>
+							<p class="hint">{t('settings.updates.betaHint')}</p>
+							<p class="hint">
+								{t('settings.updates.currentVersion', { version: formatVersion(__APP_VERSION__) })}
+							</p>
+							<button
+								type="button"
+								class="save-btn"
+								disabled={!canStartCheck(updateState)}
+								onclick={handleCheckForUpdate}
+							>
+								{#if updateState.phase === 'checking'}
+									<Loader2 size={13} class="spin" />
+								{:else}
+									<RefreshCw size={13} />
+								{/if}
+								{t('settings.updates.check')}
+							</button>
 
-				<section>
-					<span class="section-label">{t('settings.accounts.addOffline')}</span>
-					<div class="add-account-row">
-						<input
-							type="text"
-							bind:value={newOfflineName}
-							placeholder={t('onboarding.usernameLabel')}
-							maxlength="16"
-						/>
-						<button
-							type="button"
-							class="mini-btn"
-							disabled={accountBusy || !newOfflineName.trim()}
-							onclick={handleAddOffline}
-						>
-							<Plus size={13} />
-						</button>
-					</div>
-					<p class="hint">{t('onboarding.offlineHint')}</p>
-				</section>
-			{:else if tab === 'console'}
-				<ConsoleSettings />
-			{:else if tab === 'updates'}
-				<section>
-					<span class="section-label">
-						{t('settings.updates.label')}
-						<InfoTooltip text={t('settings.updates.hint')} />
-					</span>
-					<button
-						type="button"
-						class="choice auto-update-toggle"
-						class:active={appState.settings?.auto_updates}
-						onclick={toggleAutoUpdates}
-					>
-						{appState.settings?.auto_updates
-							? t('settings.updates.autoEnabled')
-							: t('settings.updates.autoDisabled')}
-					</button>
-					<button
-						type="button"
-						class="choice auto-update-toggle"
-						class:active={appState.settings?.beta_updates}
-						onclick={toggleBetaUpdates}
-					>
-						{appState.settings?.beta_updates
-							? t('settings.updates.betaEnabled')
-							: t('settings.updates.betaDisabled')}
-					</button>
-					<p class="hint">{t('settings.updates.betaHint')}</p>
-					<p class="hint">
-						{t('settings.updates.currentVersion', { version: formatVersion(__APP_VERSION__) })}
-					</p>
-					<button
-						type="button"
-						class="save-btn"
-						disabled={!canStartCheck(updateState)}
-						onclick={handleCheckForUpdate}
-					>
-						{#if updateState.phase === 'checking'}
-							<Loader2 size={13} class="spin" />
-						{:else}
-							<RefreshCw size={13} />
-						{/if}
-						{t('settings.updates.check')}
-					</button>
+							{#if updateState.phase === 'none' && updateState.upToDate}
+								<p class="hint">{t('settings.updates.upToDate')}</p>
+							{/if}
 
-					{#if updateState.phase === 'none' && updateState.upToDate}
-						<p class="hint">{t('settings.updates.upToDate')}</p>
-					{/if}
-
-					{#if updateState.phase === 'available'}
-						<p class="hint">
-							{t('settings.updates.available', {
-								version: formatVersion(updateState.version ?? '')
-							})}
-						</p>
-						<button type="button" class="save-btn" onclick={downloadUpdate}>
-							<Download size={13} />
-							{t('settings.updates.download')}
-						</button>
-					{:else if updateState.phase === 'downloading'}
-						<p class="hint">
-							{updatePercent === null
-								? t('settings.updates.downloadingUnknown')
-								: t('settings.updates.downloading', { percent: updatePercent })}
-						</p>
-					{:else if updateState.phase === 'downloaded'}
-						<p class="hint">
-							{t('settings.updates.ready', { version: formatVersion(updateState.version ?? '') })}
-						</p>
-						<button type="button" class="save-btn" onclick={installDownloadedUpdate}>
-							<RefreshCw size={13} />
-							{t('settings.updates.restart')}
-						</button>
-					{:else if updateState.phase === 'installing'}
-						<p class="hint">{t('settings.updates.installing')}</p>
-					{:else if updateState.phase === 'error' && updateState.error}
-						<p class="error">{updateState.error.message}</p>
-						<button type="button" class="save-btn" onclick={retryUpdate}>
-							<RefreshCw size={13} />
-							{t('settings.updates.retry')}
-						</button>
-					{/if}
-				</section>
-			{/if}
+							{#if updateState.phase === 'available'}
+								<p class="hint">
+									{t('settings.updates.available', {
+										version: formatVersion(updateState.version ?? '')
+									})}
+								</p>
+								<button type="button" class="save-btn" onclick={downloadUpdate}>
+									<Download size={13} />
+									{t('settings.updates.download')}
+								</button>
+							{:else if updateState.phase === 'downloading'}
+								<p class="hint">
+									{updatePercent === null
+										? t('settings.updates.downloadingUnknown')
+										: t('settings.updates.downloading', { percent: updatePercent })}
+								</p>
+							{:else if updateState.phase === 'downloaded'}
+								<p class="hint">
+									{t('settings.updates.ready', {
+										version: formatVersion(updateState.version ?? '')
+									})}
+								</p>
+								<button type="button" class="save-btn" onclick={installDownloadedUpdate}>
+									<RefreshCw size={13} />
+									{t('settings.updates.restart')}
+								</button>
+							{:else if updateState.phase === 'installing'}
+								<p class="hint">{t('settings.updates.installing')}</p>
+							{:else if updateState.phase === 'error' && updateState.error}
+								<p class="error">{updateState.error.message}</p>
+								<button type="button" class="save-btn" onclick={retryUpdate}>
+									<RefreshCw size={13} />
+									{t('settings.updates.retry')}
+								</button>
+							{/if}
+						</section></SettingGroup
+					>{/if}{#if settingsError}<p class="error" role="alert">{settingsError}</p>{/if}{/if}
 		</div>
 	</div>
 </div>
@@ -1388,12 +1119,6 @@
 		gap: 8px;
 	}
 
-	.swatches {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 10px;
-	}
-
 	.choice {
 		flex: 1;
 		padding: 8px;
@@ -1415,78 +1140,6 @@
 	.choice:disabled {
 		opacity: 0.42;
 		cursor: not-allowed;
-	}
-
-	.swatch {
-		width: 32px;
-		height: 32px;
-		border-radius: 50%;
-		border: 2px solid var(--bg-card);
-		box-shadow: 0 0 0 1px var(--border);
-		cursor: pointer;
-		transition: box-shadow 0.15s;
-	}
-
-	.swatch.active {
-		box-shadow:
-			0 0 0 2px var(--bg-card),
-			0 0 0 4px currentColor;
-	}
-
-	.wallpaper-grid {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		gap: 8px;
-	}
-
-	.wallpaper-swatch {
-		aspect-ratio: 16 / 10;
-		border-radius: var(--border-radius-sm);
-		border: 2px solid var(--border);
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: #ffffff;
-		opacity: 0.75;
-		transition:
-			opacity 0.15s,
-			border-color 0.15s,
-			transform 0.15s;
-	}
-
-	.wallpaper-swatch:hover {
-		opacity: 1;
-		transform: translateY(-1px);
-	}
-
-	.wallpaper-swatch.active {
-		opacity: 1;
-		border-color: var(--accent);
-		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
-	}
-
-	.wallpaper-upload {
-		background: var(--bg-input);
-		border-style: dashed;
-		color: var(--text-muted);
-	}
-
-	.wallpaper-upload:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-
-	.error-text {
-		margin-top: 8px;
-		font-size: 0.75rem;
-		color: var(--color-error);
-	}
-
-	.mac-notice {
-		margin-top: 8px;
-		font-size: 0.75rem;
-		color: var(--text-secondary);
 	}
 
 	.ram-row {
@@ -1749,41 +1402,6 @@
 		}
 	}
 
-	.java-list {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-
-	.java-row {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 8px 10px;
-		border-radius: var(--border-radius-sm);
-		background: var(--bg-input);
-		border: 1px solid var(--border);
-		color: var(--text-secondary);
-	}
-
-	.java-major {
-		flex: 1;
-		font-size: 0.8rem;
-		color: var(--text-primary);
-		font-weight: 600;
-	}
-
-	.java-tag {
-		font-size: 0.65rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		color: var(--text-muted);
-	}
-
-	.java-tag.installed {
-		color: var(--color-success);
-	}
-
 	.settings-refresh {
 		width: min(1180px, calc(100vw - 40px));
 		height: calc(100vh - 76px);
@@ -1849,5 +1467,56 @@
 			padding: 12px 8px;
 			font-size: 12px;
 		}
+	}
+	.settings-results {
+		display: grid;
+		gap: 10px;
+	}
+	.settings-result {
+		display: flex;
+		flex-direction: column;
+		gap: 7px;
+		text-align: left;
+		padding: 14px 16px;
+		background: var(--surface-card);
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius);
+		color: var(--text-primary);
+		cursor: pointer;
+	}
+	.settings-result:hover {
+		border-color: var(--accent);
+	}
+	.settings-result small,
+	.settings-result span {
+		font-size: 11px;
+		color: var(--text-secondary);
+	}
+	.settings-result strong {
+		font-size: 14px;
+	}
+	.return-search {
+		border: 0;
+		background: none;
+		color: var(--accent);
+		font-size: 12px;
+		cursor: pointer;
+		padding: 0 0 16px;
+	}
+
+	.ram-slider {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 12px;
+		margin: 16px 0;
+	}
+	.ram-slider input {
+		flex: 1;
+		min-width: 60px;
+		accent-color: var(--accent);
+	}
+	.panel-body > :global(.setting-group) {
+		margin-bottom: 26px;
 	}
 </style>

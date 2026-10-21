@@ -18,3 +18,11 @@ panic = "abort"
 strip = "symbols"
 debug-assertions = false
 overflow-checks = false
+
+# Opt-in review artifacts. Official signed releases keep the release profile above.
+[profile.review]
+inherits = "release"
+opt-level = 2
+lto = "thin"
+codegen-units = 8
+incremental = false

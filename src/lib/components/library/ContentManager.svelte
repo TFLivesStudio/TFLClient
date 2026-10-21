@@ -506,6 +506,7 @@
 	);
 
 	async function handleInstall(projectId: string, versionId?: string) {
+		if (!versionId && installedProjectIds.has(projectId)) return;
 		await explorer.install(projectId, versionId, refreshInstalled);
 	}
 </script>
@@ -737,7 +738,8 @@
 			error={explorer.detailError}
 			onBack={() => explorer.closeDetail()}
 			onInstall={(versionId) => handleInstall(explorer.detailProjectId!, versionId)}
-			installing={explorer.installingId === explorer.detailProjectId}
+			installing={!!explorer.detailProjectId &&
+				explorer.pendingIds.includes(explorer.detailProjectId)}
 			installed={installedProjectIds.has(explorer.detailProjectId)}
 			loadVersions={(id) => explorer.getVersionsFor(id)}
 		/>
@@ -859,7 +861,7 @@
 					<ContentResultRow
 						{item}
 						installed={installedProjectIds.has(item.project_id)}
-						installing={explorer.installingId === item.project_id}
+						installing={explorer.pendingIds.includes(item.project_id)}
 						showFavorite={kind === 'mod'}
 						isFavorite={isFavoriteMod(item.project_id)}
 						versionsOpen={explorer.openVersionsFor === item.project_id}

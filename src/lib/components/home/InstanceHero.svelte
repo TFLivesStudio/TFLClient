@@ -54,7 +54,7 @@
 	<div class="hero-light" aria-hidden="true"></div>
 	<div class="hero-identity">
 		<span class="vr-eyebrow"><span class="hero-dot"></span>{vr('continue')}</span>
-		<div class="hero-edition">
+		<div class="hero-edition" data-instance-artwork={featured.uuid}>
 			{#if iconUrl}<img src={iconUrl} alt="" />{:else}<Box size={20} />{/if}<span
 				>MINECRAFT <span class="edition-divider">/</span> {featured.mc_version}</span
 			>

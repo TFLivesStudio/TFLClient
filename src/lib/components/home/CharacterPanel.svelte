@@ -1,4 +1,10 @@
 <script lang="ts">
+	import { reaction } from '$lib/scenes/reactions.svelte';
+	import { downloadTasks } from '$lib/state/downloadState.svelte';
+	import { effects } from '$lib/visual/runtime.svelte';
+	import { scenes } from '$lib/scenes/preferences.svelte';
+	const downloading = $derived(Object.values(downloadTasks).some((t) => !t.failed));
+
 	import { SkinViewer3D, Mascot } from '$lib/components/ui';
 	import Tfl from '$lib/icons/Tfl.svelte';
 	import { getMascotFor } from '$lib/mascots';
@@ -49,7 +55,12 @@
 	});
 </script>
 
-<div class="character-figure">
+<div
+	class="character-figure"
+	class:reactive={effects.current.cinematic && scenes.global.reactive}
+	class:working={downloading || launching}
+	data-reaction={reaction.kind}
+>
 	{#if isPremium}
 		<SkinViewer3D
 			priority="hero"
@@ -183,5 +194,38 @@
 	}
 	.skin-slot-add:hover {
 		color: var(--accent);
+	}
+	.reactive[data-reaction='success'] .mascot-big {
+		animation: mascot-hello 1.1s ease-in-out;
+	}
+	.reactive[data-reaction='error'] .mascot-big {
+		animation: mascot-shake 0.5s ease-in-out;
+	}
+	.reactive.working .mascot-big {
+		animation: mascot-work 2.4s ease-in-out infinite;
+	}
+	@keyframes mascot-hello {
+		25%,
+		65% {
+			transform: translateY(-10px) rotate(-4deg);
+		}
+		45%,
+		85% {
+			transform: translateY(-4px) rotate(4deg);
+		}
+	}
+	@keyframes mascot-shake {
+		25%,
+		75% {
+			transform: translateX(-4px);
+		}
+		50% {
+			transform: translateX(4px);
+		}
+	}
+	@keyframes mascot-work {
+		50% {
+			transform: translateY(-4px) rotate(2deg);
+		}
 	}
 </style>

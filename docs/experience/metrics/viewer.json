@@ -1,0 +1,74 @@
+{
+	"fixture": true,
+	"syntheticTexture": true,
+	"softwareRenderer": true,
+	"browser": "154.0.8037.57",
+	"samples": [
+		{
+			"revision": "baseline",
+			"quality": "Lite",
+			"contexts": 0,
+			"rafCallbacks": 0,
+			"callbacksInSample": 0,
+			"drawCallsInSample": 0,
+			"heapMiB": 4.78,
+			"taskMs": 1.85,
+			"elapsedMs": 1007.56
+		},
+		{
+			"revision": "baseline",
+			"quality": "Balanced",
+			"contexts": 1,
+			"rafCallbacks": 130,
+			"callbacksInSample": 62,
+			"drawCallsInSample": 1159,
+			"heapMiB": 8.24,
+			"taskMs": 617.32,
+			"elapsedMs": 1028.38
+		},
+		{
+			"revision": "baseline",
+			"quality": "Experience",
+			"contexts": 1,
+			"rafCallbacks": 133,
+			"callbacksInSample": 61,
+			"drawCallsInSample": 1159,
+			"heapMiB": 8.35,
+			"taskMs": 621.73,
+			"elapsedMs": 1005.98
+		},
+		{
+			"revision": "refresh",
+			"quality": "Lite",
+			"contexts": 0,
+			"rafCallbacks": 0,
+			"callbacksInSample": 0,
+			"drawCallsInSample": 0,
+			"heapMiB": 5.1,
+			"taskMs": 1.64,
+			"elapsedMs": 1009.83
+		},
+		{
+			"revision": "refresh",
+			"quality": "Balanced",
+			"contexts": 1,
+			"rafCallbacks": 133,
+			"callbacksInSample": 60,
+			"drawCallsInSample": 380,
+			"heapMiB": 8.17,
+			"taskMs": 267.16,
+			"elapsedMs": 1005.86
+		},
+		{
+			"revision": "refresh",
+			"quality": "Experience",
+			"contexts": 1,
+			"rafCallbacks": 135,
+			"callbacksInSample": 61,
+			"drawCallsInSample": 380,
+			"heapMiB": 8.36,
+			"taskMs": 312.81,
+			"elapsedMs": 1008.33
+		}
+	]
+}

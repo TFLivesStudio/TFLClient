@@ -11,6 +11,8 @@ export interface ConsolePreferences {
 	cpuMode: 'cores' | 'total';
 	/** Estilo de las tarjetas de métricas: líneas históricas (default) o anillos. */
 	chartStyle: 'lines' | 'gauge';
+	metricStyles: Record<Metric, 'lines' | 'gauge'>;
+	metricSeconds: Record<Metric, 30 | 60 | 180>;
 	fontSize: number;
 	wrap: boolean;
 	follow: boolean;
@@ -33,6 +35,8 @@ export const DEFAULT_CONSOLE: ConsolePreferences = {
 	seconds: 60,
 	cpuMode: 'cores',
 	chartStyle: 'lines',
+	metricStyles: { cpu: 'lines', ram: 'lines', disk: 'lines' },
+	metricSeconds: { cpu: 60, ram: 60, disk: 60 },
 	fontSize: 12,
 	wrap: true,
 	follow: true
@@ -57,6 +61,14 @@ export function parseConsole(input: unknown): ConsolePreferences {
 	if ([30, 60, 180].includes(p.seconds ?? 0)) d.seconds = p.seconds!;
 	if (p.cpuMode === 'cores' || p.cpuMode === 'total') d.cpuMode = p.cpuMode;
 	if (p.chartStyle === 'lines' || p.chartStyle === 'gauge') d.chartStyle = p.chartStyle;
+	for (const metric of metrics) {
+		d.metricStyles[metric] = ['lines', 'gauge'].includes(p.metricStyles?.[metric] ?? '')
+			? p.metricStyles![metric]
+			: d.chartStyle;
+		d.metricSeconds[metric] = [30, 60, 180].includes(p.metricSeconds?.[metric] ?? 0)
+			? p.metricSeconds![metric]
+			: d.seconds;
+	}
 	if (typeof p.fontSize === 'number' && Number.isFinite(p.fontSize))
 		d.fontSize = Math.round(Math.max(10, Math.min(20, p.fontSize)));
 	if (typeof p.wrap === 'boolean') d.wrap = p.wrap;

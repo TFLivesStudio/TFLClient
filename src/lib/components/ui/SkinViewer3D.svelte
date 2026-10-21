@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { subscribeFrame } from '$lib/scenes/frameClock';
+	import { scenes } from '$lib/scenes/preferences.svelte';
+	import { reaction } from '$lib/scenes/reactions.svelte';
 	import type { SkinViewer } from 'skinview3d';
 	import { effects, runtime } from '$lib/visual/runtime.svelte';
 	import { vr } from '$lib/i18n/refresh';
@@ -38,6 +41,7 @@
 	const visible = $derived(
 		intersecting &&
 			runtime.visible &&
+			runtime.focused &&
 			!(priority === 'hero' && (runtime.overlay || runtime.modalDepth > 0))
 	);
 	$effect(() => {
@@ -138,26 +142,66 @@
 		const current = viewer;
 		if (!current) return;
 		const animate = visible && effects.current.animateViewer;
-		current.renderPaused = !animate;
+		current.renderPaused = true;
 		current.autoRotate = animate && autoRotate;
 		current.autoRotateSpeed = autoRotateSpeed;
 		current.pixelRatio = Math.min(window.devicePixelRatio || 1, effects.current.dpr);
 		current.zoom = zoom;
 		const cinematic = effects.current.cinematic,
-			launch = launching;
+			launch =
+				(priority !== 'hero' || scenes.global.reactive) &&
+				(launching || reaction.kind === 'launch'),
+			result = priority !== 'hero' || scenes.global.reactive ? reaction.kind : 'idle',
+			fps = Math.min(scenes.global.fps, cinematic ? 60 : 24);
+		let stop = () => {};
 		let stale = false;
-		import('skinview3d').then(({ IdleAnimation, WalkingAnimation }) => {
-			if (stale || viewer !== current) return;
-			current.animation =
-				animate && cinematic ? (launch ? new WalkingAnimation() : new IdleAnimation()) : null;
-			if (!animate) current.render();
-		});
+		import('skinview3d').then(
+			({ IdleAnimation, WalkingAnimation, WaveAnimation, HitAnimation }) => {
+				if (stale || viewer !== current) return;
+				current.animation =
+					animate && cinematic
+						? launch
+							? new WalkingAnimation()
+							: result === 'success'
+								? new WaveAnimation()
+								: result === 'error'
+									? new HitAnimation()
+									: new IdleAnimation()
+						: null;
+				if (!animate) current.render();
+				else
+					stop = subscribeFrame((delta) => {
+						current.animation?.update(current.playerObject, delta);
+						if (autoRotate) current.playerWrapper.rotation.y += delta * autoRotateSpeed;
+						current.controls.update();
+						current.render();
+					}, fps);
+			}
+		);
 		return () => {
 			stale = true;
+			stop();
 		};
 	});
+	function look(e: PointerEvent) {
+		if (priority === 'hero' && effects.current.cinematic && viewer) {
+			const rect =
+				e.currentTarget instanceof HTMLElement ? e.currentTarget.getBoundingClientRect() : null;
+			if (rect) {
+				viewer.playerObject.skin.head.rotation.y = Math.max(
+					-0.35,
+					Math.min(0.35, (e.clientX - rect.left) / rect.width - 0.5)
+				);
+				viewer.playerObject.skin.head.rotation.x = Math.max(
+					-0.18,
+					Math.min(0.18, (e.clientY - rect.top) / rect.height - 0.5)
+				);
+			}
+		}
+		draw();
+	}
 	function draw() {
-		if (viewer?.renderPaused) viewer.render();
+		if (viewer?.renderPaused && !effects.current.animateViewer) viewer.render();
 	}
 </script>
 
@@ -165,7 +209,7 @@
 	{#if enabled}<canvas
 			bind:this={canvas}
 			aria-label={vr('studio')}
-			onpointermove={draw}
+			onpointermove={look}
 			style:height={`${height}px`}
 		></canvas>
 	{:else}<div

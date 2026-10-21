@@ -5,7 +5,9 @@
 	import { pickImageFile, setInstanceIcon } from '$lib/api';
 	import { appState } from '$lib/state/state.svelte';
 	import { t } from '$lib/i18n/index.svelte';
-	import { X, Upload, Loader2 } from 'lucide-svelte';
+	import { tr } from '$lib/i18n/experience';
+	import { normalized } from '$lib/settings/catalog';
+	import { X, Upload, Loader2, Search, Check } from 'lucide-svelte';
 
 	let {
 		instanceName,
@@ -24,6 +26,29 @@
 
 	let presets = $state<IconPreset[]>([]);
 	let loading = $state(true);
+	let query = $state(''),
+		category = $state('all'),
+		selected = $state<IconPreset | null>(null);
+	const categories = [
+		['all', () => tr('Todos', 'All')],
+		['nature', () => tr('Naturaleza', 'Nature')],
+		['biome', () => tr('Paisajes', 'Landscapes')],
+		['artifact', () => tr('Artefactos', 'Artifacts')],
+		['creature', () => tr('Criaturas', 'Creatures')],
+		['sigil', () => tr('Emblemas', 'Emblems')],
+		['gear', () => tr('Equipo', 'Gear')],
+		['legacy', () => tr('Clásicos', 'Legacy')]
+	] as const;
+	function group(id: string) {
+		return /^(nature|biome|artifact|creature|sigil|gear)-/.exec(id)?.[1] ?? 'legacy';
+	}
+	const filtered = $derived(
+		presets.filter(
+			(p) =>
+				(category === 'all' || group(p.id) === category) &&
+				normalized(label(p.id)).includes(normalized(query))
+		)
+	);
 	let busy = $state<string | null>(null);
 	let error = $state<string | null>(null);
 
@@ -44,7 +69,9 @@
 	});
 
 	function label(id: string) {
-		const name = id.replace(/^(mob|place)-/, '').replace(/_/g, ' ');
+		const name = id
+			.replace(/^(mob|place|nature|biome|artifact|creature|sigil|gear)-/, '')
+			.replace(/[_-]/g, ' ');
 		return name.charAt(0).toUpperCase() + name.slice(1);
 	}
 
@@ -64,11 +91,11 @@
 
 	async function uploadOwn() {
 		if (dialogsBlocked) return;
-		const source = await pickImageFile();
-		if (!source) return;
 		busy = 'upload';
 		error = null;
 		try {
+			const source = await pickImageFile();
+			if (!source) return;
 			await setInstanceIcon(instanceName, source);
 			onChanged();
 			onClose();
@@ -124,13 +151,44 @@
 		{#if loading}
 			<div class="loading-row"><Loader2 size={18} class="spin" /></div>
 		{:else}
+			<label class="icon-search"
+				><Search size={14} /><input
+					type="search"
+					bind:value={query}
+					placeholder={tr('Buscar iconos…', 'Search icons…')}
+					aria-label={tr('Buscar iconos', 'Search icons')}
+				/></label
+			>
+			<div class="categories">
+				{#each categories as [id, name] (id)}<button
+						type="button"
+						class="vr-control"
+						aria-pressed={category === id}
+						onclick={() => (category = id)}>{name()}</button
+					>{/each}
+			</div>
+			{#if selected}<div class="icon-preview">
+					<img src={selected.data_url} alt={label(selected.id)} /><span
+						><strong>{label(selected.id)}</strong><small
+							>{tr('Vista previa del icono', 'Icon preview')}</small
+						></span
+					><button
+						type="button"
+						class="vr-control"
+						disabled={!!busy}
+						onclick={() => {
+							if (selected) void choosePreset(selected.id);
+						}}><Check size={14} />{tr('Aplicar', 'Apply')}</button
+					>
+				</div>{/if}
 			<div class="icon-grid">
-				{#each presets as p (p.id)}
+				{#each filtered as p (p.id)}
 					<button
 						type="button"
 						class="icon-swatch"
 						disabled={busy === p.id}
-						onclick={() => choosePreset(p.id)}
+						onclick={() => (selected = p)}
+						aria-pressed={selected?.id === p.id}
 						aria-label={label(p.id)}
 						title={label(p.id)}
 					>
@@ -300,5 +358,76 @@
 	.close-btn {
 		width: 34px;
 		height: 34px;
+	}
+	.icon-search {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 8px 10px;
+		background: var(--bg-input);
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius-sm);
+		color: var(--text-secondary);
+	}
+	.icon-search input {
+		border: 0;
+		background: none;
+		color: var(--text-primary);
+		font-size: 12px;
+		min-width: 0;
+		flex: 1;
+		outline: 0;
+	}
+	.categories {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 5px;
+	}
+	.categories button {
+		font-size: 10px;
+		padding: 5px 8px;
+	}
+	.categories button[aria-pressed='true'],
+	.icon-swatch[aria-pressed='true'] {
+		border-color: var(--accent);
+	}
+	.icon-preview {
+		display: flex;
+		gap: 12px;
+		align-items: center;
+		padding: 10px 0;
+		border-block: 1px solid var(--border);
+	}
+	.icon-preview > img {
+		width: 56px;
+		height: 56px;
+		object-fit: contain;
+		image-rendering: pixelated;
+	}
+	.icon-preview > span {
+		flex: 1;
+		display: grid;
+		gap: 5px;
+		font-size: 13px;
+	}
+	.icon-preview small {
+		font-size: 11px;
+		color: var(--text-secondary);
+	}
+	.icon-preview button {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+	}
+	.icon-grid {
+		min-height: 70px;
+	}
+	.icon-swatch {
+		padding: 4px;
+	}
+	.icon-swatch img {
+		border: 0;
+		box-shadow: none;
+		background: none;
 	}
 </style>

@@ -554,3 +554,76 @@ html[data-visual='pixel'] :is(.user-head, .skin-head, .instance-avatar img) {
 		text-shadow: none;
 	}
 }
+
+/* A search control owns one frame. Inner text fields stay flush in Pixel. */
+html[data-visual='pixel']
+	:is(.search-box, .vr-search, .settings-search, .search-row, .icon-search):has(input) {
+	border: 2px solid var(--pixel-rim-dark);
+	background: var(--pixel-slot);
+	box-shadow:
+		inset 2px 2px #0004,
+		inset -1px -1px var(--pixel-rim-light);
+	border-radius: 0;
+}
+html[data-visual='pixel']
+	:is(.search-box, .vr-search, .settings-search, .search-row, .icon-search)
+	input {
+	border: 0 !important;
+	box-shadow: none !important;
+	background: transparent !important;
+	outline: none;
+	border-radius: 0;
+}
+html[data-visual='pixel']
+	:is(.search-box, .vr-search, .settings-search, .search-row, .icon-search):focus-within {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+/* Keep compact artwork edge-to-edge inside the one existing button frame. */
+html[data-visual='pixel'] :is(.instance-avatar, .user-head):has(img, .skin-head, svg) {
+	border: 0;
+	box-shadow: none;
+	background: transparent;
+}
+html[data-visual='pixel'] :is(.instance-mark, .preview-block):has(img) {
+	box-shadow: none;
+	background: transparent;
+}
+html[data-visual='pixel'] :is(.scene-tile, .theme-card, .style-option, .quality-card, .mold) {
+	border-radius: 0;
+	box-shadow:
+		inset 2px 2px var(--pixel-rim-light),
+		inset -2px -2px #0005;
+}
+html[data-visual='pixel'] :is(.scene-tile, .theme-card, .style-option, .quality-card, .mold):hover {
+	background-color: color-mix(in srgb, var(--accent) 8%, var(--surface-card));
+}
+html[data-visual='pixel']
+	:is(.scene-tile, .theme-card, .style-option, .quality-card)[aria-pressed='true'] {
+	border-color: var(--accent);
+	box-shadow:
+		inset 2px 2px #ffffff22,
+		inset -2px -2px #0008,
+		0 0 0 1px var(--accent);
+}
+
+::view-transition-group(instance-artwork) {
+	animation-duration: 260ms;
+	animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*) {
+		animation-duration: 0ms;
+	}
+}
+
+html[data-living-scene] .ambient-bg::after {
+	animation: none;
+	opacity: 0;
+}
+
+/* Without blur, an opaque surface preserves text contrast over the scene. */
+html:is([data-quality='lite'], [data-no-blur]) {
+	--surface-elevated: color-mix(in srgb, var(--accent) 3%, var(--raw-sidebar));
+	--surface-card: color-mix(in srgb, var(--accent) 2%, var(--raw-sidebar));
+}

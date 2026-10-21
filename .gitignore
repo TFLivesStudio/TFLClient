@@ -32,3 +32,6 @@ src-tauri/permissions/
 
 # Generated browser evidence (published as CI artifacts)
 /artifacts/
+
+# Local design discovery context
+/.superdesign/
