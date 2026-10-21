@@ -1,14 +1,44 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- TODO(TFL): placeholder mark — swap for the real TFLives logo once supplied (spec §26). -->
+<!-- Logo oficial: 4 diamantes (cuadrados rotados 45°) alrededor de un
+	 centro compartido — mismo trazado que src/lib/icons/Tfl.svelte, acá
+	 como archivo estático para los usos que cargan un <img> en vez de
+	 inlinear el componente (ej. la marca decorativa de Explorar). -->
 <svg
-	viewBox="0 0 100 100"
-	width="100"
-	height="100"
+	viewBox="0 0 64 64"
+	width="64"
+	height="64"
 	version="1.1"
 	xmlns="http://www.w3.org/2000/svg">
-	<path
-		d="M 50 4 L 92 27 V 73 L 50 96 L 8 73 V 27 Z M 50 16 L 19 33 V 67 L 50 84 L 81 67 V 33 Z"
+	<rect
+		x="10.7"
+		y="24.2"
+		width="15.6"
+		height="15.6"
+		rx="2"
 		fill="currentColor"
-		fill-rule="evenodd" />
-	<rect x="42" y="38" width="16" height="16" rx="3" fill="currentColor" />
+		transform="rotate(45 18.5 32)" />
+	<rect
+		x="37.7"
+		y="24.2"
+		width="15.6"
+		height="15.6"
+		rx="2"
+		fill="currentColor"
+		transform="rotate(45 45.5 32)" />
+	<rect
+		x="24.2"
+		y="10.7"
+		width="15.6"
+		height="15.6"
+		rx="2"
+		fill="currentColor"
+		transform="rotate(45 32 18.5)" />
+	<rect
+		x="24.2"
+		y="37.7"
+		width="15.6"
+		height="15.6"
+		rx="2"
+		fill="currentColor"
+		transform="rotate(45 32 45.5)" />
 </svg>

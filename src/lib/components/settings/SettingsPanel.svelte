@@ -255,6 +255,15 @@
 				)
 		)
 	);
+	// Si la búsqueda filtra afuera la pestaña activa, el contenido de abajo
+	// seguía mostrando esa pestaña vieja (ya sin su botón visible arriba) —
+	// se ve como que la búsqueda "no hace nada": el usuario filtra, los
+	// botones cambian, pero el panel grande queda igual. Saltar a la
+	// primera coincidencia mantiene la búsqueda realmente navegable.
+	$effect(() => {
+		if (matchingTabs.length && !matchingTabs.some((item) => item.id === tab))
+			tab = matchingTabs[0].id;
+	});
 	let accent = $state(
 		typeof localStorage !== 'undefined'
 			? (localStorage.getItem('tfl-accent') ?? 'orange')

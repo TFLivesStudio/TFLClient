@@ -7,9 +7,9 @@ use log::{debug, info, warn};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::Child;
 use tokio::sync::Mutex;
 use tokio::sync::broadcast::{self, Receiver, Sender};
+use tokio::sync::oneshot;
 use uuid::Uuid;
 use zellkern::resolvers::CommandBuilder;
 use zellkern::resolvers::natives::natives_subdir;
@@ -31,8 +31,20 @@ pub(crate) struct InstanceInner {
     pub runtime: Mutex<InstanceRuntime>,
 }
 
+/// `kill()` y `wait()` antes compartían el mismo `Mutex<Option<Child>>`,
+/// con `wait()` reteniendo el lock mientras esperaba `child.wait().await`
+/// — es decir, DURANTE TODA LA SESIÓN de juego (la tarea de fondo que
+/// limpia `RUNNING`/`LAUNCHWERK` llama `wait()` apenas arranca el proceso
+/// y no vuelve hasta que termina). Un `kill()` posterior se quedaba
+/// esperando ESE MISMO lock para siempre: deadlock — "Detener" no hacía
+/// nada, siempre, mientras el juego estuviera realmente corriendo. Ahora
+/// un único task dueño del `Child` corre `select!` entre esperar su
+/// salida natural y una señal de `kill()` por canal — ninguno de los dos
+/// retiene el lock por más que el tiempo de tomar/dejar el canal.
 pub(crate) struct InstanceRuntime {
-    pub process: Option<Child>,
+    pub pid: Option<u32>,
+    pub kill_tx: Option<oneshot::Sender<()>>,
+    pub exit_rx: Option<oneshot::Receiver<Option<i32>>>,
 }
 
 // ─── Public handle ────────────────────────────────────────────────────────────
@@ -173,66 +185,64 @@ impl InstanceHandle {
             }
         });
 
-        // ── Store child ───────────────────────────────────────────────────
+        // ── Un único dueño del Child, elegible entre salida natural o kill ──
+        // Guardar `child` acá adentro (en vez de en `InstanceRuntime` detrás
+        // del Mutex) es lo que evita el deadlock de arriba: nadie más vuelve
+        // a tocar el Child directamente — `wait()`/`kill()` solo hablan con
+        // esta tarea por canal.
+        let pid = child.id();
+        let (kill_tx, kill_rx) = oneshot::channel::<()>();
+        let (exit_tx, exit_rx) = oneshot::channel::<Option<i32>>();
         {
             let mut rt = self.inner.runtime.lock().await;
-            rt.process = Some(child);
+            rt.pid = pid;
+            rt.kill_tx = Some(kill_tx);
+            rt.exit_rx = Some(exit_rx);
         }
+        let uuid = inner.uuid;
+        tokio::spawn(async move {
+            let code = tokio::select! {
+                result = child.wait() => exit_code_from_status(uuid, result),
+                _ = kill_rx => {
+                    if let Err(e) = child.kill().await {
+                        warn!("Error matando instancia {uuid}: {e}");
+                    }
+                    exit_code_from_status(uuid, child.wait().await)
+                }
+            };
+            let _ = exit_tx.send(code);
+        });
 
         info!("Instance {} launched ({})", inner.uuid, inner.manifest.id);
         Ok(())
     }
 
     /// Wait for the running process to exit and return its exit code.
-    /// Returns `None` if the instance was never launched.
+    /// Returns `None` if the instance was never launched, or if another
+    /// caller already consumed the exit notification — solo el primer
+    /// `wait()` recibe el resultado, como ya asumía quien llama esto (una
+    /// única tarea "dueña" por instancia).
     pub async fn wait(&self) -> Option<i32> {
-        let mut rt = self.inner.runtime.lock().await;
-        if let Some(child) = rt.process.as_mut() {
-            match child.wait().await {
-                Ok(status) => {
-                    // `status.code()` da `None` cuando el proceso terminó por
-                    // señal en vez de salir normalmente — el caso típico es
-                    // el OOM killer del sistema operativo cortándolo
-                    // (SIGKILL), que antes colapsaba a un genérico -1
-                    // indistinguible de cualquier otra salida anómala. En
-                    // Unix se recupera la señal real y se codifica como su
-                    // negativo (mismo criterio que usan los shells POSIX con
-                    // $?), para que quien reciba el código pueda distinguir
-                    // "el sistema mató el proceso por falta de RAM" de otros
-                    // fallos.
-                    let code = status.code().unwrap_or_else(|| {
-                        #[cfg(unix)]
-                        {
-                            use std::os::unix::process::ExitStatusExt;
-                            status.signal().map(|s| -s).unwrap_or(-1)
-                        }
-                        #[cfg(not(unix))]
-                        {
-                            -1
-                        }
-                    });
-                    if status.success() {
-                        info!("Instance {} exited cleanly", self.inner.uuid);
-                    } else {
-                        warn!("Instance {} exited with code {code}", self.inner.uuid);
-                    }
-                    Some(code)
-                }
-                Err(e) => {
-                    warn!("Error waiting on instance {}: {e}", self.inner.uuid);
-                    None
-                }
-            }
-        } else {
-            None
+        let rx = {
+            let mut rt = self.inner.runtime.lock().await;
+            rt.exit_rx.take()
+        };
+        match rx {
+            Some(rx) => rx.await.unwrap_or(None),
+            None => None,
         }
     }
 
-    /// Send SIGKILL / TerminateProcess to the running instance.
+    /// Send SIGKILL / TerminateProcess to the running instance. Solo avisa
+    /// por canal a la tarea dueña del proceso — no espera a que termine de
+    /// matarlo (eso lo observa quien llame a `wait()`).
     pub async fn kill(&self) -> Result<(), Error> {
-        let mut rt = self.inner.runtime.lock().await;
-        if let Some(child) = rt.process.as_mut() {
-            child.kill().await?;
+        let tx = {
+            let mut rt = self.inner.runtime.lock().await;
+            rt.kill_tx.take()
+        };
+        if let Some(tx) = tx {
+            let _ = tx.send(());
         }
         Ok(())
     }
@@ -242,8 +252,45 @@ impl InstanceHandle {
     /// without launchwerk itself needing to depend on a system-monitoring
     /// crate.
     pub async fn pid(&self) -> Option<u32> {
-        let rt = self.inner.runtime.lock().await;
-        rt.process.as_ref().and_then(|c| c.id())
+        self.inner.runtime.lock().await.pid
+    }
+}
+
+/// `status.code()` da `None` cuando el proceso terminó por señal en vez de
+/// salir normalmente — el caso típico es el OOM killer del sistema
+/// operativo cortándolo (SIGKILL), que antes colapsaba a un genérico -1
+/// indistinguible de cualquier otra salida anómala. En Unix se recupera la
+/// señal real y se codifica como su negativo (mismo criterio que usan los
+/// shells POSIX con $?), para que quien reciba el código pueda distinguir
+/// "el sistema mató el proceso por falta de RAM" de otros fallos.
+fn exit_code_from_status(
+    uuid: Uuid,
+    result: std::io::Result<std::process::ExitStatus>,
+) -> Option<i32> {
+    match result {
+        Ok(status) => {
+            let code = status.code().unwrap_or_else(|| {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::process::ExitStatusExt;
+                    status.signal().map(|s| -s).unwrap_or(-1)
+                }
+                #[cfg(not(unix))]
+                {
+                    -1
+                }
+            });
+            if status.success() {
+                info!("Instance {uuid} exited cleanly");
+            } else {
+                warn!("Instance {uuid} exited with code {code}");
+            }
+            Some(code)
+        }
+        Err(e) => {
+            warn!("Error waiting on instance {uuid}: {e}");
+            None
+        }
     }
 }
 
@@ -270,7 +317,11 @@ impl InstanceHandle {
             instance_dir,
             stdout_tx,
             stderr_tx,
-            runtime: Mutex::new(InstanceRuntime { process: None }),
+            runtime: Mutex::new(InstanceRuntime {
+                pid: None,
+                kill_tx: None,
+                exit_rx: None,
+            }),
         });
 
         Self {
