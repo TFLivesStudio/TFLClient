@@ -1,3 +1,4 @@
+import { restoreVisualPreferences } from '$lib/visual/preferences.svelte';
 import { listen } from '@tauri-apps/api/event';
 import { exposePerfReport, perfMarkUsable, perfMeasure } from '$lib/perf';
 import { getCurrentUser, getSettings } from '$lib/api';
@@ -29,6 +30,13 @@ export const isLogWindow =
 /** Secuencia de arranque del launcher. Se llama una vez desde onMount de la página. */
 export async function startApp() {
 	if (isLogWindow) {
+		restoreVisualPreferences();
+		document.documentElement.dataset.theme =
+			localStorage.getItem('tfl-theme') === 'light' ? 'light' : 'dark';
+		for (const key of ['accent', 'surface', 'font']) {
+			const value = localStorage.getItem(`tfl-${key}`);
+			if (value) document.documentElement.setAttribute(`data-${key}`, value);
+		}
 		ui.loading = false;
 		return;
 	}
@@ -53,6 +61,7 @@ export async function startApp() {
 		appState.settings = settings;
 		if (settings.theme === 'light' || settings.theme === 'dark') {
 			document.documentElement.setAttribute('data-theme', settings.theme);
+			localStorage.setItem('tfl-theme', settings.theme);
 		}
 		await restoreAppearance();
 		applyQualityVisuals(settings);

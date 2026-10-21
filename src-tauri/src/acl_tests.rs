@@ -146,8 +146,13 @@ fn plugins_are_limited_to_what_the_ui_uses() {
         "plugin:resources|close",
     ] {
         assert!(allowed(&main, cmd), "la principal debería poder `{cmd}`");
-        assert!(!allowed(&log, cmd), "el log NO debería poder `{cmd}`");
+        if cmd == "plugin:clipboard-manager|write_text" {
+            assert!(allowed(&log, cmd), "the console can copy visible logs");
+        } else {
+            assert!(!allowed(&log, cmd), "el log NO debería poder `{cmd}`");
+        }
     }
+    assert!(!allowed(&log, "plugin:clipboard-manager|read_text"));
     assert!(!allowed(&main, "plugin:clipboard-manager|read_text"));
     // Las actualizaciones van por comandos propios (`update_*`, que eligen el
     // canal estable/beta): el plugin del updater ya no se llama desde el WebView.

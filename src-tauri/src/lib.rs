@@ -168,6 +168,7 @@ pub fn run() {
             commands::instance::stop_running_instance,
             commands::instance::get_running_instances,
             commands::instance::get_running_instance_stats,
+            commands::instance::get_running_server_stats,
             commands::instance::get_instance_ram_budget_mb,
             commands::instance::open_instance_folder,
             commands::instance::open_external_url,

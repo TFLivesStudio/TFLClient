@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { onMount, onDestroy, tick } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { invoke } from '@tauri-apps/api/core';
 	import { t, type TranslationKey } from '$lib/i18n/index.svelte';
 	import { diagnoseCrash, setModEnabled, rollbackModUpdate } from '$lib/api';
 	import type { CrashSuspect } from '$lib/types/types';
-	import { GaugeRing } from '$lib/components/ui';
-	import { Square, X, Loader2, Cpu, MemoryStick, HardDrive } from 'lucide-svelte';
+	import type { ProcessStats } from '$lib/console/model';
+	import ConsoleView from '$lib/components/console/ConsoleView.svelte';
+	import { Square, X, Loader2 } from 'lucide-svelte';
 
 	const instanceName =
 		(window as unknown as { __TFL_LOG_INSTANCE__?: string }).__TFL_LOG_INSTANCE__ ?? '';
@@ -18,77 +19,15 @@
 	}
 
 	const MAX_LINES = 5000;
-
-	interface ProcessStats {
-		cpu_percent: number;
-		memory_mb: number;
-		disk_bytes_delta: number;
+	function readStats() {
+		return invoke<ProcessStats | null>('get_running_instance_stats', { instanceName });
 	}
-
-	const STATS_POLL_MS = 1000;
 
 	let lines = $state<LogLine[]>([]);
 	let exitCode = $state<number | null | undefined>(undefined);
 	let stopping = $state(false);
-	let autoScroll = $state(true);
-	let stats = $state<ProcessStats | null>(null);
-	let logEl: HTMLDivElement;
 	let unlisten: UnlistenFn | undefined;
-	let statsInterval: ReturnType<typeof setInterval> | undefined;
-
-	// Techo del gauge de RAM — se pide una sola vez al abrir la ventana
-	// (no cambia mientras la instancia está corriendo), no en cada poll.
-	let ramBudgetMb = $state<number | null>(null);
-
-	// Tasa de disco en tiempo real: sysinfo da bytes desde el último refresh
-	// (no un acumulado), así que la tasa sale de dividir eso por el tiempo
-	// real transcurrido entre polls. El disco no tiene un "100%" natural
-	// como la RAM/CPU, así que el gauge se autoescala contra un pico
-	// reciente que decae de a poco — un medidor de actividad típico, en vez
-	// de inventar una constante de "disco lleno".
-	let diskRateBps = $state(0);
-	let diskPeakBps = $state(1);
-	let lastPollAt: number | null = null;
-
-	async function pollStats() {
-		const now = performance.now();
-		const elapsedSec = lastPollAt !== null ? (now - lastPollAt) / 1000 : STATS_POLL_MS / 1000;
-		lastPollAt = now;
-		try {
-			stats = await invoke<ProcessStats | null>('get_running_instance_stats', { instanceName });
-			if (stats && elapsedSec > 0) {
-				const rate = stats.disk_bytes_delta / elapsedSec;
-				diskRateBps = rate;
-				diskPeakBps = Math.max(rate, diskPeakBps * 0.98);
-			} else {
-				diskRateBps = 0;
-			}
-		} catch {
-			stats = null;
-			diskRateBps = 0;
-		}
-	}
-
-	const cpuGaugeValue = $derived(stats ? Math.min(100, stats.cpu_percent) : 0);
-	const ramGaugeValue = $derived(stats && ramBudgetMb ? (stats.memory_mb / ramBudgetMb) * 100 : 0);
-	const diskGaugeValue = $derived(diskPeakBps > 0 ? (diskRateBps / diskPeakBps) * 100 : 0);
-
-	function formatBps(bps: number): string {
-		if (bps < 1024) return `${bps.toFixed(0)} B/s`;
-		if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`;
-		return `${(bps / 1024 / 1024).toFixed(1)} MB/s`;
-	}
-
-	// Deja de pollear apenas el proceso termina — no tiene sentido seguir
-	// pidiendo stats de un PID que ya no existe.
-	$effect(() => {
-		if (exitCode !== undefined && statsInterval) {
-			clearInterval(statsInterval);
-			statsInterval = undefined;
-			stats = null;
-			diskRateBps = 0;
-		}
-	});
+	let disposed = false;
 
 	// No se resetea al terminar de parar: el evento de salida puede llegar
 	// antes o después de que `stopping` vuelva a false.
@@ -112,11 +51,6 @@
 
 	function handleClose() {
 		getCurrentWindow().close();
-	}
-
-	function handleScroll() {
-		if (!logEl) return;
-		autoScroll = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 40;
 	}
 
 	// Traducción de errores conocidos — el stacktrace crudo de Java sigue
@@ -253,7 +187,7 @@
 	}
 
 	onMount(async () => {
-		unlisten = await listen<{ type: string; data: Record<string, unknown> }>(
+		const stopListening = await listen<{ type: string; data: Record<string, unknown> }>(
 			'app-event',
 			(event) => {
 				const payload = event.payload;
@@ -263,9 +197,6 @@
 					const next = [...lines, { stream: d.stream as 'stdout' | 'stderr', line: d.line }];
 					lines = next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
 					if (d.stream === 'stderr') checkForKnownError(d.line);
-					tick().then(() => {
-						if (autoScroll && logEl) logEl.scrollTop = logEl.scrollHeight;
-					});
 				} else if (payload.type === 'InstanceExited') {
 					const d = payload.data as { instance: string; code: number | null };
 					if (d.instance !== instanceName) return;
@@ -274,20 +205,13 @@
 				}
 			}
 		);
-		invoke<number>('get_instance_ram_budget_mb', { instanceName })
-			.then((mb) => {
-				ramBudgetMb = mb;
-			})
-			.catch(() => {
-				ramBudgetMb = null;
-			});
-		pollStats();
-		statsInterval = setInterval(pollStats, STATS_POLL_MS);
+		if (disposed) stopListening();
+		else unlisten = stopListening;
 	});
 
 	onDestroy(() => {
+		disposed = true;
 		unlisten?.();
-		clearInterval(statsInterval);
 	});
 </script>
 
@@ -366,39 +290,13 @@
 		<div class="suspects"><p class="suspect-ok">{t('instanceLogWindow.rolledBackDone')}</p></div>
 	{/if}
 
-	<div class="log-body" bind:this={logEl} onscroll={handleScroll}>
-		{#each lines as l, i (i)}
-			<div class="line" class:err={l.stream === 'stderr'}>{l.line}</div>
-		{/each}
-		{#if lines.length === 0}
-			<p class="empty">{t('instanceLogWindow.waitingOutput')}</p>
-		{/if}
-	</div>
-
-	<footer class="gauge-bar">
-		<GaugeRing
-			value={cpuGaugeValue}
-			label={t('instanceLogWindow.gauges.cpu')}
-			displayValue={stats ? `${stats.cpu_percent.toFixed(0)}%` : '—'}
-			icon={Cpu}
-		/>
-		<GaugeRing
-			value={ramGaugeValue}
-			label={t('instanceLogWindow.gauges.ram')}
-			displayValue={stats
-				? ramBudgetMb
-					? `${stats.memory_mb} / ${ramBudgetMb} MB`
-					: `${stats.memory_mb} MB`
-				: '—'}
-			icon={MemoryStick}
-		/>
-		<GaugeRing
-			value={diskGaugeValue}
-			label={t('instanceLogWindow.gauges.disk')}
-			displayValue={stats ? formatBps(diskRateBps) : '—'}
-			icon={HardDrive}
-		/>
-	</footer>
+	<ConsoleView
+		{instanceName}
+		{readStats}
+		{lines}
+		running={exitCode === undefined}
+		empty={t('instanceLogWindow.waitingOutput')}
+	/>
 </div>
 
 <style>
@@ -413,6 +311,7 @@
 		display: flex;
 		flex-direction: column;
 		height: 100vh;
+		min-height: 0;
 		background: #0b0d12;
 		color: #e4e6eb;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -561,40 +460,6 @@
 	.actions button:disabled {
 		opacity: 0.4;
 		cursor: not-allowed;
-	}
-
-	.log-body {
-		flex: 1;
-		overflow-y: auto;
-		padding: 10px 14px;
-		font-family: 'SF Mono', Consolas, Menlo, monospace;
-		font-size: 0.72rem;
-		line-height: 1.5;
-	}
-
-	.line {
-		white-space: pre-wrap;
-		word-break: break-word;
-		color: #c7cbd4;
-	}
-
-	.line.err {
-		color: #ff8080;
-	}
-
-	.empty {
-		color: #5c6270;
-		font-size: 0.78rem;
-	}
-
-	.gauge-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-around;
-		gap: 12px;
-		padding: 10px 16px;
-		border-top: 1px solid rgba(255, 255, 255, 0.08);
-		flex-shrink: 0;
 	}
 
 	:global(.spin) {
