@@ -1,309 +1,540 @@
 <script lang="ts">
-	import { reorderHandle } from '$lib/console/reorder';
-	import { onMount } from 'svelte';
-	import { ArrowUp, ArrowDown, GripVertical, RotateCcw } from 'lucide-svelte';
+	import { onMount, untrack } from 'svelte';
+	import { ArrowUp, ArrowDown, Undo2, RotateCcw, Check } from 'lucide-svelte';
 	import { w } from '$lib/i18n/workbench';
-	import { DEFAULT_CONSOLE, type Metric, type Severity } from '$lib/console/model';
+	import { tr } from '$lib/i18n/experience';
 	import {
-		consolePrefs as p,
+		DEFAULT_CONSOLE,
+		parseConsole,
+		type ConsolePreferences,
+		type Metric,
+		type Severity
+	} from '$lib/console/model';
+	import {
+		consolePrefs as live,
 		consoleStorage,
 		saveConsole,
-		watchConsole,
-		moveMetric,
-		dropMetric
+		watchConsole
 	} from '$lib/console/preferences.svelte';
-	let dragged = $state<Metric | null>(null);
+	import { DEMO_HISTORY, DEMO_LINES } from '$lib/console/demo';
+	import MetricCards from './MetricCards.svelte';
+	import ConsoleLayout from './ConsoleLayout.svelte';
+	import LogBlock from './LogBlock.svelte';
+	import SettingGroup from '$lib/components/settings/SettingGroup.svelte';
+	let draft = $state<ConsolePreferences>(structuredClone(DEFAULT_CONSOLE)),
+		selected = $state<Metric | 'log'>('cpu'),
+		undo = $state<ConsolePreferences[]>([]),
+		saved = $state(false);
+	let hasDraft = $state(false);
 	const levels: Severity[] = ['info', 'warn', 'error', 'debug'];
-	onMount(watchConsole);
+	const metrics: Metric[] = ['cpu', 'ram', 'disk'];
+	onMount(() => {
+		const stop = watchConsole();
+		draft = structuredClone($state.snapshot(live));
+		return stop;
+	});
+	$effect(() => {
+		const current = JSON.stringify(live);
+		if (!untrack(() => hasDraft)) draft = parseConsole(JSON.parse(current));
+	});
+	const dirty = $derived(JSON.stringify(draft) !== JSON.stringify(live));
+	function patch(value: Partial<ConsolePreferences>) {
+		if (value.chartStyle && !value.metricStyles)
+			value.metricStyles = { cpu: value.chartStyle, ram: value.chartStyle, disk: value.chartStyle };
+		if (value.seconds && !value.metricSeconds)
+			value.metricSeconds = { cpu: value.seconds, ram: value.seconds, disk: value.seconds };
+		undo = [...undo.slice(-19), structuredClone($state.snapshot(draft))];
+		draft = parseConsole({ ...$state.snapshot(draft), ...value });
+		hasDraft = true;
+		saved = false;
+	}
+	function move(metric: Metric, delta: number) {
+		const order = [...draft.order],
+			from = order.indexOf(metric),
+			to = Math.max(0, Math.min(2, from + delta));
+		order.splice(from, 1);
+		order.splice(to, 0, metric);
+		patch({ order });
+	}
+	function drop(from: Metric, to: Metric) {
+		move(from, draft.order.indexOf(to) - draft.order.indexOf(from));
+	}
+	function apply() {
+		saveConsole($state.snapshot(draft));
+		hasDraft = false;
+		saved = !consoleStorage.error;
+	}
+	function cancel() {
+		draft = structuredClone($state.snapshot(live));
+		undo = [];
+		hasDraft = false;
+		saved = false;
+	}
+	function undoLast() {
+		const previous = undo.at(-1);
+		if (previous) {
+			draft = previous;
+			undo = undo.slice(0, -1);
+			hasDraft = true;
+			saved = false;
+		}
+	}
+	function preset(id: string) {
+		if (id === 'classic') patch({ dock: 'top', visible: { cpu: false, ram: false, disk: false } });
+		else if (id === 'compact')
+			patch({
+				dock: 'top',
+				columns: 3,
+				chartStyle: 'gauge',
+				visible: { cpu: true, ram: true, disk: true },
+				fontSize: 11
+			});
+		else
+			patch({
+				dock: id as 'top' | 'bottom' | 'side',
+				columns: id === 'side' ? 1 : 2,
+				visible: { ...draft.visible, cpu: true, ram: true }
+			});
+	}
 </script>
 
-<div class="console-settings">
-	<section>
-		<h3>{w('charts')}</h3>
-		<p>{w('chartHint')}</p>
-		<label
-			>{w('position')}<select
-				aria-label={w('position')}
-				value={p.dock}
-				onchange={(e) => saveConsole({ dock: e.currentTarget.value as typeof p.dock })}
+<div class="console-designer">
+	<SettingGroup
+		id="console-layout"
+		hint={tr(
+			'Arrastra las asas de las tarjetas o usa sus flechas. Las posiciones respetan estos moldes. Los cambios se guardan al pulsar Aplicar.',
+			'Drag card handles or use their arrows. Positions stay inside these layouts. Changes save when you press Apply.'
+		)}
+	>
+		<div class="molds">
+			{#each [['classic', tr('Clásica', 'Classic')], ['top', tr('Superior', 'Top')], ['bottom', tr('Inferior', 'Bottom')], ['side', tr('Lateral', 'Side')], ['compact', tr('Compacta', 'Compact')]] as [id, label] (id)}<button
+					class="mold"
+					type="button"
+					onclick={() => preset(id)}
+					><span class={`mold-art ${id}`}><i></i><i></i><b></b></span>{label}</button
+				>{/each}
+		</div>
+		<div class="demo-label">
+			<strong>{tr('VISTA PREVIA · DATOS DE DEMOSTRACIÓN', 'PREVIEW · DEMONSTRATION DATA')}</strong
+			><span
+				>{tr(
+					'Sin consultar procesos ni iniciar Minecraft',
+					'No process polling or Minecraft launch'
+				)}</span
 			>
-				{#each ['top', 'bottom', 'side'] as dock (dock)}<option value={dock}
-						>{w(dock as 'top' | 'bottom' | 'side')}</option
-					>{/each}</select
-			></label
-		>
+		</div>
+		<div class="designer-preview" style:--log-size={`${draft.fontSize}px`}>
+			<ConsoleLayout dock={draft.dock}>
+				{#snippet charts()}<MetricCards
+						history={DEMO_HISTORY}
+						p={draft}
+						selected={selected === 'log' ? null : selected}
+						onMove={move}
+						onDrop={drop}
+						onSelect={(m) => (selected = m)}
+					/>{/snippet}
+				{#snippet log()}<button
+						type="button"
+						class="log-inspect"
+						class:selected={selected === 'log'}
+						onclick={() => (selected = 'log')}
+						>{tr('Seleccionar registro', 'Select log block')}</button
+					><LogBlock
+						p={draft}
+						shown={[...DEMO_LINES]}
+						total={DEMO_LINES.length}
+						empty=""
+					/>{/snippet}
+			</ConsoleLayout>
+		</div>
+		<div class="actions">
+			<button type="button" class="vr-control primary" disabled={!dirty} onclick={apply}
+				><Check size={14} />{tr('Aplicar', 'Apply')}</button
+			><button type="button" class="vr-control" disabled={!dirty} onclick={cancel}
+				>{tr('Cancelar', 'Cancel')}</button
+			><button type="button" class="vr-control" disabled={!undo.length} onclick={undoLast}
+				><Undo2 size={14} />{tr('Deshacer', 'Undo')}</button
+			><button
+				type="button"
+				class="vr-control"
+				onclick={() => patch(structuredClone(DEFAULT_CONSOLE))}
+				><RotateCcw size={14} />{tr('Restablecer', 'Reset')}</button
+			>
+		</div>
+		{#if saved}<p role="status">
+				{tr(
+					'Consola guardada. Las ventanas abiertas se sincronizan automáticamente.',
+					'Console saved. Open windows sync automatically.'
+				)}
+			</p>{/if}
+	</SettingGroup>
+	<SettingGroup
+		id="console-metrics"
+		hint={tr(
+			'Selecciona una tarjeta para personalizarla. CPU por núcleo puede superar 100%; RAM muestra memoria residente, no solo el heap de Java.',
+			'Select a card to customize it. Per-core CPU can exceed 100%; RAM shows resident memory, not only Java heap.'
+		)}
+	>
+		<div class="metric-tabs">
+			{#each metrics as metric (metric)}<button
+					type="button"
+					class="vr-control"
+					aria-pressed={selected === metric}
+					onclick={() => (selected = metric)}>{w(metric)}</button
+				>{/each}
+		</div>
+		{#if selected !== 'log'}<div class="inspector">
+				<h4>{w(selected)}</h4>
+				<label
+					>{w('chartStyle')}<select
+						value={draft.metricStyles[selected]}
+						onchange={(e) => {
+							if (selected !== 'log')
+								patch({
+									metricStyles: {
+										...draft.metricStyles,
+										[selected]: e.currentTarget.value as 'lines' | 'gauge'
+									}
+								});
+						}}
+						><option value="lines">{w('styleLines')}</option><option value="gauge"
+							>{w('styleGauge')}</option
+						></select
+					></label
+				><label
+					>{w('window')}<select
+						value={draft.metricSeconds[selected]}
+						onchange={(e) => {
+							if (selected !== 'log')
+								patch({
+									metricSeconds: {
+										...draft.metricSeconds,
+										[selected]: Number(e.currentTarget.value) as 30 | 60 | 180
+									}
+								});
+						}}
+						>{#each [30, 60, 180] as n (n)}<option value={n}>{n} s</option>{/each}</select
+					></label
+				><label
+					>{w('show')}<input
+						type="checkbox"
+						checked={draft.visible[selected]}
+						onchange={(e) =>
+							patch({ visible: { ...draft.visible, [selected]: e.currentTarget.checked } })}
+					/></label
+				><label
+					>{w('colors')}<input
+						type="color"
+						value={draft.colors[selected]}
+						oninput={(e) =>
+							patch({ colors: { ...draft.colors, [selected]: e.currentTarget.value } })}
+					/></label
+				>
+				<div class="actions">
+					<button
+						type="button"
+						class="vr-control"
+						aria-label={`${w('up')} · ${w(selected)}`}
+						disabled={draft.order.indexOf(selected) === 0}
+						onclick={() => {
+							if (selected !== 'log') move(selected, -1);
+						}}><ArrowUp size={14} />{w('up')}</button
+					><button
+						type="button"
+						class="vr-control"
+						aria-label={`${w('down')} · ${w(selected)}`}
+						disabled={draft.order.indexOf(selected) === 2}
+						onclick={() => {
+							if (selected !== 'log') move(selected, 1);
+						}}><ArrowDown size={14} />{w('down')}</button
+					>
+				</div>
+			</div>{/if}
 		<div class="fields">
 			<label
 				>{w('columns')}<select
-					aria-label={w('columns')}
-					value={p.columns}
-					onchange={(e) => saveConsole({ columns: Number(e.currentTarget.value) as 1 | 2 | 3 })}
+					value={draft.columns}
+					onchange={(e) => patch({ columns: Number(e.currentTarget.value) as 1 | 2 | 3 })}
 					>{#each [1, 2, 3] as n (n)}<option value={n}>{n}</option>{/each}</select
 				></label
-			>
-			<label
+			><label
 				>{w('window')}<select
-					aria-label={w('window')}
-					value={p.seconds}
-					onchange={(e) => saveConsole({ seconds: Number(e.currentTarget.value) as 30 | 60 | 180 })}
-					>{#each [30, 60, 180] as n (n)}<option value={n}>{n} {w('seconds')}</option
-						>{/each}</select
+					value={draft.seconds}
+					onchange={(e) => patch({ seconds: Number(e.currentTarget.value) as 30 | 60 | 180 })}
+					>{#each [30, 60, 180] as n (n)}<option value={n}>{n} s</option>{/each}</select
 				></label
 			>
 		</div>
-		<div class="fields">
-			<label
-				>{w('cpuMode')}<select
-					aria-label={w('cpuMode')}
-					value={p.cpuMode}
-					onchange={(e) => saveConsole({ cpuMode: e.currentTarget.value as 'cores' | 'total' })}
-					><option value="cores">{w('cores')}</option><option value="total">{w('total')}</option
-					></select
-				></label
-			>
-			<label
-				>{w('chartStyle')}<select
-					aria-label={w('chartStyle')}
-					value={p.chartStyle}
-					onchange={(e) => saveConsole({ chartStyle: e.currentTarget.value as 'lines' | 'gauge' })}
-					><option value="lines">{w('styleLines')}</option><option value="gauge"
-						>{w('styleGauge')}</option
-					></select
-				></label
-			>
-		</div>
-		<p>{w('dragHint')}</p>
-		<ol class="metric-order" data-metric-list>
-			{#each p.order as metric, index (metric)}
-				<li
-					data-console-metric={metric}
-					draggable="true"
-					ondragstart={(e) => {
-						dragged = metric;
-						e.dataTransfer?.setData('text/plain', metric);
-						if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-					}}
-					ondragend={() => (dragged = null)}
-					ondragover={(e) => {
-						if (dragged) e.preventDefault();
-					}}
-					ondrop={(e) => {
-						e.preventDefault();
-						if (dragged) dropMetric(dragged, metric);
-						dragged = null;
-					}}
-					class:dragging={dragged === metric}
-				>
-					<button
-						type="button"
-						class="drag-handle"
-						aria-label={`${w('dragHint')} · ${w(metric)}`}
-						use:reorderHandle={metric}><GripVertical size={16} aria-hidden="true" /></button
-					><strong>{w(metric)}</strong>
-					<label class="toggle"
-						><input
-							type="checkbox"
-							checked={p.visible[metric]}
-							onchange={(e) =>
-								saveConsole({ visible: { ...p.visible, [metric]: e.currentTarget.checked } })}
-						/>{w('show')}</label
-					>
-					<input
-						type="color"
-						value={p.colors[metric]}
-						aria-label={`${w(metric)} · ${w('colors')}`}
-						oninput={(e) =>
-							saveConsole({ colors: { ...p.colors, [metric]: e.currentTarget.value } })}
-					/>
-					<button
-						type="button"
-						class="vr-control"
-						aria-label={`${w('up')} · ${w(metric)}`}
-						disabled={index === 0}
-						onclick={() => moveMetric(metric, -1)}><ArrowUp size={14} /></button
-					>
-					<button
-						type="button"
-						class="vr-control"
-						aria-label={`${w('down')} · ${w(metric)}`}
-						disabled={index === 2}
-						onclick={() => moveMetric(metric, 1)}><ArrowDown size={14} /></button
-					>
-				</li>{/each}
-		</ol>
-	</section>
-	<section>
-		<h3>{w('log')}</h3>
-		<p>{w('logHint')}</p>
 		<label
-			>{w('fontSize')}<select
-				aria-label={w('fontSize')}
-				value={p.fontSize}
-				onchange={(e) => saveConsole({ fontSize: Number(e.currentTarget.value) })}
-				>{#each [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] as size (size)}<option value={size}
-						>{size} px</option
-					>{/each}</select
+			>{w('cpuMode')}<select
+				value={draft.cpuMode}
+				onchange={(e) => patch({ cpuMode: e.currentTarget.value as 'cores' | 'total' })}
+				><option value="cores">{w('cores')}</option><option value="total">{w('total')}</option
+				></select
 			></label
 		>
-		<label class="toggle"
-			><input
-				type="checkbox"
-				checked={p.wrap}
-				onchange={(e) => saveConsole({ wrap: e.currentTarget.checked })}
-			/>{w('wrap')}</label
+		<label
+			>{w('chartStyle')}<select
+				value={draft.chartStyle}
+				onchange={(e) => patch({ chartStyle: e.currentTarget.value as 'lines' | 'gauge' })}
+				><option value="lines">{w('styleLines')}</option><option value="gauge"
+					>{w('styleGauge')}</option
+				></select
+			></label
 		>
-		<label class="toggle"
-			><input
-				type="checkbox"
-				checked={p.follow}
-				onchange={(e) => saveConsole({ follow: e.currentTarget.checked })}
-			/>{w('follow')}</label
-		>
-		<div class="level-colors">
+	</SettingGroup>
+	<SettingGroup
+		id="console-log"
+		hint={tr(
+			'Los niveles tienen texto y color para distinguir avisos incluso sin percibir el color.',
+			'Levels use text and color to distinguish warnings without color perception.'
+		)}
+	>
+		<div class="levels">
 			{#each levels as level (level)}<label
-					><input
+					><span>{w(level)}</span><input
 						type="color"
-						value={p.colors[level]}
-						oninput={(e) =>
-							saveConsole({ colors: { ...p.colors, [level]: e.currentTarget.value } })}
-					/>{w(level)}</label
+						value={draft.colors[level]}
+						aria-label={`${w(level)} · ${w('colors')}`}
+						oninput={(e) => patch({ colors: { ...draft.colors, [level]: e.currentTarget.value } })}
+					/></label
 				>{/each}
 		</div>
-		<div class="preview" aria-label={w('preview')} style:font-size={`${p.fontSize}px`}>
-			{#each levels as level (level)}<div style:color={p.colors[level]}>
-					[{level.toUpperCase()}] {w(level)}
-				</div>{/each}
-		</div>
-	</section>
-	<button
-		type="button"
-		class="vr-control"
-		onclick={() => saveConsole(structuredClone(DEFAULT_CONSOLE))}
-		><RotateCcw size={15} />{w('reset')}</button
-	>
-	{#if consoleStorage.error}<p role="alert">{w('saveError')}</p>{/if}
+		<label
+			>{w('fontSize')}<input
+				type="number"
+				min="10"
+				max="20"
+				value={draft.fontSize}
+				onchange={(e) => patch({ fontSize: Number(e.currentTarget.value) })}
+			/></label
+		><label
+			>{w('wrap')}<input
+				type="checkbox"
+				checked={draft.wrap}
+				onchange={(e) => patch({ wrap: e.currentTarget.checked })}
+			/></label
+		><label
+			>{w('follow')}<input
+				type="checkbox"
+				checked={draft.follow}
+				onchange={(e) => patch({ follow: e.currentTarget.checked })}
+			/></label
+		>
+	</SettingGroup>
+	{#if dirty}<div class="pending">
+			<span>{tr('Cambios sin aplicar', 'Unapplied changes')}</span><button
+				type="button"
+				class="vr-control primary"
+				onclick={apply}>{tr('Aplicar cambios', 'Apply changes')}</button
+			>
+		</div>{/if}
+	{#if consoleStorage.error}<p class="error" role="alert">{w('saveError')}</p>{/if}
 </div>
 
 <style>
-	.drag-handle {
-		touch-action: none;
-		cursor: grab;
-		background: transparent;
-		border: 0;
-		color: var(--text-secondary);
-		padding: 4px;
-	}
-	li:global([data-drop-target]) {
-		outline: 2px solid var(--accent);
-	}
-	.console-settings {
+	.console-designer {
 		display: grid;
-		gap: 28px;
+		gap: 24px;
 		min-width: 0;
 	}
-	section {
+	.molds {
 		display: grid;
-		gap: 14px;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: 8px;
 	}
-	h3 {
-		margin: 0;
-		font-size: 1rem;
+	.mold {
+		border: 1px solid var(--border);
+		background: var(--surface-card);
+		color: var(--text-primary);
+		border-radius: var(--border-radius-sm);
+		padding: 8px;
+		font-size: 11px;
+		display: grid;
+		gap: 7px;
+		cursor: pointer;
 	}
-	p {
+	.mold:hover {
+		border-color: var(--accent);
+	}
+	.mold-art {
+		height: 38px;
+		background: var(--bg-main);
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 3px;
+		padding: 4px;
+		box-sizing: border-box;
+	}
+	.mold-art i {
+		background: color-mix(in srgb, var(--accent) 35%, var(--surface-card));
+		height: 10px;
+	}
+	.mold-art b {
+		background: var(--surface-interactive);
+		grid-column: 1/-1;
+	}
+	.classic i {
+		display: none;
+	}
+	.classic b {
+		grid-row: 1/3;
+	}
+	.bottom b {
+		grid-row: 1;
+	}
+	.side {
+		grid-template-columns: 1fr 2fr;
+	}
+	.side i {
+		grid-column: 1;
+	}
+	.side b {
+		grid-column: 2;
+		grid-row: 1/3;
+	}
+	.compact {
+		grid-template-columns: 1fr 1fr 1fr;
+	}
+	.compact b {
+		grid-column: 1/-1;
+	}
+	.demo-label {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 5px 12px;
+		justify-content: space-between;
+		font-size: 9px;
+		letter-spacing: 0.04em;
 		color: var(--text-secondary);
+		margin: 18px 0 8px;
+	}
+	.designer-preview {
+		height: 340px;
+		display: flex;
+		overflow: hidden;
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius);
+		background: var(--bg-main);
+	}
+	.designer-preview :global(.process-charts) {
+		max-height: 220px;
+	}
+	.log-inspect {
+		border: 0;
+		border-bottom: 1px solid var(--border);
+		color: var(--text-secondary);
+		background: var(--surface-card);
+		font-size: 10px;
+		padding: 6px;
+		cursor: pointer;
+	}
+	.log-inspect.selected {
+		color: var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
+	}
+	.actions,
+	.metric-tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-top: 12px;
+	}
+	.actions button {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+	}
+	.primary {
+		background: var(--accent);
+		color: var(--accent-text, #101010);
+		border-color: var(--accent);
+	}
+	.inspector {
+		margin-top: 14px;
+		padding: 12px 14px;
+		background: var(--surface-card);
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius);
+	}
+	h4 {
+		margin: 0 0 8px;
 		font-size: 13px;
-		line-height: 1.6;
-		margin: 0;
 	}
 	label {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
-		font-size: 13px;
-		min-width: 0;
+		gap: 10px;
+		min-height: 40px;
+		font-size: 12px;
 	}
-	select {
-		max-width: 65%;
+	select,
+	input[type='number'] {
+		padding: 8px;
 		background: var(--bg-input);
 		border: 1px solid var(--border);
-		color: var(--text-primary);
-		padding: 8px;
 		border-radius: var(--border-radius-sm);
+		color: var(--text-primary);
+		max-width: 60%;
 	}
-	.fields {
-		display: flex;
-		gap: 24px;
-		flex-wrap: wrap;
+	input[type='number'] {
+		width: 64px;
 	}
-	.fields label {
-		flex: 1;
-	}
-	.toggle {
-		justify-content: start;
+	input[type='color'] {
+		width: 36px;
+		height: 28px;
+		background: none;
+		border: 1px solid var(--border);
+		padding: 2px;
+		border-radius: 4px;
 	}
 	input[type='checkbox'] {
 		accent-color: var(--accent);
 		width: 16px;
 		height: 16px;
 	}
-	input[type='color'] {
-		width: 32px;
-		min-width: 32px;
-		height: 30px;
-		padding: 2px;
-		background: var(--bg-input);
-		border: 1px solid var(--border);
-		cursor: pointer;
-	}
-	.metric-order {
-		list-style: none;
-		margin: 0;
-		padding: 0;
+	.fields,
+	.levels {
 		display: grid;
-		gap: 8px;
+		grid-template-columns: 1fr 1fr;
+		gap: 12px;
 	}
-	li {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 12px;
-		border: 1px solid var(--border);
+	p {
+		font-size: 12px;
+		line-height: 1.6;
+		color: var(--text-secondary);
+	}
+	.pending {
+		position: sticky;
+		bottom: 0;
+		padding: 10px 12px;
 		background: var(--surface-card);
-		border-radius: var(--border-radius-sm);
-	}
-	li strong {
-		flex: 1;
-		font-size: 13px;
-	}
-	li .vr-control {
-		padding: 5px;
-		min-height: 30px;
-	}
-	.dragging {
-		opacity: 0.5;
-		border-color: var(--accent);
-	}
-	.level-colors {
-		display: flex;
-		gap: 16px;
-		flex-wrap: wrap;
-	}
-	.preview {
-		padding: 16px;
-		background: #101216;
 		border: 1px solid var(--border);
-		font-family: monospace;
-		line-height: 1.8;
-		border-radius: var(--border-radius-sm);
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 12px;
+		z-index: 2;
 	}
-	@media (max-width: 650px) {
-		li {
-			gap: 5px;
-			padding: 8px;
+	.error {
+		color: var(--color-error);
+	}
+	@media (max-width: 900px) {
+		.molds {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
-		select {
-			max-width: 60%;
+		.designer-preview {
+			height: 320px;
 		}
+		.fields {
+			grid-template-columns: 1fr;
+		}
+		.levels {
+			gap: 0 12px;
+		}
+	}
+	button:disabled {
+		opacity: 0.4;
 	}
 </style>

@@ -1,3 +1,4 @@
+import { react, stopReactions } from '$lib/scenes/reactions.svelte';
 import { listen } from '@tauri-apps/api/event';
 export interface Notice {
 	id: number;
@@ -13,6 +14,7 @@ export const notifications = $state<{ items: Notice[]; toasts: Notice[] }>({
 });
 let sequence = 0;
 export function addNotice(notice: Omit<Notice, 'id' | 'time' | 'read'>) {
+	if (notice.kind === 'success' || notice.kind === 'error') react(notice.kind);
 	const item = { ...notice, id: ++sequence, time: Date.now(), read: false };
 	notifications.items = [item, ...notifications.items].slice(0, 50);
 	notifications.toasts = [item, ...notifications.toasts].slice(0, 3);
@@ -53,5 +55,6 @@ export function startNotifications() {
 	return () => {
 		disposed = true;
 		unlisten?.();
+		stopReactions();
 	};
 }

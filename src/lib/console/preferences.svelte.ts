@@ -26,6 +26,10 @@ export function watchConsole() {
 	return () => window.removeEventListener('storage', handler);
 }
 export function saveConsole(patch: Partial<ConsolePreferences>) {
+	if (patch.chartStyle && !patch.metricStyles)
+		patch.metricStyles = { cpu: patch.chartStyle, ram: patch.chartStyle, disk: patch.chartStyle };
+	if (patch.seconds && !patch.metricSeconds)
+		patch.metricSeconds = { cpu: patch.seconds, ram: patch.seconds, disk: patch.seconds };
 	Object.assign(consolePrefs, parseConsole({ ...$state.snapshot(consolePrefs), ...patch }));
 	try {
 		localStorage.setItem(CONSOLE_KEY, JSON.stringify($state.snapshot(consolePrefs)));

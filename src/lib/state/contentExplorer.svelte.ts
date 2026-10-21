@@ -11,6 +11,7 @@
 // para encapsular estado reactivo fuera de un componente (a diferencia de
 // un objeto plano devuelto por una función, donde desestructurar los
 // campos perdería la reactividad).
+import { coalesceInstall } from '$lib/visual/installGuard';
 import type {
 	InstanceData,
 	ModSearchHit,
@@ -253,6 +254,7 @@ export class ContentExplorer {
 
 	// ── Instalación / versiones ────────────────────────────────────────
 	installingId = $state<string | null>(null);
+	pendingIds = $state<string[]>([]);
 	installError = $state<string | null>(null);
 	openVersionsFor = $state<string | null>(null);
 	versionOptions = $state<ModVersionSummary[]>([]);
@@ -396,17 +398,27 @@ export class ContentExplorer {
 	/** `onInstalled` para que el caller refresque su propia lista de
 	 * instalados (`ContentManager.svelte` ya tiene `refreshInstalled` —
 	 * no se duplica esa lógica acá). */
-	async install(projectId: string, versionId: string | undefined, onInstalled?: () => void) {
+	async install(
+		projectId: string,
+		versionId: string | undefined,
+		onInstalled?: () => void | Promise<void>
+	) {
+		if (this.pendingIds.includes(projectId)) return;
+		this.pendingIds = [...this.pendingIds, projectId];
 		this.installingId = projectId;
 		this.installError = null;
 		try {
-			await dispatchInstall(this.getCtx(), projectId, versionId);
+			const ctx = this.getCtx();
+			await coalesceInstall(`${ctx.instance.uuid}/${ctx.kind}/${projectId}`, () =>
+				dispatchInstall(ctx, projectId, versionId)
+			);
 			this.openVersionsFor = null;
-			onInstalled?.();
+			await onInstalled?.();
 		} catch (e) {
 			this.installError = String(e);
 		} finally {
-			this.installingId = null;
+			this.pendingIds = this.pendingIds.filter((id) => id !== projectId);
+			this.installingId = this.pendingIds.at(-1) ?? null;
 		}
 	}
 

@@ -1,3 +1,6 @@
+import { gameSession } from '$lib/state/gameSession.svelte';
+import { scenes } from '$lib/scenes/preferences.svelte';
+import { appState } from '$lib/state/state.svelte';
 import { appearance } from '$lib/state/appearanceState.svelte';
 import { resolveCapabilities } from './policy';
 export const runtime = $state({
@@ -9,13 +12,19 @@ export const runtime = $state({
 });
 export const effects = {
 	get current() {
+		const scene =
+			(appState.selectedInstance && scenes.instances[appState.selectedInstance.uuid]) ||
+			scenes.global;
 		return resolveCapabilities({
 			quality: appearance.quality,
 			reducedMotion: appearance.reduceMotion,
 			systemReducedMotion: runtime.systemReducedMotion,
 			noBlur: appearance.noBlur,
 			noInfiniteFx: appearance.noInfiniteFx,
-			active: runtime.visible && runtime.focused
+			active:
+				runtime.visible &&
+				runtime.focused &&
+				(!gameSession.running.length || scene.gamePolicy === 'keep')
 		});
 	}
 };

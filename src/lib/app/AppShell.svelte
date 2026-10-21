@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { scenes } from '$lib/scenes/preferences.svelte';
+	import { contentExplorer } from '$lib/state/uiState.svelte';
+	import LivingScene from '$lib/scenes/LivingScene.svelte';
 	import { reveal } from '$lib/visual/motion';
 	import { startNotifications } from '$lib/visual/notifications.svelte';
 	import LibraryView from '$lib/components/refresh/LibraryView.svelte';
@@ -28,7 +31,7 @@
 	import { flow, openInstanceContextMenu, openModal, ui, modals } from '$lib/state/uiState.svelte';
 
 	$effect(() => {
-		runtime.overlay = Object.values(modals).some(Boolean);
+		runtime.overlay = Object.values(modals).some(Boolean) || contentExplorer.open;
 	});
 	// Responsive del shell (Entrega B, sección 4) — ver viewport.svelte.ts.
 	// Se inicializa una sola vez acá, al mismo nivel que TitleBar/Sidebar (los
@@ -61,10 +64,11 @@
 	{:else}
 		<div class="app-body">
 			<div class="ambient-bg">
-				{#if appearance.ambience === 'particles' && effects.current.ambient}
+				{#if appearance.ambience === 'particles' && effects.current.ambient && ((appState.selectedInstance && scenes.instances[appState.selectedInstance.uuid]) || scenes.global).preset === 'legacy'}
 					<ParticlesBackground />
 				{/if}
 			</div>
+			<LivingScene />
 			<Sidebar
 				instances={appState.instances}
 				selected={appState.selectedInstance}

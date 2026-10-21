@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { openSettingsAt } from '$lib/state/uiState.svelte';
+	import { tr } from '$lib/i18n/experience';
 	import { Image, Star } from 'lucide-svelte';
 	import {
 		instanceVisual,
@@ -23,6 +25,9 @@
 		>
 	</div>
 	<p class="vr-muted">{vr('artworkHint')}</p>
+	<button type="button" class="vr-control" onclick={() => openSettingsAt('scene-instance')}
+		>{tr('Fondos y escenas por instancia', 'Backgrounds & scenes per instance')}</button
+	>
 	<div class="artwork-options">
 		{#each ARTWORKS as artwork (artwork)}<button
 				aria-pressed={meta.artwork === artwork}

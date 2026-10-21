@@ -131,3 +131,12 @@ export const flow = {
 		);
 	}
 };
+
+/** Deep settings links share the canonical registry with the panel search. */
+export const settingsIntent = $state<{ target: import('$lib/settings/catalog').SettingId | null }>({
+	target: null
+});
+export function openSettingsAt(target: import('$lib/settings/catalog').SettingId) {
+	settingsIntent.target = target;
+	openModal('settings');
+}

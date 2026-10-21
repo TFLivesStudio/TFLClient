@@ -7,6 +7,8 @@
 	import { consolePrefs as p, watchConsole } from '$lib/console/preferences.svelte';
 	import ProcessCharts from './ProcessCharts.svelte';
 	import ConsoleSettings from './ConsoleSettings.svelte';
+	import ConsoleLayout from './ConsoleLayout.svelte';
+	import LogBlock from './LogBlock.svelte';
 	import { modalFocus } from '$lib/visual/modalFocus';
 	let {
 		instanceName,
@@ -25,7 +27,7 @@
 		level = $state('all'),
 		customize = $state(false),
 		copyState = $state<'copy' | 'copied' | 'copyFailed'>('copy');
-	let logEl: HTMLDivElement | undefined;
+	let logEl = $state<HTMLDivElement>();
 	let follow = $derived(p.follow);
 	let copyTimer: ReturnType<typeof setTimeout> | undefined;
 	const shown = $derived(
@@ -87,38 +89,20 @@
 			title={w('settings')}><Settings2 size={15} /></button
 		>
 	</div>
-	<div class="console-layout" class:side={p.dock === 'side'} class:bottom={p.dock === 'bottom'}>
-		<div class="charts-slot"><ProcessCharts {instanceName} {readStats} {running} /></div>
-		<div class="log-slot">
-			<!-- svelte-ignore a11y_no_noninteractive_tabindex (scrollable log must be keyboard accessible) -->
-			<div
-				class="log"
-				class:wrap={p.wrap}
-				bind:this={logEl}
-				onscroll={scroll}
-				role="region"
-				aria-label={w('log')}
-				tabindex="0"
-				style:--log-info={p.colors.info}
-				style:--log-warn={p.colors.warn}
-				style:--log-error={p.colors.error}
-				style:--log-debug={p.colors.debug}
-			>
-				{#each shown as entry, i (i)}<div class={`line ${entry.severity}`}>
-						<span class="level" aria-label={w(entry.severity)}>{entry.severity.toUpperCase()}</span
-						><span>{entry.line}</span>
-					</div>{/each}
-				{#if !lines.length}<p class="empty">{empty}</p>{:else if !shown.length}<p class="empty">
-						0 / {lines.length}
-					</p>{/if}
-			</div>
+	<ConsoleLayout dock={p.dock}
+		>{#snippet charts()}<ProcessCharts
+				{instanceName}
+				{readStats}
+				{running}
+			/>{/snippet}{#snippet log()}
+			<LogBlock {p} {shown} total={lines.length} {empty} bind:element={logEl} onScroll={scroll} />
 			<label class="follow"
 				><input type="checkbox" bind:checked={follow} />{w('follow')}<small
 					>{shown.length} / {lines.length}</small
 				></label
 			>
-		</div>
-	</div>
+		{/snippet}</ConsoleLayout
+	>
 </div>
 {#if customize}
 	<div
@@ -191,92 +175,6 @@
 		align-items: center;
 		justify-content: center;
 	}
-	.console-layout {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		min-height: 0;
-		min-width: 0;
-		overflow: hidden;
-	}
-	.charts-slot {
-		flex-shrink: 0;
-		min-width: 0;
-	}
-	.bottom .charts-slot {
-		order: 2;
-	}
-	.side {
-		flex-direction: row;
-	}
-	.side .charts-slot {
-		width: 36%;
-		max-width: 360px;
-		overflow: auto;
-		max-height: 100%;
-	}
-	.side .charts-slot :global(.process-charts) {
-		grid-template-columns: 1fr;
-		max-height: none;
-	}
-	.log-slot {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		min-width: 0;
-		min-height: 0;
-	}
-	.log {
-		overflow: auto;
-		flex: 1;
-		min-height: 0;
-		padding: 10px 12px;
-		background: #101216;
-		font-family: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
-		font-size: var(--log-size);
-		line-height: 1.65;
-		user-select: text;
-		color: var(--log-info);
-	}
-	.line {
-		display: flex;
-		align-items: baseline;
-		gap: 10px;
-		white-space: pre;
-		min-width: max-content;
-		border-left: 2px solid transparent;
-		padding-left: 6px;
-	}
-	.wrap .line {
-		white-space: pre-wrap;
-		min-width: 0;
-		overflow-wrap: anywhere;
-	}
-	.line > span:last-child {
-		min-width: 0;
-	}
-	.warn {
-		color: var(--log-warn);
-		border-color: var(--log-warn);
-		background: color-mix(in srgb, var(--log-warn) 5%, transparent);
-	}
-	.error {
-		color: var(--log-error);
-		border-color: var(--log-error);
-		background: color-mix(in srgb, var(--log-error) 6%, transparent);
-	}
-	.debug {
-		color: var(--log-debug);
-	}
-	.level {
-		font-size: 0.8em;
-		min-width: 4ch;
-		opacity: 0.85;
-		user-select: none;
-	}
-	.empty {
-		color: #a1a1aa;
-	}
 	.follow {
 		display: flex;
 		gap: 6px;
@@ -330,17 +228,6 @@
 		padding: 20px;
 	}
 	@media (max-width: 760px) {
-		.side {
-			flex-direction: column;
-		}
-		.side .charts-slot {
-			width: 100%;
-			max-width: none;
-			max-height: 36vh;
-		}
-		.side .charts-slot :global(.process-charts) {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
 		.toolbar {
 			flex-wrap: wrap;
 		}

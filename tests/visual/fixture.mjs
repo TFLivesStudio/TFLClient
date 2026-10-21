@@ -10,10 +10,14 @@ export function installFixture({
 	username = 'Alex',
 	collapsed = false,
 	logWindow = false,
-	telemetry = false
+	telemetry = false,
+	iconPresets = []
 } = {}) {
 	if (logWindow) window.__TFL_LOG_INSTANCE__ = 'Horizontes';
 	let samples = 0;
+	const installedContent = new Map(),
+		localMedia = [];
+	window.__fixtureRunning = [];
 	const user = {
 		username,
 		uuid: 'fixture-account',
@@ -163,6 +167,44 @@ export function installFixture({
 					issues_url: null,
 					gallery: []
 				};
+			if (cmd === 'get_running_instances') return window.__fixtureRunning;
+			if (cmd === 'list_instance_icon_presets') return iconPresets;
+			if (cmd === 'list_scene_media') return localMedia;
+			if (cmd === 'pick_scene_video_file') return '/fixture/aurora.webm';
+			if (cmd === 'import_scene_video') {
+				if (window.__fixtureMediaError) throw new Error('Unsupported or oversized video');
+				const item = {
+					id: 'scene-123456abcdef',
+					path: '/scenes/aurora.webm',
+					bytes: 126000,
+					mime: 'video/webm'
+				};
+				localMedia.push(item);
+				return item;
+			}
+			if (cmd === 'remove_scene_media') {
+				const index = localMedia.findIndex((m) => m.id === args.id);
+				if (index >= 0) localMedia.splice(index, 1);
+				return;
+			}
+			if (
+				['install_mod', 'install_shader', 'install_resourcepack', 'install_plugin'].includes(cmd)
+			) {
+				await new Promise((r) => setTimeout(r, 180));
+				if (window.__fixtureInstallFailure) throw new Error('Fixture install failed');
+				installedContent.set(args.projectId, {
+					project_id: args.projectId,
+					filename: args.projectId + '.jar',
+					display_name: args.projectId,
+					enabled: true,
+					version_id: 'v1',
+					version_number: '1',
+					icon_url: null
+				});
+				return;
+			}
+			if (/^get_installed_(mods|shaders|resourcepacks|plugins)_info$/.test(cmd))
+				return [...installedContent.values()];
 			if (cmd === 'get_skin_texture_url') return skin ? skinUrl : null;
 			if (cmd === 'get_settings') return settings;
 			if (cmd === 'update_settings') {

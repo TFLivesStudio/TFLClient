@@ -435,6 +435,7 @@
 		<button
 			type="button"
 			class="hero-icon"
+			data-instance-artwork={instance.uuid}
 			style="--loader-color: {loaderMeta.color}"
 			onclick={() => (showIconPicker = true)}
 			aria-label={t('instanceDetail.changeIcon')}

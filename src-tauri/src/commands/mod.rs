@@ -17,3 +17,5 @@ pub mod tfl_selection;
 pub mod updater;
 pub mod versions;
 pub mod world_backups;
+
+pub mod scene_media;

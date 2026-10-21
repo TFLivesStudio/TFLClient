@@ -54,7 +54,8 @@ try {
 			'Apariencia',
 			'Minecraft y Java',
 			'Cuentas',
-			'Consola',
+			'Fondos y escenas',
+			'Consola y monitoreo',
 			'Actualizaciones'
 		]) {
 			await p.locator('.panel-tabs').getByRole('button', { name: tab, exact: true }).click();
@@ -66,15 +67,15 @@ try {
 			}
 			if (tab === 'Minecraft y Java') {
 				assert.equal(await p.locator('.ram-row').count(), 1);
-				assert.ok(await p.locator('.java-row').count());
+				assert.ok(await p.locator('.java-paths label').count());
 			}
-			if (tab === 'Consola') await shot(p, `console-settings-${style}`);
+			if (tab === 'Consola y monitoreo') await shot(p, `console-settings-${style}`);
 		}
-		const search = p.getByRole('searchbox', { name: 'Buscar una opción…' });
+		const search = p.getByRole('searchbox', { name: 'Buscar ajustes' });
 		await search.fill('RAM');
-		assert.equal(await p.locator('.panel-tabs .ptab').count(), 2);
+		assert.equal(await p.locator('.settings-result').count(), 2);
 		await search.fill('idioma');
-		assert.equal(await p.locator('.panel-tabs .ptab').count(), 1);
+		assert.equal(await p.locator('.settings-result').count(), 1);
 		await search.fill('');
 		await p.keyboard.press('Escape');
 		await p.getByRole('button', { name: 'Explorar', exact: true }).click();
@@ -194,8 +195,8 @@ try {
 	await shot(log, 'console-history-800x600');
 	await log.getByRole('button', { name: 'Personalizar consola', exact: true }).click();
 	const settings = log.locator('.config-dialog');
-	await settings.getByLabel('Ubicación de las gráficas', { exact: true }).selectOption('side');
-	const cards = settings.locator('.metric-order li');
+	await settings.getByRole('button', { name: 'Lateral', exact: true }).click();
+	const cards = settings.locator('.designer-preview .chart-card');
 	const second = await cards.nth(1).boundingBox();
 	const handle = await cards.first().locator('.drag-handle').boundingBox();
 	await log.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
@@ -203,7 +204,8 @@ try {
 	await log.mouse.move(second.x + second.width / 2, second.y + second.height / 2, { steps: 8 });
 	await log.mouse.up();
 	assert.equal(await cards.first().getAttribute('data-console-metric'), 'ram');
-	await settings.getByLabel('CPU · Colores del registro', { exact: true }).fill('#12ab34');
+	await settings.locator('.inspector input[type=color]').fill('#12ab34');
+	await settings.getByRole('button', { name: 'Aplicar', exact: true }).click();
 	await log.keyboard.press('Escape');
 	assert.equal(await log.locator('.config-dialog').count(), 0);
 	assert.ok(await log.locator('.console-layout.side').count());

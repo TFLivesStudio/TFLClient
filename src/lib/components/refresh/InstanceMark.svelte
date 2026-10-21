@@ -23,7 +23,7 @@
 	});
 </script>
 
-<span class="mark"
+<span class="mark" data-instance-artwork={instance.uuid}
 	>{#if url}<img src={url} alt="" loading="lazy" />{:else if instance.server_type}<Server
 			size={24}
 		/>{:else}<Box size={26} />{/if}</span

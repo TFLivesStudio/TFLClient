@@ -29,6 +29,7 @@
 				"style-src-attr": "'unsafe-inline'",
 				"img-src": "'self' asset: http://asset.localhost blob: data: https://cdn.modrinth.com https://textures.minecraft.net",
 				"font-src": "'self'",
+				"media-src": "'self' asset: http://asset.localhost blob:",
 				"connect-src": "'self' ipc: http://ipc.localhost",
 				"object-src": "'none'",
 				"base-uri": "'none'",
@@ -37,6 +38,7 @@
 			},
 			"devCsp": {
 				"default-src": "'self' tauri: http://localhost:* https://tauri.localhost",
+				"media-src": "'self' asset: http://asset.localhost blob: http://localhost:*",
 				"img-src": "'self' asset: http://asset.localhost https: blob: data: http://localhost:*",
 				"style-src": "'self' 'unsafe-inline' blob: http://localhost:* https://tauri.localhost",
 				"font-src": "'self' asset: https: https://asset.localhost http://asset.localhost http://localhost:*",
@@ -49,7 +51,8 @@
 					"allow": [
 						"$HOME/.tflclient/instances/*/icon.*",
 						"$HOME/.tflclient/instances/*/screenshots/*",
-						"$HOME/.tflclient/shared/appearance/*"
+						"$HOME/.tflclient/shared/appearance/*",
+						"$HOME/.tflclient/shared/appearance/scenes/*"
 					],
 					"deny": ["$HOME/.tflclient/settings/**"]
 				}

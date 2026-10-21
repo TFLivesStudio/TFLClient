@@ -2,7 +2,11 @@ import type { Metric } from './model';
 import { dropMetric } from './preferences.svelte';
 /** Pointer handles work with Tauri's native file-drop handler enabled on Windows.
  * HTML5 drag/drop remains available on cards in other webviews. */
-export function reorderHandle(node: HTMLElement, metric: Metric) {
+export function reorderHandle(
+	node: HTMLElement,
+	options: Metric | { metric: Metric; drop: (from: Metric, to: Metric) => void }
+) {
+	let params = options;
 	let id: number | null = null;
 	let target: HTMLElement | null = null;
 	const clear = () => {
@@ -35,7 +39,10 @@ export function reorderHandle(node: HTMLElement, metric: Metric) {
 		if (e.pointerId !== id) return;
 		const to = target?.dataset.consoleMetric;
 		if (e.type === 'pointerup' && (to === 'cpu' || to === 'ram' || to === 'disk'))
-			dropMetric(metric, to);
+			(typeof params === 'string' ? dropMetric : params.drop)(
+				typeof params === 'string' ? params : params.metric,
+				to
+			);
 		if (node.hasPointerCapture(e.pointerId)) node.releasePointerCapture(e.pointerId);
 		id = null;
 		node.removeAttribute('aria-grabbed');
@@ -46,6 +53,9 @@ export function reorderHandle(node: HTMLElement, metric: Metric) {
 	node.addEventListener('pointerup', up);
 	node.addEventListener('pointercancel', up);
 	return {
+		update(options: typeof params) {
+			params = options;
+		},
 		destroy() {
 			clear();
 			node.removeEventListener('pointerdown', down);
