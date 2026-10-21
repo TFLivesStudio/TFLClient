@@ -21,7 +21,7 @@ The implementation spans the whole shell and its major surfaces. This is a revie
 
 ## Commands
 
-Environment setup in this cloud workspace uses `. /workspace/.tfl-tools/env.sh`. No toolchain files or lockfiles were changed. Rust checks reuse `/workspace/TFLClient/target` as a build cache; original source checkout is unchanged.
+Environment setup in this cloud workspace uses `. /workspace/.tfl-tools/env.sh`. Toolchain pins and dependency manifests are unchanged. The remote build identified new TLS advisories; Cargo.lock now pins rustls-webpki 0.103.16 and webpki-roots/webpki-root-certs 1.0.10. The audit gate remains enabled. Rust checks reuse `/workspace/TFLClient/target` as a build cache; original source checkout is unchanged.
 
 ```sh
 bun install --frozen-lockfile
@@ -72,3 +72,7 @@ For comparative timing, serve **production builds** of base `930c905` at port 41
 8. Measure native startup/input readiness, process memory/CPU, 3D/ambience cost and frame timing per quality tier on representative hardware. Confirm minimize/restore and repeated overlay/navigation cycles do not leak GPU contexts/listeners.
 
 The Linux GUI could not be certified here: WebKit looks for helpers under `/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1`, whereas the cloud dependencies are installed under the local sysroot. Compilation and Rust tests succeed, but that does not establish native rendering parity. No CSP, filesystem scope, Tauri capability, authentication or launch API was relaxed to work around this.
+
+## Remote build follow-up
+
+PR [#5](https://github.com/TFLivesStudio/TFLClient/pull/5) is published. The first installer run stopped at cargo audit because RUSTSEC-2026-0381/0382/0383 were published after the original local validation. The lockfile-only patch upgrades the three affected TLS/certificate crates; no ignore rule or CI gate was weakened. This is the sole new overlap with Content Discovery's modified paths and must be preserved when that branch is integrated. Final installer runs and downloadable artifacts are linked from the PR.

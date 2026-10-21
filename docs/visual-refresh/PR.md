@@ -8,7 +8,7 @@ Modern y Pixel comparten comportamiento, tokens y política de rendimiento. Lite
 
 ## Alcance de integración
 
-No se modifican backend, autenticación, lanzamiento, instaladores, permisos, CSP, tipos compartidos ni lockfiles. No se fusiona Content Discovery (`67a67ac`); no hay rutas modificadas compartidas con sus siete commits auditados. Explorar ofrece una superficie editorial y puntos de entrada al contenido existente, preparada para integrar su explorador.
+No se modifican backend, autenticación, lanzamiento, instaladores, permisos, CSP ni tipos compartidos. El build remoto detectó avisos TLS recientes: `Cargo.lock` actualiza únicamente `rustls-webpki` a 0.103.16 y `webpki-roots`/`webpki-root-certs` a 1.0.10. No se fusiona Content Discovery (`67a67ac`); el único archivo modificado compartido con sus siete commits auditados es ahora ese lockfile, por esta corrección puntual. Explorar ofrece una superficie editorial y puntos de entrada al contenido existente, preparada para integrar su explorador.
 
 ## Validación
 

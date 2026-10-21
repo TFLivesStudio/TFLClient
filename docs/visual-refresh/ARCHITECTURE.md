@@ -30,3 +30,7 @@ Retain the working custom Svelte primitives and native controls. Centralize moda
 Use actual frontend rendering with a test-only Tauri IPC fixture for browser regression/screenshots; identify those images as fixture-backed, not native game execution. Native Rust tests and compile remain separate evidence. Never infer real Microsoft login, game launch, online installs, or cross-platform behavior from mocks. Measure browser timing/heap as browser observations only. Native WebKit GUI startup is blocked by system helper locations in this environment.
 
 External research: Laby reference HTTPS request blocked by the proxy (403). Superdesign CLI runs but has no authenticated session; direct design/implementation remains with the current model as requested. No external design model is used.
+
+## Packaging follow-up
+
+Remote Actions exposed new RustSec TLS advisories (2026-0381, 0382, 0383). Cargo.lock now updates only rustls-webpki 0.103.15 → 0.103.16 and webpki-roots/webpki-root-certs 1.0.9 → 1.0.10. No manifests, backend code or audit exceptions changed. This security patch creates one shared modified path with Content Discovery (Cargo.lock); retain these corrected versions during integration.

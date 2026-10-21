@@ -23,5 +23,21 @@
     "pullRequest": "https://github.com/TFLivesStudio/TFLClient/pull/5",
     "buildWorkflow": "https://github.com/TFLivesStudio/TFLClient/actions/workflows/build.yml",
     "mode": "Manual branch builds; no stable release publication"
+  },
+  "securityFollowUp": {
+    "advisories": [
+      "RUSTSEC-2026-0381",
+      "RUSTSEC-2026-0382",
+      "RUSTSEC-2026-0383"
+    ],
+    "patchedVersions": {
+      "rustls-webpki": "0.103.16",
+      "webpki-roots": "1.0.10",
+      "webpki-root-certs": "1.0.10"
+    },
+    "cargoAudit": "pass; no new ignore rules",
+    "workspaceCheck": "pass --locked",
+    "workspaceTests": "pass --locked",
+    "scope": "All other Cargo.lock package entries unchanged"
   }
 }
