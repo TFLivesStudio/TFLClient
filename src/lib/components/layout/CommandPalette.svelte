@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { modalFocus } from '$lib/visual/modalFocus';
+	import { navigate } from '$lib/visual/navigation.svelte';
+	import { vr } from '$lib/i18n/refresh';
 	import { onMount } from 'svelte';
 	import type { InstanceData } from '$lib/types/types';
 	import { t } from '$lib/i18n/index.svelte';
@@ -60,6 +63,16 @@
 	}
 
 	const actionItems = $derived<PaletteItem[]>([
+		...(['home', 'library', 'discover'] as const).map((section) => ({
+			id: `nav:${section}`,
+			label: vr(section),
+			hint: t('commandPalette.action'),
+			icon: Boxes,
+			run: () => {
+				navigate(section);
+				close();
+			}
+		})),
 		{
 			id: 'action:create',
 			label: t('sidebar.createInstance'),
@@ -133,6 +146,13 @@
 		if (selectedIndex >= items.length) selectedIndex = Math.max(0, items.length - 1);
 	});
 
+	onMount(() => {
+		const open = () => {
+			if (!blocked) openPalette();
+		};
+		window.addEventListener('tfl:command-palette', open);
+		return () => window.removeEventListener('tfl:command-palette', open);
+	});
 	function openPalette() {
 		open = true;
 		query = '';
@@ -190,6 +210,7 @@
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => e.stopPropagation()}
 			role="dialog"
+			use:modalFocus={close}
 			aria-modal="true"
 			tabindex="-1"
 		>

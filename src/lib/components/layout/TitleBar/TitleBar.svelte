@@ -1,4 +1,10 @@
 <script lang="ts">
+	import NotificationCenter from '$lib/components/refresh/NotificationCenter.svelte';
+	import { vr } from '$lib/i18n/refresh';
+	import { navigation } from '$lib/visual/navigation.svelte';
+	import { appState } from '$lib/state/state.svelte';
+	import { Search } from 'lucide-svelte';
+
 	import { onMount } from 'svelte';
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { Minus, Square, Copy, X } from 'lucide-svelte';
@@ -43,7 +49,18 @@
 		<Tfl width="16" height="16" />
 		{#if !brandCollapsed}<span>TFL Client</span>{/if}
 	</div>
-	<div class="titlebar-drag" data-tauri-drag-region></div>
+	<div class="titlebar-drag" data-tauri-drag-region>
+		<span class="titlebar-location" data-tauri-drag-region
+			>{appState.selectedInstance?.name ?? vr(navigation.section)}</span
+		>
+	</div>
+	<button
+		class="titlebar-search"
+		aria-label={vr('focusSearch')}
+		onclick={() => window.dispatchEvent(new Event('tfl:command-palette'))}
+		><Search size={15} /><kbd>⌘ / Ctrl K</kbd></button
+	>
+	<NotificationCenter />
 
 	<div class="titlebar-controls">
 		<button
@@ -80,7 +97,7 @@
 <style>
 	.titlebar {
 		position: relative;
-		z-index: var(--z-content);
+		z-index: 30;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -159,5 +176,35 @@
 	.titlebar-btn-close:hover {
 		background: var(--color-error);
 		color: #ffffff;
+	}
+
+	.titlebar-location {
+		padding-left: 22px;
+		font-size: var(--text-caption);
+		color: var(--text-muted);
+		pointer-events: none;
+	}
+	.titlebar-drag {
+		display: flex;
+		align-items: center;
+	}
+	.titlebar-search {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 6px 12px;
+		background: none;
+		border: 0;
+		border-right: 1px solid var(--border);
+		color: var(--text-muted);
+	}
+	.titlebar-search kbd {
+		font-size: 10px;
+	}
+	.titlebar-brand span {
+		font-family: var(--font-family);
+		font-size: 13px;
+		font-weight: 700;
+		letter-spacing: -0.03em;
 	}
 </style>

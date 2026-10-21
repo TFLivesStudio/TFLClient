@@ -1,4 +1,10 @@
 <script lang="ts">
+	import StudioAccounts from '$lib/components/refresh/StudioAccounts.svelte';
+	import { vr } from '$lib/i18n/refresh';
+	import Mascot from '$lib/components/ui/Mascot.svelte';
+	import { getMascotFor } from '$lib/mascots';
+
+	import { modalFocus } from '$lib/visual/modalFocus';
 	import { onMount } from 'svelte';
 	import {
 		getMojangProfile,
@@ -47,6 +53,12 @@
 	});
 
 	async function load() {
+		profile = null;
+		if (!appState.currentUser || appState.currentUser.user_type === 'Cracked') {
+			loading = false;
+			error = null;
+			return;
+		}
 		loading = true;
 		error = null;
 		try {
@@ -127,146 +139,163 @@
 	tabindex="-1"
 >
 	<div
-		class="panel"
+		class="panel studio-refresh"
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={(e) => e.stopPropagation()}
 		role="dialog"
+		use:modalFocus={onClose}
 		aria-modal="true"
 		tabindex="-1"
 	>
 		<div class="panel-header">
-			<h2>{t('skinManager.title')}</h2>
+			<h2>{vr('studio')}</h2>
 			<button type="button" class="close-btn" onclick={onClose} aria-label={t('settings.close')}>
 				<X size={16} />
 			</button>
 		</div>
 
-		<div class="viewer-row">
-			<div class="viewer-wrap">
-				{#if !loading}
-					<SkinViewer3D
-						width={200}
-						height={280}
-						autoRotateSpeed={0.8}
-						zoom={0.85}
-						skinUrl={activeSkin?.url ?? null}
-						capeUrl={activeCape?.url ?? null}
-						onSkinError={() => (skinLoadError = true)}
-					/>
-				{/if}
-				{#if loading}
-					<div class="viewer-loading"><Loader2 size={20} class="spin" /></div>
-				{/if}
-			</div>
-			{#if skinLoadError}
-				<p class="hint viewer-hint error">{t('skinManager.skinLoadError')}</p>
-			{:else}
-				<p class="hint viewer-hint">{t('skinManager.viewerHint')}</p>
-			{/if}
-		</div>
-
-		<div class="tabs">
-			<button
-				type="button"
-				class="tab-btn"
-				class:active={tab === 'skin'}
-				onclick={() => (tab = 'skin')}
-			>
-				{t('skinManager.tabSkin')}
-			</button>
-			<button
-				type="button"
-				class="tab-btn"
-				class:active={tab === 'cape'}
-				onclick={() => (tab = 'cape')}
-			>
-				{t('skinManager.tabCape')}
-			</button>
-		</div>
-
-		{#if error}<p class="error">{error}</p>{/if}
-
-		{#if !loading}
-			{#if tab === 'skin'}
-				<div class="skin-controls">
-					<div class="variant-tabs">
-						<button
-							type="button"
-							class="variant-btn"
-							class:active={variant === 'classic'}
-							onclick={() => (variant = 'classic')}
-						>
-							{t('skinManager.variantClassic')}
-						</button>
-						<button
-							type="button"
-							class="variant-btn"
-							class:active={variant === 'slim'}
-							onclick={() => (variant = 'slim')}
-						>
-							{t('skinManager.variantSlim')}
-						</button>
-					</div>
-					<button
-						type="button"
-						class="action-btn primary"
-						disabled={busy === 'upload' || dialogsBlocked}
-						title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
-						onclick={uploadSkin}
-					>
-						{#if busy === 'upload'}<Loader2 size={14} class="spin" />{:else}<Upload
-								size={14}
-							/>{/if}
-						{t('skinManager.uploadSkin')}
-					</button>
-					<button
-						type="button"
-						class="action-btn"
-						disabled={busy === 'reset'}
-						onclick={doResetSkin}
-					>
-						{#if busy === 'reset'}<Loader2 size={14} class="spin" />{:else}<RotateCcw
-								size={14}
-							/>{/if}
-						{t('skinManager.resetSkin')}
-					</button>
-					{#if dialogsBlocked}
-						<p class="hint">{t('instanceIconPicker.autoModeNotice')}</p>
+		<div class="studio-layout">
+			<div class="viewer-row">
+				<div class="viewer-wrap">
+					{#if appState.currentUser?.user_type === 'Cracked'}
+						<Mascot id={getMascotFor(appState.currentUser.uuid)} size={180} />
+					{:else if !loading}
+						<SkinViewer3D
+							width={280}
+							height={360}
+							autoRotateSpeed={0.8}
+							zoom={0.85}
+							skinUrl={activeSkin?.url ?? null}
+							capeUrl={activeCape?.url ?? null}
+							onSkinError={() => (skinLoadError = true)}
+						/>
+					{/if}
+					{#if loading}
+						<div class="viewer-loading"><Loader2 size={20} class="spin" /></div>
 					{/if}
 				</div>
-			{:else if profile && profile.capes.length === 0}
-				<p class="hint">{t('skinManager.noCapes')}</p>
-			{:else if profile}
-				<div class="cape-grid">
-					<button
-						type="button"
-						class="cape-swatch none"
-						class:active={!activeCape}
-						disabled={busy === 'none'}
-						onclick={removeCape}
-					>
-						{#if busy === 'none'}<Loader2 size={16} class="spin" />{:else}<Ban size={20} />{/if}
-						<span>{t('skinManager.noCape')}</span>
-					</button>
-					{#each profile.capes as cape (cape.id)}
+				{#if skinLoadError}
+					<p class="hint viewer-hint error">{t('skinManager.skinLoadError')}</p>
+				{:else}
+					<p class="hint viewer-hint">{t('skinManager.viewerHint')}</p>
+				{/if}
+			</div>
+
+			<div class="studio-controls">
+				<span class="vr-eyebrow">TFL / {vr('account')}</span>
+				<h3 class="studio-title">{vr('wardrobe')}</h3>
+				<p class="vr-muted">{vr('wardrobeHint')}</p>
+				<StudioAccounts onChange={load} />
+				{#if appState.currentUser?.user_type === 'Cracked'}<p class="vr-muted">
+						{vr('offlineSkin')}
+					</p>{:else}
+					<div class="tabs">
 						<button
 							type="button"
-							class="cape-swatch"
-							class:active={cape.state === 'ACTIVE'}
-							disabled={busy === cape.id}
-							onclick={() => chooseCape(cape.id)}
+							class="tab-btn"
+							class:active={tab === 'skin'}
+							onclick={() => (tab = 'skin')}
 						>
-							{#if busy === cape.id}
-								<Loader2 size={16} class="spin" />
-							{:else}
-								<img src={cape.url} alt={cape.alias ?? ''} />
-							{/if}
-							<span>{cape.alias ?? '—'}</span>
+							{t('skinManager.tabSkin')}
 						</button>
-					{/each}
-				</div>
-			{/if}
-		{/if}
+						<button
+							type="button"
+							class="tab-btn"
+							class:active={tab === 'cape'}
+							onclick={() => (tab = 'cape')}
+						>
+							{t('skinManager.tabCape')}
+						</button>
+					</div>
+
+					{#if error}<p class="error">{error}</p>{/if}
+
+					{#if !loading}
+						{#if tab === 'skin'}
+							<div class="skin-controls">
+								<div class="variant-tabs">
+									<button
+										type="button"
+										class="variant-btn"
+										class:active={variant === 'classic'}
+										onclick={() => (variant = 'classic')}
+									>
+										{t('skinManager.variantClassic')}
+									</button>
+									<button
+										type="button"
+										class="variant-btn"
+										class:active={variant === 'slim'}
+										onclick={() => (variant = 'slim')}
+									>
+										{t('skinManager.variantSlim')}
+									</button>
+								</div>
+								<button
+									type="button"
+									class="action-btn primary"
+									disabled={busy === 'upload' || dialogsBlocked}
+									title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
+									onclick={uploadSkin}
+								>
+									{#if busy === 'upload'}<Loader2 size={14} class="spin" />{:else}<Upload
+											size={14}
+										/>{/if}
+									{t('skinManager.uploadSkin')}
+								</button>
+								<button
+									type="button"
+									class="action-btn"
+									disabled={busy === 'reset'}
+									onclick={doResetSkin}
+								>
+									{#if busy === 'reset'}<Loader2 size={14} class="spin" />{:else}<RotateCcw
+											size={14}
+										/>{/if}
+									{t('skinManager.resetSkin')}
+								</button>
+								{#if dialogsBlocked}
+									<p class="hint">{t('instanceIconPicker.autoModeNotice')}</p>
+								{/if}
+							</div>
+						{:else if profile && profile.capes.length === 0}
+							<p class="hint">{t('skinManager.noCapes')}</p>
+						{:else if profile}
+							<div class="cape-grid">
+								<button
+									type="button"
+									class="cape-swatch none"
+									class:active={!activeCape}
+									disabled={busy === 'none'}
+									onclick={removeCape}
+								>
+									{#if busy === 'none'}<Loader2 size={16} class="spin" />{:else}<Ban
+											size={20}
+										/>{/if}
+									<span>{t('skinManager.noCape')}</span>
+								</button>
+								{#each profile.capes as cape (cape.id)}
+									<button
+										type="button"
+										class="cape-swatch"
+										class:active={cape.state === 'ACTIVE'}
+										disabled={busy === cape.id}
+										onclick={() => chooseCape(cape.id)}
+									>
+										{#if busy === cape.id}
+											<Loader2 size={16} class="spin" />
+										{:else}
+											<img src={cape.url} alt={cape.alias ?? ''} />
+										{/if}
+										<span>{cape.alias ?? '—'}</span>
+									</button>
+								{/each}
+							</div>
+						{/if}
+					{/if}
+				{/if}
+			</div>
+		</div>
 	</div>
 </div>
 
@@ -499,6 +528,88 @@
 		}
 		to {
 			transform: rotate(360deg);
+		}
+	}
+
+	.studio-refresh {
+		width: min(1060px, calc(100vw - 40px));
+		max-height: calc(100vh - 70px);
+		padding: 26px;
+		overflow: auto;
+	}
+	.studio-layout {
+		display: grid;
+		grid-template-columns: minmax(230px, 0.85fr) minmax(0, 1fr);
+		gap: 30px;
+	}
+	.studio-controls {
+		display: flex;
+		flex-direction: column;
+		gap: 22px;
+		padding: 10px 0;
+	}
+	.studio-title {
+		font-size: 2rem;
+		letter-spacing: -0.04em;
+		line-height: 1.15;
+		margin: 0;
+	}
+	.studio-refresh .viewer-row {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 18px;
+		min-height: 400px;
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius-lg);
+		background:
+			radial-gradient(
+				ellipse at 50% 60%,
+				color-mix(in srgb, var(--accent) 14%, transparent),
+				transparent 70%
+			),
+			var(--surface-canvas);
+	}
+	.studio-refresh .viewer-wrap {
+		width: 100%;
+		height: auto;
+		min-height: 320px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.studio-refresh .panel-header {
+		padding-bottom: 20px;
+		margin-bottom: 20px;
+	}
+	.studio-refresh .tabs {
+		margin: 0;
+	}
+	.studio-refresh .skin-controls {
+		padding: 0;
+	}
+	.studio-refresh .viewer-hint {
+		padding: 0 18px;
+		text-align: center;
+	}
+	@media (max-width: 850px) {
+		.studio-layout {
+			grid-template-columns: 220px minmax(0, 1fr);
+			gap: 20px;
+		}
+		.studio-refresh {
+			padding: 20px;
+		}
+		.studio-title {
+			font-size: 1.5rem;
+		}
+		.studio-refresh .viewer-row {
+			min-height: 330px;
+		}
+		.studio-refresh .viewer-wrap :global(canvas) {
+			max-width: 200px;
+			height: 280px !important;
 		}
 	}
 </style>

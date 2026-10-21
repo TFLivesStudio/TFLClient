@@ -1,4 +1,6 @@
 <script lang="ts">
+	import VisualSettings from '$lib/components/refresh/VisualSettings.svelte';
+	import { modalFocus } from '$lib/visual/modalFocus';
 	import { onMount } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -586,10 +588,11 @@
 	tabindex="-1"
 >
 	<div
-		class="panel"
+		class="panel settings-refresh"
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={(e) => e.stopPropagation()}
 		role="dialog"
+		use:modalFocus={onClose}
 		aria-modal="true"
 		tabindex="-1"
 	>
@@ -889,6 +892,7 @@
 					{/if}
 				</section>
 			{:else if tab === 'appearance'}
+				<VisualSettings onQuality={handleQuality} />
 				<section>
 					<span class="section-label">{t('settings.accent.label')}</span>
 					<div class="swatches">
@@ -1710,5 +1714,72 @@
 
 	.java-tag.installed {
 		color: var(--color-success);
+	}
+
+	.settings-refresh {
+		width: min(1180px, calc(100vw - 40px));
+		height: calc(100vh - 76px);
+		max-height: none;
+		display: grid;
+		grid-template-columns: 190px minmax(0, 1fr);
+		grid-template-rows: auto minmax(0, 1fr);
+		gap: 0;
+		padding: 0;
+		overflow: hidden;
+		background: var(--surface-elevated);
+	}
+	.settings-refresh .panel-header {
+		grid-column: 1/-1;
+		padding: 22px 28px;
+		border-bottom: 1px solid var(--border);
+	}
+	.settings-refresh .panel-tabs {
+		flex-direction: column;
+		border-bottom: 0;
+		border-right: 1px solid var(--border);
+		padding: 22px 12px;
+		gap: 6px;
+		overflow: auto;
+		background: var(--surface-workspace);
+	}
+	.settings-refresh .ptab {
+		padding: 13px 14px;
+		margin: 0;
+		border: 1px solid transparent;
+		border-radius: var(--border-radius-sm);
+		font-size: var(--text-small);
+		gap: 12px;
+		text-align: left;
+	}
+	.settings-refresh .ptab.active {
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+	}
+	.settings-refresh .panel-body {
+		padding: 28px;
+		min-height: 0;
+		gap: 26px;
+	}
+	.settings-refresh .section-label {
+		font-size: var(--text-small);
+		line-height: 1.5;
+		margin-bottom: 10px;
+	}
+	.overlay {
+		backdrop-filter: blur(10px);
+	}
+	@media (max-width: 850px) {
+		.settings-refresh {
+			grid-template-columns: 155px minmax(0, 1fr);
+			width: calc(100vw - 24px);
+			height: calc(100vh - 60px);
+		}
+		.settings-refresh .panel-body {
+			padding: 20px;
+		}
+		.settings-refresh .ptab {
+			padding: 12px 8px;
+			font-size: 12px;
+		}
 	}
 </style>

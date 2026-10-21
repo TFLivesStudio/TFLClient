@@ -1,4 +1,12 @@
 <script lang="ts">
+	import { reveal } from '$lib/visual/motion';
+	import { startNotifications } from '$lib/visual/notifications.svelte';
+	import LibraryView from '$lib/components/refresh/LibraryView.svelte';
+	import DiscoverView from '$lib/components/refresh/DiscoverView.svelte';
+	import { navigation } from '$lib/visual/navigation.svelte';
+	import { restoreVisualPreferences } from '$lib/visual/preferences.svelte';
+	import { startVisualRuntime, effects, runtime } from '$lib/visual/runtime.svelte';
+
 	import { onMount } from 'svelte';
 	import TitleBar from '$lib/components/layout/TitleBar/TitleBar.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar/Sidebar.svelte';
@@ -17,14 +25,25 @@
 		instanceNav,
 		selectInstance
 	} from '$lib/state/instanceState.svelte';
-	import { flow, openInstanceContextMenu, openModal, ui } from '$lib/state/uiState.svelte';
+	import { flow, openInstanceContextMenu, openModal, ui, modals } from '$lib/state/uiState.svelte';
 
+	$effect(() => {
+		runtime.overlay = Object.values(modals).some(Boolean);
+	});
 	// Responsive del shell (Entrega B, sección 4) — ver viewport.svelte.ts.
 	// Se inicializa una sola vez acá, al mismo nivel que TitleBar/Sidebar (los
 	// dos lo consumen), en vez de en bootstrap.ts (fuera del alcance de esta
 	// entrega) — es idempotente, no pasa nada si se llama de más.
 	onMount(() => {
-		initViewportListener();
+		const stopViewport = initViewportListener();
+		restoreVisualPreferences();
+		const stopVisual = startVisualRuntime();
+		const stopNotifications = startNotifications();
+		return () => {
+			stopViewport?.();
+			stopVisual();
+			stopNotifications();
+		};
 	});
 </script>
 
@@ -42,7 +61,7 @@
 	{:else}
 		<div class="app-body">
 			<div class="ambient-bg">
-				{#if appearance.ambience === 'particles' && !appearance.reduceMotion}
+				{#if appearance.ambience === 'particles' && effects.current.ambient}
 					<ParticlesBackground />
 				{/if}
 			</div>
@@ -59,7 +78,11 @@
 				onOpenSkinManager={() => openModal('skinManager')}
 				onInstanceContextMenu={openInstanceContextMenu}
 			/>
-			<main class="main-content">
+			<main
+				class="main-content"
+				use:reveal={(appState.selectedInstance?.uuid ?? navigation.section) +
+					effects.current.motion}
+			>
 				{#if appState.selectedInstance}
 					{#key appState.selectedInstance.uuid + '-' + instanceNav.navNonce}
 						<InstanceDetail
@@ -68,6 +91,10 @@
 							initialTab={instanceNav.pendingInitialTab}
 						/>
 					{/key}
+				{:else if navigation.section === 'library'}
+					<LibraryView />
+				{:else if navigation.section === 'discover'}
+					<DiscoverView />
 				{:else}
 					<WelcomeState />
 				{/if}

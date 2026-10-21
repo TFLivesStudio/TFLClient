@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { modalFocus } from '$lib/visual/modalFocus';
 	import { onMount } from 'svelte';
 	import type { InstanceData, Loader, TflSelectionEntry } from '$lib/types/types';
 	import { getTflSelection, installModpack, installModpackFromUrl, createInstance } from '$lib/api';
@@ -189,6 +190,7 @@
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={(e) => e.stopPropagation()}
 		role="dialog"
+		use:modalFocus={onClose}
 		aria-modal="true"
 		tabindex="-1"
 	>
@@ -551,5 +553,22 @@
 		to {
 			transform: rotate(360deg);
 		}
+	}
+
+	.panel-header h2 {
+		font-size: var(--text-heading);
+		letter-spacing: -0.035em;
+	}
+	.panel-header {
+		padding-bottom: 18px;
+		margin-bottom: 8px;
+	}
+	.panel {
+		padding: 26px;
+		background: var(--surface-elevated);
+	}
+	.close-btn {
+		width: 34px;
+		height: 34px;
 	}
 </style>

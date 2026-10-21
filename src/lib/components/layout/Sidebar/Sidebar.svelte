@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { navigate, navigation } from '$lib/visual/navigation.svelte';
+	import { vr } from '$lib/i18n/refresh';
 	import { invoke } from '@tauri-apps/api/core';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
@@ -24,7 +26,6 @@
 		Settings,
 		Search,
 		Boxes,
-		Sparkles,
 		WifiOff,
 		Globe,
 		Shirt,
@@ -41,7 +42,6 @@
 		onCreate,
 		onLogout,
 		onOpenSettings,
-		onOpenTflSelection,
 		onJoinServer,
 		onOpenSkinManager,
 		onInstanceContextMenu
@@ -177,13 +177,13 @@
 	</div>
 
 	{#if collapsed}
-		<Tooltip content={t('sidebar.home')} position="right">
+		<Tooltip content={vr('home')} position="right">
 			<button
 				type="button"
 				class="home-btn"
-				class:active={selected === null}
+				class:active={selected === null && navigation.section === 'home'}
 				onclick={goHome}
-				aria-label={t('sidebar.home')}
+				aria-label={vr('home')}
 			>
 				<Home size={16} />
 			</button>
@@ -192,37 +192,28 @@
 		<button
 			type="button"
 			class="home-btn"
-			class:active={selected === null}
+			class:active={selected === null && navigation.section === 'home'}
 			onclick={goHome}
-			aria-label={t('sidebar.home')}
+			aria-label={vr('home')}
 		>
 			<Home size={16} />
-			<span>{t('sidebar.home')}</span>
+			<span>{vr('home')}</span>
 		</button>
 	{/if}
 
-	{#if collapsed}
-		<Tooltip content="TFL Selection" position="right">
-			<button
-				type="button"
-				class="tfl-selection-btn"
-				onclick={onOpenTflSelection}
-				aria-label="TFL Selection"
-			>
-				<Sparkles size={16} />
-			</button>
-		</Tooltip>
-	{:else}
+	{#each ['library', 'discover'] as section}
 		<button
 			type="button"
-			class="tfl-selection-btn"
-			onclick={onOpenTflSelection}
-			aria-label="TFL Selection"
+			class="home-btn"
+			class:active={selected === null && navigation.section === section}
+			onclick={() => navigate(section as 'library' | 'discover')}
+			aria-label={vr(section as 'library' | 'discover')}
+			title={collapsed ? vr(section as 'library' | 'discover') : undefined}
 		>
-			<Sparkles size={16} />
-			TFL Selection
+			{#if section === 'library'}<Boxes size={18} />{:else}<Globe size={18} />{/if}
+			{#if !collapsed}<span>{vr(section as 'library' | 'discover')}</span>{/if}
 		</button>
-	{/if}
+	{/each}
 
 	{#if !network.online && !collapsed}
 		<div class="offline-badge">
@@ -450,8 +441,7 @@
 		min-width: 0;
 	}
 
-	.home-btn,
-	.tfl-selection-btn {
+	.home-btn {
 		display: flex;
 		align-items: center;
 		gap: 8px;
@@ -483,14 +473,12 @@
 		color: var(--accent);
 	}
 
-	.home-btn:hover,
-	.tfl-selection-btn:hover {
+	.home-btn:hover {
 		background: color-mix(in srgb, var(--accent) 20%, var(--surface-card));
 		border-color: var(--accent);
 	}
 
-	.sidebar.collapsed .home-btn,
-	.sidebar.collapsed .tfl-selection-btn {
+	.sidebar.collapsed .home-btn {
 		justify-content: center;
 		padding: 8px;
 	}
@@ -845,5 +833,55 @@
 
 	.sidebar.collapsed .sidebar-top {
 		justify-content: center;
+	}
+
+	.sidebar {
+		padding-top: 14px;
+		background: var(--surface-workspace);
+		gap: 6px;
+	}
+	.home-btn {
+		border-color: transparent;
+		background: transparent;
+		min-height: 42px;
+		font-weight: 500;
+		padding: 10px 14px;
+		gap: 12px;
+	}
+	.home-btn.active {
+		border-color: transparent;
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		position: relative;
+	}
+	.home-btn.active:before {
+		content: '';
+		position: absolute;
+		left: -12px;
+		width: 3px;
+		height: 18px;
+		border-radius: 4px;
+		background: var(--accent);
+	}
+	.home-btn:hover {
+		border-color: transparent;
+		background: var(--surface-interactive);
+	}
+	.section-label {
+		margin-top: 20px;
+		font-size: 11px;
+		letter-spacing: 0.1em;
+	}
+	.instance-item {
+		min-height: 58px;
+		border-radius: var(--border-radius-sm);
+	}
+	.search-box {
+		border-color: var(--border);
+	}
+	.shortcut-hint {
+		display: none;
+	}
+	.instance-name {
+		font-size: 13px;
 	}
 </style>
