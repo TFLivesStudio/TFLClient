@@ -21,7 +21,6 @@
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
 	import {
 		Plus,
-		User as UserIcon,
 		LogOut,
 		Settings,
 		Search,
@@ -109,16 +108,21 @@
 	// de la skin real vía background-position), no hace falta canvas.
 	let skinUrl = $state<string | null>(null);
 	$effect(() => {
+		const account = user;
+		let cancelled = false;
 		skinUrl = null;
-		if (user && user.user_type !== 'Cracked') {
-			invoke<string | null>('get_skin_texture_url', { uuid: user.uuid })
+		if (account && account.user_type !== 'Cracked')
+			invoke<string | null>('get_skin_texture_url', { uuid: account.uuid })
 				.then((url) => {
-					skinUrl = url;
+					if (!cancelled)
+						skinUrl =
+							url?.replace('http://textures.minecraft.net/', 'https://textures.minecraft.net/') ??
+							null;
 				})
-				.catch(() => {
-					skinUrl = null;
-				});
-		}
+				.catch(() => {});
+		return () => {
+			cancelled = true;
+		};
 	});
 
 	const sorted = $derived([...instances].sort((a, b) => b.last_played - a.last_played));
@@ -332,31 +336,41 @@
 
 	{#if user}
 		<div class="user-chip">
-			<span class="user-head" title={collapsed ? user.username : undefined}>
-				{#if user.user_type === 'Cracked'}
-					<!-- Cuentas offline no tienen skin real — mascota simple en
+			<button
+				type="button"
+				class="user-profile"
+				title={user.username}
+				aria-label={`${user.username} · ${t('settings.tabs.accounts')}`}
+				onclick={user.user_type === 'Cracked' ? onOpenSettings : onOpenSkinManager}
+			>
+				<span class="user-head">
+					{#if user.user_type === 'Cracked'}
+						<!-- Cuentas offline no tienen skin real — mascota simple en
 						 vez del Steve genérico que devolvería Crafatar por
 						 defecto. Elegida al azar (determinística por UUID) al
 						 crear la cuenta, cambiable desde Ajustes. -->
-					<Mascot id={getMascotFor(user.uuid)} size={32} />
-				{:else}
-					<UserIcon size={16} class="user-head-fallback" />
-					{#if skinUrl}
-						<span class="skin-head">
-							<span class="skin-layer base" style="background-image: url({skinUrl})"></span>
-							<span class="skin-layer overlay" style="background-image: url({skinUrl})"></span>
-						</span>
+						<Mascot id={getMascotFor(user.uuid)} size={32} />
+					{:else}
+						<img class="face-fallback" src="/images/player-face.svg" alt="" />
+						{#if skinUrl}
+							<span class="skin-head">
+								<span class="skin-layer base" style="background-image: url({skinUrl})"></span>
+								<span class="skin-layer overlay" style="background-image: url({skinUrl})"></span>
+							</span>
+						{/if}
 					{/if}
+				</span>
+				{#if !collapsed}
+					<span class="user-info">
+						<span class="user-name">{user.username}</span>
+						<span class="user-type"
+							>{user.user_type === 'Cracked'
+								? t('sidebar.offlineAccountType')
+								: user.user_type}</span
+						>
+					</span>
 				{/if}
-			</span>
-			{#if !collapsed}
-				<div class="user-info">
-					<span class="user-name">{user.username}</span>
-					<span class="user-type"
-						>{user.user_type === 'Cracked' ? t('sidebar.offlineAccountType') : user.user_type}</span
-					>
-				</div>
-			{/if}
+			</button>
 			<div class="user-actions">
 				{#if user.user_type !== 'Cracked'}
 					<IconButton
@@ -385,6 +399,26 @@
 </aside>
 
 <style>
+	.user-profile {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		min-width: 0;
+		background: transparent;
+		border: 0;
+		color: var(--text-primary);
+		padding: 0;
+		cursor: pointer;
+		text-align: left;
+	}
+	.face-fallback {
+		position: absolute;
+		width: 32px;
+		height: 32px;
+		image-rendering: pixelated;
+	}
+
 	.sidebar {
 		position: relative;
 		z-index: var(--z-content);
@@ -411,12 +445,7 @@
 	.sidebar.collapsed {
 		padding-left: 10px;
 		padding-right: 10px;
-		/* El banner de actualización lista es "position: fixed; bottom: 16px"
-		   sobre TODA la ventana, no solo sobre el contenido — en este modo
-		   angosto los íconos de usuario (skin/ajustes/cerrar sesión) quedan
-		   apilados justo en esa franja. Se les deja aire abajo para que no
-		   queden tapados mientras el banner esté visible. */
-		padding-bottom: 88px;
+		padding-bottom: 12px;
 		align-items: center;
 	}
 
@@ -733,8 +762,11 @@
 	}
 
 	.user-chip {
+		margin-top: auto;
+		flex-shrink: 0;
 		display: flex;
-		align-items: center;
+		flex-direction: column;
+		align-items: stretch;
 		gap: 10px;
 		padding: 8px 10px;
 		border-radius: var(--border-radius);
@@ -761,7 +793,8 @@
 	}
 
 	.skin-head {
-		position: relative;
+		position: absolute;
+		inset: 0;
 		display: block;
 		width: 32px;
 		height: 32px;
@@ -773,7 +806,7 @@
 		position: absolute;
 		inset: 0;
 		background-repeat: no-repeat;
-		background-size: 256px 256px;
+		background-size: 256px auto;
 		image-rendering: pixelated;
 	}
 
@@ -793,11 +826,12 @@
 	}
 
 	.user-name {
-		font-size: 0.8rem;
-		font-weight: 600;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
+		font-size: 13px;
+		line-height: 1.5;
+		font-weight: 700;
+		white-space: normal;
+		overflow-wrap: anywhere;
+		text-align: left;
 	}
 
 	.user-type {
@@ -882,5 +916,91 @@
 	}
 	.instance-name {
 		font-size: 13px;
+	}
+
+	.sidebar {
+		min-height: 0;
+		height: 100%;
+		box-sizing: border-box;
+	}
+	.user-actions {
+		justify-content: space-evenly;
+		border-top: 1px solid var(--border);
+		padding-top: 6px;
+	}
+	.user-actions :global(.tfl-icon-btn) {
+		width: 40px;
+		height: 36px;
+	}
+	.sidebar.collapsed {
+		padding: 10px 14px;
+		gap: 6px;
+	}
+	.sidebar.collapsed .sidebar-top,
+	.sidebar.collapsed .instances,
+	.sidebar.collapsed .section-label,
+	.sidebar.collapsed .instance-list {
+		width: 44px;
+	}
+	.sidebar.collapsed .section-label {
+		margin-top: 6px;
+	}
+	.sidebar.collapsed .section-label-actions {
+		flex-direction: column;
+		gap: 6px;
+	}
+	.sidebar.collapsed .instance-list {
+		gap: 6px;
+	}
+	.sidebar.collapsed .home-btn,
+	.sidebar.collapsed .instance-item,
+	.sidebar.collapsed .empty-create,
+	.sidebar.collapsed :global(.tfl-icon-btn) {
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
+		max-height: 44px;
+		padding: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: var(--border-radius-sm);
+		box-sizing: border-box;
+		flex-shrink: 0;
+	}
+	.sidebar.collapsed :global(.tfl-tooltip-wrap) {
+		width: 44px;
+		flex-shrink: 0;
+	}
+	.sidebar.collapsed .instance-avatar {
+		width: 28px;
+		height: 28px;
+	}
+	.sidebar.collapsed .user-chip {
+		padding: 0;
+		gap: 6px;
+		align-items: center;
+		background: transparent;
+		border: 0;
+		width: 44px;
+	}
+	.sidebar.collapsed .user-profile {
+		width: 44px;
+		height: 44px;
+		justify-content: center;
+		border: 1px solid var(--border);
+		background: var(--surface-card);
+		border-radius: var(--border-radius-sm);
+	}
+	.sidebar.collapsed .user-actions {
+		flex-direction: column;
+		flex-wrap: nowrap;
+		gap: 6px;
+		width: 44px;
+		border: 0;
+		padding: 0;
+	}
+	.sidebar.collapsed .empty > :global(svg) {
+		display: none;
 	}
 </style>

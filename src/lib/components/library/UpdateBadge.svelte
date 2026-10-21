@@ -8,6 +8,11 @@
 	} from '$lib/state/updateState.svelte';
 	import { isBadgeVisible, progressPercent } from '$lib/state/updateMachine';
 	import { t } from '$lib/i18n/index.svelte';
+	import {
+		isSidebarEffectiveCollapsed,
+		SIDEBAR_COLLAPSED_WIDTH,
+		SIDEBAR_EXPANDED_WIDTH
+	} from '$lib/state/viewport.svelte';
 	import { formatVersion } from '$lib/version';
 	import { Download, RotateCw, AlertTriangle, X, Loader2 } from 'lucide-svelte';
 
@@ -18,7 +23,13 @@
 </script>
 
 {#if visible}
-	<div class="update-badge" class:is-error={phase === 'error'} role="status" aria-live="polite">
+	<div
+		style:left={`${(isSidebarEffectiveCollapsed() ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH) + 16}px`}
+		class="update-badge"
+		class:is-error={phase === 'error'}
+		role="status"
+		aria-live="polite"
+	>
 		<span class="badge-icon">
 			{#if phase === 'installing'}
 				<Loader2 size={16} class="spin" />
@@ -102,7 +113,7 @@
 		left: 16px;
 		bottom: 16px;
 		z-index: 200;
-		max-width: min(420px, calc(100vw - 32px));
+		max-width: min(420px, calc(100vw - 270px));
 		background: var(--bg-card);
 		border: 1px solid var(--accent);
 		border-radius: var(--border-radius);

@@ -124,7 +124,13 @@ pub async fn get_skin_texture_url(uuid: String) -> Option<String> {
         .get("SKIN")?
         .get("url")?
         .as_str()
-        .map(String::from)
+        .map(|url| {
+            url.replacen(
+                "http://textures.minecraft.net/",
+                "https://textures.minecraft.net/",
+                1,
+            )
+        })
 }
 
 /// Cuentas offline/cracked solo pueden jugar en singleplayer (regla de

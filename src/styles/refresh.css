@@ -386,3 +386,171 @@ html[data-quality='lite'] *::after {
 html[data-material='matte'] [role='dialog'] {
 	backdrop-filter: none;
 }
+
+/* Pixel uses a game-menu grammar: stone bevels, inventory slots, grass actions.
+   Static CSS textures stay cheap in Lite and respect custom themes/materials. */
+html[data-visual='pixel'] {
+	--pixel-rim-light: color-mix(in srgb, var(--text-primary) 24%, transparent);
+	--pixel-rim-dark: #0008;
+	--pixel-stone: color-mix(in srgb, var(--surface-interactive) 87%, #8b8b8b);
+	--pixel-slot: color-mix(in srgb, var(--surface-workspace) 88%, #000);
+}
+html[data-visual='pixel']
+	:is(
+		.choice,
+		.vr-control,
+		.tfl-btn,
+		.tfl-icon-btn,
+		.save-btn,
+		.mini-btn,
+		.close-btn,
+		.send-btn,
+		.tab-btn,
+		.ptab,
+		.home-btn,
+		.badge-action,
+		.console-view button,
+		.console-settings button,
+		.pagination button,
+		.sort-select
+	) {
+	background-color: var(--pixel-stone);
+	border: 2px solid var(--pixel-rim-dark);
+	box-shadow:
+		inset 2px 2px 0 var(--pixel-rim-light),
+		inset -2px -3px 0 var(--pixel-rim-dark),
+		0 2px 0 #0005;
+	text-shadow: 1px 1px 0 #0004;
+	border-radius: 0;
+}
+html[data-visual='pixel']
+	:is(
+		.choice,
+		.vr-control,
+		.tfl-btn,
+		.tfl-icon-btn,
+		.save-btn,
+		.mini-btn,
+		.close-btn,
+		.send-btn,
+		.tab-btn,
+		.ptab,
+		.home-btn,
+		.badge-action,
+		.console-view button,
+		.console-settings button
+	):hover:not(:disabled) {
+	outline: 1px solid color-mix(in srgb, var(--accent) 75%, white);
+	outline-offset: 0;
+	background-color: color-mix(in srgb, var(--pixel-stone) 88%, var(--accent));
+}
+html[data-visual='pixel']
+	:is(
+		.choice,
+		.vr-control,
+		.tfl-btn,
+		.tfl-icon-btn,
+		.save-btn,
+		.mini-btn,
+		.send-btn,
+		.tab-btn,
+		.ptab,
+		.home-btn
+	):active:not(:disabled) {
+	box-shadow:
+		inset 2px 3px 0 #0006,
+		inset -1px -1px 0 var(--pixel-rim-light);
+}
+html[data-visual='pixel']
+	:is(
+		.choice.active,
+		.ptab.active,
+		.home-btn.active,
+		.tab-btn.active,
+		.vr-control[aria-pressed='true']
+	) {
+	background-color: color-mix(in srgb, var(--accent) 22%, var(--pixel-stone));
+	border-color: color-mix(in srgb, var(--accent) 70%, #000);
+	color: var(--text-primary);
+}
+html[data-visual='pixel']
+	:is(.vr-control.primary, .play-btn, .tfl-btn.primary, .tfl-btn-primary, .launch-button) {
+	background: #4c7835;
+	color: #fff;
+	border: 2px solid #18290f;
+	box-shadow:
+		inset 2px 2px 0 #88b85e,
+		inset -2px -4px 0 #2d4920,
+		0 3px 0 #0006;
+	text-shadow: 2px 2px 0 #203d18;
+}
+html[data-visual='pixel']
+	:is(.vr-control.primary, .play-btn, .tfl-btn.primary, .launch-button):hover:not(:disabled) {
+	background: #5c8e40;
+}
+html[data-visual='pixel']
+	:is(
+		.instance-avatar,
+		.preview-block,
+		.instance-mark,
+		.file-item,
+		.world-item,
+		.backup-item,
+		.chart-card,
+		.content-row
+	) {
+	background-color: var(--pixel-slot);
+	border: 2px solid #0005;
+	box-shadow:
+		inset 2px 2px 0 #0005,
+		inset -2px -2px 0 var(--pixel-rim-light);
+}
+html[data-visual='pixel']
+	:is(
+		input:not([type='checkbox']):not([type='range']):not([type='color']),
+		select,
+		textarea,
+		.search-box
+	) {
+	border: 2px solid var(--pixel-rim-dark);
+	background-color: var(--pixel-slot);
+	box-shadow:
+		inset 2px 2px 0 #0004,
+		inset -1px -1px 0 var(--pixel-rim-light);
+}
+html[data-visual='pixel']
+	:is(.sidebar, .vr-library-row, .vr-editorial, .settings-refresh, .config-dialog) {
+	background-image: repeating-linear-gradient(
+		0deg,
+		#00000004 0px,
+		#00000004 2px,
+		transparent 2px,
+		transparent 8px
+	);
+}
+html[data-visual='pixel'] :is([role='dialog'], .user-chip) {
+	border: 3px solid color-mix(in srgb, var(--surface-elevated) 65%, #9c9c9c);
+	box-shadow:
+		inset 2px 2px 0 var(--pixel-rim-light),
+		inset -2px -2px 0 #0008,
+		5px 5px 0 #0006;
+}
+html[data-visual='pixel'] .tfl-tooltip-bubble {
+	background: #160c26;
+	color: #f1e6ff;
+	border: 2px solid #50306e;
+	box-shadow: 2px 2px 0 #0009;
+}
+html[data-visual='pixel'] :is(.hero-badge, .vr-eyebrow, .active-tag) {
+	text-shadow: 1px 1px 0 #0004;
+}
+html[data-visual='pixel'] :is(.user-head, .skin-head, .instance-avatar img) {
+	image-rendering: pixelated;
+}
+@media (forced-colors: active) {
+	html[data-visual='pixel'] :is(button, input, select, [role='dialog']) {
+		border-color: ButtonText;
+		box-shadow: none;
+		text-shadow: none;
+	}
+}
