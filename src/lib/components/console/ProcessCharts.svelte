@@ -100,7 +100,7 @@
 	<section
 		data-metric-list
 		class="process-charts"
-		style:--chart-columns={p.columns}
+		style:--chart-columns={Math.min(p.columns, activeMetrics.length)}
 		aria-label={w('charts')}
 	>
 		{#each activeMetrics as metric (metric)}{@const Icon = icons[metric]}{@const max =

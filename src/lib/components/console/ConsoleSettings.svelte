@@ -23,6 +23,7 @@
 		<p>{w('chartHint')}</p>
 		<label
 			>{w('position')}<select
+				aria-label={w('position')}
 				value={p.dock}
 				onchange={(e) => saveConsole({ dock: e.currentTarget.value as typeof p.dock })}
 			>
@@ -34,6 +35,7 @@
 		<div class="fields">
 			<label
 				>{w('columns')}<select
+					aria-label={w('columns')}
 					value={p.columns}
 					onchange={(e) => saveConsole({ columns: Number(e.currentTarget.value) as 1 | 2 | 3 })}
 					>{#each [1, 2, 3] as n (n)}<option value={n}>{n}</option>{/each}</select
@@ -41,6 +43,7 @@
 			>
 			<label
 				>{w('window')}<select
+					aria-label={w('window')}
 					value={p.seconds}
 					onchange={(e) => saveConsole({ seconds: Number(e.currentTarget.value) as 30 | 60 | 180 })}
 					>{#each [30, 60, 180] as n (n)}<option value={n}>{n} {w('seconds')}</option
@@ -50,6 +53,7 @@
 		</div>
 		<label
 			>{w('cpuMode')}<select
+				aria-label={w('cpuMode')}
 				value={p.cpuMode}
 				onchange={(e) => saveConsole({ cpuMode: e.currentTarget.value as 'cores' | 'total' })}
 				><option value="cores">{w('cores')}</option><option value="total">{w('total')}</option
@@ -121,9 +125,10 @@
 		<p>{w('logHint')}</p>
 		<label
 			>{w('fontSize')}<select
+				aria-label={w('fontSize')}
 				value={p.fontSize}
 				onchange={(e) => saveConsole({ fontSize: Number(e.currentTarget.value) })}
-				>{#each [10, 11, 12, 13, 14, 15, 16, 18, 20] as size (size)}<option value={size}
+				>{#each [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] as size (size)}<option value={size}
 						>{size} px</option
 					>{/each}</select
 			></label
