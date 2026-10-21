@@ -259,5 +259,10 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Estudio de personaje con cuentas, skins y capas; en Lite la skin es estática por defecto con opción de activar 3D a mano.',
 		'Arreglado: en macOS no se podía elegir un ícono/wallpaper personalizado ni agregar mods/shaders/packs desde archivo — el diálogo nativo se quedaba colgado.',
 		'Arreglado: la paginación del explorador de contenido podía quedarse trabada en la página 1.'
+	],
+	'0.13.2': [
+		'Arreglado: el botón Detener de la ventana de log no hacía nada mientras el juego estaba realmente corriendo — quedaba trabado esperando a sí mismo. Ahora corta el proceso correctamente.',
+		'Arreglado: buscar en Ajustes podía dejar visible el contenido de una pestaña que ya no aparecía en los resultados.',
+		'Arreglado: la marca decorativa de la tarjeta "TFL Selection" en Explorar mostraba un ícono placeholder en vez del logo real de TFL.'
 	]
 };
