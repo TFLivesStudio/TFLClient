@@ -112,14 +112,15 @@
 				.querySelector(`[data-setting="${highlighted}"]`)
 				?.setAttribute('data-highlighted', '');
 	});
-	onMount(() => {
+	$effect(() => {
 		if (settingsIntent.target) {
 			const target = settingsIntent.target;
 			settingsIntent.target = null;
 			void jump(target);
 		}
-		return () => clearTimeout(highlightTimer);
 	});
+	onMount(() => () => clearTimeout(highlightTimer));
+
 	let settingsError = $state(''),
 		ramMessage = $state('');
 	let surface = $state(
@@ -518,7 +519,7 @@
 				><Search size={14} /><input
 					type="search"
 					bind:value={settingsQuery}
-					placeholder={tr('Buscar una opción…', 'Find a setting…')}
+					placeholder={tr('Buscar…', 'Search…')}
 					aria-label={tr('Buscar ajustes', 'Search settings')}
 				/></label
 			>
@@ -1514,5 +1515,8 @@
 		flex: 1;
 		min-width: 60px;
 		accent-color: var(--accent);
+	}
+	.panel-body > :global(.setting-group) {
+		margin-bottom: 26px;
 	}
 </style>

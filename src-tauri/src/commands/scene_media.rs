@@ -14,7 +14,7 @@ fn directory() -> std::path::PathBuf {
         .join("appearance")
         .join("scenes")
 }
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct SceneMedia {
     pub id: String,
     pub path: String,
@@ -46,7 +46,9 @@ pub async fn pick_scene_video_file(app: AppHandle) -> Option<String> {
 }
 #[tauri::command]
 pub async fn list_scene_media() -> Result<Vec<SceneMedia>, String> {
-    let dir = directory();
+    list_at(&directory()).await
+}
+async fn list_at(dir: &std::path::Path) -> Result<Vec<SceneMedia>, String> {
     if !dir.exists() {
         return Ok(Vec::new());
     }
@@ -75,6 +77,9 @@ pub async fn list_scene_media() -> Result<Vec<SceneMedia>, String> {
 }
 #[tauri::command]
 pub async fn import_scene_video(source_path: String) -> Result<SceneMedia, String> {
+    import_into(source_path, directory()).await
+}
+async fn import_into(source_path: String, dir: std::path::PathBuf) -> Result<SceneMedia, String> {
     let _guard = MEDIA_MUTATION.lock().await;
     let source = std::path::PathBuf::from(source_path);
     let ext = source
@@ -99,7 +104,7 @@ pub async fn import_scene_video(source_path: String) -> Result<SceneMedia, Strin
     if !video_format(&ext, &header) {
         return Err("El contenido del archivo no coincide con MP4/WebM".into());
     }
-    if list_scene_media().await?.len() >= MAX_FILES {
+    if list_at(&dir).await?.len() >= MAX_FILES {
         return Err(
             "La biblioteca admite hasta 12 vídeos. Quitá uno antes de importar otro.".into(),
         );
@@ -111,7 +116,6 @@ pub async fn import_scene_video(source_path: String) -> Result<SceneMedia, Strin
             .map_err(|e| e.to_string())?
             .as_nanos()
     );
-    let dir = directory();
     tokio::fs::create_dir_all(&dir)
         .await
         .map_err(|e| e.to_string())?;
@@ -129,9 +133,10 @@ pub async fn import_scene_video(source_path: String) -> Result<SceneMedia, Strin
         let _ = tokio::fs::remove_file(&temp).await;
         return Err("El archivo cambió de tamaño durante la importación".into());
     }
-    tokio::fs::rename(&temp, &dest)
-        .await
-        .map_err(|e| e.to_string())?;
+    if let Err(error) = tokio::fs::rename(&temp, &dest).await {
+        let _ = tokio::fs::remove_file(&temp).await;
+        return Err(error.to_string());
+    }
     Ok(SceneMedia {
         id,
         path: dest.to_string_lossy().to_string(),
@@ -141,12 +146,15 @@ pub async fn import_scene_video(source_path: String) -> Result<SceneMedia, Strin
 }
 #[tauri::command]
 pub async fn remove_scene_media(id: String) -> Result<(), String> {
+    remove_at(&id, &directory()).await
+}
+async fn remove_at(id: &str, dir: &std::path::Path) -> Result<(), String> {
     let _guard = MEDIA_MUTATION.lock().await;
-    if !valid_id(&id) {
+    if !valid_id(id) {
         return Err("Id de vídeo inválido".into());
     }
     for ext in ["mp4", "webm"] {
-        let path = directory().join(format!("{id}.{ext}"));
+        let path = dir.join(format!("{id}.{ext}"));
         if path.exists() {
             tokio::fs::remove_file(path)
                 .await
@@ -167,5 +175,65 @@ mod tests {
         assert!(!valid_id("scene-../../settings"));
         assert!(!valid_id("scene-a"));
         assert!(valid_id("scene-123456abcdef"));
+    }
+    #[tokio::test]
+    async fn managed_import_listing_quota_and_removal_use_real_files() {
+        let root = std::env::temp_dir().join(format!(
+            "tfl-scene-test-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        tokio::fs::create_dir_all(&root).await.unwrap();
+        let source = root.join("original.webm");
+        let mut bytes = vec![0u8; 32];
+        bytes[..4].copy_from_slice(&[0x1a, 0x45, 0xdf, 0xa3]);
+        tokio::fs::write(&source, &bytes).await.unwrap();
+        let managed = root.join("managed");
+        let item = import_into(source.to_string_lossy().into(), managed.clone())
+            .await
+            .unwrap();
+        assert_eq!(item.bytes, 32);
+        assert!(std::path::Path::new(&item.path).starts_with(&managed));
+        assert_eq!(tokio::fs::read(&item.path).await.unwrap(), bytes);
+        assert_eq!(list_at(&managed).await.unwrap().len(), 1);
+        assert!(remove_at("../../original", &managed).await.is_err());
+        remove_at(&item.id, &managed).await.unwrap();
+        assert!(list_at(&managed).await.unwrap().is_empty());
+        assert!(source.exists());
+        let fake = root.join("fake.mp4");
+        tokio::fs::write(&fake, b"this is not a media container")
+            .await
+            .unwrap();
+        assert!(
+            import_into(fake.to_string_lossy().into(), managed.clone())
+                .await
+                .is_err()
+        );
+        let huge = root.join("huge.webm");
+        tokio::fs::File::create(&huge)
+            .await
+            .unwrap()
+            .set_len(MAX_BYTES + 1)
+            .await
+            .unwrap();
+        assert!(
+            import_into(huge.to_string_lossy().into(), managed.clone())
+                .await
+                .is_err()
+        );
+        for i in 0..MAX_FILES {
+            tokio::fs::write(managed.join(format!("scene-{i:010x}.webm")), &bytes)
+                .await
+                .unwrap();
+        }
+        assert!(
+            import_into(source.to_string_lossy().into(), managed.clone())
+                .await
+                .unwrap_err()
+                .contains("12")
+        );
+        tokio::fs::remove_dir_all(root).await.unwrap();
     }
 }

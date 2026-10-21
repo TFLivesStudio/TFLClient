@@ -196,6 +196,7 @@ try {
 	await log.getByRole('button', { name: 'Personalizar consola', exact: true }).click();
 	const settings = log.locator('.config-dialog');
 	await settings.getByRole('button', { name: 'Lateral', exact: true }).click();
+	await settings.locator('.designer-preview').scrollIntoViewIfNeeded();
 	const cards = settings.locator('.designer-preview .chart-card');
 	const second = await cards.nth(1).boundingBox();
 	const handle = await cards.first().locator('.drag-handle').boundingBox();

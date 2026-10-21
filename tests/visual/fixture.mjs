@@ -1,7 +1,7 @@
 // Browser-only IPC fixture. Never imported by production code.
 export function installFixture({
 	quality = 'Balanced',
-	appVersion = '0.13.1',
+	appVersion = '0.13.2-beta.1',
 	empty = false,
 	language = 'es',
 	theme = 'dark',
@@ -148,6 +148,8 @@ export function installFixture({
 					limit
 				};
 			}
+			if (/^get_(mod|shader|resourcepack|plugin)_versions$/.test(cmd))
+				return [{ id: 'explicit-version', version_number: '1.2.3', name: 'Compatible version' }];
 			if (cmd.endsWith('_project_detail'))
 				return {
 					project_id: args.projectId,

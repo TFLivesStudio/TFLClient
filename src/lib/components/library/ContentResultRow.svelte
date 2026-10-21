@@ -50,7 +50,7 @@
 			return;
 		}
 		clearTimeout(detailTimer);
-		if (e.detail < 2) detailTimer = setTimeout(onOpenDetail, 320);
+		if (e.detail < 2) detailTimer = setTimeout(onOpenDetail, 550);
 	}
 	function quick(e: MouseEvent) {
 		if (!quickInstall) return;

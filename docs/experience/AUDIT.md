@@ -26,3 +26,7 @@ Base verificada: `v0.13.1-beta.4`, commit `1428f551cf5a1228c7bd761e787a39ff70a29
 ## Límites que se comprobarán
 
 Los codecs dependen del WebView/OS. Sin descargar codecs: detectar fallo y mantener imagen estática. Los materiales nativos y la autenticación/juego real requieren prueba manual por plataforma. La alternativa 2.5D evita añadir un motor 3D completo. No se declararán pruebas con usuarios ni métricas de GPU inexistentes.
+
+## Cambio de base durante la misión
+
+A las 15:36 UTC se publicó `v0.13.1` estable y se fusionó PR #6. Se incorporó `origin/main` (`cf049e7`) mediante merge, conservando también el cambio del icono TFL en Discover. La siguiente beta es `0.13.2-beta.1`, superior por SemVer a esa estable. No se publicó release ni tag. La base de rendimiento conservada es beta.4, de la que provienen los mismos renderers y controles de la estable.

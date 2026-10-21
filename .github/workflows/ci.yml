@@ -29,6 +29,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.4.2'
@@ -39,6 +42,9 @@ jobs:
 
       - name: svelte-check
         run: bun run check
+
+      - name: Unit behavior tests
+        run: node --test tests/unit/*.test.mjs
 
       - name: Prettier + ESLint
         run: bun run lint
@@ -121,6 +127,9 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.4.2'
@@ -157,6 +166,7 @@ jobs:
           node tests/visual/smoke.mjs
           node tests/visual/workspaces.mjs
           node tests/visual/lifecycle.mjs
+          node tests/visual/experience.mjs
       - name: Upload visual review evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

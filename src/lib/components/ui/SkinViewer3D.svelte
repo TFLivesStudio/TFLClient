@@ -148,8 +148,10 @@
 		current.pixelRatio = Math.min(window.devicePixelRatio || 1, effects.current.dpr);
 		current.zoom = zoom;
 		const cinematic = effects.current.cinematic,
-			launch = launching || reaction.kind === 'launch',
-			result = reaction.kind,
+			launch =
+				(priority !== 'hero' || scenes.global.reactive) &&
+				(launching || reaction.kind === 'launch'),
+			result = priority !== 'hero' || scenes.global.reactive ? reaction.kind : 'idle',
 			fps = Math.min(scenes.global.fps, cinematic ? 60 : 24);
 		let stop = () => {};
 		let stale = false;

@@ -53,14 +53,20 @@
 		};
 	});
 	$effect(() => {
-		if (video) {
-			if (cap.video && !failed)
-				void video.play().catch(() => {
-					failed = true;
-				});
-			else video.pause();
-		}
+		const node = video;
+		if (!node) return;
+		let stale = false;
+		if (cap.video && !failed)
+			void node.play().catch(() => {
+				if (!stale && video === node) failed = true;
+			});
+		else node.pause();
+		return () => {
+			stale = true;
+			node.pause();
+		};
 	});
+
 	$effect(() => {
 		if (!cap.parallax) {
 			x = 0;

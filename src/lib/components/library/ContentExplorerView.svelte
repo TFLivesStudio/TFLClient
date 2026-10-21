@@ -232,7 +232,7 @@
 	});
 
 	async function handleInstall(projectId: string, versionId?: string) {
-		if (installedProjectIds.has(projectId)) return;
+		if (!versionId && installedProjectIds.has(projectId)) return;
 		await explorer.install(projectId, versionId, () => refreshInstalledFor(activeKind));
 	}
 

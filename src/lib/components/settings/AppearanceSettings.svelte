@@ -287,7 +287,7 @@
 		color: var(--text-secondary);
 		line-height: 1.6;
 	}
-	.chosen {
+	.style-option :global(.chosen) {
 		position: absolute;
 		top: 16px;
 		right: 16px;

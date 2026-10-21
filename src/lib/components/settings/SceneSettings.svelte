@@ -4,6 +4,7 @@
 	import { invoke } from '$lib/api/invoke';
 	import { appState } from '$lib/state/state.svelte';
 	import { appearance } from '$lib/state/appearanceState.svelte';
+	import { openSettingsAt } from '$lib/state/uiState.svelte';
 	import { runtime } from '$lib/visual/runtime.svelte';
 	import { SCENES, DEFAULT_SCENE, type SceneConfig } from '$lib/scenes/model';
 	import { scenes, saveScene, inheritScene, sceneStatus } from '$lib/scenes/preferences.svelte';
@@ -130,6 +131,15 @@
 						'Video needs a system-supported format. If it fails, the static background remains.'
 					)}
 		</p>
+		{#if appearance.noInfiniteFx && appearance.quality !== 'lite'}<p class="hint">
+				{tr(
+					'Los efectos continuos están detenidos en Apariencia. Actívalos allí para reproducir vídeo.',
+					'Continuous effects are stopped in Appearance. Enable them there to play video.'
+				)}
+				<button type="button" class="vr-control" onclick={() => openSettingsAt('motion')}
+					>{tr('Movimiento y efectos', 'Motion & effects')}</button
+				>
+			</p>{/if}
 		<div class="actions">
 			<button class="primary" type="button" disabled={!dirty} onclick={apply}
 				><Check size={14} />{tr('Aplicar escena', 'Apply scene')}</button
