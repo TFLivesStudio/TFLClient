@@ -104,11 +104,14 @@
 		--pointer-x: 0px;
 		--pointer-y: 0px;
 	}
+	:global(:root[data-wallpaper]:not([data-wallpaper='none'])) .hero {
+		--hero-image: var(--wallpaper-bg);
+	}
 	.hero-art {
 		position: absolute;
 		inset: -12px;
 		z-index: -3;
-		background-image: var(--hero-image);
+		background: var(--hero-image);
 		background-size: cover;
 		background-position: center 42%;
 		transform: translate3d(var(--pointer-x), var(--pointer-y), 0);
@@ -236,6 +239,7 @@
 		transform: translate3d(calc(var(--pointer-x) * -1), calc(var(--pointer-y) * -1), 0);
 	}
 	.character-stage {
+		pointer-events: none;
 		position: absolute;
 		bottom: 20px;
 		width: 90%;

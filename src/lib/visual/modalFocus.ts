@@ -1,3 +1,4 @@
+import { runtime } from './runtime.svelte';
 /** Shared headless modal behavior. Topmost modal owns Escape and Tab; styles are independent. */
 const stack: HTMLElement[] = [];
 const selector =
@@ -20,6 +21,7 @@ export function modalFocus(node: HTMLElement, close: (() => void) | undefined) {
 		parent = parent.parentElement;
 	}
 	stack.push(node);
+	runtime.modalDepth += 1;
 	node.tabIndex = -1;
 	if (!node.getAttribute('aria-label') && !node.getAttribute('aria-labelledby'))
 		node.setAttribute('aria-label', node.querySelector('h1,h2,h3')?.textContent ?? 'TFL Client');
@@ -62,6 +64,7 @@ export function modalFocus(node: HTMLElement, close: (() => void) | undefined) {
 		destroy() {
 			window.removeEventListener('keydown', key, true);
 			stack.splice(stack.indexOf(node), 1);
+			runtime.modalDepth = Math.max(0, runtime.modalDepth - 1);
 			for (const [el, inert] of restored) el.inert = inert;
 			queueMicrotask(() => {
 				if (previous?.isConnected && !previous.closest('[inert]')) previous.focus();

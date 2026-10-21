@@ -53,7 +53,6 @@
 		onCreate: () => void;
 		onLogout: () => void;
 		onOpenSettings: () => void;
-		onOpenTflSelection: () => void;
 		onJoinServer: () => void;
 		onOpenSkinManager: () => void;
 		onInstanceContextMenu: (instance: InstanceData, x: number, y: number) => void;
@@ -201,7 +200,7 @@
 		</button>
 	{/if}
 
-	{#each ['library', 'discover'] as section}
+	{#each ['library', 'discover'] as section (section)}
 		<button
 			type="button"
 			class="home-btn"

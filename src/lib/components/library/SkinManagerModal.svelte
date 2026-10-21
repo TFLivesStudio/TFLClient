@@ -177,7 +177,7 @@
 				{#if skinLoadError}
 					<p class="hint viewer-hint error">{t('skinManager.skinLoadError')}</p>
 				{:else}
-					<p class="hint viewer-hint">{t('skinManager.viewerHint')}</p>
+					<p class="hint viewer-hint">{vr('skinPreviewHint')}</p>
 				{/if}
 			</div>
 

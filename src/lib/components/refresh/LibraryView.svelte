@@ -94,12 +94,12 @@
 		</div>
 	</div>
 	<nav class="library-filters" aria-label={vr('groups')}>
-		{#each ['all', 'recent', 'favorites'] as key}<button
+		{#each ['all', 'recent', 'favorites'] as key (key)}<button
 				class="vr-control"
 				aria-pressed={filter === key}
 				onclick={() => (filter = key)}>{vr(key as 'all' | 'recent' | 'favorites')}</button
 			>{/each}
-		{#each visual.groups as group}<div class="group-filter">
+		{#each visual.groups as group (group)}<div class="group-filter">
 				<button
 					class="vr-control"
 					aria-pressed={filter === `group:${group}`}
@@ -163,7 +163,7 @@
 					aria-label={`${vr('group')}: ${instance.name}`}
 					value={meta.group}
 					onchange={(e) => setInstanceVisual(instance.uuid, { group: e.currentTarget.value })}
-					><option value="">{vr('ungrouped')}</option>{#each visual.groups as group}<option
+					><option value="">{vr('ungrouped')}</option>{#each visual.groups as group (group)}<option
 							value={group}>{group}</option
 						>{/each}</select
 				>

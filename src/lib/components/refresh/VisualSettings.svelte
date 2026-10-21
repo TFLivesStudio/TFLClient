@@ -22,7 +22,7 @@
 		>
 	</div>
 	<div class="style-options">
-		{#each ['modern', 'pixel'] as style}<button
+		{#each ['modern', 'pixel'] as style (style)}<button
 				class="style-option"
 				class:pixel-demo={style === 'pixel'}
 				aria-pressed={visual.style === style}
@@ -36,7 +36,7 @@
 	{#if visual.style === 'pixel'}<div class="setting-row">
 			<span>{vr('pixelTypography')}</span>
 			<div class="segmented">
-				{#each ['readable', 'classic'] as type}<button
+				{#each ['readable', 'classic'] as type (type)}<button
 						class="vr-control"
 						aria-pressed={visual.pixelType === type}
 						onclick={() => setVisual('pixelType', type as 'readable' | 'classic')}
@@ -47,7 +47,7 @@
 	<div class="setting-row">
 		<span><Layers size={16} />{vr('material')}</span>
 		<div class="segmented">
-			{#each ['matte', 'soft-glass', 'glass'] as material}<button
+			{#each ['matte', 'soft-glass', 'glass'] as material (material)}<button
 					class="vr-control"
 					aria-pressed={visual.material === material}
 					onclick={() => setVisual('material', material as 'matte' | 'soft-glass' | 'glass')}
@@ -75,7 +75,7 @@
 	<div class="presets">
 		<span class="vr-eyebrow"><Monitor size={15} />{vr('preset')}</span>
 		<div class="segmented">
-			{#each ['calm', 'cinematic', 'arcade'] as scene}<button
+			{#each ['calm', 'cinematic', 'arcade'] as scene (scene)}<button
 					class="vr-control"
 					onclick={() => preset(scene as 'calm' | 'cinematic' | 'arcade')}
 					>{vr(scene as 'calm' | 'cinematic' | 'arcade')}</button
@@ -94,7 +94,7 @@
 	</div>
 	<div class="home-options">
 		<span class="vr-eyebrow">{vr('homePanels')}</span
-		>{#each ['recent', 'servers', 'activity', 'system'] as panel}<label class="setting-row"
+		>{#each ['recent', 'servers', 'activity', 'system'] as panel (panel)}<label class="setting-row"
 				><span
 					>{vr(
 						`${panel}Panel` as 'recentPanel' | 'serversPanel' | 'activityPanel' | 'systemPanel'

@@ -4,7 +4,8 @@ export const runtime = $state({
 	visible: true,
 	focused: true,
 	systemReducedMotion: false,
-	overlay: false
+	overlay: false,
+	modalDepth: 0
 });
 export const effects = {
 	get current() {

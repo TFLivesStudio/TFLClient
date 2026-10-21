@@ -24,7 +24,7 @@
 	</div>
 	<p class="vr-muted">{vr('artworkHint')}</p>
 	<div class="artwork-options">
-		{#each ARTWORKS as artwork}<button
+		{#each ARTWORKS as artwork (artwork)}<button
 				aria-pressed={meta.artwork === artwork}
 				aria-label={artwork === 'auto' || artwork === 'none'
 					? vr(artwork)
@@ -41,7 +41,7 @@
 		>{vr('group')}<select
 			value={meta.group}
 			onchange={(e) => setInstanceVisual(id, { group: e.currentTarget.value })}
-			><option value="">{vr('ungrouped')}</option>{#each visual.groups as group}<option
+			><option value="">{vr('ungrouped')}</option>{#each visual.groups as group (group)}<option
 					value={group}>{group}</option
 				>{/each}</select
 		></label

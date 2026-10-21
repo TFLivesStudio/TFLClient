@@ -205,17 +205,23 @@
 	);
 	let profile = $state<MojangProfile | null>(null);
 	$effect(() => {
+		void appState.currentUser?.uuid;
+		let stale = false;
+		profile = null;
 		if (!isPremium) {
 			profile = null;
 			return;
 		}
 		getMojangProfile()
 			.then((p) => {
-				profile = p;
+				if (!stale) profile = p;
 			})
 			.catch(() => {
-				profile = null;
+				if (!stale) profile = null;
 			});
+		return () => {
+			stale = true;
+		};
 	});
 
 	// Lanzar desde la home — misma lógica que el botón "Jugar" de

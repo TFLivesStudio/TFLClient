@@ -36,7 +36,9 @@
 		failed = $state(false);
 	const enabled = $derived(!!skinUrl && !failed && (effects.current.viewer || manual));
 	const visible = $derived(
-		intersecting && runtime.visible && !(priority === 'hero' && runtime.overlay)
+		intersecting &&
+			runtime.visible &&
+			!(priority === 'hero' && (runtime.overlay || runtime.modalDepth > 0))
 	);
 	$effect(() => {
 		void skinUrl;
@@ -58,7 +60,9 @@
 		const node = canvas,
 			w = width,
 			h = height;
-		const lost = () => { failed = true; };
+		const lost = () => {
+			failed = true;
+		};
 		node.addEventListener('webglcontextlost', lost);
 		let disposed = false;
 		let created: SkinViewer | null = null;
@@ -162,7 +166,6 @@
 			bind:this={canvas}
 			aria-label={vr('studio')}
 			onpointermove={draw}
-			
 			style:height={`${height}px`}
 		></canvas>
 	{:else}<div

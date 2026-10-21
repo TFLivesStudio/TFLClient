@@ -73,7 +73,6 @@
 				onCreate={() => openModal('createChooser')}
 				onLogout={handleLogout}
 				onOpenSettings={() => openModal('settings')}
-				onOpenTflSelection={() => openModal('tflSelection')}
 				onJoinServer={() => openModal('joinServer')}
 				onOpenSkinManager={() => openModal('skinManager')}
 				onInstanceContextMenu={openInstanceContextMenu}

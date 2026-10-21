@@ -1,6 +1,6 @@
 <!-- A bounded CSS scene: no particle engine, canvas, timers, or application render loop. -->
 <div class="particles-layer" aria-hidden="true">
-	{#each Array.from({ length: 12 }, (_, i) => i) as i}<span
+	{#each Array.from({ length: 12 }, (_, i) => i) as i (i)}<span
 			style={`--x:${(i * 37) % 100}%;--y:${(i * 23) % 90}%;--delay:-${i * 1.3}s;--duration:${12 + (i % 5)}s`}
 		></span>{/each}
 </div>

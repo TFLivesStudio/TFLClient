@@ -16,7 +16,7 @@
 	</header>
 	<article class="vr-editorial">
 		<div>
-			<span class="vr-eyebrow"><Sparkles size={16} /> TFLIVES / CURATED</span>
+			<span class="vr-eyebrow"><Sparkles size={16} /> TFLIVES / {vr('curated')}</span>
 			<h2>{vr('selection')}</h2>
 			<p>{vr('selectionSub')}</p>
 			<button class="vr-control primary" onclick={() => openModal('tflSelection')}
