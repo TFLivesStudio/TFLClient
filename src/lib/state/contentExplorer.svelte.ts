@@ -11,6 +11,7 @@
 // para encapsular estado reactivo fuera de un componente (a diferencia de
 // un objeto plano devuelto por una función, donde desestructurar los
 // campos perdería la reactividad).
+import { untrack } from 'svelte';
 import type {
 	InstanceData,
 	ModSearchHit,
@@ -295,8 +296,24 @@ export class ContentExplorer {
 		return this.offset > 0;
 	}
 
+	/** Lanza la búsqueda SIN dejar dependencias reactivas en quien llama.
+	 *
+	 * `executeSearch` lee `offset`/`query`/`selectedCategories`/`sortIndex`
+	 * (y `instance`/`kind` vía `getCtx`) de forma síncrona, antes del
+	 * primer `await`. Si eso corre dentro de un `$effect`/`$derived` (ej.
+	 * el `$effect` de ContentManager.svelte que llama `resetForNewContext`,
+	 * o el `$derived` de ContentExplorerView.svelte que llama `init`), el
+	 * efecto quedaba suscrito a esos campos: tocar Siguiente cambiaba
+	 * `offset`, el efecto se re-disparaba, `resetForNewContext` volvía
+	 * `offset` a 0 y la paginación quedaba trabada en "Página 1 de X". Las
+	 * dependencias que SÍ deben re-disparar una búsqueda las declara cada
+	 * vista explícitamente (`instance.name`, `kind`, `subtab`). */
+	private runSearch() {
+		untrack(() => void this.executeSearch());
+	}
+
 	/** `null` cuando no hubo error — ver `errorKind` para distinguir cuál. */
-	private async runSearch() {
+	private async executeSearch() {
 		const token = ++this.searchToken;
 		this.loading = true;
 		this.errorKind = null;
