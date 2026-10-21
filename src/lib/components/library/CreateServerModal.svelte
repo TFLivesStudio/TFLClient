@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { modalFocus } from '$lib/visual/modalFocus';
 	import { getServerVersions, createServerInstance } from '$lib/api';
 	import type { InstanceData, ServerType } from '$lib/types/types';
 	import { t } from '$lib/i18n/index.svelte';
@@ -77,6 +78,7 @@
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={(e) => e.stopPropagation()}
 		role="dialog"
+		use:modalFocus={onClose}
 		aria-modal="true"
 		tabindex="-1"
 	>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { modalFocus } from '$lib/visual/modalFocus';
 	// Cubre dos casos con el mismo mecanismo (localStorage['tfl-last-seen-version']
 	// vs __APP_VERSION__, la versión del build actual):
 	//   - Nunca se vio ningún valor guardado → primera vez que se abre el
@@ -69,6 +70,7 @@
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => e.stopPropagation()}
 			role="dialog"
+			use:modalFocus={dismiss}
 			aria-modal="true"
 			tabindex="-1"
 		>

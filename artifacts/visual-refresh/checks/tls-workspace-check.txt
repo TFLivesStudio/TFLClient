@@ -1,0 +1,56 @@
+ Downloading crates ...
+  Downloaded rustls-webpki v0.103.16
+  Downloaded webpki-roots v1.0.10
+    Checking rustls-webpki v0.103.16
+    Checking webpki-roots v1.0.10
+   Compiling tflclient v0.12.3 (/workspace/TFLClient-visual-refresh/src-tauri)
+    Checking rustls v0.23.46
+    Checking tokio-rustls v0.26.5
+    Checking rustls-platform-verifier v0.7.0
+    Checking hyper-rustls v0.27.9
+    Checking reqwest v0.13.5
+    Checking reqwest v0.12.28
+    Checking playit-api-client v0.1.2
+    Checking aqua v0.1.0 (/workspace/TFLClient-visual-refresh/crates/aqua)
+    Checking launchwerk v1.0.1 (/workspace/TFLClient-visual-refresh/crates/launchwerk)
+    Checking tauri-plugin-updater v2.11.0
+    Checking playit-agent-core v0.20.1
+    Checking cubrinth v0.1.0 (/workspace/TFLClient-visual-refresh/crates/cubrinth)
+warning: variants `Instance`, `Auth`, `Download`, and `Other` are never constructed
+  --> src-tauri/src/core/errors.rs:6:5
+   |
+ 4 | pub enum AppError {
+   |          -------- variants in this enum
+ 5 |     #[error("Error de instancia: {0}")]
+ 6 |     Instance(String),
+   |     ^^^^^^^^
+ 7 |     #[error("Error de autenticación: {0}")]
+ 8 |     Auth(String),
+   |     ^^^^
+...
+12 |     Download(String),
+   |     ^^^^^^^^
+13 |     #[error("{0}")]
+14 |     Other(String),
+   |     ^^^^^
+   |
+   = note: `AppError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `pid` is never read
+  --> src-tauri/src/services/server_process.rs:20:5
+   |
+18 | struct RunningServer {
+   |        ------------- field in this struct
+19 |     stdin: Arc<tokio::sync::Mutex<Option<ChildStdin>>>,
+20 |     pid: Option<u32>,
+   |     ^^^
+
+warning: function `running_server_pid` is never used
+  --> src-tauri/src/services/server_process.rs:35:8
+   |
+35 | pub fn running_server_pid(instance_name: &str) -> Option<u32> {
+   |        ^^^^^^^^^^^^^^^^^^
+
+warning: `tflclient` (lib) generated 3 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 13.43s

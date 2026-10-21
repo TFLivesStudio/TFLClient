@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { modalFocus } from '$lib/visual/modalFocus';
 	import { AlertTriangle } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
 
@@ -39,6 +40,7 @@
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={(e) => e.stopPropagation()}
 		role="alertdialog"
+		use:modalFocus={onCancel}
 		aria-modal="true"
 		tabindex="-1"
 	>

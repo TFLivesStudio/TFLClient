@@ -10,3 +10,6 @@ bun.lockb
 
 # Mod de Java, tiene su propio build (gradle)
 /mp-guard/
+
+# Generated visual evidence
+/artifacts/

@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { ArrowUpRight } from 'lucide-svelte';
+	import { visual } from '$lib/visual/preferences.svelte';
+	import { vr } from '$lib/i18n/refresh';
+	import { navigate } from '$lib/visual/navigation.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { Button, ConfirmDialog } from '$lib/components/ui';
 	import HomeEmptyState from '$lib/components/home/HomeEmptyState.svelte';
@@ -202,17 +206,23 @@
 	);
 	let profile = $state<MojangProfile | null>(null);
 	$effect(() => {
+		void appState.currentUser?.uuid;
+		let stale = false;
+		profile = null;
 		if (!isPremium) {
 			profile = null;
 			return;
 		}
 		getMojangProfile()
 			.then((p) => {
-				profile = p;
+				if (!stale) profile = p;
 			})
 			.catch(() => {
-				profile = null;
+				if (!stale) profile = null;
 			});
+		return () => {
+			stale = true;
+		};
 	});
 
 	// Lanzar desde la home — misma lógica que el botón "Jugar" de
@@ -275,10 +285,16 @@
 {#if clientInstances.length === 0}
 	<HomeEmptyState
 		onCreateInstance={() => openModal('createChooser')}
-		onExploreTflSelection={() => openModal('tflSelection')}
+		onExploreTflSelection={() => navigate('discover')}
 	/>
 {:else}
-	<div class="home-rich">
+	<div class="home-rich vr-stagger">
+		<header class="home-greeting">
+			<span>{vr('welcome')}, <strong>{appState.currentUser?.username ?? 'TFL'}</strong>.</span
+			><button onclick={() => navigate('library')}
+				>{vr('library')} <ArrowUpRight size={15} /></button
+			>
+		</header>
 		{#if featured}
 			<InstanceHero
 				{featured}
@@ -298,21 +314,24 @@
 		{/if}
 
 		<div class="dash-grid">
-			<FavoriteServersPanel {servers} onSeeAll={() => openModal('joinServer')} />
-			<RecentActivityPanel
-				{activity}
-				iconUrls={activityIconUrls}
-				{relativeDayLabel}
-				{durationLabel}
-			/>
-			<SystemStatusPanel
-				status={systemStatus}
-				loading={systemStatusLoading}
-				onRetry={loadSystemStatus}
-			/>
+			{#if visual.home.servers}<FavoriteServersPanel
+					{servers}
+					onSeeAll={() => openModal('joinServer')}
+				/>{/if}
+			{#if visual.home.activity}<RecentActivityPanel
+					{activity}
+					iconUrls={activityIconUrls}
+					{relativeDayLabel}
+					{durationLabel}
+				/>{/if}
+			{#if visual.home.system}<SystemStatusPanel
+					status={systemStatus}
+					loading={systemStatusLoading}
+					onRetry={loadSystemStatus}
+				/>{/if}
 		</div>
 
-		{#if others.length > 0}
+		{#if visual.home.recent && others.length > 0}
 			<InstanceCarousel instances={others} {iconUrls} onSelect={selectInstance} />
 		{/if}
 
@@ -344,6 +363,25 @@
 {/if}
 
 <style>
+	.home-greeting {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		color: var(--text-secondary);
+		font-size: var(--text-small);
+		margin-bottom: 4px;
+		gap: 16px;
+	}
+	.home-greeting strong {
+		color: var(--text-primary);
+	}
+	.home-greeting button {
+		background: none;
+		border: 0;
+		color: var(--text-secondary);
+		font-size: var(--text-small);
+		padding: 8px;
+	}
 	/* Home rediseñada (con instancias) — hero unificado (instancia +
 	   personaje + Play, ver InstanceHero.svelte) arriba, paneles
 	   secundarios compactos abajo, estilo LabyMod/Prism pedido por el
@@ -352,11 +390,11 @@
 		display: flex;
 		flex-direction: column;
 		gap: 18px;
-		height: 100%;
-		max-width: 1040px;
+		min-height: 100%;
+		max-width: 1500px;
 		margin: auto;
-		padding: 36px 28px;
-		overflow-y: auto;
+		padding: 28px clamp(20px, 3vw, 44px);
+		overflow: visible;
 	}
 
 	/* Grilla de paneles secundarios: servidores, actividad, estado del

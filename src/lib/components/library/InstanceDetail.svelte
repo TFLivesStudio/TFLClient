@@ -1,4 +1,11 @@
 <script lang="ts">
+	import InstanceAppearance from '$lib/components/refresh/InstanceAppearance.svelte';
+	import ServerDashboard from '$lib/components/refresh/ServerDashboard.svelte';
+	import { instanceVisual } from '$lib/visual/preferences.svelte';
+	import { artworkUrl } from '$lib/visual/policy';
+	import { navigate } from '$lib/visual/navigation.svelte';
+	import { vr } from '$lib/i18n/refresh';
+
 	import { onMount, onDestroy } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -75,7 +82,8 @@
 		| 'plugins'
 		| 'worlds'
 		| 'files'
-		| 'console';
+		| 'console'
+		| 'backups';
 
 	let {
 		instance,
@@ -110,7 +118,8 @@
 		'plugins',
 		'worlds',
 		'files',
-		'console'
+		'console',
+		'backups'
 	];
 	let tab = $state<TabKey>(
 		(validTabs as string[]).includes(initialTab ?? '') ? (initialTab as TabKey) : 'details'
@@ -414,8 +423,15 @@
 	}
 </script>
 
-<div class="instance-detail">
-	<div class="hero">
+<div class="instance-detail vr-tools" class:server-detail={isServer}>
+	<button class="detail-back" onclick={() => navigate('library')}>← {vr('back')}</button>
+	<div
+		class="hero"
+		class:with-art={!!artworkUrl(instanceVisual(instance.uuid).artwork)}
+		style={artworkUrl(instanceVisual(instance.uuid).artwork)
+			? `--instance-art:url("${artworkUrl(instanceVisual(instance.uuid).artwork)}")`
+			: undefined}
+	>
 		<button
 			type="button"
 			class="hero-icon"
@@ -656,238 +672,255 @@
 		{/if}
 	</div>
 
-	<div class="tabs">
-		<button
-			type="button"
-			class="tab-btn"
-			class:active={tab === 'details'}
-			onclick={() => (tab = 'details')}
-		>
-			{t('instanceDetail.tabs.details')}
-		</button>
-		{#if isServer}
+	<div class="detail-workspace">
+		<nav class="tabs" aria-label={vr('technical')}>
 			<button
 				type="button"
 				class="tab-btn"
-				class:active={tab === 'plugins'}
-				onclick={() => (tab = 'plugins')}
+				class:active={tab === 'details'}
+				onclick={() => (tab = 'details')}
 			>
-				{t('serverInstance.tabPlugins')}
+				{t('instanceDetail.tabs.details')}
 			</button>
-			<button
-				type="button"
-				class="tab-btn"
-				class:active={tab === 'worlds'}
-				onclick={() => (tab = 'worlds')}
-			>
-				{t('serverInstance.tabWorlds')}
-			</button>
-			<button
-				type="button"
-				class="tab-btn"
-				class:active={tab === 'files'}
-				onclick={() => (tab = 'files')}
-			>
-				{t('serverInstance.tabFiles')}
-			</button>
-			<button
-				type="button"
-				class="tab-btn"
-				class:active={tab === 'console'}
-				onclick={() => (tab = 'console')}
-			>
-				{t('serverInstance.tabConsole')}
-			</button>
-		{:else}
-			<button
-				type="button"
-				class="tab-btn"
-				class:active={tab === 'mods'}
-				onclick={() => (tab = 'mods')}
-			>
-				{t('instanceDetail.tabs.mods')}
-			</button>
-			<button
-				type="button"
-				class="tab-btn"
-				class:active={tab === 'shaders'}
-				onclick={() => (tab = 'shaders')}
-			>
-				{t('instanceDetail.tabs.shaders')}
-			</button>
-			<button
-				type="button"
-				class="tab-btn"
-				class:active={tab === 'resourcepacks'}
-				onclick={() => (tab = 'resourcepacks')}
-			>
-				{t('instanceDetail.tabs.resourcePacks')}
-			</button>
-			<button
-				type="button"
-				class="tab-btn"
-				class:active={tab === 'modpacks'}
-				onclick={() => (tab = 'modpacks')}
-			>
-				{t('instanceDetail.tabs.modpacks')}
-			</button>
-			<button
-				type="button"
-				class="tab-btn"
-				class:active={tab === 'screenshots'}
-				onclick={() => (tab = 'screenshots')}
-			>
-				{t('instanceDetail.tabs.screenshots')}
-			</button>
-		{/if}
-	</div>
-
-	<div class="tab-content">
-		{#if tab === 'details'}
 			{#if isServer}
-				<section class="connection-section">
-					<span class="section-label">{t('serverInstance.connectionLabel')}</span>
-					{#if connectionInfo?.tunnel_address}
-						<div class="connection-row">
-							<code class="connection-address">{connectionInfo.tunnel_address}</code>
-							<button
-								type="button"
-								class="icon-btn"
-								onclick={copyConnectionAddress}
-								aria-label={t('common.copy')}
-							>
-								{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
-							</button>
-						</div>
-						<p class="hint">{t('serverInstance.connectionTunnelReady')}</p>
-					{:else if connectionInfo?.public_ip}
-						<div class="connection-row">
-							<code class="connection-address"
-								>{connectionInfo.public_ip}:{connectionInfo.port}</code
-							>
-							<button
-								type="button"
-								class="icon-btn"
-								onclick={copyConnectionAddress}
-								aria-label={t('common.copy')}
-							>
-								{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
-							</button>
-						</div>
-						{#if connectionInfo.port_forwarded}
-							<p class="hint">{t('serverInstance.connectionPublicReady')}</p>
-						{:else}
-							<p class="hint">
-								{t('serverInstance.connectionPublicManual', { port: connectionInfo.port })}
-							</p>
-						{/if}
-						{#if connectionInfo.local_ip}
-							<p class="hint">
-								{t('serverInstance.connectionLanFallback', {
-									address: `${connectionInfo.local_ip}:${connectionInfo.port}`
-								})}
-							</p>
-						{/if}
-					{:else if connectionInfo?.local_ip}
-						<div class="connection-row">
-							<code class="connection-address">{connectionInfo.local_ip}:{connectionInfo.port}</code
-							>
-							<button
-								type="button"
-								class="icon-btn"
-								onclick={copyConnectionAddress}
-								aria-label={t('common.copy')}
-							>
-								{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
-							</button>
-						</div>
-						<p class="hint">{t('serverInstance.connectionLanHint')}</p>
-					{:else}
-						<p class="hint">{t('serverInstance.connectionUnavailable')}</p>
-					{/if}
+				<button
+					type="button"
+					class="tab-btn"
+					class:active={tab === 'plugins'}
+					onclick={() => (tab = 'plugins')}
+				>
+					{t('serverInstance.tabPlugins')}
+				</button>
+				<button
+					type="button"
+					class="tab-btn"
+					class:active={tab === 'worlds'}
+					onclick={() => (tab = 'worlds')}
+				>
+					{t('serverInstance.tabWorlds')}
+				</button>
+				<button
+					type="button"
+					class="tab-btn"
+					class:active={tab === 'files'}
+					onclick={() => (tab = 'files')}
+				>
+					{t('serverInstance.tabFiles')}
+				</button>
+				<button
+					type="button"
+					class="tab-btn"
+					class:active={tab === 'console'}
+					onclick={() => (tab = 'console')}
+				>
+					{t('serverInstance.tabConsole')}
+				</button>
+			{:else}
+				<button
+					type="button"
+					class="tab-btn"
+					class:active={tab === 'mods'}
+					onclick={() => (tab = 'mods')}
+				>
+					{t('instanceDetail.tabs.mods')}
+				</button>
+				<button
+					type="button"
+					class="tab-btn"
+					class:active={tab === 'shaders'}
+					onclick={() => (tab = 'shaders')}
+				>
+					{t('instanceDetail.tabs.shaders')}
+				</button>
+				<button
+					type="button"
+					class="tab-btn"
+					class:active={tab === 'resourcepacks'}
+					onclick={() => (tab = 'resourcepacks')}
+				>
+					{t('instanceDetail.tabs.resourcePacks')}
+				</button>
+				<button
+					type="button"
+					class="tab-btn"
+					class:active={tab === 'modpacks'}
+					onclick={() => (tab = 'modpacks')}
+				>
+					{t('instanceDetail.tabs.modpacks')}
+				</button>
+				<button
+					type="button"
+					class="tab-btn"
+					class:active={tab === 'screenshots'}
+					onclick={() => (tab = 'screenshots')}
+				>
+					{t('instanceDetail.tabs.screenshots')}
+				</button>
+			{/if}
+			{#if !isServer}<button
+					type="button"
+					class="tab-btn"
+					class:active={tab === 'backups'}
+					onclick={() => (tab = 'backups')}>{vr('backups')}</button
+				>{/if}
+		</nav>
 
-					{#if playitLinked === false && !connectionInfo?.tunnel_address && !connectionInfo?.port_forwarded}
-						<div class="playit-prompt">
-							<p class="hint">{t('serverInstance.playitPitch')}</p>
-							<button
-								type="button"
-								class="playit-link-btn"
-								onclick={startPlayitLink}
-								disabled={playitLinking}
-							>
-								{#if playitLinking}
-									<Loader2 size={14} class="spin" />
-									{t('serverInstance.playitLinking')}
-								{:else}
-									{t('serverInstance.playitLinkButton')}
-								{/if}
-							</button>
-						</div>
-					{/if}
+		<div class="tab-content">
+			{#if tab === 'details'}
+				{#if isServer}
+					<ServerDashboard
+						{instance}
+						running={serverRunning}
+						connection={connectionInfo}
+						onConsole={() => (tab = 'console')}
+						onFiles={() => (tab = 'files')}
+					/>
+					<section class="connection-section">
+						<span class="section-label">{t('serverInstance.connectionLabel')}</span>
+						{#if connectionInfo?.tunnel_address}
+							<div class="connection-row">
+								<code class="connection-address">{connectionInfo.tunnel_address}</code>
+								<button
+									type="button"
+									class="icon-btn"
+									onclick={copyConnectionAddress}
+									aria-label={t('common.copy')}
+								>
+									{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
+								</button>
+							</div>
+							<p class="hint">{t('serverInstance.connectionTunnelReady')}</p>
+						{:else if connectionInfo?.public_ip}
+							<div class="connection-row">
+								<code class="connection-address"
+									>{connectionInfo.public_ip}:{connectionInfo.port}</code
+								>
+								<button
+									type="button"
+									class="icon-btn"
+									onclick={copyConnectionAddress}
+									aria-label={t('common.copy')}
+								>
+									{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
+								</button>
+							</div>
+							{#if connectionInfo.port_forwarded}
+								<p class="hint">{t('serverInstance.connectionPublicReady')}</p>
+							{:else}
+								<p class="hint">
+									{t('serverInstance.connectionPublicManual', { port: connectionInfo.port })}
+								</p>
+							{/if}
+							{#if connectionInfo.local_ip}
+								<p class="hint">
+									{t('serverInstance.connectionLanFallback', {
+										address: `${connectionInfo.local_ip}:${connectionInfo.port}`
+									})}
+								</p>
+							{/if}
+						{:else if connectionInfo?.local_ip}
+							<div class="connection-row">
+								<code class="connection-address"
+									>{connectionInfo.local_ip}:{connectionInfo.port}</code
+								>
+								<button
+									type="button"
+									class="icon-btn"
+									onclick={copyConnectionAddress}
+									aria-label={t('common.copy')}
+								>
+									{#if copiedConnection}<Check size={13} />{:else}<Copy size={13} />{/if}
+								</button>
+							</div>
+							<p class="hint">{t('serverInstance.connectionLanHint')}</p>
+						{:else}
+							<p class="hint">{t('serverInstance.connectionUnavailable')}</p>
+						{/if}
+
+						{#if playitLinked === false && !connectionInfo?.tunnel_address && !connectionInfo?.port_forwarded}
+							<div class="playit-prompt">
+								<p class="hint">{t('serverInstance.playitPitch')}</p>
+								<button
+									type="button"
+									class="playit-link-btn"
+									onclick={startPlayitLink}
+									disabled={playitLinking}
+								>
+									{#if playitLinking}
+										<Loader2 size={14} class="spin" />
+										{t('serverInstance.playitLinking')}
+									{:else}
+										{t('serverInstance.playitLinkButton')}
+									{/if}
+								</button>
+							</div>
+						{/if}
+					</section>
+				{/if}
+				<section class="ram-section">
+					<span class="section-label">{t('instanceDetail.ram.sectionLabel')}</span>
+					<p class="hint">
+						{t('instanceDetail.ram.hint', {
+							recommended: ramRecommended
+								? t('instanceDetail.ram.recommendedSuffix', { mb: ramRecommended })
+								: ''
+						})}
+					</p>
+					<div class="ram-row">
+						<label>
+							{t('settings.ram.min')}
+							<input
+								type="number"
+								value={instance.min_memory ?? ''}
+								placeholder={t('instanceDetail.ram.globalPlaceholder')}
+								min="512"
+								step="256"
+								onchange={(e) => {
+									const v = e.currentTarget.valueAsNumber;
+									setMemory(Number.isNaN(v) ? null : v, instance.max_memory);
+								}}
+							/>
+						</label>
+						<label>
+							{t('settings.ram.max')}
+							<input
+								type="number"
+								value={instance.max_memory ?? ''}
+								placeholder={t('instanceDetail.ram.globalPlaceholder')}
+								min="512"
+								step="256"
+								onchange={(e) => {
+									const v = e.currentTarget.valueAsNumber;
+									setMemory(instance.min_memory, Number.isNaN(v) ? null : v);
+								}}
+							/>
+						</label>
+					</div>
 				</section>
-			{/if}
-			<section class="ram-section">
-				<span class="section-label">{t('instanceDetail.ram.sectionLabel')}</span>
-				<p class="hint">
-					{t('instanceDetail.ram.hint', {
-						recommended: ramRecommended
-							? t('instanceDetail.ram.recommendedSuffix', { mb: ramRecommended })
-							: ''
-					})}
-				</p>
-				<div class="ram-row">
-					<label>
-						{t('settings.ram.min')}
-						<input
-							type="number"
-							value={instance.min_memory ?? ''}
-							placeholder={t('instanceDetail.ram.globalPlaceholder')}
-							min="512"
-							step="256"
-							onchange={(e) => {
-								const v = e.currentTarget.valueAsNumber;
-								setMemory(Number.isNaN(v) ? null : v, instance.max_memory);
-							}}
-						/>
-					</label>
-					<label>
-						{t('settings.ram.max')}
-						<input
-							type="number"
-							value={instance.max_memory ?? ''}
-							placeholder={t('instanceDetail.ram.globalPlaceholder')}
-							min="512"
-							step="256"
-							onchange={(e) => {
-								const v = e.currentTarget.valueAsNumber;
-								setMemory(instance.min_memory, Number.isNaN(v) ? null : v);
-							}}
-						/>
-					</label>
-				</div>
-			</section>
-			{#if !isServer}
+
+				<InstanceAppearance id={instance.uuid} />
+			{:else if tab === 'backups'}
 				<WorldBackups {instance} />
+			{:else if tab === 'mods'}
+				<ModsPanel {instance} />
+			{:else if tab === 'shaders'}
+				<ShadersPanel {instance} />
+			{:else if tab === 'resourcepacks'}
+				<ResourcePacksPanel {instance} />
+			{:else if tab === 'modpacks'}
+				<ModpacksPanel {instance} />
+			{:else if tab === 'screenshots'}
+				<ScreenshotsPanel {instance} />
+			{:else if tab === 'plugins'}
+				<PluginsPanel {instance} />
+			{:else if tab === 'worlds'}
+				<ServerWorlds {instance} />
+			{:else if tab === 'files'}
+				<ServerFileManager {instance} />
+			{:else if tab === 'console'}
+				<ServerConsole {instance} />
 			{/if}
-		{:else if tab === 'mods'}
-			<ModsPanel {instance} />
-		{:else if tab === 'shaders'}
-			<ShadersPanel {instance} />
-		{:else if tab === 'resourcepacks'}
-			<ResourcePacksPanel {instance} />
-		{:else if tab === 'modpacks'}
-			<ModpacksPanel {instance} />
-		{:else if tab === 'screenshots'}
-			<ScreenshotsPanel {instance} />
-		{:else if tab === 'plugins'}
-			<PluginsPanel {instance} />
-		{:else if tab === 'worlds'}
-			<ServerWorlds {instance} />
-		{:else if tab === 'files'}
-			<ServerFileManager {instance} />
-		{:else if tab === 'console'}
-			<ServerConsole {instance} />
-		{/if}
+		</div>
 	</div>
 </div>
 
@@ -1375,6 +1408,131 @@
 		}
 		to {
 			transform: rotate(360deg);
+		}
+	}
+
+	.instance-detail {
+		padding: 22px 28px 0;
+		gap: 16px;
+		max-width: 1600px;
+		margin: 0 auto;
+	}
+	.detail-back {
+		display: block;
+		width: fit-content;
+		flex-shrink: 0;
+		padding: 4px 0;
+		background: none;
+		border: 0;
+		color: var(--text-secondary);
+		font-size: var(--text-small);
+	}
+	.hero {
+		min-height: 156px;
+		padding: 26px;
+		background:
+			radial-gradient(
+				ellipse at 90% 15%,
+				color-mix(in srgb, var(--accent) 13%, transparent),
+				transparent 65%
+			),
+			var(--surface-card);
+	}
+	.hero.with-art {
+		background-image: linear-gradient(90deg, #091019e8, #091019a0), var(--instance-art);
+		background-size: cover;
+		background-position: center;
+		color: white;
+	}
+	.hero.with-art :global(h2),
+	.hero.with-art .stat-chip {
+		color: white;
+	}
+	.hero-info h2 {
+		font-size: clamp(1.5rem, 2.4vw, 2.4rem);
+		letter-spacing: -0.04em;
+		overflow-wrap: anywhere;
+	}
+	.detail-workspace {
+		display: grid;
+		grid-template-columns: 150px minmax(0, 1fr);
+		gap: 24px;
+		flex: 1;
+		min-height: 0;
+	}
+	.detail-workspace .tabs {
+		flex-direction: column;
+		gap: 5px;
+		border-bottom: 0;
+		border-right: 1px solid var(--border);
+		padding-right: 14px;
+		overflow-y: auto;
+		overflow-x: hidden;
+		scrollbar-width: thin;
+	}
+	.detail-workspace .tab-btn {
+		padding: 12px;
+		margin: 0;
+		border: 1px solid transparent;
+		border-radius: var(--border-radius-sm);
+		font-size: var(--text-small);
+		text-align: left;
+		white-space: normal;
+	}
+	.detail-workspace .tab-btn.active {
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 10%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+	}
+	.detail-workspace .tab-content {
+		min-width: 0;
+	}
+	.server-detail .hero {
+		border-left: 3px solid var(--accent);
+		min-height: 140px;
+	}
+	.quick-actions {
+		gap: 10px;
+	}
+	.quick-title {
+		font-size: var(--text-small);
+	}
+	.quick-sub {
+		font-size: var(--text-caption);
+	}
+	@media (max-width: 960px) {
+		.instance-detail {
+			padding: 16px 18px 0;
+			gap: 12px;
+		}
+		.hero {
+			min-height: 132px;
+			padding: 18px;
+			gap: 14px;
+		}
+		.detail-workspace {
+			grid-template-columns: 120px minmax(0, 1fr);
+			gap: 14px;
+		}
+		.detail-workspace .tabs {
+			padding-right: 10px;
+		}
+		.detail-workspace .tab-btn {
+			padding: 10px 8px;
+			font-size: 12px;
+		}
+		.hero-info h2 {
+			font-size: 1.5rem;
+		}
+		.quick-actions {
+			gap: 6px;
+		}
+		.hero-icon {
+			width: 52px;
+			height: 52px;
+		}
+		.hero .play-btn {
+			padding: 12px 18px;
 		}
 	}
 </style>

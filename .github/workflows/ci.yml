@@ -43,6 +43,9 @@ jobs:
       - name: Prettier + ESLint
         run: bun run lint
 
+      - name: Visual policy tests
+        run: bun test tests/unit
+
       # Solo informativo: hoy hay avisos en dependencias de desarrollo
       # (devalue, brace-expansion, ...) que no se envían en la app. No bloquea.
       - name: bun audit (informativo, no bloquea)

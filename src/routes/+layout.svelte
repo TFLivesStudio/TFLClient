@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../styles/global.css';
+	import '../styles/refresh.css';
 
 	let { children } = $props();
 

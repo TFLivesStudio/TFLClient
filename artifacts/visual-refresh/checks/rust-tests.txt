@@ -1,0 +1,267 @@
+   Compiling tflclient v0.12.3 (/workspace/TFLClient-visual-refresh/src-tauri)
+warning: variants `Instance`, `Auth`, `Download`, and `Other` are never constructed
+  --> src-tauri/src/core/errors.rs:6:5
+   |
+ 4 | pub enum AppError {
+   |          -------- variants in this enum
+ 5 |     #[error("Error de instancia: {0}")]
+ 6 |     Instance(String),
+   |     ^^^^^^^^
+ 7 |     #[error("Error de autenticación: {0}")]
+ 8 |     Auth(String),
+   |     ^^^^
+...
+12 |     Download(String),
+   |     ^^^^^^^^
+13 |     #[error("{0}")]
+14 |     Other(String),
+   |     ^^^^^
+   |
+   = note: `AppError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `pid` is never read
+  --> src-tauri/src/services/server_process.rs:20:5
+   |
+18 | struct RunningServer {
+   |        ------------- field in this struct
+19 |     stdin: Arc<tokio::sync::Mutex<Option<ChildStdin>>>,
+20 |     pid: Option<u32>,
+   |     ^^^
+
+warning: function `running_server_pid` is never used
+  --> src-tauri/src/services/server_process.rs:35:8
+   |
+35 | pub fn running_server_pid(instance_name: &str) -> Option<u32> {
+   |        ^^^^^^^^^^^^^^^^^^
+
+   Compiling communicator v0.1.0 (/workspace/TFLClient-visual-refresh/crates/communicator)
+warning: `tflclient` (lib test) generated 3 warnings
+   Compiling launchwerk v1.0.1 (/workspace/TFLClient-visual-refresh/crates/launchwerk)
+   Compiling ablage v0.1.0 (/workspace/TFLClient-visual-refresh/crates/ablage)
+   Compiling aqua v0.1.0 (/workspace/TFLClient-visual-refresh/crates/aqua)
+warning: `tflclient` (lib) generated 3 warnings (3 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 31.76s
+     Running unittests src/lib.rs (/workspace/TFLClient/target/debug/deps/ablage-8575cab57794b408)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/workspace/TFLClient/target/debug/deps/aqua-eb477c6d6c1d633f)
+
+running 15 tests
+test jre::client::tests::test_find_runtime_root_missing_binary ... ok
+test jre::client::tests::test_find_runtime_root_top_level ... ok
+test jre::client::tests::test_find_runtime_root_shallowest_wins ... ok
+test jre::providers::required_arch_tests::minecraft_1_19_en_adelante_si_tiene_natives_arm64 ... ok
+test jre::providers::required_arch_tests::minecraft_viejo_no_tiene_natives_arm64 ... ok
+test jre::providers::required_arch_tests::version_no_parseable_no_fuerza_x64 ... ok
+test jre::providers::required_arch_tests::versionado_por_año_siempre_tiene_natives_arm64 ... ok
+test utilities::tests::test_hex_encode ... ok
+test utilities::tests::test_infer_java_version ... ok
+test jre::client::tests::test_find_runtime_root_nested ... ok
+test utilities::tests::test_is_native_file ... ok
+test utilities::tests::test_java_runtime_preferences ... ok
+test utilities::tests::test_parse_java_major_version ... ok
+test manifest::tests::resolve_normalized_from_each_release_type ... ok
+test manifest::tests::download_and_parse_manifests_from_all_release_types ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.63s
+
+     Running unittests src/lib.rs (/workspace/TFLClient/target/debug/deps/communicator-142468487d3d3052)
+
+running 3 tests
+test client::tests::nonce_increments ... ok
+test client::tests::buttons_include_url_in_activity ... ok
+test client::tests::client_stores_id ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/workspace/TFLClient/target/debug/deps/cubrinth-91d076b4605c278b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/workspace/TFLClient/target/debug/deps/launchwerk-55e88fca3b635325)
+
+running 2 tests
+test auth::tests::test_token_serialization_skip ... ok
+test auth::tests::test_secure_storage_save_load ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/workspace/TFLClient/target/debug/deps/tflclient_lib-1d2b81c7c35b1f9f)
+
+running 84 tests
+test acl_tests::asset_protocol_only_serves_icons_screenshots_and_wallpaper ... ok
+test acl_tests::an_unknown_window_label_gets_nothing ... ok
+test acl_tests::main_window_can_use_every_app_command_and_log_window_only_its_own ... ok
+test acl_tests::release_builds_do_not_ship_devtools ... ok
+test acl_tests::production_csp_has_no_unsafe_inline_scripts_or_localhost ... ok
+test acl_tests::plugins_are_limited_to_what_the_ui_uses ... ok
+test commands::crash_diagnosis::tests::fabric_dependency_error ... ok
+test commands::crash_diagnosis::tests::forge_suspected_mods_block ... ok
+test commands::crash_diagnosis::tests::jar_without_metadata_is_ignored ... ok
+test commands::crash_diagnosis::tests::reads_fabric_mod_id_and_name ... ok
+test commands::crash_diagnosis::tests::reads_forge_mods_toml ... ok
+test commands::favorite_servers::tests::motd_is_flattened_and_color_codes_stripped ... ok
+test commands::favorite_servers::tests::parse_address_defaults_and_validates ... ok
+test commands::crash_diagnosis::tests::fabric_entrypoint_and_mod_file ... ok
+test commands::favorite_servers::tests::ping_to_closed_port_is_offline_not_an_error ... ok
+test commands::favorite_servers::tests::varint_roundtrip_bytes ... ok
+test commands::favorite_servers::tests::ping_talks_the_real_protocol ... ok
+test commands::import_launchers::tests::copy_recursive_copies_nested_files ... ok
+test commands::import_launchers::tests::curseforge_neoforge_is_not_confused_with_forge ... ok
+test commands::import_launchers::tests::curseforge_instance_is_detected ... ok
+test commands::import_launchers::tests::prism_vanilla_without_game_dir_is_skipped ... ok
+test commands::import_launchers::tests::prism_instance_is_detected ... ok
+test commands::instance::cpu_percent_tests::divide_entre_nucleos ... ok
+test commands::instance::cpu_percent_tests::nunca_supera_100_aunque_sysinfo_de_mas_por_redondeo ... ok
+test commands::instance::ram_budget_tests::cae_al_global_sin_override ... ok
+test commands::instance::ram_budget_tests::usa_el_override_de_la_instancia_si_lo_tiene ... ok
+test commands::mojang_profile::tests::texturas_de_mojang_pasan_a_https ... ok
+test commands::updater::tests::drafts_and_releases_without_manifest_are_ignored ... ok
+test commands::updater::tests::a_stable_release_beats_its_own_betas ... ok
+test commands::updater::tests::github_release_json_parses ... ok
+test commands::updater::tests::later_betas_win_over_earlier_ones ... ok
+test commands::updater::tests::picks_the_highest_version_not_the_newest_by_date ... ok
+test commands::updater::tests::manifest_url_points_at_our_repo_release ... ok
+test commands::updater::tests::prerelease_detection ... ok
+test commands::updater::tests::weird_tags_are_skipped_and_never_reach_a_url ... ok
+test commands::world_backups::tests::backup_id_only_accepts_the_generated_shape ... ok
+test commands::world_backups::tests::restore_roundtrip_replaces_current_saves ... ok
+test commands::world_backups::tests::restore_ignores_entries_that_escape_the_folder ... ok
+test core::perf::tests::buffer_is_capped_and_keeps_the_newest ... ok
+test core::perf::tests::disabled_recorder_stores_nothing ... ok
+test core::perf::tests::frontend_names_are_validated ... ok
+test commands::crash_diagnosis::tests::suspected_none_yields_nothing ... ok
+test core::perf::tests::summary_groups_by_name ... ok
+test services::activity_log::tests::prepend_pone_lo_nuevo_primero ... ok
+test services::activity_log::tests::prepend_recorta_al_maximo ... ok
+test services::content::dependencies::tests::only_required_dependencies_are_followed ... ok
+test services::content::dependencies::tests::sodium_and_canvas_conflict_by_id_or_slug ... ok
+test services::content::dependencies::tests::unrelated_or_identical_projects_do_not_conflict ... ok
+test services::content::download::tests::a_primary_file_is_kept_even_if_it_looks_auxiliary ... ok
+test services::content::download::tests::auxiliary_files_are_never_installed_next_to_the_real_jar ... ok
+test services::content::download::tests::only_auxiliary_files_falls_back_to_downloading_them ... ok
+test services::content::download::tests::unsafe_filenames_from_the_provider_are_refused ... ok
+test services::content::duplicates::tests::a_real_jar_beats_a_newer_auxiliary_one ... ok
+test services::content::duplicates::tests::a_single_file_is_never_removed ... ok
+test services::content::duplicates::tests::at_equal_date_the_real_jar_beats_the_sources_jar ... ok
+test services::content::duplicates::tests::duplicates_ignore_disabled_unresolved_and_singletons ... ok
+test services::content::duplicates::tests::the_newest_build_survives ... ok
+test services::content::export::tests::export_name_keeps_only_safe_characters ... ok
+test services::content::export::tests::mod_whose_hash_is_not_in_the_version_is_embedded_instead ... ok
+test services::content::export::tests::resolved_mod_is_referenced_by_url_and_hashes ... ok
+test services::content::filesystem::tests::auxiliary_jars_are_detected ... ok
+test services::content::filesystem::tests::disabled_suffix_detection ... ok
+test services::content::filesystem::tests::hashing_includes_disabled_files_and_skips_other_extensions ... ok
+test services::content::filesystem::tests::sha1_hex_matches_known_vector ... ok
+test services::content::filesystem::tests::toggling_adds_and_removes_the_disabled_suffix ... ok
+test services::content::filesystem::tests::unsafe_filenames_are_rejected ... ok
+test services::content::installed::tests::installed_title_falls_back_to_the_build_name_and_flags_disabled_files ... ok
+test services::content::installed::tests::installed_title_prefers_the_project_name_over_the_build_name ... ok
+test services::content::installed::tests::projects_map_skips_disabled_and_unresolved ... ok
+test services::content::local_files::tests::filenames_with_dot_dot_are_rejected ... ok
+test services::content::local_files::tests::only_files_with_the_right_extension_are_accepted ... ok
+test services::content::providers::modrinth::tests::hash_map_response_maps_every_entry ... ok
+test services::content::providers::modrinth::tests::search_facets_match_the_original_query_shape ... ok
+test services::content::providers::modrinth::tests::version_json_maps_to_normalized_types ... ok
+test services::content::providers::modrinth::tests::version_json_tolerates_missing_optional_fields ... ok
+test services::content::rollback::tests::manifest_format_is_stable ... ok
+test services::content::rollback::tests::nothing_retired_leaves_no_rollback_folder ... ok
+test services::content::rollback::tests::restoring_without_a_manifest_is_an_error ... ok
+test services::content::rollback::tests::update_then_rollback_restores_the_old_jars ... ok
+test services::content::updates::tests::different_hash_reports_the_new_version ... ok
+test services::content::updates::tests::same_hash_means_no_update ... ok
+test acl_tests::log_window_capability_covers_exactly_what_its_screen_uses ... ok
+test core::perf::tests::span_measures_elapsed_time ... ok
+test core::perf::tests::idle_sample_reads_this_process ... ok
+
+test result: ok. 84 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
+
+     Running unittests src/main.rs (/workspace/TFLClient/target/debug/deps/tflclient-a6e5199c47e1540c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/workspace/TFLClient/target/debug/deps/zellkern-b2f488aaa97e37e4)
+
+running 25 tests
+test forge::tests::parse_coord_with_extension ... ok
+test forge::tests::maven_coord_with_extension_override ... ok
+test forge::tests::maven_coord_with_classifier ... ok
+test forge::tests::simple_maven_coord ... ok
+test manifest::tests::allow_linux ... ok
+test manifest::tests::native_detection_by_path ... ok
+test manifest::tests::rule_without_os_allows ... ok
+test forge::tests::parse_simple_coord ... ok
+test version::tests::dependencies_fabric ... ok
+test forge::tests::parse_coord_with_classifier ... ok
+test version::tests::dependencies_fabric_snapshot ... ok
+test version::tests::dependencies_forge ... ok
+test version::tests::dependencies_quilt ... ok
+test version::tests::dependencies_neoforge ... ok
+test version::tests::dependencies_vanilla ... ok
+test version::tests::extract_fabric_snapshot_version ... ok
+test version::tests::extract_fabric_version ... ok
+test version::tests::extract_forge_version ... ok
+test version::tests::extract_neoforge_version ... ok
+test version::tests::extract_quilt_snapshot_version ... ok
+test version::tests::extract_quilt_version ... ok
+test version::tests::parses_snapshot ... ok
+test version::tests::parses_standard ... ok
+test version::tests::roundtrip_fabric ... ok
+test version::tests::roundtrip_forge ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ablage
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aqua
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests communicator
+
+running 2 tests
+test crates/communicator/src/client.rs - client::DiscordRpcClient::connect (line 132) - compile ... ok
+test crates/communicator/src/models.rs - models::ActivityBuilder (line 72) - compile ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.24s; merged doctests compilation took 0.24s
+   Doc-tests cubrinth
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests launchwerk
+
+running 1 test
+test crates/launchwerk/src/launchwerk.rs - launchwerk::Launchwerk (line 15) - compile ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.46s; merged doctests compilation took 0.46s
+   Doc-tests tflclient_lib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests zellkern
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
