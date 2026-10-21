@@ -105,6 +105,14 @@ try {
 			seen.push(id);
 	}
 	assert.deepEqual([...seen].sort(), SETTINGS.map((s) => s.id).sort());
+	await settings(p, 'Fondos y escenas');
+	await p
+		.locator('[data-setting="scene-gallery"]')
+		.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+	await p.locator('[data-setting="scene-gallery"] img').evaluateAll(async (images) => {
+		await Promise.all(images.map((img) => img.decode().catch(() => {})));
+	});
+	await shot(p, 'scene-library');
 	const query = p.getByRole('searchbox', { name: 'Buscar ajustes' });
 	for (const [text, id] of [
 		['memoria', 'ram'],
@@ -122,6 +130,8 @@ try {
 		await result.click();
 		await p.locator(`[data-setting="${id}"]:focus`).waitFor();
 		assert.equal(await p.locator('[data-highlighted]').getAttribute('data-setting'), id);
+		if (id === 'accent') await shot(p, 'accent-deep-link');
+		if (id === 'scene-video') await shot(p, 'video-deep-link');
 		await p.getByRole('button', { name: /Volver a resultados/ }).click();
 		assert.equal(await query.inputValue(), text);
 	}
@@ -198,6 +208,7 @@ try {
 	assert.equal(saved.order[0], 'ram');
 	assert.equal(saved.metricStyles.cpu, 'gauge');
 	assert.equal(saved.colors.cpu, '#12ab34');
+	await p.locator('.designer-preview').evaluate((el) => el.scrollIntoView({ block: 'center' }));
 	await shot(p, 'console-designer-applied');
 	await p.keyboard.press('Escape');
 	await p.getByRole('button', { name: 'Abrir Horizontes', exact: true }).click();
