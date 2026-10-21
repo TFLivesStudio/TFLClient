@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+const output = process.env.VISUAL_OUTPUT || 'artifacts/visual-refresh';
+await mkdir(output, { recursive: true });
 import { installFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
@@ -35,7 +38,7 @@ try {
 		0,
 		'Lite must not import skinview3d'
 	);
-	await page.screenshot({ path: 'artifacts/visual-refresh/skin-lite-static.png' });
+	await page.screenshot({ path: `${output}/skin-lite-static.png` });
 	await page.getByRole('button', { name: 'Activar vista 3D', exact: true }).click();
 	await page.waitForFunction(() => window.__webglCreated > 0);
 	await page.waitForTimeout(800);
@@ -44,7 +47,7 @@ try {
 	await page.getByRole('dialog').waitFor();
 	await page.waitForTimeout(200);
 	assert.equal(await page.locator('.hero canvas').count(), 1); // DOM retained, renderer disposed while covered.
-	await page.screenshot({ path: 'artifacts/visual-refresh/skin-studio-lite.png' });
+	await page.screenshot({ path: `${output}/skin-studio-lite.png` });
 	await page.keyboard.press('Escape');
 	await page.waitForTimeout(300);
 	assert.ok(

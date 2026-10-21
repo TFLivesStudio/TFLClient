@@ -237,5 +237,12 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Nuevo historial de notificaciones de la sesión y mejoras de navegación por teclado y foco en los diálogos.',
 		'Actualizadas las dependencias TLS y de certificados para corregir los avisos de seguridad recientes.',
 		'Esta beta visual es independiente de Content Discovery 0.13.0-beta.1. Como el canal beta elige la versión más alta, usá la descarga directa para probar esta edición.'
+	],
+	'0.13.1-beta.1': [
+		'BETA 2 — Visual Refresh y Content Discovery ahora conviven: el catálogo paginado, las fichas completas y la vista amplia de la beta 0.13.0 con los estilos Modern y Pixel.',
+		'Ajustes reorganizados por tarea, con búsqueda: General, Apariencia, Minecraft y Java, Cuentas, Consola y Actualizaciones.',
+		'Consola de juego y servidor con gráficas históricas reales de CPU, RAM y disco. 100 % de CPU equivale a un núcleo; los procesos multihilo pueden superar ese valor.',
+		'Personalizá la consola desde Ajustes o su propio botón: colores, texto, gráficas visibles, orden arrastrable, ubicación y ventana de tiempo.',
+		'Pixel suma botones con relieve e inventarios más minecrafti. Sidebar compacta uniforme, controles al pie y más espacio para el nombre y la cara de tu skin.'
 	]
 };

@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+const output = process.env.VISUAL_OUTPUT || 'artifacts/visual-refresh';
+await mkdir(output, { recursive: true });
 import { installFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const b = await chromium.launch({
@@ -12,7 +15,7 @@ p.setDefaultTimeout(10000);
 await p.addInitScript(installFixture, { premium: true });
 const shot = async (name) => {
 	await p.waitForTimeout(200);
-	await p.screenshot({ path: `artifacts/visual-refresh/${name}.png` });
+	await p.screenshot({ path: `${output}/${name}.png` });
 };
 try {
 	await p.goto(process.env.VISUAL_URL || 'http://localhost:1422');
@@ -32,7 +35,7 @@ try {
 	await p.locator('.tabs').getByRole('button', { name: 'Consola', exact: true }).click();
 	await shot('server-console-800x600');
 	await p.getByRole('button', { name: 'Ajustes', exact: true }).click();
-	await p.getByRole('button', { name: 'Estilo', exact: true }).click();
+	await p.getByRole('button', { name: 'Apariencia', exact: true }).click();
 	await shot('settings-800x600');
 	await p.keyboard.press('Escape');
 	await p.getByRole('button', { name: 'Skin y capa', exact: true }).click();

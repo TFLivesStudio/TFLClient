@@ -112,3 +112,56 @@ jobs:
 
       - name: cargo audit
         run: cargo audit
+
+  visual:
+    name: Beta UI (Chromium)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.2'
+      - name: Build frontend and check release metadata
+        run: |
+          bun install --frozen-lockfile
+          bun run release:version --check
+          bun run build
+      - name: Install isolated browser test tools
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/tfl-browser"
+          cd "$RUNNER_TEMP/tfl-browser"
+          echo '{"private":true}' > package.json
+          bun add --exact playwright@1.57.0
+          ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify beta UI against production build (simulated IPC)
+        shell: bash
+        env:
+          VISUAL_URL: http://localhost:1423
+          VISUAL_OUTPUT: artifacts/beta2/regression
+        run: |
+          set -euo pipefail
+          export PLAYWRIGHT_MODULE="$RUNNER_TEMP/tfl-browser/node_modules/playwright/index.mjs"
+          bun run preview -- --host 0.0.0.0 --port 1423 > /tmp/tfl-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid"' EXIT
+          for attempt in {1..40}; do
+            if curl -fsS "$VISUAL_URL" > /dev/null; then break; fi
+            sleep 1
+          done
+          mkdir -p artifacts/visual-refresh
+          node tests/visual/beta2.mjs
+          node tests/visual/smoke.mjs
+          node tests/visual/workspaces.mjs
+          node tests/visual/lifecycle.mjs
+      - name: Upload visual review evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: beta-ui-review
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 7

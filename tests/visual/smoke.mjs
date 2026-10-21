@@ -98,7 +98,7 @@ try {
 	await p.getByRole('button', { name: 'TFL Friends', exact: true }).click();
 	await shot(p, 'server-dashboard');
 	await p.getByRole('button', { name: 'Ajustes', exact: true }).click();
-	await p.getByRole('button', { name: 'Estilo', exact: true }).click();
+	await p.getByRole('button', { name: 'Apariencia', exact: true }).click();
 	await shot(p, 'settings');
 	for (let i = 0; i < 50; i++) await p.keyboard.press('Tab');
 	assert.ok(

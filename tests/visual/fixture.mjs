@@ -1,15 +1,21 @@
 // Browser-only IPC fixture. Never imported by production code.
 export function installFixture({
 	quality = 'Balanced',
-	appVersion = '0.12.4-beta.1',
+	appVersion = '0.13.1-beta.1',
 	empty = false,
 	language = 'es',
 	theme = 'dark',
 	premium = false,
-	skin = false
+	skin = false,
+	username = 'Alex',
+	collapsed = false,
+	logWindow = false,
+	telemetry = false
 } = {}) {
+	if (logWindow) window.__TFL_LOG_INSTANCE__ = 'Horizontes';
+	let samples = 0;
 	const user = {
-		username: 'Alex',
+		username,
 		uuid: 'fixture-account',
 		user_type: premium ? 'Premium' : 'Cracked'
 	};
@@ -61,7 +67,7 @@ export function installFixture({
 		native_dialog_mode_prompted: true,
 		server_connection_info_shown: true,
 		multi_instance_warning_dismissed: false,
-		sidebar_collapsed: false
+		sidebar_collapsed: collapsed
 	};
 	const texture = document.createElement('canvas');
 	texture.width = texture.height = 64;
@@ -99,6 +105,65 @@ export function installFixture({
 				listeners.delete(args.eventId);
 				return null;
 			}
+			if (cmd === 'get_running_instance_stats' || cmd === 'get_running_server_stats') {
+				if (!telemetry || window.__fixtureStatsMode === 'missing') return null;
+				samples++;
+				return {
+					cpu_core_percent: 250 + samples * 5,
+					cpu_percent: (250 + samples * 5) / 8,
+					logical_cores: 8,
+					memory_mb: 2048 + samples * 16,
+					disk_bytes_delta: 1048576,
+					sampled_at_ms: Date.now(),
+					sample_interval_ms: 1000,
+					ready: samples > 1
+				};
+			}
+			if (
+				[
+					'search_mods',
+					'search_shaders',
+					'search_resourcepacks',
+					'search_plugins',
+					'search_modpacks'
+				].includes(cmd)
+			) {
+				const offset = args.offset ?? 0,
+					limit = args.limit ?? 20;
+				return {
+					hits: Array.from({ length: Math.min(limit, 45 - offset) }, (_, i) => ({
+						project_id: `project-${offset + i}`,
+						title: `Fixture project ${offset + i + 1}`,
+						description: 'Compatible content from the paginated catalogue.',
+						icon_url: null,
+						downloads: 10000,
+						author: 'Fixture'
+					})),
+					total_hits: 45,
+					offset,
+					limit
+				};
+			}
+			if (cmd.endsWith('_project_detail'))
+				return {
+					project_id: args.projectId,
+					title: 'Fixture detail',
+					description: 'Project description',
+					body: '## Full project details\n\nSafe **Markdown** content.',
+					categories: ['optimization'],
+					game_versions: ['1.21.1'],
+					loaders: ['fabric'],
+					downloads: 10000,
+					followers: 100,
+					published: '2026-01-01',
+					updated: '2026-10-01',
+					source_url: null,
+					wiki_url: null,
+					discord_url: null,
+					issues_url: null,
+					gallery: []
+				};
+			if (cmd === 'get_skin_texture_url') return skin ? skinUrl : null;
 			if (cmd === 'get_settings') return settings;
 			if (cmd === 'update_settings') {
 				settings = args.newSettings;
