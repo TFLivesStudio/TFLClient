@@ -51,25 +51,27 @@
 				></label
 			>
 		</div>
-		<label
-			>{w('cpuMode')}<select
-				aria-label={w('cpuMode')}
-				value={p.cpuMode}
-				onchange={(e) => saveConsole({ cpuMode: e.currentTarget.value as 'cores' | 'total' })}
-				><option value="cores">{w('cores')}</option><option value="total">{w('total')}</option
-				></select
-			></label
-		>
-		<label
-			>{w('chartStyle')}<select
-				aria-label={w('chartStyle')}
-				value={p.chartStyle}
-				onchange={(e) => saveConsole({ chartStyle: e.currentTarget.value as 'lines' | 'gauge' })}
-				><option value="lines">{w('styleLines')}</option><option value="gauge"
-					>{w('styleGauge')}</option
-				></select
-			></label
-		>
+		<div class="fields">
+			<label
+				>{w('cpuMode')}<select
+					aria-label={w('cpuMode')}
+					value={p.cpuMode}
+					onchange={(e) => saveConsole({ cpuMode: e.currentTarget.value as 'cores' | 'total' })}
+					><option value="cores">{w('cores')}</option><option value="total">{w('total')}</option
+					></select
+				></label
+			>
+			<label
+				>{w('chartStyle')}<select
+					aria-label={w('chartStyle')}
+					value={p.chartStyle}
+					onchange={(e) => saveConsole({ chartStyle: e.currentTarget.value as 'lines' | 'gauge' })}
+					><option value="lines">{w('styleLines')}</option><option value="gauge"
+						>{w('styleGauge')}</option
+					></select
+				></label
+			>
+		</div>
 		<p>{w('dragHint')}</p>
 		<ol class="metric-order" data-metric-list>
 			{#each p.order as metric, index (metric)}

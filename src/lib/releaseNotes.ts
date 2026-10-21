@@ -245,7 +245,7 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Personalizá la consola desde Ajustes o su propio botón: colores, texto, gráficas visibles, orden arrastrable, ubicación y ventana de tiempo.',
 		'Pixel suma botones con relieve e inventarios más minecrafti. Sidebar compacta uniforme, controles al pie y más espacio para el nombre y la cara de tu skin.'
 	],
-	'0.13.1-beta.3': [
+	'0.13.1-beta.4': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Arreglado: en macOS no se podía elegir un ícono/wallpaper personalizado ni agregar mods/shaders/packs desde archivo — el diálogo nativo se quedaba colgado y nunca abría.',
 		'Arreglado: la pestaña activa en el menú lateral del detalle de instancia (Mods, Shaders, Mundos y backups, etc.) se veía con el borde recortado contra el panel.',
