@@ -1,16 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { onMount, onDestroy } from 'svelte';
 	import { X } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
-
-	/** Shell genérico de modal — Entrega A. Overlay + panel, cierre con
-	 * Escape/click-fuera, trap de foco básico (Tab/Shift+Tab cicla dentro
-	 * del panel) y devuelve el foco a lo que estaba enfocado antes al
-	 * desmontarse. `ConfirmDialog.svelte` PODRÍA reconstruirse sobre este
-	 * primitivo en una entrega futura — no se tocó en esta, según lo
-	 * pedido ("no reescribas ConfirmDialog ahora, solo construí el
-	 * primitivo nuevo al lado"). */
+	import { modalFocus } from '$lib/visual/modalFocus';
 	let {
 		onClose,
 		closeOnEscape = true,
@@ -26,51 +18,7 @@
 		width?: string;
 		children: Snippet;
 	} = $props();
-
-	let panelEl = $state<HTMLDivElement | undefined>(undefined);
-	let previouslyFocused: HTMLElement | null = null;
-
-	onMount(() => {
-		previouslyFocused = document.activeElement as HTMLElement | null;
-		panelEl?.focus();
-	});
-
-	onDestroy(() => {
-		if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
-			previouslyFocused.focus();
-		}
-	});
-
-	function getFocusables(): HTMLElement[] {
-		if (!panelEl) return [];
-		return Array.from(
-			panelEl.querySelectorAll<HTMLElement>(
-				'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-			)
-		);
-	}
-
-	function handleKeydown(e: KeyboardEvent) {
-		if (closeOnEscape && e.key === 'Escape') {
-			onClose();
-			return;
-		}
-		if (e.key !== 'Tab') return;
-		const focusables = getFocusables();
-		if (focusables.length === 0) return;
-		const first = focusables[0];
-		const last = focusables[focusables.length - 1];
-		if (e.shiftKey && document.activeElement === first) {
-			e.preventDefault();
-			last.focus();
-		} else if (!e.shiftKey && document.activeElement === last) {
-			e.preventDefault();
-			first.focus();
-		}
-	}
 </script>
-
-<svelte:window onkeydown={handleKeydown} />
 
 <div
 	class="tfl-dialog-overlay"
@@ -78,10 +26,10 @@
 	role="presentation"
 >
 	<div
-		bind:this={panelEl}
 		class="tfl-dialog-panel"
 		style={width ? `width: ${width};` : undefined}
 		role="dialog"
+		use:modalFocus={closeOnEscape ? onClose : undefined}
 		aria-modal="true"
 		aria-label={ariaLabel}
 		tabindex="-1"

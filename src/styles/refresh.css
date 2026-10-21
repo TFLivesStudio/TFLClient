@@ -1,0 +1,388 @@
+/* Visual Refresh 2. Presentation only: theme and quality never replace component state. */
+:root {
+	--text-xs: 0.78rem;
+	--text-sm: 0.86rem;
+	--text-base: 1rem;
+	--text-md: 1.05rem;
+	--text-lg: 1.2rem;
+	--text-xl: 1.45rem;
+	--text-2xl: 1.8rem;
+	--text-caption: 0.86rem;
+	--text-small: 0.93rem;
+	--text-body: 1rem;
+	--text-heading: 1.7rem;
+	--text-hero: clamp(2rem, 3.6vw, 3.6rem);
+	--border-radius: 14px;
+	--border-radius-sm: 9px;
+	--border-radius-lg: 22px;
+	--control-size: 42px;
+	--control-size-compact: 32px;
+	--sidebar-width: 232px;
+	--titlebar-height: 42px;
+	--duration-micro: 130ms;
+	--duration-panel: 180ms;
+	--easing-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+	--easing-decelerate: cubic-bezier(0.16, 1, 0.3, 1);
+	--vr-space: 24px;
+	--vr-row: 82px;
+	--vr-ambient: #7385ab;
+	--vr-cut: 8px;
+	--vr-grid: transparent;
+	--shadow-sm: 0 2px 5px #00000014;
+	--shadow-md: 0 12px 32px #00000024;
+	--shadow-lg: 0 28px 80px #00000050;
+	--text-muted: #92929e;
+}
+html:not([data-font]) {
+	--font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+}
+html[data-theme='light'] {
+	--text-muted: #60616c;
+	--text-secondary: #4f505c;
+	--vr-ambient: #607cad;
+	--shadow-lg: 0 24px 70px #16234226;
+}
+html[data-density='compact'] {
+	--vr-row: 60px;
+	--vr-space: 16px;
+}
+html[data-density='standard'] {
+	--vr-row: 70px;
+	--vr-space: 20px;
+}
+html[data-quality='experience'] {
+	--duration-panel: 420ms;
+	--duration-micro: 180ms;
+}
+html[data-material='matte'] {
+	--raw-card: var(--raw-sidebar);
+	--surface-elevated: var(--bg-sidebar);
+}
+html[data-material='glass'] {
+	--surface-card: color-mix(in srgb, var(--bg-sidebar) 75%, transparent);
+	--surface-elevated: color-mix(in srgb, var(--bg-sidebar) 88%, transparent);
+}
+html[data-adaptive][data-wallpaper='mc-2'],
+html[data-adaptive][data-wallpaper='mc-5'],
+html[data-adaptive][data-wallpaper='mc-12'],
+html[data-adaptive][data-wallpaper='nether'] {
+	--vr-ambient: #c68556;
+}
+html[data-adaptive][data-wallpaper='mc-3'],
+html[data-adaptive][data-wallpaper='mc-7'],
+html[data-adaptive][data-wallpaper='deep-ocean'] {
+	--vr-ambient: #5686bf;
+}
+html[data-adaptive][data-wallpaper='mc-6'],
+html[data-adaptive][data-wallpaper='mc-1'] {
+	--vr-ambient: #639779;
+}
+html[data-adaptive]:not([data-theme='light']):not([data-surface='oled']) {
+	--surface-canvas: color-mix(in srgb, var(--vr-ambient) 4%, var(--bg-main));
+}
+button,
+input,
+select,
+textarea {
+	font: inherit;
+}
+button {
+	touch-action: manipulation;
+}
+button:not(:disabled) {
+	cursor: pointer;
+}
+button:disabled {
+	cursor: not-allowed;
+}
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 4px;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+	outline-offset: 2px;
+}
+button[aria-pressed='true'] {
+	border-color: var(--accent);
+}
+.vr-page {
+	max-width: 1500px;
+	margin: 0 auto;
+	padding: clamp(20px, 3vw, 44px);
+}
+.vr-eyebrow {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: var(--text-caption);
+	font-weight: 700;
+	letter-spacing: 0.13em;
+	text-transform: uppercase;
+	color: var(--accent);
+}
+.vr-heading {
+	font-size: clamp(1.7rem, 2.8vw, 2.8rem);
+	line-height: 1.12;
+	letter-spacing: -0.05em;
+	font-weight: 700;
+	margin: 12px 0;
+}
+.vr-description {
+	color: var(--text-secondary);
+	line-height: 1.65;
+	max-width: 65ch;
+}
+.vr-toolbar {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	flex-wrap: wrap;
+	margin: 24px 0;
+}
+.vr-control {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 9px;
+	min-height: 40px;
+	padding: 9px 15px;
+	border: 1px solid var(--border);
+	border-radius: var(--border-radius-sm);
+	background: var(--surface-interactive);
+	color: var(--text-primary);
+	font-size: var(--text-small);
+	transition:
+		background-color var(--duration-micro),
+		border-color var(--duration-micro),
+		transform var(--duration-micro);
+}
+.vr-control:hover {
+	background: color-mix(in srgb, var(--accent) 9%, var(--surface-interactive));
+	border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.vr-control.primary {
+	background: var(--accent);
+	border-color: transparent;
+	color: var(--accent-text);
+	font-weight: 700;
+}
+.vr-control[aria-pressed='true'],
+.vr-control.active {
+	background: color-mix(in srgb, var(--accent) 13%, var(--surface-interactive));
+	border-color: var(--accent);
+}
+.vr-muted {
+	color: var(--text-secondary);
+	font-size: var(--text-small);
+	line-height: 1.6;
+}
+.vr-divider {
+	height: 1px;
+	background: var(--border);
+	border: 0;
+	margin: 24px 0;
+}
+/* A different geometry, type hierarchy, inset controls and technical framing, not a font-only skin. */
+html[data-visual='pixel'] {
+	--border-radius: 2px;
+	--border-radius-sm: 0px;
+	--border-radius-lg: 3px;
+	--shadow-sm: 3px 3px 0 #0005;
+	--shadow-md: 5px 5px 0 #0005;
+	--shadow-lg: 8px 8px 0 #0007;
+	--font-brand: 'Monocraft', monospace;
+	--vr-grid: color-mix(in srgb, var(--accent) 5%, transparent);
+	--easing-standard: steps(6, end);
+}
+html[data-visual='pixel']
+	:is(h1, h2, h3, .vr-heading, .vr-eyebrow, .hero-name, .section-label, .panel-header, .nav-label) {
+	font-family: 'Monocraft', monospace;
+	letter-spacing: 0;
+}
+html[data-visual='pixel'] .vr-heading {
+	font-size: clamp(1.4rem, 2.4vw, 2.35rem);
+	line-height: 1.45;
+}
+html[data-visual='pixel'] :is(button, input, select, textarea) {
+	border-radius: 0;
+}
+html[data-visual='pixel'] :is(.vr-control, .tfl-btn, .play-btn, .ptab.active, .tab-btn.active) {
+	box-shadow:
+		inset 0 -3px 0 #0004,
+		inset 0 2px 0 #ffffff15;
+}
+html[data-visual='pixel'] :is(.vr-control.primary, .play-btn, .tfl-btn-primary) {
+	border: 2px solid color-mix(in srgb, var(--accent) 60%, white);
+}
+html[data-visual='pixel'] :is(.vr-library-row, .vr-preview, .hero, .vr-editorial) {
+	border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+	background-image:
+		linear-gradient(var(--vr-grid) 1px, transparent 1px),
+		linear-gradient(90deg, var(--vr-grid) 1px, transparent 1px);
+	background-size: 24px 24px;
+}
+html[data-visual='pixel'][data-pixel-type='classic']
+	:is(button, label, .stat-chip, .meta, .vr-control) {
+	font-family: 'Monocraft', monospace;
+	font-size: 0.86rem;
+}
+html[data-visual='pixel'] :is(pre, code, textarea, .log-line, .console-output, .terminal) {
+	font-family: 'JetBrains Mono', monospace;
+	line-height: 1.65;
+}
+/* Common grammar reaches existing forms and secondary tools through their semantic roles. */
+[role='dialog'] {
+	border-radius: var(--border-radius-lg);
+	box-shadow: var(--shadow-lg);
+	isolation: isolate;
+}
+[role='dialog'] :is(h2, .panel-header h2) {
+	letter-spacing: -0.03em;
+	font-size: var(--text-heading);
+}
+[role='dialog'] :is(input:not([type='checkbox']):not([type='range']), select) {
+	min-height: 40px;
+	border-radius: var(--border-radius-sm);
+}
+[role='dialog'] :is(.close-btn, .icon-btn) {
+	min-width: 32px;
+	min-height: 32px;
+}
+[role='dialog'] :is(.panel-header, .modal-header) {
+	border-bottom: 1px solid var(--border);
+}
+html[data-material='glass'] [role='dialog'],
+html[data-material='soft-glass'] [role='dialog'] {
+	backdrop-filter: blur(16px);
+}
+.vr-tools :is(.section-label, .quick-title) {
+	font-size: var(--text-small);
+}
+.vr-tools :is(.console-output, pre) {
+	font-size: 13px;
+	line-height: 1.65;
+	user-select: text;
+}
+.vr-tools :is(.mod-item, .world-item, .file-item, .backup-item) {
+	border-radius: var(--border-radius-sm);
+}
+@keyframes vr-reveal {
+	from {
+		opacity: 0;
+		transform: translateY(12px) scale(0.992);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+@keyframes vr-confirm {
+	0% {
+		box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+	}
+	100% {
+		box-shadow: 0 0 0 12px transparent;
+	}
+}
+html[data-quality='experience'] .vr-stagger > * {
+	animation: vr-reveal var(--duration-panel) var(--easing-decelerate) both;
+}
+html[data-quality='experience'] .vr-stagger > :nth-child(2) {
+	animation-delay: 45ms;
+}
+html[data-quality='experience'] .vr-stagger > :nth-child(3) {
+	animation-delay: 90ms;
+}
+html[data-quality='experience'] .vr-stagger > :nth-child(4) {
+	animation-delay: 135ms;
+}
+html[data-quality='lite'] {
+	--duration-micro: 0ms;
+	--duration-panel: 0ms;
+}
+html[data-quality='lite'] *,
+html[data-no-blur] * {
+	backdrop-filter: none !important;
+}
+html[data-quality='lite'] *,
+html[data-reduce-motion] *,
+html[data-system-reduce-motion] * {
+	animation: none !important;
+	transition: none !important;
+	scroll-behavior: auto !important;
+}
+html[data-visual-paused] *,
+html[data-no-infinite-fx] .ambient-bg * {
+	animation-play-state: paused !important;
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation: none !important;
+		transition: none !important;
+		scroll-behavior: auto !important;
+	}
+}
+@media (max-width: 960px) {
+	.vr-page {
+		padding: 20px;
+	}
+	.vr-heading {
+		font-size: 1.8rem;
+	}
+	.vr-toolbar {
+		gap: 8px;
+	}
+}
+@media (forced-colors: active) {
+	button,
+	[role='dialog'] {
+		border: 1px solid ButtonText;
+	}
+	:focus-visible {
+		outline: 2px solid Highlight;
+	}
+}
+:root {
+	--glass-tint: 2%;
+	--glass-tint-strong: 6%;
+	--border: var(--raw-border);
+	--raw-main: #101114;
+	--raw-sidebar: #15161a;
+	--raw-card: rgba(25, 27, 32, 0.94);
+	--raw-item-active: #23252c;
+	--control-size-normal: 40px;
+}
+html[data-visual='pixel'][data-pixel-type='classic'] {
+	--font-family: 'Monocraft', monospace;
+}
+html[data-visual='pixel'] :is(.vr-library-row, .vr-editorial, .style-option, .hero) {
+	border-top: 2px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+html:not([data-quality='experience']) .ambient-bg,
+html[data-no-infinite-fx] .ambient-bg {
+	animation: none;
+	filter: none;
+}
+html:not([data-quality='experience']) .ambient-bg::after,
+html[data-no-infinite-fx] .ambient-bg::after {
+	content: none;
+	animation: none;
+}
+html[data-visual-paused] *::before,
+html[data-visual-paused] *::after {
+	animation-play-state: paused !important;
+}
+html[data-reduce-motion] *::before,
+html[data-reduce-motion] *::after,
+html[data-quality='lite'] *::before,
+html[data-quality='lite'] *::after {
+	animation: none !important;
+	transition: none !important;
+}
+html[data-material='matte'] [role='dialog'] {
+	backdrop-filter: none;
+}

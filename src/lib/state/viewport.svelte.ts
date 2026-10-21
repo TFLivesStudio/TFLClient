@@ -34,13 +34,13 @@ import { appState } from './state.svelte';
 // se puede tocar ese archivo en esta entrega — alcance explícito: solo
 // AppShell/TitleBar/Sidebar/este módulo). Si alguno de los dos valores
 // cambia alguna vez, hay que actualizar el otro a mano.
-export const SIDEBAR_EXPANDED_WIDTH = 272;
+export const SIDEBAR_EXPANDED_WIDTH = 232;
 
 // Ancho del riel solo-íconos. Antes vivía hardcodeado y duplicado a mano
 // dentro de Sidebar.svelte; ahora es un único valor que Sidebar.svelte Y
 // TitleBar.svelte importan de acá, así el ancho de la marca en la barra de
 // título y el ancho real de la sidebar nunca pueden quedar desincronizados.
-export const SIDEBAR_COLLAPSED_WIDTH = 76;
+export const SIDEBAR_COLLAPSED_WIDTH = 72;
 
 // Debajo de este ancho de ventana ya no entran cómodos la sidebar completa
 // (272px) más un panel principal usable — se fuerza el modo compacto sin
@@ -71,6 +71,11 @@ export function initViewportListener() {
 		}, 120);
 	};
 	window.addEventListener('resize', onResize);
+	return () => {
+		window.removeEventListener('resize', onResize);
+		clearTimeout(resizeTimer);
+		initialized = false;
+	};
 }
 
 /** Preferencia manual OR falta de espacio — ver comentario largo arriba.

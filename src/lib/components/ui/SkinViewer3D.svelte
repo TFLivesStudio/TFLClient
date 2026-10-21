@@ -1,31 +1,8 @@
 <script lang="ts">
-	import { SkinViewer, IdleAnimation } from 'skinview3d';
-	import { appearance } from '$lib/state/appearanceState.svelte';
-
-	/**
-	 * Visor 3D de skin compartido — Entrega C (Home), sección 1/7 del
-	 * encargo. Antes de esto, el mismo ciclo de vida de skinview3d (crear
-	 * canvas, cargar textura, auto-rotate, dispose) estaba duplicado casi
-	 * igual en WelcomeState.svelte y SkinManagerModal.svelte: misma
-	 * librería, mismo patrón onMount/crear → onDestroy/dispose, solo con
-	 * autoRotateSpeed/zoom levemente distintos entre los dos (0.6/0.9 acá,
-	 * 0.8/0.85 allá). Este componente centraliza esa lógica una sola vez;
-	 * cada caller sigue pasando su propio autoRotateSpeed/zoom/tamaño, así
-	 * que ningún visual de los dos sitios cambia.
-	 *
-	 * Ciclo de vida (sección 10.4 del encargo):
-	 *  - el canvas y el `SkinViewer` se crean una sola vez, cuando el
-	 *    elemento existe (primer `$effect`).
-	 *  - cambios de `skinUrl`/`capeUrl` (nueva cuenta, skin actualizado,
-	 *    capa elegida) solo piden la textura de nuevo, sin recrear el
-	 *    viewer.
-	 *  - si `loadSkin`/`loadCape` rechaza (textura caída, sin red — ver
-	 *    `network.svelte.ts`), se avisa por `onSkinError`/`onCapeError` en
-	 *    vez de dejar un canvas mudo; el caller decide qué mostrar.
-	 *  - dispose() corre tanto si el componente se destruye (navegación
-	 *    fuera, Home deja de estar montada porque AppShell la reemplaza por
-	 *    InstanceDetail) como si width/height cambian (se recrea limpio).
-	 */
+	import type { SkinViewer } from 'skinview3d';
+	import { effects, runtime } from '$lib/visual/runtime.svelte';
+	import { vr } from '$lib/i18n/refresh';
+	import { Box, UserRound } from 'lucide-svelte';
 	let {
 		skinUrl = null,
 		capeUrl = null,
@@ -35,7 +12,9 @@
 		autoRotateSpeed = 0.7,
 		zoom = 0.9,
 		onSkinError,
-		onCapeError
+		onCapeError,
+		priority = 'studio',
+		launching = false
 	}: {
 		skinUrl?: string | null;
 		capeUrl?: string | null;
@@ -46,82 +25,246 @@
 		zoom?: number;
 		onSkinError?: (error: unknown) => void;
 		onCapeError?: (error: unknown) => void;
+		priority?: 'hero' | 'studio';
+		launching?: boolean;
 	} = $props();
-
-	let canvasEl: HTMLCanvasElement | undefined = $state();
-	let viewer: SkinViewer | undefined;
-
-	// Perfil Lite / "reducir movimiento" → personaje estático en vez de
-	// auto-rotate corriendo siempre (sección 8 de Entrega C).
-	const effectiveAutoRotate = $derived(
-		autoRotate && appearance.quality !== 'lite' && !appearance.reduceMotion
+	let canvas = $state<HTMLCanvasElement>(),
+		container = $state<HTMLDivElement>(),
+		viewer = $state.raw<SkinViewer | null>(null);
+	let manual = $state(false),
+		intersecting = $state(true),
+		failed = $state(false);
+	const enabled = $derived(!!skinUrl && !failed && (effects.current.viewer || manual));
+	const visible = $derived(
+		intersecting && runtime.visible && !(priority === 'hero' && runtime.overlay)
 	);
-
-	// Experience — sección 5.3 del encargo: "personaje con animaciones
-	// idle" es el punto más concreto y ausente que pide esta entrega.
-	// IdleAnimation de skinview3d es un sin/cos liviano (balanceo de brazos
-	// + capa, ver node_modules/skinview3d/libs/animation.js) — no agrega
-	// geometría ni carga nada nuevo, así que puede sumarse encima del
-	// auto-rotate que Experience ya comparte con Balanced sin costo real.
-	// Lite/reduceMotion quedan afuera por la misma razón que el auto-rotate.
-	const effectiveIdleAnimation = $derived(
-		appearance.quality === 'experience' && !appearance.reduceMotion
-	);
-
 	$effect(() => {
-		if (!canvasEl) return;
-		const created = new SkinViewer({ canvas: canvasEl, width, height });
-		viewer = created;
+		void skinUrl;
+		failed = false;
+	});
+	$effect(() => {
+		if (!container) return;
+		const observer = new IntersectionObserver(
+			(entries) => {
+				intersecting = entries[0]?.isIntersecting ?? false;
+			},
+			{ threshold: 0.05 }
+		);
+		observer.observe(container);
+		return () => observer.disconnect();
+	});
+	$effect(() => {
+		if (!canvas || !enabled || !visible) return;
+		const node = canvas,
+			w = width,
+			h = height;
+		const lost = () => { failed = true; };
+		node.addEventListener('webglcontextlost', lost);
+		let disposed = false;
+		let created: SkinViewer | null = null;
+		import('skinview3d')
+			.then(({ SkinViewer }) => {
+				if (disposed) return;
+				try {
+					created = new SkinViewer({
+						canvas: node,
+						width: w,
+						height: h,
+						pixelRatio: effects.current.dpr,
+						renderPaused: true
+					});
+					created.zoom = zoom;
+					created.controls.enableZoom = false;
+					created.controls.enablePan = false;
+					viewer = created;
+				} catch (error) {
+					failed = true;
+					onSkinError?.(error);
+				}
+			})
+			.catch((error) => {
+				if (!disposed) {
+					failed = true;
+					onSkinError?.(error);
+				}
+			});
 		return () => {
-			created.dispose();
-			if (viewer === created) viewer = undefined;
+			disposed = true;
+			node.removeEventListener('webglcontextlost', lost);
+			if (viewer === created) viewer = null;
+			created?.dispose();
 		};
 	});
-
 	$effect(() => {
-		if (!viewer) return;
-		viewer.autoRotate = effectiveAutoRotate;
-		viewer.autoRotateSpeed = autoRotateSpeed;
-		viewer.zoom = zoom;
+		const current = viewer,
+			url = skinUrl;
+		if (!current) return;
+		let stale = false;
+		Promise.resolve(url ? current.loadSkin(url) : current.loadSkin(null))
+			.then(() => {
+				if (!stale) current.render();
+			})
+			.catch((error) => {
+				if (!stale) {
+					failed = true;
+					onSkinError?.(error);
+				}
+			});
+		return () => {
+			stale = true;
+		};
 	});
-
-	// Efecto separado de la de arriba a propósito: autoRotateSpeed/zoom
-	// pueden cambiar seguido (scroll del usuario sobre el canvas) y crear
-	// una IdleAnimation nueva en cada tick reiniciaría su progreso, se vería
-	// como un tirón en el balanceo de brazos. Esto solo corre cuando
-	// `viewer` aparece/desaparece o cuando el perfil de calidad cambia.
 	$effect(() => {
-		if (!viewer) return;
-		viewer.animation = effectiveIdleAnimation ? new IdleAnimation() : null;
+		const current = viewer,
+			url = capeUrl;
+		if (!current) return;
+		let stale = false;
+		Promise.resolve(url ? current.loadCape(url) : current.loadCape(null))
+			.then(() => {
+				if (!stale) current.render();
+			})
+			.catch((error) => {
+				if (!stale) onCapeError?.(error);
+			});
+		return () => {
+			stale = true;
+		};
 	});
-
 	$effect(() => {
-		if (!viewer) return;
-		if (!skinUrl) {
-			viewer.loadSkin(null);
-			return;
-		}
-		Promise.resolve(viewer.loadSkin(skinUrl)).catch((err) => onSkinError?.(err));
+		const current = viewer;
+		if (!current) return;
+		const animate = visible && effects.current.animateViewer;
+		current.renderPaused = !animate;
+		current.autoRotate = animate && autoRotate;
+		current.autoRotateSpeed = autoRotateSpeed;
+		current.pixelRatio = effects.current.dpr;
+		current.zoom = zoom;
+		const cinematic = effects.current.cinematic,
+			launch = launching;
+		let stale = false;
+		import('skinview3d').then(({ IdleAnimation, WalkingAnimation }) => {
+			if (stale || viewer !== current) return;
+			current.animation =
+				animate && cinematic ? (launch ? new WalkingAnimation() : new IdleAnimation()) : null;
+			if (!animate) current.render();
+		});
+		return () => {
+			stale = true;
+		};
 	});
-
-	$effect(() => {
-		if (!viewer) return;
-		if (!capeUrl) {
-			viewer.loadCape(null);
-			return;
-		}
-		Promise.resolve(viewer.loadCape(capeUrl)).catch((err) => onCapeError?.(err));
-	});
+	function draw() {
+		if (viewer?.renderPaused) viewer.render();
+	}
 </script>
 
-<canvas bind:this={canvasEl} aria-hidden="true"></canvas>
+<div class="skin-view" bind:this={container} style:width={`${width}px`}>
+	{#if enabled}<canvas
+			bind:this={canvas}
+			aria-label={vr('studio')}
+			onpointermove={draw}
+			
+			style:height={`${height}px`}
+		></canvas>
+	{:else}<div
+			class="static-view"
+			style:height={`${height}px`}
+			role="img"
+			aria-label={skinUrl ? vr('skinStatic') : vr('noSkin')}
+		>
+			{#if skinUrl}<div class="pixel-person" style={`--skin:url("${skinUrl}")`}>
+					<span class="head"></span><span class="body"></span><span class="arm left"></span><span
+						class="arm right"
+					></span><span class="leg left"></span><span class="leg right"></span>
+				</div>{:else}<UserRound size={64} strokeWidth={1} />{/if}
+		</div>{/if}
+	{#if !effects.current.viewer && skinUrl}<button
+			class="viewer-toggle"
+			onclick={() => (manual = !manual)}
+			><Box size={14} />{manual ? vr('disable3d') : vr('enable3d')}</button
+		>{/if}
+	{#if failed}<p class="vr-muted">{vr('noSkin')}</p>{/if}
+</div>
 
 <style>
-	canvas {
-		display: block;
+	.skin-view {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		max-width: 100%;
+	}
+	.skin-view canvas {
+		max-width: 100%;
+		object-fit: contain;
 		cursor: grab;
 	}
-	canvas:active {
-		cursor: grabbing;
+	.static-view {
+		display: grid;
+		place-items: center;
+		width: 100%;
+		color: var(--text-muted);
+	}
+	.viewer-toggle {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 7px;
+		padding: 8px 10px;
+		background: var(--surface-card);
+		color: var(--text-primary);
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius-sm);
+		font-size: var(--text-caption);
+	}
+	.pixel-person {
+		position: relative;
+		width: 128px;
+		height: 256px;
+		image-rendering: pixelated;
+	}
+	.pixel-person span {
+		position: absolute;
+		background-image: var(--skin);
+		background-size: 512px 512px;
+		image-rendering: pixelated;
+	}
+	.head {
+		width: 64px;
+		height: 64px;
+		left: 32px;
+		top: 0;
+		background-position: -64px -64px;
+	}
+	.body {
+		width: 64px;
+		height: 96px;
+		left: 32px;
+		top: 64px;
+		background-position: -160px -160px;
+	}
+	.arm {
+		width: 32px;
+		height: 96px;
+		top: 64px;
+		background-position: -352px -160px;
+	}
+	.arm.left {
+		left: 0;
+	}
+	.arm.right {
+		right: 0;
+		transform: scaleX(-1);
+	}
+	.leg {
+		width: 32px;
+		height: 96px;
+		top: 160px;
+		background-position: -32px -160px;
+	}
+	.leg.left {
+		left: 32px;
+	}
+	.leg.right {
+		left: 64px;
+		transform: scaleX(-1);
 	}
 </style>
