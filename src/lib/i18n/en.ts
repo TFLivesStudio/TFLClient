@@ -10,7 +10,8 @@ export const en: Dictionary = {
 		back: 'Back',
 		continue: 'Continue',
 		copy: 'Copy',
-		copied: 'Copied'
+		copied: 'Copied',
+		install: 'Install'
 	},
 	ui: {
 		close: 'Close',
@@ -345,7 +346,18 @@ export const en: Dictionary = {
 		disabledTag: 'disabled',
 		rollbackButton: 'Undo last update ({{count}})',
 		rollbackHint: 'Puts mods back to the version they had before "Update all".',
-		rolledBack: '{{count}} mods went back to their previous version.'
+		rolledBack: '{{count}} mods went back to their previous version.',
+		exploreWide: 'Explore in wide view',
+		viewDetail: 'View full page',
+		backToResults: 'Back to results',
+		errorNetwork: "Couldn't connect to Modrinth — check your connection.",
+		errorTimeout: 'Modrinth took too long to respond.',
+		errorInvalid: "Modrinth sent back something that couldn't be read.",
+		errorProviderDown: "Modrinth isn't responding right now.",
+		errorRateLimited: 'Too many requests — wait a moment and try again.',
+		retry: 'Retry',
+		noResults: 'No results for this search.',
+		clearCategories: 'Clear filters'
 	},
 	instanceDetail: {
 		playTimeHours: '{{h}} h {{m}} min played',
@@ -488,7 +500,51 @@ export const en: Dictionary = {
 			"Vanilla doesn't support modpacks — choose Fabric, Forge, NeoForge or Quilt when creating the instance.",
 		hint: "Installing a modpack adds its mods and configuration to this instance — it doesn't replace what you already had. Removing it deletes exactly what it brought, nothing more.",
 		installedCount: 'Installed ({{count}})',
-		update: 'Update'
+		update: 'Update',
+		overwriteWarningTitle: 'A modpack is already installed',
+		overwriteWarningMessage:
+			'This instance already has a modpack installed. Installing another one may overwrite shared config files. Continue?',
+		overwriteWarningConfirm: 'Install anyway'
+	},
+	pagination: {
+		showing: 'Showing {{start}}–{{end}} of {{total}} results',
+		prev: 'Previous',
+		next: 'Next',
+		pageOf: 'Page {{page}} of {{totalPages}}'
+	},
+	sort: {
+		label: 'Sort by',
+		relevance: 'Relevance',
+		downloads: 'Most downloaded',
+		follows: 'Most followed',
+		newest: 'Newest',
+		updated: 'Recently updated'
+	},
+	contentExplorer: {
+		title: 'Exploring {{noun}} for {{instance}}',
+		subtitle: '{{mcVersion}} · {{loader}}',
+		back: 'Back to instance',
+		filters: 'Filters',
+		compatibilityAdvanced: 'Browse content from other versions',
+		compatibilityAdvancedHint:
+			"Browsing only — if you install something that isn't compatible with this instance, the launcher warns you first.",
+		incompatibleWithInstance: 'Not compatible with this instance'
+	},
+	projectDetail: {
+		downloads: '{{count}} downloads',
+		followers: '{{count}} followers',
+		updated: 'Updated: {{date}}',
+		published: 'Published: {{date}}',
+		versions: 'Versions',
+		changelog: 'Changelog',
+		gallery: 'Gallery',
+		links: 'Links',
+		sourceLink: 'Source code',
+		wikiLink: 'Wiki',
+		discordLink: 'Discord',
+		issuesLink: 'Report an issue',
+		openOnModrinth: 'View on Modrinth',
+		loadFailed: "Couldn't load the project page."
 	},
 	shadersPanel: {
 		qualityLabel: 'Graphics quality (quick)',

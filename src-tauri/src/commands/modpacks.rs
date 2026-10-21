@@ -10,55 +10,45 @@ use serde::{Deserialize, Serialize};
 use tauri::command;
 
 use crate::services::content;
-use crate::services::content::types::ContentSearchHit;
+use crate::services::content::providers::ProjectType;
+use crate::services::content::search::SearchRequest;
+use crate::services::content::types::{ContentProjectDetail, ContentSearchPage, SearchIndex};
 
-const MODRINTH_API: &str = "https://api.modrinth.com/v2";
-
-#[derive(Debug, Deserialize)]
-struct SearchResponse {
-    hits: Vec<RawHit>,
-}
-
-#[derive(Debug, Deserialize)]
-struct RawHit {
-    project_id: String,
-    title: String,
-    description: String,
-    icon_url: Option<String>,
-    downloads: u64,
-    author: String,
-}
-
+/// Antes tenía su propia copia de `search_facets`/`SearchResponse`
+/// divergente de `providers/modrinth.rs` — unificado sobre
+/// `ContentService::search` (mismo motor que mods/shaders/etc., con
+/// `ProjectType::Modpack`). La instalación/actualización de modpacks,
+/// abajo, no cambia: sigue siendo `cubrinth::mrpack`, nada de esto afecta
+/// ese camino.
 #[command]
 pub async fn search_modpacks(
     query: String,
     mc_version: String,
     loader: String,
-) -> Result<Vec<ContentSearchHit>, String> {
-    let facets = format!(
-        r#"[["project_type:modpack"],["categories:{}"],["versions:{}"]]"#,
-        loader.to_lowercase(),
-        mc_version
-    );
-    let url = format!(
-        "{MODRINTH_API}/search?query={}&facets={}",
-        urlencoding::encode(&query),
-        urlencoding::encode(&facets)
-    );
-    let resp: SearchResponse = crate::core::get_json_retrying(&url).await?;
-
-    Ok(resp
-        .hits
-        .into_iter()
-        .map(|h| ContentSearchHit {
-            project_id: h.project_id,
-            title: h.title,
-            description: h.description,
-            icon_url: h.icon_url,
-            downloads: h.downloads,
-            author: h.author,
+    categories: Vec<String>,
+    offset: u32,
+    limit: u32,
+    index: String,
+) -> Result<ContentSearchPage, String> {
+    content::service()
+        .search(SearchRequest {
+            query: &query,
+            mc_version: &mc_version,
+            loader: &loader,
+            categories: &categories,
+            project_type: ProjectType::Modpack,
+            offset,
+            limit,
+            index: SearchIndex::try_from(index.as_str())?,
         })
-        .collect())
+        .await
+}
+
+#[command]
+pub async fn get_modpack_project_detail(
+    project_id: String,
+) -> Result<ContentProjectDetail, String> {
+    content::service().project_detail(&project_id).await
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

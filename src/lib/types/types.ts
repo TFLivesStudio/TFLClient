@@ -139,6 +139,51 @@ export interface ModSearchHit {
 	author: string;
 }
 
+/** Una página de resultados de búsqueda — lo que devuelven ahora
+ * `searchMods`/`searchShaders`/`searchResourcepacks`/`searchPlugins`/
+ * `searchModpacks` en vez de un array plano. `total_hits` viene de la API,
+ * no es un número inventado en el frontend. */
+export interface ContentSearchPage {
+	hits: ModSearchHit[];
+	total_hits: number;
+	offset: number;
+	limit: number;
+}
+
+/** Índices de orden que Modrinth API v2 admite — ningún valor inventado. */
+export type SortIndex = 'relevance' | 'downloads' | 'follows' | 'newest' | 'updated';
+
+export interface ContentGalleryImage {
+	url: string;
+	title: string | null;
+	featured: boolean;
+}
+
+/** Ficha completa de un proyecto — se pide a demanda al abrir el detalle
+ * (`getModProjectDetail`/etc.), nunca durante una búsqueda. Sin `author`:
+ * Modrinth no lo expone en este endpoint — usar el de `ModSearchHit` desde
+ * el que se abrió la ficha. */
+export interface ContentProjectDetail {
+	project_id: string;
+	title: string;
+	icon_url: string | null;
+	description: string;
+	/** Markdown crudo — sanear antes de renderizar, ver `ProjectDetailView`. */
+	body: string;
+	categories: string[];
+	game_versions: string[];
+	loaders: string[];
+	downloads: number;
+	followers: number;
+	published: string;
+	updated: string;
+	source_url: string | null;
+	wiki_url: string | null;
+	discord_url: string | null;
+	issues_url: string | null;
+	gallery: ContentGalleryImage[];
+}
+
 export interface InstalledModInfo {
 	filename: string;
 	project_id: string | null;
