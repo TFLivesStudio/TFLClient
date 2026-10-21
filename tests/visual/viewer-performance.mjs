@@ -16,7 +16,12 @@ try {
 		for (const quality of ['Lite', 'Balanced', 'Experience']) {
 			const p = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 			p.setDefaultTimeout(10000);
-			await p.addInitScript(installFixture, { quality, premium: true, skin: true });
+			await p.addInitScript(installFixture, {
+				quality,
+				premium: true,
+				skin: true,
+				appVersion: revision === 'baseline' ? '0.12.3' : undefined
+			});
 			await p.addInitScript(() => {
 				window.__contexts = 0;
 				window.__frames = 0;

@@ -15,7 +15,10 @@ try {
 		for (const quality of ['Lite', 'Balanced', 'Experience'])
 			for (let run = 0; run < 3; run++) {
 				const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-				await page.addInitScript(installFixture, { quality });
+				await page.addInitScript(installFixture, {
+					quality,
+					appVersion: revision === 'baseline' ? '0.12.3' : undefined
+				});
 				const cdp = await page.context().newCDPSession(page);
 				await cdp.send('Performance.enable');
 				const start = performance.now();

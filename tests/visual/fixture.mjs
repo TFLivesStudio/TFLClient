@@ -1,6 +1,7 @@
 // Browser-only IPC fixture. Never imported by production code.
 export function installFixture({
 	quality = 'Balanced',
+	appVersion = '0.12.4-beta.1',
 	empty = false,
 	language = 'es',
 	theme = 'dark',
@@ -163,6 +164,6 @@ export function installFixture({
 			return null;
 		}
 	};
-	localStorage.setItem('tfl-last-seen-version', '0.12.3');
+	localStorage.setItem('tfl-last-seen-version', appVersion);
 	localStorage.setItem('tfl-locale', language);
 }

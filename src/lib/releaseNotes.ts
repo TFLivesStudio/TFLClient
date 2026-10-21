@@ -219,5 +219,16 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.12.3': [
 		'Arreglado: el código para iniciar sesión con Microsoft no se podía copiar ni pegar con el click derecho. Ahora funciona normal (seguís teniendo también el botón de copiar al lado del código).'
+	],
+	'0.12.4-beta.1': [
+		'BETA — Visual Refresh 2. Esta versión de prueba puede contener errores; contanos qué falla y en qué pantalla. Se instala desde los descargables de este release.',
+		'Nuevo: estilos Modern y Pixel, materiales y escenas visuales desde Ajustes, con vista previa y opciones para personalizar tu Home.',
+		'Nueva Biblioteca con lista o cuadrícula, búsqueda, favoritos y colecciones que no cambian las carpetas de tus instancias.',
+		'Home renovada: la última instancia jugada, su artwork y el botón Jugar como protagonistas; podés ocultar los paneles secundarios.',
+		'Detalle de instancia con navegación técnica lateral, dashboard de servidor y un espacio Explorar conectado a TFL Selection y al contenido de tus instancias.',
+		'Estudio de personaje con cuentas, skins y capas. En Lite la skin es estática por defecto y podés activar 3D manualmente; el visor se detiene cuando queda oculto.',
+		'Nuevo historial de notificaciones de la sesión y mejoras de navegación por teclado y foco en los diálogos.',
+		'Actualizadas las dependencias TLS y de certificados para corregir los avisos de seguridad recientes.',
+		'Esta beta visual es independiente de Content Discovery 0.13.0-beta.1. Como el canal beta elige la versión más alta, usá la descarga directa para probar esta edición.'
 	]
 };
