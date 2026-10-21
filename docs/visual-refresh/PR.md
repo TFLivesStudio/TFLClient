@@ -28,11 +28,8 @@ Certificación nativa Windows/macOS/Linux, accesibilidad con lector de pantalla,
 
 ## Estado de publicación
 
-Este archivo es el cuerpo preparado del PR, **no un PR creado en GitHub**. La publicación de la rama falló porque la credencial disponible fue rechazada (`Invalid username or token`); `gh auth status` también la marca inválida. La implementación y evidencias quedan conservadas en commits locales. Una vez que el entorno tenga una credencial válida, los comandos son:
+Rama publicada: `feat/visual-refresh-2`. PR en borrador: [#5 — Visual Refresh 2](https://github.com/TFLivesStudio/TFLClient/pull/5).
 
-```sh
-git push -u origin feat/visual-refresh-2
-gh pr create --draft --base main --head feat/visual-refresh-2 \
-  --title "Visual Refresh 2: Modern/Pixel y espacios de trabajo" \
-  --body-file docs/visual-refresh/PR.md
-```
+Los instaladores de revisión se generan mediante `workflow_dispatch` de [Build TFL Client](https://github.com/TFLivesStudio/TFLClient/actions/workflows/build.yml), sobre esta rama y con sus compuertas de calidad. La matriz incluye Windows, Linux y macOS. El modo manual sube artifacts y no publica una release estable. Los resultados y enlaces de descarga se mantienen en el PR y en el run de Actions.
+
+La certificación nativa/manual descrita arriba sigue pendiente hasta probar los instaladores en sus sistemas correspondientes.

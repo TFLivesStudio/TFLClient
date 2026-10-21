@@ -16,6 +16,12 @@
     "compactWorkspaces": "pass",
     "skinLifecycle": "pass"
   },
-  "publication": "blocked: GitHub rejects available credential; no branch push or draft PR created",
-  "nativeCertification": "not completed: local WebKit helpers unavailable at system path; Windows/macOS not available"
+  "nativeCertification": "not completed: local WebKit helpers unavailable at system path; Windows/macOS not available",
+  "publicationAtCapture": "blocked: GitHub rejects available credential; no branch push or draft PR created",
+  "publicationFollowUp": {
+    "branch": "feat/visual-refresh-2",
+    "pullRequest": "https://github.com/TFLivesStudio/TFLClient/pull/5",
+    "buildWorkflow": "https://github.com/TFLivesStudio/TFLClient/actions/workflows/build.yml",
+    "mode": "Manual branch builds; no stable release publication"
+  }
 }
