@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { onMount } from 'svelte';
 	import type { InstanceData, InstalledModpack } from '$lib/types/types';
 	import {
@@ -81,7 +82,7 @@
 	const explorer = createContentExplorer(() => ({ instance, kind: 'modpack' }));
 	$effect(() => {
 		void instance.name;
-		explorer.resetForNewContext();
+		untrack(() => explorer.resetForNewContext());
 	});
 
 	async function handleUpdate(pack: InstalledModpack) {

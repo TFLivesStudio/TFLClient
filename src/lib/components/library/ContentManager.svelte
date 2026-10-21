@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import type {
 		InstanceData,
 		InstalledModInfo,
@@ -497,7 +498,7 @@
 		if (subtab !== 'download') return;
 		void instance.name;
 		void kind;
-		explorer.resetForNewContext();
+		untrack(() => explorer.resetForNewContext());
 	});
 
 	const installedProjectIds = $derived(

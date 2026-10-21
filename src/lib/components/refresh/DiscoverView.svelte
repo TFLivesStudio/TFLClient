@@ -2,8 +2,7 @@
 	import { Compass, ArrowUpRight, Sparkles, Box } from 'lucide-svelte';
 	import { vr } from '$lib/i18n/refresh';
 	import { appState } from '$lib/state/state.svelte';
-	import { openModal } from '$lib/state/uiState.svelte';
-	import { openInstanceTab } from '$lib/state/instanceState.svelte';
+	import { openModal, openContentExplorer } from '$lib/state/uiState.svelte';
 	import InstanceMark from './InstanceMark.svelte';
 	const clients = $derived(appState.instances.filter((i) => !i.server_type));
 </script>
@@ -30,7 +29,11 @@
 		<p class="vr-muted">{vr('contextualHint')}</p>
 		<div class="context-list">
 			{#each clients as instance (instance.uuid)}<button
-					onclick={() => openInstanceTab(instance, 'mods')}
+					onclick={() =>
+						openContentExplorer({
+							instance,
+							kind: instance.loader === 'vanilla' ? 'resourcepack' : 'mod'
+						})}
 					><InstanceMark {instance} /><span
 						><strong>{instance.name}</strong><small>{instance.mc_version} · {instance.loader}</small
 						></span

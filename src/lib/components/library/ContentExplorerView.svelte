@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
+	import { modalFocus } from '$lib/visual/modalFocus';
 	import type { InstanceData } from '$lib/types/types';
 	import type { ContentExplorerKind } from '$lib/state/uiState.svelte';
 	import { createContentExplorer, errorMessageKey } from '$lib/state/contentExplorer.svelte';
@@ -185,7 +187,7 @@
 		if (!e) {
 			e = createContentExplorer(() => ({ instance, kind: k }));
 			explorers.set(k, e);
-			e.init();
+			untrack(() => e!.init());
 		}
 		return e;
 	}
@@ -193,7 +195,9 @@
 
 	$effect(() => {
 		void instance.name;
-		for (const e of explorers.values()) e.resetForNewContext();
+		untrack(() => {
+			for (const e of explorers.values()) e.resetForNewContext();
+		});
 	});
 
 	// "Ya instalado" para la pestaña activa — mismo chequeo que
@@ -245,7 +249,7 @@
 <svelte:window onclick={handleWindowClick} />
 
 <div class="overlay">
-	<div class="panel" role="dialog" aria-modal="true" tabindex="-1">
+	<div use:modalFocus={onClose} class="panel" role="dialog" aria-modal="true" tabindex="-1">
 		<header class="panel-header">
 			<div class="header-info">
 				<h2>
