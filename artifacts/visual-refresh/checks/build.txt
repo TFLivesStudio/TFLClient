@@ -1,0 +1,172 @@
+$ vite build
+vite v8.3.0 building ssr environment for production...
+transforming...
+2:43:06 AM [vite-plugin-svelte] src/lib/components/settings/SettingsPanel.svelte:1114:8 noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex
+1112:               </p>
+1113:               <div class="ms-code-row">
+1114:                 <code class="ms-code" tabindex="0">{msCode}</code>
+                                                                        ^
+1115:                 <button
+1116:                   type="button"
+2:43:06 AM [vite-plugin-svelte] src/lib/components/ui/ContextMenu.svelte:51:24 This reference only captures the initial value of `x`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+49:   // posición después de montar (ya con el tamaño real) para que no quede
+50:   // cortado — un menú contextual que se sale de la pantalla es inusable.
+51:   let adjustedX = $state(x);
+                              ^
+52:   let adjustedY = $state(y);
+53:   onMount(async () => {
+2:43:06 AM [vite-plugin-svelte] src/lib/components/ui/ContextMenu.svelte:52:24 This reference only captures the initial value of `y`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+50:   // cortado — un menú contextual que se sale de la pantalla es inusable.
+51:   let adjustedX = $state(x);
+52:   let adjustedY = $state(y);
+                              ^
+53:   onMount(async () => {
+54:     if (!menuEl) return;
+2:43:06 AM [vite-plugin-svelte] src/lib/components/onboarding/Onboarding.svelte:125:6 noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex
+123:           <p>{t('onboarding.enterCode')}</p>
+124:           <div class="code-row">
+125:             <code class="code" tabindex="0">{msCode}</code>
+                                                                ^
+126:             <button type="button" class="copy-code" onclick={copyMicrosoftCode}>
+127:               {#if codeCopied}<CheckCircle2 size={15} /> {t('common.copied')}{:else}<Copy
+2:43:06 AM [vite-plugin-svelte] src/lib/components/library/InstanceDetail.svelte:125:35 This reference only captures the initial value of `initialTab`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+123:   ];
+124:   let tab = $state<TabKey>(
+125:     (validTabs as string[]).includes(initialTab ?? '') ? (initialTab as TabKey) : 'details'
+                                                    ^
+126:   );
+127:   let showDeleteConfirm = $state(false);
+2:43:06 AM [vite-plugin-svelte] src/lib/components/library/InstanceDetail.svelte:125:56 This reference only captures the initial value of `initialTab`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+123:   ];
+124:   let tab = $state<TabKey>(
+125:     (validTabs as string[]).includes(initialTab ?? '') ? (initialTab as TabKey) : 'details'
+                                                                         ^
+126:   );
+127:   let showDeleteConfirm = $state(false);
+✓ 3933 modules transformed.
+rendering chunks...
+vite v8.3.0 building client environment for production...
+transforming...
+2:43:10 AM [vite-plugin-svelte] src/lib/components/onboarding/Onboarding.svelte:125:6 noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex
+123:           <p>{t('onboarding.enterCode')}</p>
+124:           <div class="code-row">
+125:             <code class="code" tabindex="0">{msCode}</code>
+                                                                ^
+126:             <button type="button" class="copy-code" onclick={copyMicrosoftCode}>
+127:               {#if codeCopied}<CheckCircle2 size={15} /> {t('common.copied')}{:else}<Copy
+2:43:10 AM [vite-plugin-svelte] src/lib/components/ui/ContextMenu.svelte:51:24 This reference only captures the initial value of `x`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+49:   // posición después de montar (ya con el tamaño real) para que no quede
+50:   // cortado — un menú contextual que se sale de la pantalla es inusable.
+51:   let adjustedX = $state(x);
+                              ^
+52:   let adjustedY = $state(y);
+53:   onMount(async () => {
+2:43:10 AM [vite-plugin-svelte] src/lib/components/ui/ContextMenu.svelte:52:24 This reference only captures the initial value of `y`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally
+50:   // cortado — un menú contextual que se sale de la pantalla es inusable.
+51:   let adjustedX = $state(x);
+52:   let adjustedY = $state(y);
+                              ^
+53:   onMount(async () => {
+54:     if (!menuEl) return;
+2:43:11 AM [vite-plugin-svelte] src/lib/components/library/InstanceDetail.svelte:125:35 This reference only captures the initial value of `initialTab`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+123:   ];
+124:   let tab = $state<TabKey>(
+125:     (validTabs as string[]).includes(initialTab ?? '') ? (initialTab as TabKey) : 'details'
+                                                    ^
+126:   );
+127:   let showDeleteConfirm = $state(false);
+2:43:11 AM [vite-plugin-svelte] src/lib/components/library/InstanceDetail.svelte:125:56 This reference only captures the initial value of `initialTab`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally
+123:   ];
+124:   let tab = $state<TabKey>(
+125:     (validTabs as string[]).includes(initialTab ?? '') ? (initialTab as TabKey) : 'details'
+                                                                         ^
+126:   );
+127:   let showDeleteConfirm = $state(false);
+2:43:11 AM [vite-plugin-svelte] src/lib/components/settings/SettingsPanel.svelte:1114:8 noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex
+1112:               </p>
+1113:               <div class="ms-code-row">
+1114:                 <code class="ms-code" tabindex="0">{msCode}</code>
+                                                                        ^
+1115:                 <button
+1116:                   type="button"
+✓ 3970 modules transformed.
+rendering chunks...
+computing gzip size...
+.svelte-kit/output/client/_app/version.json                         0.02 kB │ gzip:   0.04 kB
+.svelte-kit/output/client/.vite/manifest.json                       2.85 kB │ gzip:   0.59 kB
+.svelte-kit/output/client/_app/immutable/assets/0.BWIfPC6b.css     21.78 kB │ gzip:   5.54 kB
+.svelte-kit/output/client/_app/immutable/assets/2.C9pNoW5u.css    149.16 kB │ gzip:  21.87 kB
+.svelte-kit/output/client/_app/immutable/chunks/xihTtKlq.js         0.06 kB │ gzip:   0.08 kB
+.svelte-kit/output/client/_app/immutable/entry/start.BwcKWcJF.js    0.07 kB │ gzip:   0.08 kB
+.svelte-kit/output/client/_app/immutable/nodes/0.BEgag80y.js        0.39 kB │ gzip:   0.29 kB
+.svelte-kit/output/client/_app/immutable/nodes/1.SeNkSOJy.js        0.58 kB │ gzip:   0.32 kB
+.svelte-kit/output/client/_app/immutable/chunks/uBIymjUX.js         1.23 kB │ gzip:   0.68 kB
+.svelte-kit/output/client/_app/immutable/chunks/Bjy-W4x2.js         1.36 kB │ gzip:   0.65 kB
+.svelte-kit/output/client/_app/immutable/entry/app.Bt-qweMv.js      2.88 kB │ gzip:   1.30 kB
+.svelte-kit/output/client/_app/immutable/chunks/ULvGuIrs.js        26.64 kB │ gzip:  10.28 kB
+.svelte-kit/output/client/_app/immutable/chunks/D0RSKE3L.js        57.31 kB │ gzip:  21.64 kB
+.svelte-kit/output/client/_app/immutable/nodes/2.BK1GJDkt.js      396.50 kB │ gzip: 110.63 kB
+.svelte-kit/output/client/_app/immutable/chunks/qSYoXkXa.js       517.97 kB │ gzip: 129.18 kB
+
+✓ built in 3.80s
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[33m[PLUGIN_TIMINGS] [0mPlugin hooks ran for 3.6s of this 3.8s build (95%).
+The slowest hooks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is included):
+  - vite-plugin-svelte:compile transform (52%, 2.0s, 1748 calls)
+Additional hook time came from the hooks below and from hooks under 1s.
+1 hook is listed without a time. Its calls overlapped, so the time inside one call includes work from other calls. To find its cost, profile the build with `node --cpu-prof`:
+  - vite-plugin-sveltekit-guard resolveId (15786 calls)
+See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+
+computing gzip size...
+.svelte-kit/output/server/.vite/manifest.json                           3.19 kB │ gzip:  0.57 kB
+.svelte-kit/output/server/_app/immutable/assets/_layout.D1y5hpOY.css   21.55 kB │ gzip:  5.51 kB
+.svelte-kit/output/server/_app/immutable/assets/_page.6BmMEdny.css    149.10 kB │ gzip: 21.86 kB
+.svelte-kit/output/server/entries/pages/_layout.ts.js                   0.11 kB │ gzip:  0.10 kB
+.svelte-kit/output/server/env.js                                        0.22 kB │ gzip:  0.14 kB
+.svelte-kit/output/server/entries/pages/_layout.svelte.js               0.28 kB │ gzip:  0.20 kB
+.svelte-kit/output/server/chunks/env.js                                 0.28 kB │ gzip:  0.17 kB
+.svelte-kit/output/server/internal.js                                   0.40 kB │ gzip:  0.19 kB
+.svelte-kit/output/server/chunks/internal.js                            0.74 kB │ gzip:  0.34 kB
+.svelte-kit/output/server/entries/fallbacks/error.svelte.js             4.21 kB │ gzip:  1.66 kB
+.svelte-kit/output/server/chunks/index-server.js                        4.83 kB │ gzip:  1.77 kB
+.svelte-kit/output/server/chunks/exports.js                             9.01 kB │ gzip:  2.96 kB
+.svelte-kit/output/server/chunks/shared.js                             10.57 kB │ gzip:  3.38 kB
+.svelte-kit/output/server/chunks/utils.js                              31.76 kB │ gzip:  9.35 kB
+.svelte-kit/output/server/chunks/internal2.js                          35.61 kB │ gzip: 10.21 kB
+.svelte-kit/output/server/remote-entry.js                              54.49 kB │ gzip: 12.02 kB
+.svelte-kit/output/server/chunks/server.js                            125.82 kB │ gzip: 33.09 kB
+.svelte-kit/output/server/index.js                                    126.05 kB │ gzip: 31.92 kB
+.svelte-kit/output/server/entries/pages/_page.svelte.js               615.60 kB │ gzip: 92.46 kB
+
+✓ built in 8.82s
+
+Run npm run preview to preview your production build locally.
+
+> Using @sveltejs/adapter-static
+  Wrote site to "build"
+  ✔ done
+[33m[PLUGIN_TIMINGS] [0mPlugin hooks ran for 8.8s. The build took 8.8s. Hooks such as `closeBundle` run after the build ends, so hook time can be more than build time.
+The slowest hooks, timed inside each callback (the wait before a callback starts is excluded, the time it awaits is included):
+  - vite-plugin-sveltekit-compile writeBundle (57%, 5.0s, 1 call)
+  - vite-plugin-svelte:compile transform (24%, 2.1s, 1748 calls)
+Additional hook time came from the hooks below and from hooks under 1s.
+1 hook is listed without a time. Its calls overlapped, so the time inside one call includes work from other calls. To find its cost, profile the build with `node --cpu-prof`:
+  - vite-plugin-sveltekit-guard resolveId (12243 calls)
+See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.

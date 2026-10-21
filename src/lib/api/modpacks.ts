@@ -2,14 +2,35 @@
 import { invoke } from './invoke';
 import type {
 	Loader,
-	ModSearchHit,
 	InstalledModpack,
 	ModpackUpdateInfo,
-	TflSelectionEntry
+	TflSelectionEntry,
+	ContentSearchPage,
+	ContentProjectDetail,
+	SortIndex
 } from '$lib/types/types';
+import { DEFAULT_PAGE_SIZE } from './content';
 
-export const searchModpacks = (query: string, mcVersion: string, loader: Loader) =>
-	invoke<ModSearchHit[]>('search_modpacks', { query, mcVersion, loader });
+export const searchModpacks = (
+	query: string,
+	mcVersion: string,
+	loader: Loader,
+	categories: string[] = [],
+	offset = 0,
+	limit = DEFAULT_PAGE_SIZE,
+	index: SortIndex = 'relevance'
+) =>
+	invoke<ContentSearchPage>('search_modpacks', {
+		query,
+		mcVersion,
+		loader,
+		categories,
+		offset,
+		limit,
+		index
+	});
+export const getModpackProjectDetail = (projectId: string) =>
+	invoke<ContentProjectDetail>('get_modpack_project_detail', { projectId });
 export const installModpack = (
 	instanceName: string,
 	projectId: string,

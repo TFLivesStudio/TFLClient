@@ -1,0 +1,1 @@
+PASS: Lite static skin, lazy import, manual WebGL, overlay disposal/recreation, manual teardown. Synthetic test texture.

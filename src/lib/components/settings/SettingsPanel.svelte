@@ -1,4 +1,8 @@
 <script lang="ts">
+	import ConsoleSettings from '$lib/components/console/ConsoleSettings.svelte';
+	import { w, type WorkbenchKey } from '$lib/i18n/workbench';
+	import VisualSettings from '$lib/components/refresh/VisualSettings.svelte';
+	import { modalFocus } from '$lib/visual/modalFocus';
 	import { onMount } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -52,8 +56,8 @@
 		Download,
 		RefreshCw,
 		Upload,
-		Gauge,
-		HardDrive
+		Terminal,
+		Search
 	} from 'lucide-svelte';
 	import InfoTooltip from '$lib/components/ui/InfoTooltip.svelte';
 
@@ -194,10 +198,63 @@
 		}
 	];
 
-	let tab = $state<'general' | 'appearance' | 'performance' | 'system' | 'accounts' | 'java'>(
+	let tab = $state<'general' | 'appearance' | 'game' | 'accounts' | 'console' | 'updates'>(
 		'general'
 	);
 
+	type SettingsTab = typeof tab;
+	const tabItems: { id: SettingsTab; icon: typeof Palette; keywords: string }[] = [
+		{
+			id: 'general',
+			icon: SlidersHorizontal,
+			keywords:
+				'idioma language español english archivos files dialogos dialogs almacenamiento storage cache caché'
+		},
+		{
+			id: 'appearance',
+			icon: Palette,
+			keywords:
+				'estilo style modern pixel minecrafti tema theme color acento accent fondo wallpaper fuente font calidad quality lite balanced experience animaciones motion efectos blur home inicio'
+		},
+		{
+			id: 'game',
+			icon: Gamepad2,
+			keywords:
+				'minecraft java ram memoria memory rendimiento performance jugar game multi instancia'
+		},
+		{
+			id: 'accounts',
+			icon: Users,
+			keywords: 'cuenta account microsoft offline sin conexion sesión login mascota mascot skin'
+		},
+		{
+			id: 'console',
+			icon: Terminal,
+			keywords:
+				'consola console log registro graficas charts cpu ram memoria colores errores error warn disco disk historial history'
+		},
+		{
+			id: 'updates',
+			icon: RefreshCw,
+			keywords: 'actualizaciones updates beta version versión descargar download instalar install'
+		}
+	];
+	let settingsQuery = $state('');
+	const matchingTabs = $derived(
+		tabItems.filter((item) =>
+			`${w(item.id)} ${w(`${item.id}Hint` as WorkbenchKey)} ${item.keywords}`
+				.toLowerCase()
+				.normalize('NFD')
+				.replace(/[\u0300-\u036f]/g, '')
+				.includes(
+					settingsQuery
+						.trim()
+						.toLowerCase()
+						.normalize('NFD')
+						.replace(/[\u0300-\u036f]/g, '')
+				)
+		)
+	);
 	let accent = $state(
 		typeof localStorage !== 'undefined'
 			? (localStorage.getItem('tfl-accent') ?? 'orange')
@@ -363,6 +420,7 @@
 	}
 
 	async function setTheme(theme: 'dark' | 'light') {
+		localStorage.setItem('tfl-theme', theme);
 		if (!appState.settings) return;
 		// OLED no tiene variante clara — el botón "Claro" ya viene
 		// deshabilitado mientras surface === 'oled' (ver markup), esto es
@@ -569,10 +627,11 @@
 		javaStatuses = await getJavaStatus();
 	}
 
-	function selectTab(t: 'general' | 'appearance' | 'performance' | 'system' | 'accounts' | 'java') {
+	function selectTab(t: 'general' | 'appearance' | 'game' | 'accounts' | 'console' | 'updates') {
 		tab = t;
 		if (t === 'accounts') loadAccounts();
-		if (t === 'java') loadJava();
+		if (t === 'game') loadJava();
+		document.querySelector('.settings-refresh .panel-body')?.scrollTo(0, 0);
 	}
 </script>
 
@@ -586,10 +645,11 @@
 	tabindex="-1"
 >
 	<div
-		class="panel"
+		class="panel settings-refresh"
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={(e) => e.stopPropagation()}
 		role="dialog"
+		use:modalFocus={onClose}
 		aria-modal="true"
 		tabindex="-1"
 	>
@@ -600,64 +660,32 @@
 			</button>
 		</div>
 
-		<div class="panel-tabs">
-			<button
-				type="button"
-				class="ptab"
-				class:active={tab === 'appearance'}
-				onclick={() => selectTab('appearance')}
+		<nav class="panel-tabs" aria-label={t('settings.title')}>
+			<label class="settings-search"
+				><Search size={14} /><input
+					type="search"
+					bind:value={settingsQuery}
+					placeholder={w('searchSettings')}
+					aria-label={w('searchSettings')}
+				/></label
 			>
-				<Palette size={14} />
-				{t('settings.tabs.appearance')}
-			</button>
-			<button
-				type="button"
-				class="ptab"
-				class:active={tab === 'general'}
-				onclick={() => selectTab('general')}
-			>
-				<SlidersHorizontal size={14} />
-				{t('settings.tabs.general')}
-			</button>
-			<button
-				type="button"
-				class="ptab"
-				class:active={tab === 'performance'}
-				onclick={() => selectTab('performance')}
-			>
-				<Gauge size={14} />
-				{t('settings.tabs.performance')}
-			</button>
-			<button
-				type="button"
-				class="ptab"
-				class:active={tab === 'system'}
-				onclick={() => selectTab('system')}
-			>
-				<HardDrive size={14} />
-				{t('settings.tabs.system')}
-			</button>
-			<button
-				type="button"
-				class="ptab"
-				class:active={tab === 'accounts'}
-				onclick={() => selectTab('accounts')}
-			>
-				<Users size={14} />
-				{t('settings.tabs.accounts')}
-			</button>
-			<button
-				type="button"
-				class="ptab"
-				class:active={tab === 'java'}
-				onclick={() => selectTab('java')}
-			>
-				<Coffee size={14} />
-				{t('settings.tabs.java')}
-			</button>
-		</div>
+			{#each matchingTabs as item (item.id)}{@const Icon = item.icon}
+				<button
+					type="button"
+					class="ptab"
+					class:active={tab === item.id}
+					aria-current={tab === item.id ? 'page' : undefined}
+					onclick={() => selectTab(item.id)}><Icon size={16} />{w(item.id)}</button
+				>
+			{/each}
+			{#if !matchingTabs.length}<p class="hint">{w('noSettings')}</p>{/if}
+		</nav>
 
 		<div class="panel-body">
+			<header class="settings-page-heading">
+				<h3>{w(tab)}</h3>
+				<p>{w(`${tab}Hint` as WorkbenchKey)}</p>
+			</header>
 			{#if tab === 'general'}
 				<section>
 					<span class="section-label">{t('settings.language')}</span>
@@ -676,112 +704,6 @@
 						>
 					</div>
 				</section>
-
-				<section>
-					<span class="section-label">{t('settings.theme.label')}</span>
-					<div class="row">
-						<button
-							type="button"
-							class="choice"
-							class:active={appState.settings?.theme === 'dark'}
-							onclick={() => setTheme('dark')}>{t('settings.theme.dark')}</button
-						>
-						<button
-							type="button"
-							class="choice"
-							class:active={appState.settings?.theme === 'light'}
-							disabled={surface === 'oled'}
-							title={surface === 'oled' ? t('settings.theme.lightDisabledTitle') : undefined}
-							onclick={() => setTheme('light')}>{t('settings.theme.light')}</button
-						>
-					</div>
-				</section>
-
-				<section>
-					<span class="section-label">
-						{t('settings.multiInstance.label')}
-						<InfoTooltip text={t('settings.multiInstance.hint')} />
-					</span>
-					<button
-						type="button"
-						class="choice auto-update-toggle"
-						class:active={!appState.settings?.multi_instance_warning_dismissed}
-						onclick={toggleMultiInstanceWarning}
-					>
-						{appState.settings?.multi_instance_warning_dismissed
-							? t('settings.multiInstance.off')
-							: t('settings.multiInstance.on')}
-					</button>
-				</section>
-			{:else if tab === 'performance'}
-				<section>
-					<span class="section-label">{t('settings.quality.label')}</span>
-					<div class="row">
-						{#each QUALITY as q (q)}
-							<button
-								type="button"
-								class="choice"
-								class:active={appState.settings?.quality_profile === q}
-								onclick={() => handleQuality(q)}>{q}</button
-							>
-						{/each}
-					</div>
-				</section>
-
-				<section>
-					<span class="section-label">
-						{t('settings.quality.reduceMotion.label')}
-						<InfoTooltip text={t('settings.quality.reduceMotion.hint')} />
-					</span>
-					<button
-						type="button"
-						class="choice auto-update-toggle"
-						class:active={appState.settings?.reduce_animations}
-						onclick={toggleReduceAnimations}
-					>
-						{appState.settings?.reduce_animations
-							? t('settings.quality.reduceMotion.on')
-							: t('settings.quality.reduceMotion.off')}
-					</button>
-				</section>
-
-				<section>
-					<span class="section-label">
-						{t('settings.ram.label')}
-						{#if ramTotal}<span class="ram-total"
-								>{t('settings.ram.detected', { gb: Math.round(ramTotal / 1024) })}</span
-							>{/if}
-					</span>
-					<div class="ram-row">
-						<label>
-							{t('settings.ram.min')}
-							<input type="number" bind:value={minRam} min="512" step="256" />
-						</label>
-						<label>
-							{t('settings.ram.max')}
-							<input type="number" bind:value={maxRam} min="512" step="256" />
-						</label>
-					</div>
-					<button type="button" class="save-btn" disabled={savingRam} onclick={saveRam}>
-						<Check size={13} />
-						{t('settings.ram.save')}
-					</button>
-				</section>
-			{:else if tab === 'system'}
-				<section>
-					<span class="section-label">{t('settings.storage.label')}</span>
-					<button
-						type="button"
-						class="save-btn"
-						disabled={clearingCache}
-						onclick={handleClearCache}
-					>
-						{#if clearingCache}<Loader2 size={13} class="spin" />{:else}<Trash2 size={13} />{/if}
-						{t('settings.storage.clearCache')}
-					</button>
-					{#if cacheClearedMsg}<p class="hint">{cacheClearedMsg}</p>{/if}
-				</section>
-
 				<section>
 					<span class="section-label">
 						{t('settings.dialogs.label')}
@@ -806,89 +728,41 @@
 						</button>
 					</div>
 				</section>
-
 				<section>
-					<span class="section-label">
-						{t('settings.updates.label')}
-						<InfoTooltip text={t('settings.updates.hint')} />
-					</span>
-					<button
-						type="button"
-						class="choice auto-update-toggle"
-						class:active={appState.settings?.auto_updates}
-						onclick={toggleAutoUpdates}
-					>
-						{appState.settings?.auto_updates
-							? t('settings.updates.autoEnabled')
-							: t('settings.updates.autoDisabled')}
-					</button>
-					<button
-						type="button"
-						class="choice auto-update-toggle"
-						class:active={appState.settings?.beta_updates}
-						onclick={toggleBetaUpdates}
-					>
-						{appState.settings?.beta_updates
-							? t('settings.updates.betaEnabled')
-							: t('settings.updates.betaDisabled')}
-					</button>
-					<p class="hint">{t('settings.updates.betaHint')}</p>
-					<p class="hint">
-						{t('settings.updates.currentVersion', { version: formatVersion(__APP_VERSION__) })}
-					</p>
+					<span class="section-label">{t('settings.storage.label')}</span>
 					<button
 						type="button"
 						class="save-btn"
-						disabled={!canStartCheck(updateState)}
-						onclick={handleCheckForUpdate}
+						disabled={clearingCache}
+						onclick={handleClearCache}
 					>
-						{#if updateState.phase === 'checking'}
-							<Loader2 size={13} class="spin" />
-						{:else}
-							<RefreshCw size={13} />
-						{/if}
-						{t('settings.updates.check')}
+						{#if clearingCache}<Loader2 size={13} class="spin" />{:else}<Trash2 size={13} />{/if}
+						{t('settings.storage.clearCache')}
 					</button>
-
-					{#if updateState.phase === 'none' && updateState.upToDate}
-						<p class="hint">{t('settings.updates.upToDate')}</p>
-					{/if}
-
-					{#if updateState.phase === 'available'}
-						<p class="hint">
-							{t('settings.updates.available', {
-								version: formatVersion(updateState.version ?? '')
-							})}
-						</p>
-						<button type="button" class="save-btn" onclick={downloadUpdate}>
-							<Download size={13} />
-							{t('settings.updates.download')}
-						</button>
-					{:else if updateState.phase === 'downloading'}
-						<p class="hint">
-							{updatePercent === null
-								? t('settings.updates.downloadingUnknown')
-								: t('settings.updates.downloading', { percent: updatePercent })}
-						</p>
-					{:else if updateState.phase === 'downloaded'}
-						<p class="hint">
-							{t('settings.updates.ready', { version: formatVersion(updateState.version ?? '') })}
-						</p>
-						<button type="button" class="save-btn" onclick={installDownloadedUpdate}>
-							<RefreshCw size={13} />
-							{t('settings.updates.restart')}
-						</button>
-					{:else if updateState.phase === 'installing'}
-						<p class="hint">{t('settings.updates.installing')}</p>
-					{:else if updateState.phase === 'error' && updateState.error}
-						<p class="error">{updateState.error.message}</p>
-						<button type="button" class="save-btn" onclick={retryUpdate}>
-							<RefreshCw size={13} />
-							{t('settings.updates.retry')}
-						</button>
-					{/if}
+					{#if cacheClearedMsg}<p class="hint">{cacheClearedMsg}</p>{/if}
 				</section>
 			{:else if tab === 'appearance'}
+				<section>
+					<span class="section-label">{t('settings.theme.label')}</span>
+					<div class="row">
+						<button
+							type="button"
+							class="choice"
+							class:active={appState.settings?.theme === 'dark'}
+							onclick={() => setTheme('dark')}>{t('settings.theme.dark')}</button
+						>
+						<button
+							type="button"
+							class="choice"
+							class:active={appState.settings?.theme === 'light'}
+							disabled={surface === 'oled'}
+							title={surface === 'oled' ? t('settings.theme.lightDisabledTitle') : undefined}
+							onclick={() => setTheme('light')}>{t('settings.theme.light')}</button
+						>
+					</div>
+				</section>
+
+				<VisualSettings onQuality={handleQuality} />
 				<section>
 					<span class="section-label">{t('settings.accent.label')}</span>
 					<div class="swatches">
@@ -1036,6 +910,95 @@
 					</div>
 					<p class="hint">{t('settings.font.hint')}</p>
 				</section>
+
+				<section>
+					<span class="section-label">{t('settings.quality.label')}</span>
+					<div class="row">
+						{#each QUALITY as q (q)}
+							<button
+								type="button"
+								class="choice"
+								class:active={appState.settings?.quality_profile === q}
+								onclick={() => handleQuality(q)}>{q}</button
+							>
+						{/each}
+					</div>
+				</section>
+				<section>
+					<span class="section-label">
+						{t('settings.quality.reduceMotion.label')}
+						<InfoTooltip text={t('settings.quality.reduceMotion.hint')} />
+					</span>
+					<button
+						type="button"
+						class="choice auto-update-toggle"
+						class:active={appState.settings?.reduce_animations}
+						onclick={toggleReduceAnimations}
+					>
+						{appState.settings?.reduce_animations
+							? t('settings.quality.reduceMotion.on')
+							: t('settings.quality.reduceMotion.off')}
+					</button>
+				</section>
+			{:else if tab === 'game'}
+				<section>
+					<span class="section-label">
+						{t('settings.ram.label')}
+						{#if ramTotal}<span class="ram-total"
+								>{t('settings.ram.detected', { gb: Math.round(ramTotal / 1024) })}</span
+							>{/if}
+					</span>
+					<div class="ram-row">
+						<label>
+							{t('settings.ram.min')}
+							<input type="number" bind:value={minRam} min="512" step="256" />
+						</label>
+						<label>
+							{t('settings.ram.max')}
+							<input type="number" bind:value={maxRam} min="512" step="256" />
+						</label>
+					</div>
+					<button type="button" class="save-btn" disabled={savingRam} onclick={saveRam}>
+						<Check size={13} />
+						{t('settings.ram.save')}
+					</button>
+				</section>
+				<section>
+					<span class="section-label">
+						{t('settings.multiInstance.label')}
+						<InfoTooltip text={t('settings.multiInstance.hint')} />
+					</span>
+					<button
+						type="button"
+						class="choice auto-update-toggle"
+						class:active={!appState.settings?.multi_instance_warning_dismissed}
+						onclick={toggleMultiInstanceWarning}
+					>
+						{appState.settings?.multi_instance_warning_dismissed
+							? t('settings.multiInstance.off')
+							: t('settings.multiInstance.on')}
+					</button>
+				</section>
+
+				<section>
+					<span class="section-label">{t('settings.java.label')}</span>
+					<p class="hint">
+						{t('settings.java.hint')}
+					</p>
+					<div class="java-list">
+						{#each javaStatuses as j (j.major)}
+							<div class="java-row">
+								<Coffee size={14} />
+								<span class="java-major">{t('settings.java.major', { major: j.major })}</span>
+								{#if j.installed}
+									<span class="java-tag installed">{t('settings.java.installed')}</span>
+								{:else}
+									<span class="java-tag">{t('settings.java.notInstalled')}</span>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</section>
 			{:else if tab === 'accounts'}
 				<section>
 					<span class="section-label">{t('settings.accounts.saved')}</span>
@@ -1156,25 +1119,89 @@
 					</div>
 					<p class="hint">{t('onboarding.offlineHint')}</p>
 				</section>
-			{:else if tab === 'java'}
+			{:else if tab === 'console'}
+				<ConsoleSettings />
+			{:else if tab === 'updates'}
 				<section>
-					<span class="section-label">{t('settings.java.label')}</span>
+					<span class="section-label">
+						{t('settings.updates.label')}
+						<InfoTooltip text={t('settings.updates.hint')} />
+					</span>
+					<button
+						type="button"
+						class="choice auto-update-toggle"
+						class:active={appState.settings?.auto_updates}
+						onclick={toggleAutoUpdates}
+					>
+						{appState.settings?.auto_updates
+							? t('settings.updates.autoEnabled')
+							: t('settings.updates.autoDisabled')}
+					</button>
+					<button
+						type="button"
+						class="choice auto-update-toggle"
+						class:active={appState.settings?.beta_updates}
+						onclick={toggleBetaUpdates}
+					>
+						{appState.settings?.beta_updates
+							? t('settings.updates.betaEnabled')
+							: t('settings.updates.betaDisabled')}
+					</button>
+					<p class="hint">{t('settings.updates.betaHint')}</p>
 					<p class="hint">
-						{t('settings.java.hint')}
+						{t('settings.updates.currentVersion', { version: formatVersion(__APP_VERSION__) })}
 					</p>
-					<div class="java-list">
-						{#each javaStatuses as j (j.major)}
-							<div class="java-row">
-								<Coffee size={14} />
-								<span class="java-major">{t('settings.java.major', { major: j.major })}</span>
-								{#if j.installed}
-									<span class="java-tag installed">{t('settings.java.installed')}</span>
-								{:else}
-									<span class="java-tag">{t('settings.java.notInstalled')}</span>
-								{/if}
-							</div>
-						{/each}
-					</div>
+					<button
+						type="button"
+						class="save-btn"
+						disabled={!canStartCheck(updateState)}
+						onclick={handleCheckForUpdate}
+					>
+						{#if updateState.phase === 'checking'}
+							<Loader2 size={13} class="spin" />
+						{:else}
+							<RefreshCw size={13} />
+						{/if}
+						{t('settings.updates.check')}
+					</button>
+
+					{#if updateState.phase === 'none' && updateState.upToDate}
+						<p class="hint">{t('settings.updates.upToDate')}</p>
+					{/if}
+
+					{#if updateState.phase === 'available'}
+						<p class="hint">
+							{t('settings.updates.available', {
+								version: formatVersion(updateState.version ?? '')
+							})}
+						</p>
+						<button type="button" class="save-btn" onclick={downloadUpdate}>
+							<Download size={13} />
+							{t('settings.updates.download')}
+						</button>
+					{:else if updateState.phase === 'downloading'}
+						<p class="hint">
+							{updatePercent === null
+								? t('settings.updates.downloadingUnknown')
+								: t('settings.updates.downloading', { percent: updatePercent })}
+						</p>
+					{:else if updateState.phase === 'downloaded'}
+						<p class="hint">
+							{t('settings.updates.ready', { version: formatVersion(updateState.version ?? '') })}
+						</p>
+						<button type="button" class="save-btn" onclick={installDownloadedUpdate}>
+							<RefreshCw size={13} />
+							{t('settings.updates.restart')}
+						</button>
+					{:else if updateState.phase === 'installing'}
+						<p class="hint">{t('settings.updates.installing')}</p>
+					{:else if updateState.phase === 'error' && updateState.error}
+						<p class="error">{updateState.error.message}</p>
+						<button type="button" class="save-btn" onclick={retryUpdate}>
+							<RefreshCw size={13} />
+							{t('settings.updates.retry')}
+						</button>
+					{/if}
 				</section>
 			{/if}
 		</div>
@@ -1193,6 +1220,42 @@
 {/if}
 
 <style>
+	.settings-search {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 8px;
+		margin-bottom: 10px;
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius-sm);
+		color: var(--text-muted);
+	}
+	.settings-search input {
+		background: transparent;
+		border: 0;
+		color: var(--text-primary);
+		width: 100%;
+		min-width: 0;
+		font-size: 12px;
+		outline-offset: 4px;
+	}
+	.settings-page-heading {
+		border-bottom: 1px solid var(--border);
+		padding-bottom: 20px;
+	}
+	.settings-page-heading h3 {
+		font-size: 22px;
+		margin: 0 0 8px;
+		letter-spacing: -0.03em;
+	}
+	.settings-page-heading p {
+		color: var(--text-secondary);
+		font-size: 13px;
+		line-height: 1.7;
+		max-width: 66ch;
+		margin: 0;
+	}
+
 	.overlay {
 		position: fixed;
 		inset: 0;
@@ -1710,5 +1773,72 @@
 
 	.java-tag.installed {
 		color: var(--color-success);
+	}
+
+	.settings-refresh {
+		width: min(1180px, calc(100vw - 40px));
+		height: calc(100vh - 76px);
+		max-height: none;
+		display: grid;
+		grid-template-columns: 215px minmax(0, 1fr);
+		grid-template-rows: auto minmax(0, 1fr);
+		gap: 0;
+		padding: 0;
+		overflow: hidden;
+		background: var(--surface-elevated);
+	}
+	.settings-refresh .panel-header {
+		grid-column: 1/-1;
+		padding: 22px 28px;
+		border-bottom: 1px solid var(--border);
+	}
+	.settings-refresh .panel-tabs {
+		flex-direction: column;
+		border-bottom: 0;
+		border-right: 1px solid var(--border);
+		padding: 22px 12px;
+		gap: 6px;
+		overflow: auto;
+		background: var(--surface-workspace);
+	}
+	.settings-refresh .ptab {
+		padding: 13px 14px;
+		margin: 0;
+		border: 1px solid transparent;
+		border-radius: var(--border-radius-sm);
+		font-size: var(--text-small);
+		gap: 12px;
+		text-align: left;
+	}
+	.settings-refresh .ptab.active {
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+	}
+	.settings-refresh .panel-body {
+		padding: 28px;
+		min-height: 0;
+		gap: 26px;
+	}
+	.settings-refresh .section-label {
+		font-size: var(--text-small);
+		line-height: 1.5;
+		margin-bottom: 10px;
+	}
+	.overlay {
+		backdrop-filter: blur(10px);
+	}
+	@media (max-width: 850px) {
+		.settings-refresh {
+			grid-template-columns: 155px minmax(0, 1fr);
+			width: calc(100vw - 24px);
+			height: calc(100vh - 60px);
+		}
+		.settings-refresh .panel-body {
+			padding: 20px;
+		}
+		.settings-refresh .ptab {
+			padding: 12px 8px;
+			font-size: 12px;
+		}
 	}
 </style>

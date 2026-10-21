@@ -395,4 +395,58 @@
 			transform: rotate(360deg);
 		}
 	}
+
+	.onboarding {
+		background: var(--surface-canvas);
+	}
+	.onboarding-card {
+		width: min(720px, calc(100vw - 64px));
+		max-height: calc(100vh - 80px);
+		overflow: auto;
+		padding: 40px;
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius-lg);
+		background: var(--surface-card);
+		box-shadow: var(--shadow-lg);
+	}
+	.brand {
+		margin-bottom: 28px;
+	}
+	.brand h1 {
+		font-family: var(--font-family);
+		font-size: 2.5rem;
+		letter-spacing: -0.06em;
+	}
+	.option-card {
+		min-height: 84px;
+		border-radius: var(--border-radius);
+		padding: 20px;
+	}
+	.option-title {
+		font-size: 1.1rem;
+	}
+	.option-sub {
+		font-size: var(--text-small);
+		line-height: 1.5;
+	}
+	.offline-form input {
+		min-height: 44px;
+	}
+	.brand-mark {
+		border-radius: var(--border-radius);
+	}
+	@media (max-height: 650px) {
+		.onboarding-card {
+			padding: 26px;
+		}
+		.brand {
+			margin-bottom: 18px;
+		}
+		.brand h1 {
+			font-size: 2rem;
+		}
+		.option-card {
+			min-height: 70px;
+		}
+	}
 </style>

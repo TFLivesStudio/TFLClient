@@ -1,4 +1,5 @@
 import { getInstances } from '$lib/api';
+import { navigate } from '$lib/visual/navigation.svelte';
 import { appState } from '$lib/state/state.svelte';
 import { closeModal, openModal } from '$lib/state/uiState.svelte';
 import type { InstanceData } from '$lib/types/types';
@@ -34,7 +35,7 @@ export function selectInstance(instance: InstanceData) {
  * desde ahí) — simplemente deselecciona, AppShell ya decide mostrar
  * WelcomeState cuando no hay instancia seleccionada. */
 export function goHome() {
-	appState.selectedInstance = null;
+	navigate('home');
 }
 
 /** Selecciona la instancia y abre InstanceDetail directamente en `tab`. */

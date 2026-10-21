@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { modalFocus } from '$lib/visual/modalFocus';
 	import {
 		getAvailableVersions,
 		createInstance,
@@ -200,6 +201,7 @@
 		onclick={(e) => e.stopPropagation()}
 		onkeydown={(e) => e.stopPropagation()}
 		role="dialog"
+		use:modalFocus={onClose}
 		aria-modal="true"
 		tabindex="-1"
 	>

@@ -26,12 +26,14 @@
 		isPremium,
 		accountUuid,
 		profile,
-		onOpenSkinManager
+		onOpenSkinManager,
+		launching = false
 	}: {
 		isPremium: boolean;
 		accountUuid: string | null;
 		profile: MojangProfile | null;
 		onOpenSkinManager: () => void;
+		launching?: boolean;
 	} = $props();
 
 	const activeSkin = $derived(profile?.skins.find((s) => s.state === 'ACTIVE') ?? null);
@@ -50,6 +52,8 @@
 <div class="character-figure">
 	{#if isPremium}
 		<SkinViewer3D
+			priority="hero"
+			{launching}
 			width={220}
 			height={320}
 			autoRotateSpeed={0.6}
@@ -60,7 +64,7 @@
 		/>
 	{:else if accountUuid}
 		<div class="mascot-big">
-			<Mascot id={getMascotFor(accountUuid)} size={110} />
+			<Mascot id={getMascotFor(accountUuid)} size={165} />
 		</div>
 	{:else}
 		<div class="no-account-orb"><Tfl width="36" height="36" /></div>

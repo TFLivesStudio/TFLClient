@@ -1,28 +1,65 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { onMount } from 'svelte';
-	import type { InstanceData, ModSearchHit, InstalledModpack } from '$lib/types/types';
+	import type { InstanceData, InstalledModpack } from '$lib/types/types';
 	import {
-		searchModpacks,
-		installModpack,
 		updateCommunityModpack,
 		getInstanceModpacks,
 		checkModpackUpdates,
 		removeModpack
 	} from '$lib/api';
-	import { Search, Download, Trash2, Loader2, Package, RefreshCw } from 'lucide-svelte';
+	import {
+		Search,
+		Trash2,
+		Loader2,
+		Package,
+		RefreshCw,
+		Maximize2,
+		ChevronDown,
+		Check
+	} from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
+	import { createContentExplorer, errorMessageKey } from '$lib/state/contentExplorer.svelte';
+	import { openContentExplorer } from '$lib/state/uiState.svelte';
+	import Pagination from '$lib/components/ui/Pagination.svelte';
+	import SortSelect from '$lib/components/ui/SortSelect.svelte';
+	import ContentResultRow from './ContentResultRow.svelte';
+	import ProjectDetailView from './ProjectDetailView.svelte';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 
 	let { instance }: { instance: InstanceData } = $props();
 
-	let query = $state('');
-	let results = $state<ModSearchHit[]>([]);
+	// Categorías reales de Modrinth para modpacks (mismo taxonomy que mods,
+	// confirmado contra la API real — ver ContentManager.svelte).
+	const CATEGORIES = [
+		'adventure',
+		'combat',
+		'economy',
+		'game-mechanics',
+		'horror',
+		'kitchen-sink',
+		'lightweight',
+		'magic',
+		'multiplayer',
+		'optimization',
+		'quests',
+		'technology'
+	];
+
+	function categoryLabel(cat: string): string {
+		const words = cat.split('-');
+		return words.map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+	}
+
 	let installed = $state<InstalledModpack[]>([]);
 	let updates = $state<Record<string, string>>({}); // version_id -> new_mrpack_url
-	let searching = $state(false);
-	let installingId = $state<string | null>(null);
 	let removingId = $state<string | null>(null);
 	let updatingId = $state<string | null>(null);
 	let error = $state<string | null>(null);
+	let categoriesOpen = $state(false);
+	let categoryDropdownEl = $state<HTMLDivElement | undefined>(undefined);
+	let pendingInstallProjectId = $state<string | null>(null);
+	let pendingInstallVersionId = $state<string | undefined>(undefined);
 
 	async function refreshInstalled() {
 		installed = await getInstanceModpacks(instance.name);
@@ -36,6 +73,17 @@
 	}
 
 	onMount(refreshInstalled);
+
+	// Búsqueda/paginación/orden/detalle compartidos con mods/shaders/etc. —
+	// antes esto tenía su propia implementación aparte (incluso en Rust,
+	// ver search_modpacks), que no buscaba nada con texto vacío. Unificado
+	// sobre el mismo composable, "explorar sin buscar" funciona gratis acá
+	// también.
+	const explorer = createContentExplorer(() => ({ instance, kind: 'modpack' }));
+	$effect(() => {
+		void instance.name;
+		untrack(() => explorer.resetForNewContext());
+	});
 
 	async function handleUpdate(pack: InstalledModpack) {
 		const newUrl = updates[pack.version_id];
@@ -57,45 +105,33 @@
 		}
 	}
 
-	let searchToken = 0;
-	async function runSearch(q: string) {
-		const token = ++searchToken;
-		searching = true;
-		error = null;
-		try {
-			const hits = await searchModpacks(q, instance.mc_version, instance.loader);
-			if (token === searchToken) results = hits;
-		} catch (e) {
-			if (token === searchToken) error = String(e);
-		} finally {
-			if (token === searchToken) searching = false;
-		}
-	}
-
-	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
-	$effect(() => {
-		const q = query;
-		clearTimeout(debounceTimer);
-		if (!q.trim()) {
-			results = [];
-			searching = false;
+	// Instalar un modpack sobre una instancia que YA tiene uno puede
+	// sobrescribir archivos de configuración compartidos — pedido
+	// explícito del cliente: avisar antes, no una descarga aparentemente
+	// inocua. Actualizar (handleUpdate, arriba) ya es cuidadoso por diseño
+	// y no pasa por esta advertencia.
+	function requestInstall(projectId: string, versionId?: string) {
+		if (installed.length > 0) {
+			pendingInstallProjectId = projectId;
+			pendingInstallVersionId = versionId;
 			return;
 		}
-		debounceTimer = setTimeout(() => runSearch(q), 300);
-		return () => clearTimeout(debounceTimer);
-	});
+		void doInstall(projectId, versionId);
+	}
 
-	async function handleInstall(projectId: string) {
-		installingId = projectId;
-		error = null;
-		try {
-			await installModpack(instance.name, projectId, instance.mc_version, instance.loader);
-			await refreshInstalled();
-		} catch (e) {
-			error = String(e);
-		} finally {
-			installingId = null;
-		}
+	async function doInstall(projectId: string, versionId?: string) {
+		// `versionId` nunca llega poblado para modpacks (sin dropdown de
+		// versiones, ver `hasVersions={false}` abajo) — el composable
+		// instala siempre la última build compatible.
+		await explorer.install(projectId, versionId, refreshInstalled);
+	}
+
+	function confirmPendingInstall() {
+		const projectId = pendingInstallProjectId;
+		const versionId = pendingInstallVersionId;
+		pendingInstallProjectId = null;
+		pendingInstallVersionId = undefined;
+		if (projectId) void doInstall(projectId, versionId);
 	}
 
 	async function handleRemove(versionId: string) {
@@ -116,23 +152,24 @@
 		<p class="hint">
 			{t('modpacksPanel.vanillaNotSupported')}
 		</p>
+	{:else if explorer.detailProjectId}
+		<ProjectDetailView
+			kind="modpack"
+			projectId={explorer.detailProjectId}
+			hit={explorer.detailHit}
+			detail={explorer.detail}
+			loading={explorer.detailLoading}
+			error={explorer.detailError}
+			onBack={() => explorer.closeDetail()}
+			onInstall={(versionId) => requestInstall(explorer.detailProjectId!, versionId)}
+			installing={explorer.installingId === explorer.detailProjectId}
+			installed={installed.some((p) => p.project_id === explorer.detailProjectId)}
+			loadVersions={() => Promise.resolve([])}
+		/>
 	{:else}
 		<p class="hint">
 			{t('modpacksPanel.hint')}
 		</p>
-
-		<div class="search-row">
-			{#if searching}
-				<Loader2 size={14} class="spin search-icon" />
-			{:else}
-				<Search size={14} class="search-icon" />
-			{/if}
-			<input
-				type="text"
-				bind:value={query}
-				placeholder={t('contentManager.searchPlaceholder', { noun: 'modpacks' })}
-			/>
-		</div>
 
 		{#if error}
 			<p class="error">{error}</p>
@@ -180,38 +217,130 @@
 			</div>
 		{/if}
 
-		{#if results.length > 0}
-			<div class="results">
-				<span class="section-label">{t('contentManager.results')}</span>
-				{#each results as pack (pack.project_id)}
-					<div class="mod-card anim-fade-in">
-						{#if pack.icon_url}
-							<img src={pack.icon_url} alt={pack.title} />
-						{:else}
-							<div class="mod-icon-fallback"></div>
+		<div class="download-toolbar">
+			<div class="category-dropdown" bind:this={categoryDropdownEl}>
+				<button
+					type="button"
+					class="category-trigger"
+					class:active={explorer.selectedCategories.size > 0}
+					onclick={() => (categoriesOpen = !categoriesOpen)}
+				>
+					{t('contentManager.categories')}{explorer.selectedCategories.size > 0
+						? ` (${explorer.selectedCategories.size})`
+						: ''}
+					<ChevronDown size={13} />
+				</button>
+				{#if categoriesOpen}
+					<div class="category-panel">
+						{#each CATEGORIES as cat (cat)}
+							<button
+								type="button"
+								class="category-option"
+								class:active={explorer.selectedCategories.has(cat)}
+								onclick={() => explorer.toggleCategory(cat)}
+							>
+								{#if explorer.selectedCategories.has(cat)}<Check size={12} />{:else}<span
+										class="option-spacer"
+									></span>{/if}
+								{categoryLabel(cat)}
+							</button>
+						{/each}
+						{#if explorer.selectedCategories.size > 0}
+							<button
+								type="button"
+								class="category-option clear"
+								onclick={() => explorer.clearCategories()}
+							>
+								{t('contentManager.clearCategories')}
+							</button>
 						{/if}
-						<div class="mod-info">
-							<span class="mod-title">{pack.title}</span>
-							<p class="mod-desc">{pack.description}</p>
-						</div>
-						<button
-							type="button"
-							class="install-btn"
-							disabled={installingId === pack.project_id}
-							onclick={() => handleInstall(pack.project_id)}
-						>
-							{#if installingId === pack.project_id}
-								<Loader2 size={14} class="spin" />
-							{:else}
-								<Download size={14} />
-							{/if}
-						</button>
 					</div>
+				{/if}
+			</div>
+			<SortSelect
+				value={explorer.sortIndex}
+				hasQuery={explorer.hasQuery}
+				disabled={explorer.loading}
+				onchange={(v) => explorer.setSort(v)}
+			/>
+			<button
+				type="button"
+				class="explore-wide-btn"
+				onclick={() => openContentExplorer({ instance, kind: 'modpack' })}
+			>
+				<Maximize2 size={13} />
+				{t('contentManager.exploreWide')}
+			</button>
+		</div>
+
+		<div class="search-row">
+			{#if explorer.loading}
+				<Loader2 size={14} class="spin search-icon" />
+			{:else}
+				<Search size={14} class="search-icon" />
+			{/if}
+			<input
+				type="text"
+				value={explorer.query}
+				oninput={(e) => explorer.setQuery((e.target as HTMLInputElement).value)}
+				placeholder={t('contentManager.searchPlaceholder', { noun: 'modpacks' })}
+			/>
+		</div>
+
+		{#if explorer.errorKind}
+			<p class="error">
+				{t(errorMessageKey(explorer.errorKind))}
+				<button type="button" class="retry-btn" onclick={() => explorer.setQuery(explorer.query)}>
+					{t('contentManager.retry')}
+				</button>
+			</p>
+		{/if}
+
+		{#if !explorer.loading && !explorer.errorKind && explorer.results.length === 0}
+			<p class="hint">{t('contentManager.noResults')}</p>
+		{:else}
+			<div class="results">
+				{#if explorer.results.length > 0}<span class="section-label"
+						>{t('contentManager.results')}</span
+					>{/if}
+				{#each explorer.results as item (item.project_id)}
+					<ContentResultRow
+						{item}
+						installed={installed.some((p) => p.project_id === item.project_id)}
+						installing={explorer.installingId === item.project_id}
+						hasVersions={false}
+						onInstall={() => requestInstall(item.project_id)}
+						onOpenDetail={() => explorer.openDetail(item.project_id, item)}
+					/>
 				{/each}
 			</div>
+			{#if explorer.totalHits > explorer.limit}
+				<Pagination
+					offset={explorer.offset}
+					limit={explorer.limit}
+					totalHits={explorer.totalHits}
+					loading={explorer.loading}
+					onPrev={() => explorer.goToPrevPage()}
+					onNext={() => explorer.goToNextPage()}
+				/>
+			{/if}
 		{/if}
 	{/if}
 </div>
+
+{#if pendingInstallProjectId}
+	<ConfirmDialog
+		title={t('modpacksPanel.overwriteWarningTitle')}
+		message={t('modpacksPanel.overwriteWarningMessage')}
+		confirmLabel={t('modpacksPanel.overwriteWarningConfirm')}
+		danger
+		onConfirm={confirmPendingInstall}
+		onCancel={() => {
+			pendingInstallProjectId = null;
+			pendingInstallVersionId = undefined;
+		}}
+	/>
+{/if}
 
 <style>
 	.modpacks-panel {
@@ -223,6 +352,125 @@
 	.hint {
 		color: var(--text-secondary);
 		font-size: 0.78rem;
+	}
+
+	.download-toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.download-toolbar :global(.tfl-field) {
+		width: auto;
+		min-width: 160px;
+	}
+
+	.explore-wide-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin-left: auto;
+		padding: 5px 10px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-input);
+		color: var(--text-secondary);
+		font-size: 0.72rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.explore-wide-btn:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.category-dropdown {
+		position: relative;
+	}
+
+	.category-trigger {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 10px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-input);
+		color: var(--text-muted);
+		font-size: 0.72rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.category-trigger.active {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 16%, var(--bg-input));
+		color: var(--accent);
+	}
+
+	.category-panel {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
+		z-index: 20;
+		display: grid;
+		grid-template-columns: repeat(2, minmax(140px, 1fr));
+		gap: 2px;
+		max-height: 220px;
+		overflow-y: auto;
+		padding: 6px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--border);
+		background: var(--bg-card);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+	}
+
+	.category-option {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 8px;
+		border-radius: var(--border-radius-sm);
+		border: none;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.72rem;
+		text-align: left;
+		cursor: pointer;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.category-option:hover {
+		background: var(--bg-input);
+	}
+
+	.category-option.active {
+		color: var(--accent);
+		font-weight: 600;
+	}
+
+	.category-option :global(svg) {
+		flex-shrink: 0;
+		color: var(--accent);
+	}
+
+	.category-option.clear {
+		justify-content: center;
+		grid-column: 1 / -1;
+		margin-top: 2px;
+		border-top: 1px solid var(--border);
+		border-radius: 0;
+		color: var(--text-muted);
+		font-weight: 600;
+	}
+
+	.option-spacer {
+		width: 12px;
+		flex-shrink: 0;
 	}
 
 	.search-row {
@@ -251,6 +499,18 @@
 	.error {
 		color: var(--color-error);
 		font-size: 0.78rem;
+	}
+
+	.retry-btn {
+		margin-left: 8px;
+		padding: 2px 8px;
+		border-radius: var(--border-radius-sm);
+		border: 1px solid var(--color-error);
+		background: transparent;
+		color: var(--color-error);
+		font-size: 0.68rem;
+		font-weight: 600;
+		cursor: pointer;
 	}
 
 	.section-label {
@@ -330,62 +590,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
-	}
-
-	.mod-card {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 10px;
-		border-radius: var(--border-radius);
-		border: 1px solid var(--border);
-		background: var(--bg-card);
-	}
-
-	.mod-card img,
-	.mod-icon-fallback {
-		width: 36px;
-		height: 36px;
-		border-radius: var(--border-radius-sm);
-		flex-shrink: 0;
-		background: var(--bg-input);
-	}
-
-	.mod-info {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.mod-title {
-		font-size: 0.82rem;
-		font-weight: 600;
-	}
-
-	.mod-desc {
-		font-size: 0.7rem;
-		color: var(--text-muted);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.install-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		border-radius: var(--border-radius-sm);
-		border: 1px solid var(--border);
-		background: var(--bg-input);
-		color: var(--text-primary);
-		cursor: pointer;
-		flex-shrink: 0;
-	}
-
-	.install-btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
 	}
 
 	:global(.spin) {

@@ -211,66 +211,128 @@ pub fn get_running_instances() -> Vec<RunningInstanceInfo> {
         .collect()
 }
 
-/// System persistente entre llamadas — sysinfo necesita eso para poder
-/// calcular %CPU (compara contra la muestra anterior del mismo proceso).
-/// Uno nuevo por llamada siempre daría 0%.
-static PROCESS_MONITOR: std::sync::LazyLock<std::sync::Mutex<sysinfo::System>> =
-    std::sync::LazyLock::new(|| std::sync::Mutex::new(sysinfo::System::new()));
+// One persistent sampler per PID. Coalesce simultaneous consumers so two windows
+// cannot reset each other's CPU/disk baselines. First sample has no CPU baseline.
+struct ProcessSampler {
+    system: sysinfo::System,
+    at: std::time::Instant,
+    sample: ProcessStats,
+}
+static PROCESS_MONITOR: std::sync::LazyLock<
+    std::sync::Mutex<std::collections::HashMap<u32, ProcessSampler>>,
+> = std::sync::LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
 
-#[derive(serde::Serialize)]
+#[derive(Clone, serde::Serialize)]
 pub struct ProcessStats {
-    /// Normalizado 0-100 sobre el total de núcleos lógicos del sistema (no
-    /// 0-100 por núcleo como da `Process::cpu_usage()` crudo — un proceso
-    /// multihilo a tope en 4 núcleos daría 400% si no se dividiera, y eso
-    /// en el gauge de la ventana de log se ve roto).
+    /// Whole machine percentage, retained for existing consumers.
     pub cpu_percent: f32,
+    /// 100% is one logical core. Multithreaded Java can exceed 100%.
+    pub cpu_core_percent: f32,
+    pub logical_cores: usize,
+    /// Resident memory, not JVM heap usage.
     pub memory_mb: u64,
-    /// Bytes leídos + escritos a disco desde el refresh anterior de ESTE
-    /// proceso (no un acumulado total) — ya viene así de sysinfo, así que
-    /// alcanza con pollear esto cada 1-2s para tener una tasa real.
     pub disk_bytes_delta: u64,
+    pub sampled_at_ms: u64,
+    pub sample_interval_ms: u64,
+    pub ready: bool,
 }
 
-/// Uso de CPU/RAM/disco del proceso de Java en vivo de esa instancia —
-/// `None` si no está corriendo ahora mismo. Pensado para pollearse cada
-/// 1-2s desde su ventana de log mientras el juego está abierto (la barra
-/// de gráficos de `InstanceLogWindow.svelte`).
-#[command]
-pub fn get_running_instance_stats(instance_name: String) -> Option<ProcessStats> {
-    let pid = launcher::running_instance_pid(&instance_name)?;
-    let sysinfo_pid = sysinfo::Pid::from_u32(pid);
-    let mut sys = PROCESS_MONITOR.lock().unwrap();
-    sys.refresh_process(sysinfo_pid);
-    let process = sys.process(sysinfo_pid)?;
-    let disk = process.disk_usage();
+fn process_stats(pid: u32) -> Option<ProcessStats> {
+    let now = std::time::Instant::now();
+    let mut monitors = PROCESS_MONITOR.lock().ok()?;
+    monitors.retain(|_, m| now.duration_since(m.at).as_secs() < 180);
+    if let Some(m) = monitors.get(&pid) {
+        if now.duration_since(m.at).as_millis() < 500 {
+            return Some(m.sample.clone());
+        }
+    }
+    let mut system = monitors.remove(&pid);
+    let interval = system
+        .as_ref()
+        .map(|m| now.duration_since(m.at).as_millis() as u64);
+    let mut sys = system.take().map(|m| m.system).unwrap_or_default();
+    let sys_pid = sysinfo::Pid::from_u32(pid);
+    if !sys.refresh_process(sys_pid) {
+        return None;
+    }
+    let process = sys.process(sys_pid)?;
     let cores = std::thread::available_parallelism()
         .map(|n| n.get())
-        .unwrap_or(1) as f32;
-    Some(ProcessStats {
-        cpu_percent: normalize_cpu_percent(process.cpu_usage(), cores),
+        .unwrap_or(1);
+    let raw = core_cpu_percent(process.cpu_usage());
+    let disk = process.disk_usage();
+    let sample = ProcessStats {
+        cpu_percent: normalize_cpu_percent(raw, cores as f32),
+        cpu_core_percent: raw,
+        logical_cores: cores,
         memory_mb: process.memory() / 1024 / 1024,
-        disk_bytes_delta: disk.read_bytes + disk.written_bytes,
-    })
+        disk_bytes_delta: disk.read_bytes.saturating_add(disk.written_bytes),
+        sampled_at_ms: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .ok()?
+            .as_millis() as u64,
+        sample_interval_ms: interval.unwrap_or(0),
+        ready: interval.is_some(),
+    };
+    monitors.insert(
+        pid,
+        ProcessSampler {
+            system: sys,
+            at: now,
+            sample: sample.clone(),
+        },
+    );
+    Some(sample)
 }
 
-/// Separado para poder probarlo sin depender de `sysinfo`/`Process` reales.
-fn normalize_cpu_percent(raw_per_core_percent: f32, cores: f32) -> f32 {
-    (raw_per_core_percent / cores.max(1.0)).min(100.0)
+#[command]
+pub fn get_running_instance_stats(instance_name: String) -> Option<ProcessStats> {
+    process_stats(launcher::running_instance_pid(&instance_name)?)
+}
+
+#[command]
+pub fn get_running_server_stats(instance_name: String) -> Option<ProcessStats> {
+    process_stats(crate::services::server_process::running_server_pid(
+        &instance_name,
+    )?)
+}
+
+fn core_cpu_percent(raw: f32) -> f32 {
+    if raw.is_finite() { raw.max(0.0) } else { 0.0 }
+}
+fn normalize_cpu_percent(raw: f32, cores: f32) -> f32 {
+    (core_cpu_percent(raw) / cores.max(1.0)).min(100.0)
 }
 
 #[cfg(test)]
 mod cpu_percent_tests {
-    use super::normalize_cpu_percent;
-
+    use super::{core_cpu_percent, normalize_cpu_percent};
     #[test]
-    fn divide_entre_nucleos() {
-        assert_eq!(normalize_cpu_percent(400.0, 4.0), 100.0);
-        assert_eq!(normalize_cpu_percent(200.0, 4.0), 50.0);
-    }
-
-    #[test]
-    fn nunca_supera_100_aunque_sysinfo_de_mas_por_redondeo() {
+    fn multiple_cores_are_preserved() {
+        assert_eq!(core_cpu_percent(425.0), 425.0);
+        assert_eq!(normalize_cpu_percent(400.0, 8.0), 50.0);
         assert_eq!(normalize_cpu_percent(101.0, 1.0), 100.0);
+    }
+    #[test]
+    fn sampler_reads_a_real_process_and_coalesces_consumers() {
+        let pid = std::process::id();
+        let first = super::process_stats(pid).expect("test process exists");
+        assert!(first.memory_mb > 0);
+        let cached = super::process_stats(pid).unwrap();
+        assert_eq!(first.sampled_at_ms, cached.sampled_at_ms);
+        std::thread::sleep(std::time::Duration::from_millis(550));
+        let next = super::process_stats(pid).unwrap();
+        assert!(next.ready);
+        assert!(next.sample_interval_ms >= 500);
+        assert!(next.cpu_core_percent.is_finite());
+        assert!(next.sampled_at_ms > first.sampled_at_ms);
+        assert!(super::process_stats(u32::MAX).is_none());
+    }
+    #[test]
+    fn invalid_cpu_cannot_poison_charts() {
+        assert_eq!(core_cpu_percent(f32::NAN), 0.0);
+        assert_eq!(core_cpu_percent(f32::INFINITY), 0.0);
+        assert_eq!(core_cpu_percent(-1.0), 0.0);
     }
 }
 
@@ -342,8 +404,13 @@ pub fn open_external_url(app: AppHandle, url: String) -> Result<(), String> {
 /// Abre el diálogo nativo de "elegir archivo" filtrado a imágenes. Comando
 /// separado de `set_instance_icon` para que el bloqueo del diálogo (síncrono,
 /// espera a que el usuario elija) no retenga nada del lado de la instancia.
+///
+/// `async` a propósito: los comandos síncronos de Tauri corren en el hilo
+/// principal, y `blocking_pick_file` NO debe usarse desde ahí (lo indica la
+/// documentación de tauri-plugin-dialog — el diálogo necesita ese mismo
+/// hilo para mostrarse, así que queda esperándose a sí mismo en macOS).
 #[command]
-pub fn pick_image_file(app: AppHandle) -> Option<String> {
+pub async fn pick_image_file(app: AppHandle) -> Option<String> {
     app.dialog()
         .file()
         .add_filter("Imagen", &ICON_EXTENSIONS)

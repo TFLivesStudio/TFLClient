@@ -1,0 +1,1 @@
+PASS: compact backups/mods/console/settings/studio and collection add/remove, no page errors.

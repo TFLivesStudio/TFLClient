@@ -1,68 +1,32 @@
-<script lang="ts">
-	import Particles, { initParticlesEngine } from '@tsparticles/svelte';
-	import { loadSlim } from '@tsparticles/slim';
-	import type { ISourceOptions } from '@tsparticles/engine';
-
-	let ready = $state(false);
-
-	initParticlesEngine(async (engine) => {
-		await loadSlim(engine);
-	}).then(() => {
-		ready = true;
-	});
-
-	// Motas de polvo/luz flotando despacio — decoración sutil, no un efecto
-	// "de red" con líneas. Color del acento activo, leído una vez del CSS
-	// (el usuario cambia de acento y reabre/reelige el modo Partículas —
-	// no vale la pena una reactividad en vivo para un detalle de fondo).
-	const accentColor =
-		typeof document !== 'undefined'
-			? getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ff7a2e'
-			: '#ff7a2e';
-
-	const options: ISourceOptions = {
-		fullScreen: { enable: false },
-		fpsLimit: 30,
-		// Corta la animación sola en cuanto la ventana pierde foco o queda
-		// fuera de pantalla (minimizada) — sin esto seguía consumiendo CPU/GPU
-		// de fondo aunque nadie la estuviera viendo.
-		pauseOnBlur: true,
-		pauseOnOutsideViewport: true,
-		particles: {
-			number: { value: 24, density: { enable: true, width: 1600, height: 900 } },
-			color: { value: accentColor },
-			opacity: {
-				value: { min: 0.08, max: 0.35 },
-				animation: { enable: true, speed: 0.4, sync: false }
-			},
-			size: { value: { min: 1, max: 3 } },
-			move: {
-				enable: true,
-				speed: 0.3,
-				direction: 'top',
-				random: true,
-				straight: false,
-				outModes: { default: 'out' }
-			},
-			links: { enable: false }
-		},
-		interactivity: {
-			events: { onHover: { enable: false }, onClick: { enable: false } }
-		},
-		// El buffer del canvas en pantallas retina/HiDPI se multiplica por el
-		// devicePixelRatio (2x-3x más píxeles reales) — para 24 motas
-		// decorativas no vale ese costo de memoria, se nota igual en 1x.
-		detectRetina: false
-	};
-</script>
-
-{#if ready}
-	<Particles id="tfl-particles" {options} class="particles-layer" />
-{/if}
+<!-- A bounded CSS scene: no particle engine, canvas, timers, or application render loop. -->
+<div class="particles-layer" aria-hidden="true">
+	{#each Array.from({ length: 12 }, (_, i) => i) as i (i)}<span
+			style={`--x:${(i * 37) % 100}%;--y:${(i * 23) % 90}%;--delay:-${i * 1.3}s;--duration:${12 + (i % 5)}s`}
+		></span>{/each}
+</div>
 
 <style>
-	:global(.particles-layer) {
+	.particles-layer {
 		position: absolute;
 		inset: 0;
+		overflow: hidden;
+		pointer-events: none;
+	}
+	.particles-layer span {
+		position: absolute;
+		left: var(--x);
+		top: var(--y);
+		width: 3px;
+		height: 3px;
+		background: var(--accent);
+		opacity: 0.2;
+		border-radius: 50%;
+		animation: drift var(--duration) var(--delay) ease-in-out infinite alternate;
+	}
+	@keyframes drift {
+		to {
+			transform: translate3d(16px, -50px, 0);
+			opacity: 0.5;
+		}
 	}
 </style>

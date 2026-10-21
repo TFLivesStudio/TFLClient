@@ -11,14 +11,25 @@
 //! propia que todavía no existe (spec §26). Ver `services::content::providers`
 //! para cómo se agrega un proveedor.
 use crate::services::content::install::InstallRequest;
+use crate::services::content::providers::ProjectType;
 use crate::services::content::rollback::{self, ModRollbackInfo};
+use crate::services::content::search::SearchRequest;
 use crate::services::content::types::{
-    ContentKind, ContentSearchHit, ContentUpdate, ContentVersionSummary, InstalledContentInfo,
+    ContentKind, ContentProjectDetail, ContentSearchPage, ContentUpdate, ContentVersionSummary,
+    InstalledContentInfo, SearchIndex,
 };
 use crate::services::content::{self, filesystem, local_files};
 use tauri::{AppHandle, command};
+use tauri_plugin_opener::OpenerExt;
 
 // ── Búsqueda ────────────────────────────────────────────────────────────────
+
+/// Mismo parseo de `index` para los 4 comandos de búsqueda — si el
+/// frontend manda algo que Modrinth no soporta, se rechaza con mensaje
+/// claro en vez de dejar que la URL de Modrinth falle con un 400 opaco.
+fn parse_index(index: &str) -> Result<SearchIndex, String> {
+    SearchIndex::try_from(index)
+}
 
 #[command]
 pub async fn search_mods(
@@ -26,9 +37,21 @@ pub async fn search_mods(
     mc_version: String,
     loader: String,
     categories: Vec<String>,
-) -> Result<Vec<ContentSearchHit>, String> {
+    offset: u32,
+    limit: u32,
+    index: String,
+) -> Result<ContentSearchPage, String> {
     content::service()
-        .search(&query, &mc_version, &loader, &categories, ContentKind::Mod)
+        .search(SearchRequest {
+            query: &query,
+            mc_version: &mc_version,
+            loader: &loader,
+            categories: &categories,
+            project_type: ProjectType::Mod,
+            offset,
+            limit,
+            index: parse_index(&index)?,
+        })
         .await
 }
 
@@ -37,9 +60,21 @@ pub async fn search_shaders(
     query: String,
     mc_version: String,
     categories: Vec<String>,
-) -> Result<Vec<ContentSearchHit>, String> {
+    offset: u32,
+    limit: u32,
+    index: String,
+) -> Result<ContentSearchPage, String> {
     content::service()
-        .search(&query, &mc_version, "", &categories, ContentKind::Shader)
+        .search(SearchRequest {
+            query: &query,
+            mc_version: &mc_version,
+            loader: "",
+            categories: &categories,
+            project_type: ProjectType::Shader,
+            offset,
+            limit,
+            index: parse_index(&index)?,
+        })
         .await
 }
 
@@ -48,15 +83,21 @@ pub async fn search_resourcepacks(
     query: String,
     mc_version: String,
     categories: Vec<String>,
-) -> Result<Vec<ContentSearchHit>, String> {
+    offset: u32,
+    limit: u32,
+    index: String,
+) -> Result<ContentSearchPage, String> {
     content::service()
-        .search(
-            &query,
-            &mc_version,
-            "",
-            &categories,
-            ContentKind::ResourcePack,
-        )
+        .search(SearchRequest {
+            query: &query,
+            mc_version: &mc_version,
+            loader: "",
+            categories: &categories,
+            project_type: ProjectType::ResourcePack,
+            offset,
+            limit,
+            index: parse_index(&index)?,
+        })
         .await
 }
 
@@ -66,16 +107,63 @@ pub async fn search_plugins(
     mc_version: String,
     server_type: String,
     categories: Vec<String>,
-) -> Result<Vec<ContentSearchHit>, String> {
+    offset: u32,
+    limit: u32,
+    index: String,
+) -> Result<ContentSearchPage, String> {
     content::service()
-        .search(
-            &query,
-            &mc_version,
-            &server_type,
-            &categories,
-            ContentKind::Plugin,
-        )
+        .search(SearchRequest {
+            query: &query,
+            mc_version: &mc_version,
+            loader: &server_type,
+            categories: &categories,
+            project_type: ProjectType::Plugin,
+            offset,
+            limit,
+            index: parse_index(&index)?,
+        })
         .await
+}
+
+// ── Ficha de proyecto ───────────────────────────────────────────────────────
+// Un comando por kind, por la misma convención de nombres que el resto de
+// este archivo — el fetch en sí (`ContentService::project_detail`) es
+// agnóstico de kind, Modrinth no lo necesita para `/project/{id}`.
+
+#[command]
+pub async fn get_mod_project_detail(project_id: String) -> Result<ContentProjectDetail, String> {
+    content::service().project_detail(&project_id).await
+}
+
+#[command]
+pub async fn get_shader_project_detail(project_id: String) -> Result<ContentProjectDetail, String> {
+    content::service().project_detail(&project_id).await
+}
+
+#[command]
+pub async fn get_resourcepack_project_detail(
+    project_id: String,
+) -> Result<ContentProjectDetail, String> {
+    content::service().project_detail(&project_id).await
+}
+
+#[command]
+pub async fn get_plugin_project_detail(project_id: String) -> Result<ContentProjectDetail, String> {
+    content::service().project_detail(&project_id).await
+}
+
+/// Abre un link de la ficha de proyecto (página de Modrinth, repo, wiki,
+/// Discord, issues — dominios variados y legítimamente arbitrarios, a
+/// diferencia de `open_external_url` que solo abre el propio repo de
+/// GitHub del launcher). Solo se valida el esquema, no el dominio.
+#[command]
+pub async fn open_content_project_link(app: AppHandle, url: String) -> Result<(), String> {
+    if !url.starts_with("https://") {
+        return Err("URL no permitida".into());
+    }
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| e.to_string())
 }
 
 // ── Versiones disponibles ───────────────────────────────────────────────────
@@ -356,8 +444,14 @@ pub async fn export_instance_as_mrpack(instance_name: String) -> Result<String, 
 
 // ── Archivos locales ────────────────────────────────────────────────────────
 
+/// `async` por la misma razón que `pick_image_file` (instance.rs): el diálogo
+/// bloqueante no puede correr en el hilo principal.
 #[command]
-pub fn pick_content_files(app: AppHandle, extension: String, filter_label: String) -> Vec<String> {
+pub async fn pick_content_files(
+    app: AppHandle,
+    extension: String,
+    filter_label: String,
+) -> Vec<String> {
     local_files::pick_files(&app, &extension, &filter_label)
 }
 

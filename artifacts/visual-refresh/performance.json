@@ -1,0 +1,204 @@
+{
+  "fixture": true,
+  "browser": "154.0.8037.57",
+  "samples": [
+    {
+      "revision": "baseline",
+      "quality": "Lite",
+      "run": 0,
+      "readyMs": 299,
+      "heapMiB": 5.44,
+      "idleTaskMs": 0.77,
+      "nodes": 1695,
+      "settingsMs": 62,
+      "detailMs": 72
+    },
+    {
+      "revision": "baseline",
+      "quality": "Lite",
+      "run": 1,
+      "readyMs": 289,
+      "heapMiB": 5.39,
+      "idleTaskMs": 0.74,
+      "nodes": 1695,
+      "settingsMs": 50,
+      "detailMs": 75
+    },
+    {
+      "revision": "baseline",
+      "quality": "Lite",
+      "run": 2,
+      "readyMs": 303,
+      "heapMiB": 5.45,
+      "idleTaskMs": 0.67,
+      "nodes": 1695,
+      "settingsMs": 42,
+      "detailMs": 70
+    },
+    {
+      "revision": "baseline",
+      "quality": "Balanced",
+      "run": 0,
+      "readyMs": 331,
+      "heapMiB": 5.46,
+      "idleTaskMs": 2,
+      "nodes": 1696,
+      "settingsMs": 67,
+      "detailMs": 78
+    },
+    {
+      "revision": "baseline",
+      "quality": "Balanced",
+      "run": 1,
+      "readyMs": 279,
+      "heapMiB": 5.43,
+      "idleTaskMs": 2.23,
+      "nodes": 1696,
+      "settingsMs": 52,
+      "detailMs": 77
+    },
+    {
+      "revision": "baseline",
+      "quality": "Balanced",
+      "run": 2,
+      "readyMs": 285,
+      "heapMiB": 5.43,
+      "idleTaskMs": 2.42,
+      "nodes": 1696,
+      "settingsMs": 67,
+      "detailMs": 78
+    },
+    {
+      "revision": "baseline",
+      "quality": "Experience",
+      "run": 0,
+      "readyMs": 307,
+      "heapMiB": 5.42,
+      "idleTaskMs": 2.31,
+      "nodes": 1696,
+      "settingsMs": 62,
+      "detailMs": 74
+    },
+    {
+      "revision": "baseline",
+      "quality": "Experience",
+      "run": 1,
+      "readyMs": 263,
+      "heapMiB": 5.45,
+      "idleTaskMs": 2.12,
+      "nodes": 1696,
+      "settingsMs": 58,
+      "detailMs": 72
+    },
+    {
+      "revision": "baseline",
+      "quality": "Experience",
+      "run": 2,
+      "readyMs": 299,
+      "heapMiB": 5.44,
+      "idleTaskMs": 2.54,
+      "nodes": 1696,
+      "settingsMs": 62,
+      "detailMs": 101
+    },
+    {
+      "revision": "refresh",
+      "quality": "Lite",
+      "run": 0,
+      "readyMs": 368,
+      "heapMiB": 4.66,
+      "idleTaskMs": 0.73,
+      "nodes": 1943,
+      "settingsMs": 39,
+      "detailMs": 98
+    },
+    {
+      "revision": "refresh",
+      "quality": "Lite",
+      "run": 1,
+      "readyMs": 294,
+      "heapMiB": 4.64,
+      "idleTaskMs": 0.85,
+      "nodes": 1943,
+      "settingsMs": 61,
+      "detailMs": 90
+    },
+    {
+      "revision": "refresh",
+      "quality": "Lite",
+      "run": 2,
+      "readyMs": 325,
+      "heapMiB": 4.64,
+      "idleTaskMs": 0.73,
+      "nodes": 1943,
+      "settingsMs": 47,
+      "detailMs": 117
+    },
+    {
+      "revision": "refresh",
+      "quality": "Balanced",
+      "run": 0,
+      "readyMs": 269,
+      "heapMiB": 4.62,
+      "idleTaskMs": 2,
+      "nodes": 1943,
+      "settingsMs": 74,
+      "detailMs": 136
+    },
+    {
+      "revision": "refresh",
+      "quality": "Balanced",
+      "run": 1,
+      "readyMs": 338,
+      "heapMiB": 4.67,
+      "idleTaskMs": 2.5,
+      "nodes": 1943,
+      "settingsMs": 66,
+      "detailMs": 131
+    },
+    {
+      "revision": "refresh",
+      "quality": "Balanced",
+      "run": 2,
+      "readyMs": 265,
+      "heapMiB": 4.69,
+      "idleTaskMs": 2.24,
+      "nodes": 1943,
+      "settingsMs": 74,
+      "detailMs": 154
+    },
+    {
+      "revision": "refresh",
+      "quality": "Experience",
+      "run": 0,
+      "readyMs": 326,
+      "heapMiB": 4.69,
+      "idleTaskMs": 2.19,
+      "nodes": 1943,
+      "settingsMs": 63,
+      "detailMs": 154
+    },
+    {
+      "revision": "refresh",
+      "quality": "Experience",
+      "run": 1,
+      "readyMs": 241,
+      "heapMiB": 4.67,
+      "idleTaskMs": 2.28,
+      "nodes": 1943,
+      "settingsMs": 80,
+      "detailMs": 155
+    },
+    {
+      "revision": "refresh",
+      "quality": "Experience",
+      "run": 2,
+      "readyMs": 359,
+      "heapMiB": 4.66,
+      "idleTaskMs": 2.54,
+      "nodes": 1943,
+      "settingsMs": 82,
+      "detailMs": 137
+    }
+  ]
+}

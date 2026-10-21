@@ -29,3 +29,6 @@ src-tauri/gen
 
 # Permisos de comandos generados por src-tauri/build.rs
 src-tauri/permissions/
+
+# Generated browser evidence (published as CI artifacts)
+/artifacts/
