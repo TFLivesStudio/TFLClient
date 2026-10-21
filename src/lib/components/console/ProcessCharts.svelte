@@ -2,6 +2,7 @@
 	import { reorderHandle } from '$lib/console/reorder';
 	import { onMount } from 'svelte';
 	import { Cpu, MemoryStick, HardDrive, ArrowUp, ArrowDown, GripVertical } from 'lucide-svelte';
+	import GaugeRing from '$lib/components/ui/GaugeRing.svelte';
 	import { w } from '$lib/i18n/workbench';
 	import {
 		appendSample,
@@ -87,6 +88,20 @@
 				? Math.max(1024, Math.ceil(Math.max(0, ...values(metric)) / 1024) * 1024)
 				: Math.max(1, Math.ceil(Math.max(0, ...values(metric))));
 	}
+	function latest(metric: Metric) {
+		const s = history.at(-1);
+		return s ? (metric === 'cpu' ? (p.cpuMode === 'cores' ? s.cpu : s.total) : s[metric]) : null;
+	}
+	/** Porcentaje 0-100 para el anillo: valor actual contra el mismo techo de
+	 * escala que usa la gráfica de líneas (CPU total = 100 % fijo). */
+	function gaugePercent(metric: Metric, max: number) {
+		const v = latest(metric);
+		if (v === null) return 0;
+		return (v / (metric === 'cpu' && p.cpuMode === 'total' ? 100 : max)) * 100;
+	}
+	function unit(metric: Metric) {
+		return metric === 'cpu' ? '%' : metric === 'ram' ? ' MB' : ' MB/s';
+	}
 	function display(metric: Metric) {
 		const s = history.at(-1);
 		const v = s ? (metric === 'cpu' ? (p.cpuMode === 'cores' ? s.cpu : s.total) : s[metric]) : null;
@@ -124,27 +139,48 @@
 					dragged = null;
 				}}
 			>
-				<header>
-					<span><Icon size={14} />{w(metric)}</span><strong>{display(metric)}</strong>
-				</header>
-				<div class="plot">
-					<svg
-						viewBox="0 0 400 100"
-						preserveAspectRatio="none"
+				{#if p.chartStyle === 'gauge'}
+					<div
+						class="gauge-slot"
+						style:--accent={p.colors[metric]}
 						role="img"
-						aria-label={`${w(metric)} · ${p.seconds} ${w('seconds')} · ${w('scale')} 0–${max}`}
+						aria-label={`${w(metric)} · ${display(metric)} · ${w('scale')} 0–${max}${unit(metric)}`}
 					>
-						<path d="M0,10H400 M0,50H400 M0,90H400" class="grid" />
-						<path d={chartPath(history, metric, p.cpuMode, end, p.seconds, max)} class="trace" />
-					</svg><small class="scale"
-						>{max}{metric === 'cpu' ? '%' : metric === 'ram' ? ' MB' : ' MB/s'}</small
-					>
-					{#if !values(metric).length}<span class="missing"
-							>{current && !current.ready ? w('waiting') : w('unavailable')}</span
-						>{/if}
-				</div>
+						<GaugeRing
+							value={gaugePercent(metric, max)}
+							label={w(metric)}
+							displayValue={display(metric)}
+							icon={Icon}
+						/>
+						{#if !values(metric).length}<span class="missing-note"
+								>{current && !current.ready ? w('waiting') : w('unavailable')}</span
+							>{/if}
+					</div>
+				{:else}
+					<header>
+						<span><Icon size={14} />{w(metric)}</span><strong>{display(metric)}</strong>
+					</header>
+					<div class="plot">
+						<svg
+							viewBox="0 0 400 100"
+							preserveAspectRatio="none"
+							role="img"
+							aria-label={`${w(metric)} · ${p.seconds} ${w('seconds')} · ${w('scale')} 0–${max}`}
+						>
+							<path d="M0,10H400 M0,50H400 M0,90H400" class="grid" />
+							<path d={chartPath(history, metric, p.cpuMode, end, p.seconds, max)} class="trace" />
+						</svg><small class="scale"
+							>{max}{metric === 'cpu' ? '%' : metric === 'ram' ? ' MB' : ' MB/s'}</small
+						>
+						{#if !values(metric).length}<span class="missing"
+								>{current && !current.ready ? w('waiting') : w('unavailable')}</span
+							>{/if}
+					</div>
+				{/if}
 				<footer>
-					<small>−{p.seconds}s → 0s</small><span class="moves">
+					<small
+						>{p.chartStyle === 'gauge' ? `0–${max}${unit(metric)}` : `−${p.seconds}s → 0s`}</small
+					><span class="moves">
 						<button
 							type="button"
 							class="drag-handle"
@@ -274,6 +310,18 @@
 	button:disabled {
 		opacity: 0.3;
 		cursor: default;
+	}
+	.gauge-slot {
+		margin-top: 6px;
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 4px;
+	}
+	.missing-note {
+		font-size: 11px;
+		color: var(--text-secondary, #a1a1aa);
 	}
 	.unit {
 		display: block;

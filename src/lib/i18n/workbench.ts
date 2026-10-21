@@ -52,6 +52,9 @@ const words = {
 	cpuMode: ['Unidad de CPU', 'CPU unit'],
 	cores: ['Por núcleo · 100 % = un núcleo', 'Per core · 100% = one core'],
 	total: ['Porcentaje del equipo completo', 'Percentage of the whole computer'],
+	chartStyle: ['Estilo de gráfica', 'Chart style'],
+	styleLines: ['Líneas (historial)', 'Lines (history)'],
+	styleGauge: ['Circular (valor actual)', 'Circular (current value)'],
 	dragHint: [
 		'Arrastra las tarjetas para cambiar su orden, o usa las flechas. El registro mantiene su espacio.',
 		'Drag cards to reorder, or use the arrows. The log keeps its own space.'

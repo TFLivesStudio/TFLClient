@@ -60,6 +60,16 @@
 				></select
 			></label
 		>
+		<label
+			>{w('chartStyle')}<select
+				aria-label={w('chartStyle')}
+				value={p.chartStyle}
+				onchange={(e) => saveConsole({ chartStyle: e.currentTarget.value as 'lines' | 'gauge' })}
+				><option value="lines">{w('styleLines')}</option><option value="gauge"
+					>{w('styleGauge')}</option
+				></select
+			></label
+		>
 		<p>{w('dragHint')}</p>
 		<ol class="metric-order" data-metric-list>
 			{#each p.order as metric, index (metric)}

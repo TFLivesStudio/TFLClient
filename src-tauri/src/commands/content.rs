@@ -444,8 +444,14 @@ pub async fn export_instance_as_mrpack(instance_name: String) -> Result<String, 
 
 // ── Archivos locales ────────────────────────────────────────────────────────
 
+/// `async` por la misma razón que `pick_image_file` (instance.rs): el diálogo
+/// bloqueante no puede correr en el hilo principal.
 #[command]
-pub fn pick_content_files(app: AppHandle, extension: String, filter_label: String) -> Vec<String> {
+pub async fn pick_content_files(
+    app: AppHandle,
+    extension: String,
+    filter_label: String,
+) -> Vec<String> {
     local_files::pick_files(&app, &extension, &filter_label)
 }
 

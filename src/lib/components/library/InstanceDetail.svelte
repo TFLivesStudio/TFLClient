@@ -1465,7 +1465,9 @@
 		gap: 5px;
 		border-bottom: 0;
 		border-right: 1px solid var(--border);
-		padding-right: 14px;
+		/* Aire en los 4 lados: con overflow:auto el borde/fondo redondeado
+		 * del tab activo quedaba pegado (y recortado) contra el contenedor. */
+		padding: 4px 14px 4px 4px;
 		overflow-y: auto;
 		overflow-x: hidden;
 		scrollbar-width: thin;
@@ -1515,7 +1517,7 @@
 			gap: 14px;
 		}
 		.detail-workspace .tabs {
-			padding-right: 10px;
+			padding: 4px 10px 4px 4px;
 		}
 		.detail-workspace .tab-btn {
 			padding: 10px 8px;

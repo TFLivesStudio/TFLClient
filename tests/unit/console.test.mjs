@@ -98,3 +98,13 @@ test('history stays bounded, ignores duplicate/coalesced samples, and keeps miss
 	assert.ok(!/NaN|Infinity/.test(path));
 	assert.notEqual(path, chartPath(samples, 'cpu', 'total', 10000, 30, 100));
 });
+test('chart style defaults to lines, accepts gauge and rejects anything else', () => {
+	assert.equal(DEFAULT_CONSOLE.chartStyle, 'lines');
+	assert.equal(parseConsole({}).chartStyle, 'lines');
+	assert.equal(parseConsole({ chartStyle: 'gauge' }).chartStyle, 'gauge');
+	assert.equal(parseConsole({ chartStyle: 'pie' }).chartStyle, 'lines');
+	assert.equal(
+		parseConsole(JSON.parse(JSON.stringify(parseConsole({ chartStyle: 'gauge' })))).chartStyle,
+		'gauge'
+	);
+});

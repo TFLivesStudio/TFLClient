@@ -404,8 +404,13 @@ pub fn open_external_url(app: AppHandle, url: String) -> Result<(), String> {
 /// Abre el diálogo nativo de "elegir archivo" filtrado a imágenes. Comando
 /// separado de `set_instance_icon` para que el bloqueo del diálogo (síncrono,
 /// espera a que el usuario elija) no retenga nada del lado de la instancia.
+///
+/// `async` a propósito: los comandos síncronos de Tauri corren en el hilo
+/// principal, y `blocking_pick_file` NO debe usarse desde ahí (lo indica la
+/// documentación de tauri-plugin-dialog — el diálogo necesita ese mismo
+/// hilo para mostrarse, así que queda esperándose a sí mismo en macOS).
 #[command]
-pub fn pick_image_file(app: AppHandle) -> Option<String> {
+pub async fn pick_image_file(app: AppHandle) -> Option<String> {
     app.dialog()
         .file()
         .add_filter("Imagen", &ICON_EXTENSIONS)
