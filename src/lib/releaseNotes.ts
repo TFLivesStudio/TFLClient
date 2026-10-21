@@ -226,5 +226,9 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Nuevo botón "Explorar en vista amplia" que abre una pantalla grande dentro del launcher (sin ventana nueva) para explorar con más espacio, con filtros y categorías más cómodos.',
 		'Nuevo: ficha completa de cada mod/shader/pack — descripción completa, categorías, versiones, galería de imágenes y links oficiales, sin salir del launcher para instalar.',
 		'Modpacks ahora también deja explorar sin escribir texto, y avisa antes de instalar uno si la instancia ya tiene otro modpack instalado (puede pisar configuración compartida).'
+	],
+	'0.13.0-beta.2': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arreglado: la paginación del nuevo explorador de contenido (beta anterior) se quedaba trabada en la página 1 y "Siguiente" no hacía nada.'
 	]
 };
