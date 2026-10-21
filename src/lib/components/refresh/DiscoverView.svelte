@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { Compass, ArrowUpRight, Sparkles, Box } from 'lucide-svelte';
+	import { Compass, ArrowUpRight, Box } from 'lucide-svelte';
 	import { vr } from '$lib/i18n/refresh';
 	import { appState } from '$lib/state/state.svelte';
 	import { openModal, openContentExplorer } from '$lib/state/uiState.svelte';
 	import InstanceMark from './InstanceMark.svelte';
+	import Tfl from '$lib/icons/Tfl.svelte';
 	const clients = $derived(appState.instances.filter((i) => !i.server_type));
 </script>
 
@@ -15,7 +16,7 @@
 	</header>
 	<article class="vr-editorial">
 		<div>
-			<span class="vr-eyebrow"><Sparkles size={16} /> TFLIVES / {vr('curated')}</span>
+			<span class="vr-eyebrow"><Tfl width="16" height="16" /> TFLIVES / {vr('curated')}</span>
 			<h2>{vr('selection')}</h2>
 			<p>{vr('selectionSub')}</p>
 			<button class="vr-control primary" onclick={() => openModal('tflSelection')}
