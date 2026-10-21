@@ -74,7 +74,7 @@
 						canvas: node,
 						width: w,
 						height: h,
-						pixelRatio: effects.current.dpr,
+						pixelRatio: Math.min(window.devicePixelRatio || 1, effects.current.dpr),
 						renderPaused: true
 					});
 					created.zoom = zoom;
@@ -141,7 +141,7 @@
 		current.renderPaused = !animate;
 		current.autoRotate = animate && autoRotate;
 		current.autoRotateSpeed = autoRotateSpeed;
-		current.pixelRatio = effects.current.dpr;
+		current.pixelRatio = Math.min(window.devicePixelRatio || 1, effects.current.dpr);
 		current.zoom = zoom;
 		const cinematic = effects.current.cinematic,
 			launch = launching;
@@ -227,7 +227,7 @@
 	.pixel-person span {
 		position: absolute;
 		background-image: var(--skin);
-		background-size: 512px 512px;
+		background-size: 512px auto;
 		image-rendering: pixelated;
 	}
 	.head {

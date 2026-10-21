@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ArrowUpRight } from 'lucide-svelte';
 	import { visual } from '$lib/visual/preferences.svelte';
 	import { vr } from '$lib/i18n/refresh';
 	import { navigate } from '$lib/visual/navigation.svelte';
@@ -290,7 +291,9 @@
 	<div class="home-rich vr-stagger">
 		<header class="home-greeting">
 			<span>{vr('welcome')}, <strong>{appState.currentUser?.username ?? 'TFL'}</strong>.</span
-			><button onclick={() => navigate('library')}>{vr('library')} ↗</button>
+			><button onclick={() => navigate('library')}
+				>{vr('library')} <ArrowUpRight size={15} /></button
+			>
 		</header>
 		{#if featured}
 			<InstanceHero

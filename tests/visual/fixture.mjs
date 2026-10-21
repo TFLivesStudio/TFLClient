@@ -110,6 +110,7 @@ export function installFixture({
 			if (cmd === 'switch_user') return user;
 			if (cmd === 'get_current_user') return user;
 			if (cmd === 'get_user_list') return [user];
+			if (cmd === 'check_mod_updates' || cmd === 'find_duplicate_mods') return [];
 			if (cmd === 'get_instances') return instances;
 			if (cmd === 'get_system_status')
 				return {
