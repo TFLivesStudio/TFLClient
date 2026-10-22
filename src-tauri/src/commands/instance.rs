@@ -632,5 +632,5 @@ pub async fn get_crash_report(name: String) -> Result<Option<String>, String> {
         .map_err(|_| "Crash report read failed")?;
     let content = String::from_utf8_lossy(&bytes);
     let summary: String = content.lines().take(40).collect::<Vec<_>>().join("\n");
-    Ok(Some(summary))
+    Ok(Some(crate::core::session_privacy::redact(&summary)))
 }

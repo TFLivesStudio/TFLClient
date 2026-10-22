@@ -56,3 +56,10 @@ pub fn emit(event: AppEvent) {
         let _ = handle.emit("app-event", &event);
     }
 }
+
+/// Public invalidation only; credentials never enter an event payload.
+pub fn accounts_changed() {
+    if let Some(handle) = APP_HANDLE.get() {
+        let _ = handle.emit_to("main", "accounts-changed", ());
+    }
+}

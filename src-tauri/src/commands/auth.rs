@@ -167,15 +167,38 @@ pub async fn logout() -> Result<(), String> {
         .lock()
         .await;
     info!("Cerrando sesión de usuario");
-    SettingsManager::write(|s| {
-        s.active_user_idx = 0;
-        if s.user.is_empty() {
-            s.user.push(MinecraftUser::cracked("Steve"));
-        }
+    let mut user = SettingsManager::read().get_user();
+    let uuid = user.uuid.clone();
+    tokio::task::spawn_blocking(move || {
+        let result = user.delete_tokens();
+        user.forget_tokens();
+        result
     })
-    .map_err(|e| e.to_string())?;
-    SettingsManager::save().await?;
+    .await
+    .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?
+    .map_err(|_| "SECURE_STORE_UNAVAILABLE".to_string())?;
+    SettingsManager::write(|s| disconnect_locally(s, &uuid))
+        .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?;
+    SettingsManager::save()
+        .await
+        .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?;
     Ok(())
+}
+fn disconnect_locally(settings: &mut SettingsManager, uuid: &str) {
+    if let Some(user) = settings.user.iter_mut().find(|u| u.uuid == uuid) {
+        user.forget_tokens();
+    }
+    settings.active_user_idx = if let Some(index) = settings
+        .user
+        .iter()
+        .position(|u| u.user_type == launchwerk::auth::AccountType::Cracked)
+    {
+        index
+    } else {
+        settings.user.push(MinecraftUser::cracked("Steve"));
+        settings.user.len() - 1
+    };
+    // Preserve the disconnected profile and the existing onboarding flag.
 }
 
 #[command]
@@ -227,7 +250,14 @@ pub async fn remove_user(uuid: String) -> Result<(), String> {
     }
 
     SettingsManager::write(|s| {
-        s.user.retain(|u| u.uuid != uuid);
+        s.user.retain_mut(|u| {
+            if u.uuid == uuid {
+                u.forget_tokens();
+                false
+            } else {
+                true
+            }
+        });
         if s.user.is_empty() {
             s.user.push(MinecraftUser::cracked("Steve"));
         }
@@ -239,4 +269,34 @@ pub async fn remove_user(uuid: String) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
     SettingsManager::save().await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn logout_forgets_credentials_preserves_profile_and_does_not_repeat_onboarding() {
+        let mut settings = SettingsManager {
+            user: vec![MinecraftUser::premium(
+                "Original".into(),
+                "profile-id".into(),
+                "fixture-access".into(),
+                Some("fixture-refresh".into()),
+            )],
+            active_user_idx: 0,
+            onboarded: true,
+            ..Default::default()
+        };
+        disconnect_locally(&mut settings, "profile-id");
+        assert!(settings.onboarded);
+        assert_eq!(settings.user[0].username, "Original");
+        assert!(settings.user[0].access_token.is_empty());
+        assert!(settings.user[0].refresh_token.is_none());
+        assert_eq!(
+            settings.get_user().user_type,
+            launchwerk::auth::AccountType::Cracked
+        );
+        disconnect_locally(&mut settings, "profile-id");
+        assert_eq!(settings.user.len(), 2);
+    }
 }

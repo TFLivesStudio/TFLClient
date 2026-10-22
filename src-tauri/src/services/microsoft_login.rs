@@ -89,7 +89,9 @@ impl Attempt {
         if state.committing || terminal(&state.snapshot.phase) {
             return;
         }
-        state.pending.take();
+        if let Some(mut user) = state.pending.take() {
+            user.forget_tokens();
+        }
         state.snapshot.user_code = None;
         state.snapshot.verification_uri = None;
         state.snapshot.phase = if error.contains("AUTH_CANCELLED") {
@@ -185,14 +187,13 @@ pub fn start(
     if !matches!(method, "auto" | "embedded" | "external" | "device") {
         return Err("AUTH_METHOD_INVALID".into());
     }
-    if let Some(uuid) = &expected_uuid {
-        if !SettingsManager::read()
+    if let Some(uuid) = &expected_uuid
+        && !SettingsManager::read()
             .user
             .iter()
             .any(|u| u.uuid == *uuid && u.user_type == launchwerk::auth::AccountType::Microsoft)
-        {
-            return Err("ACCOUNT_NOT_FOUND".into());
-        }
+    {
+        return Err("ACCOUNT_NOT_FOUND".into());
     }
     let id = uuid::Uuid::new_v4().to_string();
     let progress_id = id.clone();
@@ -367,14 +368,14 @@ async fn persist(a: &Arc<Attempt>, mut user: MinecraftUser, memory: bool) -> Res
     let mut state = a.state.lock();
     state.committing = false;
     state.pending = None;
-    user.access_token.clear();
-    user.refresh_token = None;
-    user.client_token = None;
+    user.forget_tokens();
     state.snapshot.user = Some(user);
     state.snapshot.phase = "success".into();
     state.snapshot.error = None;
     state.snapshot.user_code = None;
     state.snapshot.verification_uri = None;
+    drop(state);
+    crate::core::event_bus::accounts_changed();
     Ok(())
 }
 fn run(

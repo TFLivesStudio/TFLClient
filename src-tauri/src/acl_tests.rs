@@ -376,7 +376,7 @@ fn asset_protocol_only_serves_icons_screenshots_and_wallpaper() {
     use tauri::Manager;
     let app = app();
     let scope = app.asset_protocol_scope();
-    let home = std::env::var("HOME").expect("HOME no definido");
+    let home = app.path().home_dir().expect("home directory unavailable");
     let p = |rel: &str| Path::new(&home).join(".tflclient").join(rel);
 
     // Lo que la interfaz muestra de verdad.

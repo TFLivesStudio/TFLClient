@@ -75,13 +75,12 @@ pub async fn get_mojang_profile() -> Result<MojangProfile, String> {
         })?;
     if !resp.status().is_success() {
         let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        warn!("get_mojang_profile: Mojang devolvió {status}: {body}");
+        warn!("get_mojang_profile: Mojang devolvió {status}");
         return Err(map_status(status));
     }
     let raw = resp.text().await.map_err(|e| e.to_string())?;
     let json: serde_json::Value = serde_json::from_str(&raw).map_err(|e| {
-        warn!("get_mojang_profile: respuesta no es JSON válido ({e}): {raw}");
+        warn!("get_mojang_profile: respuesta no es JSON válido");
         format!("Mojang devolvió una respuesta inesperada: {e}")
     })?;
     let mut profile = MojangProfile {

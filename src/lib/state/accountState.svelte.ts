@@ -2,6 +2,8 @@ import { getCurrentUser, getSettings, logout as apiLogout } from '$lib/api';
 import { applyQualityVisuals } from '$lib/state/appearanceState.svelte';
 import { appState } from '$lib/state/state.svelte';
 import { ui } from '$lib/state/uiState.svelte';
+import { addNotice } from '$lib/visual/notifications.svelte';
+import { authError } from '$lib/i18n/auth';
 import type { MinecraftUser } from '$lib/types/types';
 
 export async function handleOnboardingDone(user: MinecraftUser) {
@@ -12,7 +14,11 @@ export async function handleOnboardingDone(user: MinecraftUser) {
 }
 
 export async function handleLogout() {
-	await apiLogout();
-	appState.currentUser = await getCurrentUser();
-	appState.settings = await getSettings();
+	try {
+		await apiLogout();
+		appState.currentUser = await getCurrentUser();
+		appState.settings = await getSettings();
+	} catch (error) {
+		addNotice({ kind: 'error', title: 'failed', message: authError(String(error)) });
+	}
 }

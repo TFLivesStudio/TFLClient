@@ -264,7 +264,6 @@ impl<'a> CommandBuilder<'a> {
         if !self.config.extra_jvm_args.is_empty() {
             debug!("extra_jvm_args ({}):", self.config.extra_jvm_args.len());
             for arg in &self.config.extra_jvm_args {
-                debug!("  extra: {arg}");
                 cmd.push(arg.clone());
             }
         }
@@ -492,7 +491,7 @@ impl<'a> CommandBuilder<'a> {
         remove.dedup();
         remove.reverse();
         for idx in remove {
-            info!("Removing unresolved placeholder: {}", cmd[idx]);
+            info!("Removing an unresolved argument at index {idx}");
             cmd.remove(idx);
         }
     }

@@ -205,8 +205,7 @@ impl MicrosoftAuth {
             verifier,
             redirect,
             control,
-            TOKEN,
-            [XBL, XSTS, MC_LOGIN, PROFILE],
+            [TOKEN, XBL, XSTS, MC_LOGIN, PROFILE],
         )
     }
     fn exchange_code_at(
@@ -215,11 +214,10 @@ impl MicrosoftAuth {
         verifier: &str,
         redirect: &str,
         control: &LoginControl,
-        token_endpoint: &str,
-        downstream: [&str; 4],
+        endpoints: [&str; 5],
     ) -> crate::Result<MinecraftUser> {
         control.phase("microsoft")?;
-        let (status, json) = send(http()?.post(token_endpoint).form(&[
+        let (status, json) = send(http()?.post(endpoints[0]).form(&[
             ("client_id", self.client_id.as_str()),
             ("code", code),
             ("code_verifier", verifier),
@@ -235,7 +233,7 @@ impl MicrosoftAuth {
             &token.access_token,
             token.refresh_token,
             control,
-            downstream,
+            [endpoints[1], endpoints[2], endpoints[3], endpoints[4]],
         )
     }
     pub fn get_device_code(&self) -> crate::Result<DeviceCodeResponse> {
@@ -517,5 +515,164 @@ mod tests {
             }
             server.join().unwrap();
         }
+    }
+}
+
+#[cfg(test)]
+mod exchange_tests {
+    use super::*;
+    fn fixture(
+        responses: Vec<(u16, serde_json::Value)>,
+    ) -> (String, std::thread::JoinHandle<Vec<String>>) {
+        use std::net::TcpListener;
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = format!("http://{}/", listener.local_addr().unwrap());
+        let server = std::thread::spawn(move || {
+            use std::io::Write;
+            let mut requests = Vec::new();
+            for (status, json) in responses {
+                let (mut stream, _) = listener.accept().unwrap();
+                stream
+                    .set_read_timeout(Some(Duration::from_secs(3)))
+                    .unwrap();
+                let mut request = Vec::new();
+                let mut buffer = [0u8; 2048];
+                loop {
+                    let n = stream.read(&mut buffer).unwrap();
+                    if n == 0 {
+                        break;
+                    }
+                    request.extend_from_slice(&buffer[..n]);
+                    if let Some(end) = request.windows(4).position(|v| v == b"\r\n\r\n") {
+                        let headers = String::from_utf8_lossy(&request[..end]);
+                        let size = headers
+                            .lines()
+                            .find_map(|line| {
+                                let (key, value) = line.split_once(':')?;
+                                key.eq_ignore_ascii_case("content-length")
+                                    .then(|| value.trim().parse::<usize>().unwrap())
+                            })
+                            .unwrap_or(0);
+                        if request.len() >= end + 4 + size {
+                            break;
+                        }
+                    }
+                    assert!(request.len() < 16384);
+                }
+                requests.push(String::from_utf8(request).unwrap());
+                let body = json.to_string();
+                write!(stream,"HTTP/1.1 {status} Fixture\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len()).unwrap();
+            }
+            requests
+        });
+        (address, server)
+    }
+    fn pipeline() -> Vec<(u16, serde_json::Value)> {
+        vec![
+            (
+                200,
+                serde_json::json!({"Token":"fixture-xbl","DisplayClaims":{"xui":[{"uhs":"hash"}]}}),
+            ),
+            (
+                200,
+                serde_json::json!({"Token":"fixture-xsts","DisplayClaims":{"xui":[{"uhs":"hash"}]}}),
+            ),
+            (
+                200,
+                serde_json::json!({"access_token":"fixture-minecraft","expires_in":86400}),
+            ),
+            (
+                200,
+                serde_json::json!({"id":"0123456789abcdef0123456789abcdef","name":"Fixture"}),
+            ),
+        ]
+    }
+    #[test]
+    fn authorization_code_exchange_and_refresh_use_rust_forms_and_preserve_rotation() {
+        for (refreshing, rotated) in [(false, false), (true, false), (true, true)] {
+            let mut responses = vec![(
+                200,
+                serde_json::json!({"access_token":"fixture-microsoft","refresh_token":if refreshing && !rotated {None}else{Some("new-refresh")}}),
+            )];
+            responses.extend(pipeline());
+            let (url, server) = fixture(responses);
+            let auth = MicrosoftAuth::default();
+            let user = if refreshing {
+                auth.refresh_at("original-refresh", &url, [&url, &url, &url, &url])
+                    .unwrap()
+            } else {
+                auth.exchange_code_at(
+                    "one-use-code",
+                    "rust-verifier",
+                    "http://localhost/",
+                    &LoginControl::default(),
+                    [&url, &url, &url, &url, &url],
+                )
+                .unwrap()
+            };
+            assert!(
+                user.cached_session_valid_at(
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs()
+                )
+            );
+            assert_eq!(
+                user.refresh_token.as_deref(),
+                Some(if refreshing && !rotated {
+                    "original-refresh"
+                } else {
+                    "new-refresh"
+                })
+            );
+            let requests = server.join().unwrap();
+            let form = requests[0].split("\r\n\r\n").nth(1).unwrap();
+            let fields: std::collections::HashMap<_, _> =
+                url::form_urlencoded::parse(form.as_bytes()).collect();
+            assert!(!fields.contains_key("client_secret"));
+            assert_eq!(fields["client_id"], DEFAULT_CLIENT_ID);
+            if refreshing {
+                assert_eq!(fields["grant_type"], "refresh_token");
+            } else {
+                assert_eq!(fields["code_verifier"], "rust-verifier");
+                assert_eq!(fields["redirect_uri"], "http://localhost/");
+                assert_eq!(fields["grant_type"], "authorization_code");
+            }
+            assert!(!serde_json::to_string(&user).unwrap().contains("fixture-"));
+        }
+    }
+    #[test]
+    fn microsoft_errors_and_invalid_app_registration_are_not_generic_or_reflected() {
+        let (url, server) = fixture(vec![(
+            400,
+            serde_json::json!({"error":"consent_required","error_description":"fixture-secret-that-must-not-be-reflected"}),
+        )]);
+        let result = MicrosoftAuth::default()
+            .exchange_code_at(
+                "fixture-code",
+                "fixture-verifier",
+                "http://localhost/",
+                &LoginControl::default(),
+                [&url, &url, &url, &url, &url],
+            )
+            .unwrap_err()
+            .to_string();
+        assert!(result.contains("REAUTHENTICATION_REQUIRED"));
+        assert!(!result.contains("fixture-"));
+        server.join().unwrap();
+        for key in ["error", "errorMessage"] {
+            let json = serde_json::json!({key:"Invalid app registration"});
+            assert!(
+                service_error("minecraft", 403, &json)
+                    .to_string()
+                    .contains("MINECRAFT_APP_NOT_APPROVED")
+            );
+        }
+        assert!(
+            !service_error("minecraft", 403, &serde_json::json!({"error":"other"}))
+                .to_string()
+                .contains("NOT_APPROVED")
+        );
     }
 }

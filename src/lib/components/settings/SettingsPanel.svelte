@@ -731,7 +731,7 @@
 										{#if u.user_type === 'Microsoft'}<button
 												type="button"
 												class="mini-btn"
-												disabled={accountBusy}
+												disabled={accountBusy || showMicrosoft}
 												onclick={() => handleAddMicrosoft(u.uuid)}
 												>{authText('Renovar sesión', 'Sign in again')}</button
 											>{/if}

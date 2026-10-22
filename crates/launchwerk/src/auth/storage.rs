@@ -43,10 +43,29 @@ struct OsVault;
 fn failure(code: &str) -> crate::Error {
     crate::Error::AuthError(code.into())
 }
+fn os_entry(account: &str) -> keyring::Result<keyring::Entry> {
+    use keyring::api::CredentialStoreApi;
+    // Initialize per operation: a missing/locked service can recover on Retry,
+    // unlike a process-wide cached initialization failure. No mock/default store.
+    #[cfg(target_os = "windows")]
+    let store = windows_native_keyring_store::Store::new()?;
+    #[cfg(target_os = "macos")]
+    let store = apple_native_keyring_store::keychain::Store::new()?;
+    #[cfg(target_os = "linux")]
+    let store = zbus_secret_service_keyring_store::Store::new()?;
+    #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+    {
+        store.build(SERVICE, account, None)
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        let _ = account;
+        Err(keyring::Error::NoDefaultStore)
+    }
+}
 impl Vault for OsVault {
     fn get(&self, account: &str) -> crate::Result<Option<String>> {
-        let entry = keyring::Entry::new(SERVICE, account)
-            .map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
+        let entry = os_entry(account).map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
         match entry.get_password() {
             Ok(value) => Ok(Some(value)),
             Err(keyring::Error::NoEntry) => Ok(None),
@@ -54,13 +73,12 @@ impl Vault for OsVault {
         }
     }
     fn set(&self, account: &str, value: &str) -> crate::Result<()> {
-        keyring::Entry::new(SERVICE, account)
+        os_entry(account)
             .and_then(|e| e.set_password(value))
             .map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))
     }
     fn delete(&self, account: &str) -> crate::Result<()> {
-        let entry = keyring::Entry::new(SERVICE, account)
-            .map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
+        let entry = os_entry(account).map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
         match entry.delete_credential() {
             Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
             Err(_) => Err(failure("SECURE_STORE_UNAVAILABLE")),
@@ -134,7 +152,7 @@ impl SecureStorage {
             None if create => {
                 let mut key = Zeroizing::new([0u8; 32]);
                 rand::rng().fill_bytes(&mut *key);
-                let encoded = Zeroizing::new(STANDARD.encode(*key));
+                let encoded = Zeroizing::new(STANDARD.encode(key.as_slice()));
                 vault.set(account, &encoded)?;
                 let verified = Zeroizing::new(
                     vault

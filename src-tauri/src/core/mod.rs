@@ -21,3 +21,5 @@ pub use http_client::{
 pub use path_manager::PathManager;
 
 pub mod microsoft_identity;
+
+pub mod session_privacy;

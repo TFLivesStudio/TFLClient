@@ -183,13 +183,13 @@
 		<p class="auth-hint">{login.verification_uri}</p>
 		<div class="auth-device">
 			<code aria-label={text('Código de dispositivo', 'Device code')}>{login.user_code}</code>
-			<button type="button" onclick={copyCode}
+			<button type="button" disabled={starting} onclick={copyCode}
 				>{#if copied}<Check size={16} />{:else}<Copy size={16} />{/if}{text(
 					'Copiar',
 					'Copy'
 				)}</button
 			>
-			<button type="button" class="auth-primary" onclick={openDevice}
+			<button type="button" class="auth-primary" disabled={starting} onclick={openDevice}
 				><ExternalLink size={16} />{text('Abrir Microsoft', 'Open Microsoft')}</button
 			>
 		</div>
@@ -366,7 +366,7 @@
 	.auth-storage p {
 		flex-basis: 100%;
 	}
-	:global([data-ui-style='pixel']) .auth-mark {
+	:global([data-visual='pixel']) .auth-mark {
 		box-shadow:
 			inset -3px -3px 0 rgb(0 0 0 / 0.25),
 			inset 3px 3px 0 rgb(255 255 255 / 0.08);

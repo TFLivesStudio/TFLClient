@@ -39,7 +39,7 @@ pub struct YggdrasilProperty {
     pub value: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 struct YggdrasilAuthResponse {
     #[serde(rename = "accessToken")]
     access_token: String,

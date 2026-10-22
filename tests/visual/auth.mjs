@@ -196,6 +196,19 @@ try {
 	);
 	checks.push('closing settings cancels pending sign-in');
 	await closed.context().close();
+	const english = await open({ language: 'en' });
+	await english.getByRole('button', { name: 'Open Microsoft', exact: true }).waitFor();
+	await english.getByRole('button', { name: 'Use browser', exact: true }).click();
+	await english.getByText('Finish signing in in your browser', { exact: false }).waitFor();
+	await bounds(english);
+	await english.screenshot({ path: `${output}/english-external.png` });
+	await english.keyboard.press('Escape');
+	await english.locator('.settings-refresh').waitFor({ state: 'detached' });
+	assert.ok(
+		await english.evaluate(() => window.__authCalls.some((c) => c.cmd === 'cancel_microsoft_auth'))
+	);
+	checks.push('English labels and keyboard cancellation');
+	await english.context().close();
 	assert.deepEqual(errors, []);
 	await writeFile(
 		`${output}/results.json`,

@@ -100,6 +100,13 @@ impl MinecraftUser {
         }
     }
 
+    pub fn forget_tokens(&mut self) {
+        use zeroize::Zeroize;
+        self.access_token.zeroize();
+        self.refresh_token.zeroize();
+        self.client_token.zeroize();
+        self.access_token_expires_at = None;
+    }
     pub fn requires_reauthorization(&self, client_id: &str) -> bool {
         self.user_type == AccountType::Microsoft
             && self.microsoft_client_id.as_deref() != Some(client_id)
