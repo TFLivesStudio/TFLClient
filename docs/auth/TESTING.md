@@ -88,3 +88,17 @@ an interactive native vault prompt was successfully used on that OS.
    OAuth/device polling credentials, cookies or alter the application identity.
 9. Record OS/version/browser engine, result and nonsensitive error code. Publish only
    after the separate approval/activation process in [OWNER_ES.md](OWNER_ES.md).
+
+## Local evidence
+
+[Validation summary](evidence/local-validation.json) records 186 Rust library tests,
+18 Node behavior tests and 13 simulated-IPC browser checks.
+[Browser assertions](evidence/browser.json) list the actual verified interactions.
+
+- [Modern accounts](screenshots/modern-accounts.png)
+- [Pixel onboarding at 800×600](screenshots/pixel-onboarding-800.png)
+- [Explicit storage consent](screenshots/storage-consent.png)
+- [English browser flow](screenshots/english-external.png)
+
+These screenshots contain only synthetic fixture accounts, not a Microsoft login.
+Native platform CI results and the exact tested commit are linked in the draft PR.
