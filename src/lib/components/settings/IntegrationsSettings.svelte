@@ -47,6 +47,7 @@
 	let grants = $state<Record<string, string[]>>({}),
 		scopes = $state<Record<string, string[]>>({});
 	let clientKind = $state('codex');
+	let diagnostic = $state('');
 	const connection = $derived(
 		status?.enabled
 			? status.clients.some((c) => c.connected && c.approved)
@@ -173,8 +174,16 @@
 	<section>
 		<div class="section-heading">
 			<h4>{tr('Conectar un asistente', 'Connect an assistant')}</h4>
-			<button disabled={busy} onclick={() => action(() => invoke('mcp_probe'))}
-				><RefreshCw size={14} />{tr('Probar enlace local', 'Test local connection')}</button
+			<button
+				disabled={busy}
+				onclick={() =>
+					action(async () => {
+						await invoke('mcp_probe');
+						diagnostic = tr(
+							'Enlace autenticado correcto. Las consultas sin aprobación fueron rechazadas.',
+							'Authenticated connection verified. Unapproved queries were denied.'
+						);
+					})}><RefreshCw size={14} />{tr('Probar enlace local', 'Test local connection')}</button
 			>
 		</div>
 		<p>
@@ -183,8 +192,9 @@
 				'1. Enable MCP. 2. Copy the configuration into your client. 3. Start the connection and approve the session here.'
 			)}
 		</p>
+		{#if diagnostic}<p role="status" class="security">{diagnostic}</p>{/if}
 		<div class="client-tabs">
-			{#each [['codex', 'Codex'], ['opencode', 'OpenCode'], ['claude', 'Claude Code']] as [id, label]}<button
+			{#each [['codex', 'Codex'], ['opencode', 'OpenCode'], ['claude', 'Claude Code']] as [id, label] (id)}<button
 					class:selected={clientKind === id}
 					onclick={() => (clientKind = id)}>{label}</button
 				>{/each}
@@ -243,7 +253,7 @@
 					>
 				</div>
 				{#if client.connected && !client.approved}<div class="permissions">
-						{#each Object.entries(permissionLabels) as [id, label]}<label
+						{#each Object.entries(permissionLabels) as [id, label] (id)}<label
 								><input
 									type="checkbox"
 									checked={(grants[client.id] ?? ['read']).includes(id)}
@@ -257,7 +267,7 @@
 								'Limitar a instancias concretas (ninguna seleccionada = todas)',
 								'Restrict to specific instances (none selected = all)'
 							)}</summary
-						>{#each appState.instances as instance}<label
+						>{#each appState.instances as instance (instance.uuid)}<label
 								><input
 									type="checkbox"
 									checked={(scopes[client.id] ?? []).includes(instance.uuid)}
@@ -290,7 +300,7 @@
 	</section>
 	<section>
 		<h4>{tr('Acciones que requieren tu confirmación', 'Actions requiring your confirmation')}</h4>
-		{#each (status?.plans ?? []).filter((p) => !p.decided && p.expires * 1000 > Date.now()) as plan}<article
+		{#each (status?.plans ?? []).filter((p) => !p.decided && p.expires * 1000 > Date.now()) as plan (plan.id)}<article
 				class="approval"
 			>
 				<h5>
@@ -334,7 +344,7 @@
 			)}
 		</p>
 		<div class="audit">
-			{#each [...(status?.audit ?? [])].reverse().slice(0, 30) as entry}<div>
+			{#each [...(status?.audit ?? [])].reverse().slice(0, 30) as entry, index (index)}<div>
 					<time>{new Date(entry.at * 1000).toLocaleTimeString()}</time><code>{entry.action}</code
 					><span>{entry.decision}</span>
 				</div>{/each}
@@ -439,7 +449,7 @@
 		display: block;
 		width: 100%;
 		box-sizing: border-box;
-		background: var(--surface-input);
+		background: var(--bg-input);
 		color: var(--text-primary);
 		border: 1px solid var(--border-subtle);
 		padding: 12px;
@@ -455,7 +465,7 @@
 		justify-content: center;
 		gap: 6px;
 		padding: 9px 13px;
-		background: var(--surface-hover);
+		background: var(--bg-hover);
 		color: var(--text-primary);
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-sm, 8px);

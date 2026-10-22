@@ -199,6 +199,13 @@ pub fn redact_value(v: Value) -> Value {
         Value::Object(m) => Value::Object(
             m.into_iter()
                 .filter(|(k, _)| {
+                    let normalized = k.to_ascii_lowercase();
+                    if ["token", "password", "secret", "cookie", "authorization"]
+                        .iter()
+                        .any(|word| normalized.contains(word))
+                    {
+                        return false;
+                    }
                     ![
                         "access_token",
                         "refresh_token",
@@ -324,6 +331,12 @@ pub async fn execute(app: &AppHandle, client: &str, tool: &str, p: Value) -> Res
                 .collect::<Vec<_>>()
         )),
         "tfl_get_instance_logs" => logs(&instance(&p).await?, &p).await,
+        "tfl_get_crash_report" => {
+            let i = instance(&p).await?;
+            Ok(
+                json!({"report":commands::instance::get_crash_report(i.name).await?,"source":"native_jvm_crash","untrusted_data":true}),
+            )
+        }
         "tfl_diagnose_instance" => {
             let i = instance(&p).await?;
             let evidence = logs(&i, &json!({"limit":200,"level":"error"})).await?;
@@ -562,7 +575,10 @@ pub async fn execute(app: &AppHandle, client: &str, tool: &str, p: Value) -> Res
             let i = instance(&p).await?;
             stopped(&i)?;
             let k = kind(&p)?;
-            let project = text(&p, "project_id")?;
+            let requested_project = text(&p, "project_id")?;
+            simple(requested_project)?;
+            let project_detail = content::service().project_detail(requested_project).await?;
+            let project = project_detail.project_id.as_str();
             let version = text(&p, "version_id")?;
             simple(project)?;
             simple(version)?;

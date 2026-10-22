@@ -1,3 +1,4 @@
+import { persistAuthority } from '$lib/integrations/preferences';
 import {
 	DEFAULT_SCENES,
 	parseScenes,
@@ -36,6 +37,7 @@ export function inheritScene(instance: string) {
 export function persist() {
 	try {
 		localStorage.setItem(SCENES_KEY, JSON.stringify($state.snapshot(scenes)));
+		persistAuthority('scenes', $state.snapshot(scenes));
 		sceneStatus.error = false;
 	} catch {
 		sceneStatus.error = true;

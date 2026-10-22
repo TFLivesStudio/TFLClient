@@ -41,21 +41,18 @@ pub fn notify(app: &AppHandle) {
     }
 }
 pub fn restore(app: AppHandle) {
-    if let Ok(raw) = std::fs::read(config_path().with_file_name("mcp-audit.json")) {
-        if raw.len() < 200000 {
-            if let Ok(a) =
-                serde_json::from_slice::<std::collections::VecDeque<mcp_policy::Audit>>(&raw)
-            {
-                STATE.lock().audit = a
-                    .into_iter()
-                    .rev()
-                    .take(300)
-                    .collect::<Vec<_>>()
-                    .into_iter()
-                    .rev()
-                    .collect();
-            }
-        }
+    if let Ok(raw) = std::fs::read(config_path().with_file_name("mcp-audit.json"))
+        && raw.len() < 200000
+        && let Ok(a) = serde_json::from_slice::<std::collections::VecDeque<mcp_policy::Audit>>(&raw)
+    {
+        STATE.lock().audit = a
+            .into_iter()
+            .rev()
+            .take(300)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect();
     }
     if std::fs::read(config_path())
         .ok()
@@ -76,10 +73,10 @@ pub fn sidecar_path(app: &AppHandle) -> Option<String> {
         "tflclient-mcp"
     };
     let mut dirs = Vec::new();
-    if let Ok(p) = std::env::current_exe() {
-        if let Some(d) = p.parent() {
-            dirs.push(d.to_path_buf());
-        }
+    if let Ok(p) = std::env::current_exe()
+        && let Some(d) = p.parent()
+    {
+        dirs.push(d.to_path_buf());
     }
     if let Ok(d) = app.path().resource_dir() {
         dirs.push(d);
@@ -241,6 +238,22 @@ async fn connection(app: AppHandle, stream: TcpStream, token: &str) -> Result<()
     Ok(())
 }
 async fn handle(app: AppHandle, client: &str, r: Request) -> Result<Value, String> {
+    if r.method == "__client_identity" {
+        let mut s = STATE.lock();
+        let c = s
+            .clients
+            .iter_mut()
+            .find(|c| c.id == client && c.connected)
+            .ok_or("SESSION_CLOSED")?;
+        c.name = r.params["name"]
+            .as_str()
+            .unwrap_or("MCP client")
+            .chars()
+            .filter(|c| !c.is_control())
+            .take(80)
+            .collect();
+        return Ok(json!({"identified":true}));
+    }
     let d = catalog::definitions()
         .into_iter()
         .find(|d| d.name == r.method)

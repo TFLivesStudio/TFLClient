@@ -20,7 +20,9 @@ async function until(fn) {
 		try {
 			const v = await fn();
 			if (v) return v;
-		} catch {}
+		} catch {
+			/* Wait for atomic host snapshot/control publication. */
+		}
 		await pause(100);
 	}
 	throw Error('Timed out waiting for host');
@@ -105,12 +107,15 @@ assert((await readFile(path.join(profile, 'preference-events.jsonl'), 'utf8')).i
 evidence.push({ preferences: 'persisted change + native Tauri event; stale revision rejected' });
 async function job(result) {
 	const { job_id } = data(result);
-	return until(async () => {
+	for (let attempt = 0; attempt < 90; attempt++) {
 		const j = data(await call('tfl_get_job', { job_id }));
 		if (j.status === 'failed') throw Error(j.error);
-		return j.status === 'succeeded' ? j : false;
-	});
+		if (j.status === 'succeeded') return j;
+		await pause(1000);
+	}
+	throw Error('Job did not finish within acceptance-test timeout');
 }
+
 const args = {
 	name: 'MCP Acceptance ' + Date.now(),
 	mc_version: '1.21.1',
@@ -158,6 +163,51 @@ await control({
 assert((await b.callTool({ name: 'tfl_get_instance', arguments: { instance_id: uuid } })).isError);
 assert(!data(await b.callTool({ name: 'tfl_list_instances', arguments: {} })).instances.length);
 evidence.push({ concurrency: 'second independent MCP process/session; instance scope enforced' });
+if (process.env.MCP_NETWORK_TEST === '1') {
+	const fabric = await job(
+		await call('tfl_create_instance', {
+			name: 'MCP Content ' + Date.now(),
+			mc_version: '1.21.1',
+			loader: 'fabric',
+			idempotency_key: 'fabric-network'
+		})
+	);
+	const instance_id = fabric.result.instance_id;
+	const search = data(
+		await call('tfl_search_content', { instance_id, kind: 'mod', query: 'Fabric API', limit: 5 })
+	);
+	assert(search.page.hits.length);
+	const versions = data(
+		await call('tfl_get_content_versions', { instance_id, kind: 'mod', project_id: 'fabric-api' })
+	);
+	assert(versions.length);
+	await job(
+		await call('tfl_install_content', {
+			instance_id,
+			kind: 'mod',
+			project_id: 'fabric-api',
+			version_id: versions[0].id,
+			idempotency_key: 'content-network'
+		})
+	);
+	const files = data(await call('tfl_list_installed_content', { instance_id, kind: 'mod' }));
+	assert(files.files.some((f) => f.endsWith('.jar')));
+	const cleanup = data(await call('tfl_plan_action', { instance_id, action: 'delete_instance' }));
+	await control({ op: 'approve', plan_id: cleanup.plan_id, approve: true });
+	await job(await call('tfl_execute_plan', { plan_id: cleanup.plan_id }));
+	evidence.push({
+		content:
+			'real Modrinth search + Fabric loader resolution + compatible Fabric API version install, hashes and managed files; exact-approved fixture cleanup'
+	});
+}
+const latency = [];
+for (let n = 0; n < 8; n++) {
+	const t = performance.now();
+	data(await call('tfl_get_app_info'));
+	latency.push(performance.now() - t);
+}
+evidence.push({ simple_tool_latency_ms: latency });
+
 let plan = data(await call('tfl_plan_action', { instance_id: uuid, action: 'delete_instance' }));
 assert(
 	(await call('tfl_execute_plan', { plan_id: plan.plan_id })).isError,

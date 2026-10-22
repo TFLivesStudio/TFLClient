@@ -68,10 +68,11 @@ impl PathManager {
 
 fn resolve_base_dir() -> PathBuf {
     // Explicit portable/test profile; never exposed as an MCP tool parameter.
-    if let Some(root) = std::env::var_os("TFL_DATA_DIR").map(PathBuf::from) {
-        if root.is_absolute() && root.is_dir() {
-            return root;
-        }
+    if let Some(root) = std::env::var_os("TFL_DATA_DIR").map(PathBuf::from)
+        && root.is_absolute()
+        && root.is_dir()
+    {
+        return root;
     }
     if let Some(home) = std::env::var_os("HOME").map(PathBuf::from)
         && home.is_dir()

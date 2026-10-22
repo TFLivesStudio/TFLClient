@@ -301,6 +301,14 @@ pub fn definitions() -> Vec<Definition> {
         &["instance_id", "preset", "expected_revision"],
         false,
     );
+    add(
+        "tfl_get_crash_report",
+        "Read the bounded native JVM crash summary via the existing diagnostic command. Sensitive lines are redacted.",
+        Read,
+        json!({"instance_id":id}),
+        &["instance_id"],
+        false,
+    );
     out
 }
 /// The same schemas are advertised and enforced at the trust boundary.

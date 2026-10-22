@@ -1,7 +1,7 @@
 //! Descarga de los archivos de una versión a la carpeta de la instancia.
 //! Provider-agnóstico: trabaja sobre `ContentVersion`/`ContentFile`.
 
-use super::filesystem::{is_auxiliary_jar, is_unsafe_filename, sha1_hex};
+use super::filesystem::{is_auxiliary_jar, is_unsafe_filename};
 use super::types::{ContentFile, ContentKind, ContentVersion};
 use crate::core::{AppEvent, emit};
 use crate::services::instance_manager;
@@ -18,45 +18,36 @@ pub(crate) async fn download_single_file(
     }
 
     let dest = dest_dir.join(&file.filename);
+    let expected = file
+        .sha1
+        .as_ref()
+        .filter(|s| s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit()))
+        .ok_or("Missing content integrity hash")?;
     if dest.exists() {
-        return Ok(());
-    }
-
-    let expected_sha1 = file.sha1.as_ref();
-
-    // El motor `aqua` reintenta y valida hash para todo lo demás (Vanilla,
-    // Fabric, Forge…) — acá era una escritura ciega sin checksum, así que
-    // una descarga truncada por un corte de red quedaba instalada como si
-    // nada.
-    let mut last_err = String::new();
-    for attempt in 1..=3u8 {
-        let bytes = bounded_content_download(file).await?;
-        if let Some(expected) = expected_sha1 {
-            let actual = sha1_hex(&bytes);
-            if &actual != expected {
-                last_err =
-                    format!("hash SHA1 no coincide (esperado {expected}, obtenido {actual})");
-                tracing::warn!(
-                    "Descarga de {} corrupta en intento {attempt}/3: {last_err}",
-                    file.filename
-                );
-                continue;
+        if let Ok(hash) = hash_file(&dest).await {
+            if hash == *expected {
+                return Ok(());
             }
         }
-        let tmp = dest_dir.join(format!(".tfl-download-{}", uuid::Uuid::new_v4()));
-        tokio::fs::write(&tmp, &bytes)
-            .await
-            .map_err(|_| "Content write failed")?;
-        if let Err(e) = tokio::fs::rename(&tmp, &dest).await {
-            let _ = tokio::fs::remove_file(&tmp).await;
-            return Err(e.to_string());
-        }
-        return Ok(());
     }
-    Err(format!(
-        "No se pudo descargar {} de forma íntegra: {last_err}",
-        file.filename
-    ))
+    let mut last_err = String::new();
+    for _attempt in 1..=3u8 {
+        let tmp = dest_dir.join(format!(".tfl-download-{}", uuid::Uuid::new_v4()));
+        let result = stream_content_download(file, &tmp).await;
+        match result {
+            Ok(actual) if actual == *expected => {
+                if let Err(e) = tokio::fs::rename(&tmp, &dest).await {
+                    let _ = tokio::fs::remove_file(&tmp).await;
+                    return Err(e.to_string());
+                }
+                return Ok(());
+            }
+            Ok(_) => last_err = "Content SHA1 mismatch".into(),
+            Err(e) => last_err = e,
+        }
+        let _ = tokio::fs::remove_file(&tmp).await;
+    }
+    Err(format!("Content download failed: {last_err}"))
 }
 
 /// Qué archivos de la versión se instalan de verdad: el proveedor suele
@@ -180,20 +171,36 @@ fn allowed_content_url(raw: &str) -> bool {
             && u.password().is_none()
     })
 }
-async fn bounded_content_download(file: &ContentFile) -> Result<Vec<u8>, String> {
-    const MAX: u64 = 128 * 1024 * 1024;
-    if !allowed_content_url(&file.url)
-        || file.size.is_some_and(|s| s > MAX)
-        || !file
-            .sha1
-            .as_ref()
-            .is_some_and(|s| s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit()))
-    {
-        return Err("Untrusted content origin, size or missing integrity hash".into());
+async fn hash_file(path: &std::path::Path) -> Result<String, String> {
+    use sha1::{Digest, Sha1};
+    use tokio::io::AsyncReadExt;
+    let mut f = tokio::fs::File::open(path)
+        .await
+        .map_err(|_| "File unavailable")?;
+    let mut buffer = [0u8; 65536];
+    let mut hash = Sha1::new();
+    loop {
+        let count = f.read(&mut buffer).await.map_err(|_| "File read failed")?;
+        if count == 0 {
+            break;
+        }
+        hash.update(&buffer[..count]);
+    }
+    Ok(hex::encode(hash.finalize()))
+}
+async fn stream_content_download(
+    file: &ContentFile,
+    tmp: &std::path::Path,
+) -> Result<String, String> {
+    use sha1::{Digest, Sha1};
+    use tokio::io::AsyncWriteExt;
+    const MAX: u64 = 512 * 1024 * 1024;
+    if !allowed_content_url(&file.url) || file.size.is_some_and(|s| s > MAX) {
+        return Err("Untrusted content origin or content exceeds 512 MiB".into());
     }
     static CLIENT: std::sync::LazyLock<reqwest::Client> = std::sync::LazyLock::new(|| {
         reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(90))
+            .timeout(std::time::Duration::from_secs(180))
             .redirect(reqwest::redirect::Policy::custom(|a| {
                 if a.previous().len() < 3 && allowed_content_url(a.url().as_str()) {
                     a.follow()
@@ -216,22 +223,36 @@ async fn bounded_content_download(file: &ContentFile) -> Result<Vec<u8>, String>
     {
         return Err("Content response rejected".into());
     }
-    let mut bytes = Vec::new();
+    let mut output = tokio::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(tmp)
+        .await
+        .map_err(|_| "Cannot create content staging file")?;
+    let mut received = 0u64;
+    let mut hash = Sha1::new();
     while let Some(chunk) = response
         .chunk()
         .await
         .map_err(|_| "Content stream failed")?
     {
-        if bytes.len() as u64 + chunk.len() as u64 > MAX {
+        received += chunk.len() as u64;
+        if received > MAX {
             return Err("Content exceeds download limit".into());
         }
-        bytes.extend_from_slice(&chunk);
+        hash.update(&chunk);
+        output
+            .write_all(&chunk)
+            .await
+            .map_err(|_| "Content write failed")?;
     }
-    if file.size.is_some_and(|s| s != bytes.len() as u64) {
+    output.flush().await.map_err(|_| "Content flush failed")?;
+    if file.size.is_some_and(|s| s != received) {
         return Err("Content size mismatch".into());
     }
-    Ok(bytes)
+    Ok(hex::encode(hash.finalize()))
 }
+
 #[cfg(test)]
 mod origin_tests {
     use super::*;

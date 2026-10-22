@@ -621,9 +621,16 @@ pub async fn get_crash_report(name: String) -> Result<Option<String>, String> {
     let Some((path, _)) = newest else {
         return Ok(None);
     };
-    let content = tokio::fs::read_to_string(&path)
+    use tokio::io::AsyncReadExt;
+    let file = tokio::fs::File::open(&path)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|_| "Crash report unavailable")?;
+    let mut bytes = Vec::new();
+    file.take(65536)
+        .read_to_end(&mut bytes)
+        .await
+        .map_err(|_| "Crash report read failed")?;
+    let content = String::from_utf8_lossy(&bytes);
     let summary: String = content.lines().take(40).collect::<Vec<_>>().join("\n");
     Ok(Some(summary))
 }

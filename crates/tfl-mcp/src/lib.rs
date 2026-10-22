@@ -38,10 +38,11 @@ impl Response {
     }
 }
 pub fn endpoint_path() -> PathBuf {
-    if let Some(root) = std::env::var_os("TFL_DATA_DIR").map(PathBuf::from) {
-        if root.is_absolute() && root.is_dir() {
-            return root.join(".tflclient/settings/mcp/endpoint.json");
-        }
+    if let Some(root) = std::env::var_os("TFL_DATA_DIR").map(PathBuf::from)
+        && root.is_absolute()
+        && root.is_dir()
+    {
+        return root.join(".tflclient/settings/mcp/endpoint.json");
     }
     directories::UserDirs::new()
         .map(|u| u.home_dir().join(".tflclient/settings/mcp/endpoint.json"))
