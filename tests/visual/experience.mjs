@@ -405,7 +405,7 @@ try {
 		window.__fixtureCommands.some((c) => c.cmd === 'remove_scene_media')
 	);
 	await mediaPage.locator('[data-setting="scene-instance"] select').selectOption('horizons');
-	await mediaPage.getByRole('button', { name: /Crystal Hollow/ }).click();
+	await mediaPage.getByRole('button', { name: /Emerald Grotto/ }).click();
 	await mediaPage.locator('.pending-scene').getByRole('button', { name: 'Aplicar escena' }).click();
 	assert.equal(
 		await mediaPage.evaluate(

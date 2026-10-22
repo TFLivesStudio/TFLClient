@@ -220,7 +220,8 @@
 				}}
 				><option value="">{tr('Sin vídeo', 'No video')}</option><option value="builtin-aurora"
 					>Aurora Drift · {tr('incluido', 'included')}</option
-				><option value="builtin-embers">Emberlands · {tr('incluido', 'included')}</option
+				><option value="builtin-embers"
+					>{tr('Brasas animadas', 'Animated embers')} · {tr('incluido', 'included')}</option
 				>{#each media as item (item.id)}<option value={item.id}
 						>{tr('Vídeo local', 'Local video')} · {item.id.slice(-6)} · {(
 							item.bytes / 1048576

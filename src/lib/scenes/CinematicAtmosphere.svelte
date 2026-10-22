@@ -19,8 +19,6 @@
 	{#if depth > 0.5}<div class="mist close"></div>
 		<div class="rays"></div>{/if}
 	<div class="water"></div>
-	{#if preset === 'pixel'}<div class="torch a"></div>
-		<div class="torch b"></div>{/if}
 </div>
 
 <style>
@@ -118,23 +116,6 @@
 	[data-biome='pixel'] .rays {
 		opacity: 0.25;
 	}
-	.torch {
-		position: absolute;
-		width: 4%;
-		height: 6%;
-		background: radial-gradient(ellipse, #ffb52f66, transparent 70%);
-		mix-blend-mode: screen;
-		animation: torch-light 16s steps(var(--water-steps), end) infinite alternate;
-	}
-	.torch.a {
-		left: 89%;
-		top: 53%;
-	}
-	.torch.b {
-		left: 93%;
-		top: 57%;
-		animation-direction: alternate-reverse;
-	}
 	@keyframes mist-drift {
 		from {
 			transform: translate3d(calc(-3% * var(--depth)), 0, 0);
@@ -149,14 +130,6 @@
 		}
 		to {
 			transform: translate3d(calc(1% * var(--depth)), 0, 0);
-		}
-	}
-	@keyframes torch-light {
-		from {
-			opacity: 0.45;
-		}
-		to {
-			opacity: 0.75;
 		}
 	}
 </style>

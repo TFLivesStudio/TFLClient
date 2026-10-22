@@ -122,6 +122,191 @@
 			id: 'abstract-blocks',
 			key: 'settings.wallpaper.items.abstractBlocks',
 			preview: 'url(/wallpapers/mc-wallpaper-13.jpg)'
+		},
+		{
+			id: 'sunset-cabin',
+			key: 'settings.wallpaper.items.sunsetCabin',
+			preview: 'url(/wallpapers/pack-sunset-cabin.jpg)'
+		},
+		{
+			id: 'steve-skeleton',
+			key: 'settings.wallpaper.items.steveSkeleton',
+			preview: 'url(/wallpapers/pack-steve-skeleton.jpg)'
+		},
+		{
+			id: 'sunlit-cherry',
+			key: 'settings.wallpaper.items.sunlitCherry',
+			preview: 'url(/wallpapers/pack-sunlit-cherry.jpg)'
+		},
+		{
+			id: 'cherry-pond',
+			key: 'settings.wallpaper.items.cherryPond',
+			preview: 'url(/wallpapers/pack-cherry-pond.jpg)'
+		},
+		{
+			id: 'cherry-lodge',
+			key: 'settings.wallpaper.items.cherryLodge',
+			preview: 'url(/wallpapers/pack-cherry-lodge.jpg)'
+		},
+		{
+			id: 'misty-woods',
+			key: 'settings.wallpaper.items.mistyWoods',
+			preview: 'url(/wallpapers/pack-misty-woods.jpg)'
+		},
+		{
+			id: 'meadow-sunset',
+			key: 'settings.wallpaper.items.meadowSunset',
+			preview: 'url(/wallpapers/pack-meadow-sunset.jpg)'
+		},
+		{
+			id: 'cherry-river',
+			key: 'settings.wallpaper.items.cherryRiver',
+			preview: 'url(/wallpapers/pack-cherry-river.jpg)'
+		},
+		{
+			id: 'hilltop-wolf',
+			key: 'settings.wallpaper.items.hilltopWolf',
+			preview: 'url(/wallpapers/pack-hilltop-wolf.jpg)'
+		},
+		{
+			id: 'blooming-mountains',
+			key: 'settings.wallpaper.items.bloomingMountains',
+			preview: 'url(/wallpapers/pack-blooming-mountains.jpg)'
+		},
+		{
+			id: 'cave-overlook',
+			key: 'settings.wallpaper.items.caveOverlook',
+			preview: 'url(/wallpapers/pack-cave-overlook.jpg)'
+		},
+		{
+			id: 'wooden-home',
+			key: 'settings.wallpaper.items.woodenHome',
+			preview: 'url(/wallpapers/pack-wooden-home.jpg)'
+		},
+		{
+			id: 'overgrown-study',
+			key: 'settings.wallpaper.items.overgrownStudy',
+			preview: 'url(/wallpapers/pack-overgrown-study.jpg)'
+		},
+		{
+			id: 'cherry-dusk',
+			key: 'settings.wallpaper.items.cherryDusk',
+			preview: 'url(/wallpapers/pack-cherry-dusk.jpg)'
+		},
+		{
+			id: 'mobs-sky',
+			key: 'settings.wallpaper.items.mobsSky',
+			preview: 'url(/wallpapers/pack-mobs-sky.jpg)'
+		},
+		{
+			id: 'sunset-reflections',
+			key: 'settings.wallpaper.items.sunsetReflections',
+			preview: 'url(/wallpapers/pack-sunset-reflections.jpg)'
+		},
+		{
+			id: 'shadow-cherry',
+			key: 'settings.wallpaper.items.shadowCherry',
+			preview: 'url(/wallpapers/pack-shadow-cherry.jpg)'
+		},
+		{
+			id: 'bee-sky',
+			key: 'settings.wallpaper.items.beeSky',
+			preview: 'url(/wallpapers/pack-bee-sky.jpg)'
+		},
+		{
+			id: 'mossy-creeper',
+			key: 'settings.wallpaper.items.mossyCreeper',
+			preview: 'url(/wallpapers/pack-mossy-creeper.jpg)'
+		},
+		{
+			id: 'mountain-vista',
+			key: 'settings.wallpaper.items.mountainVista',
+			preview: 'url(/wallpapers/pack-mountain-vista.jpg)'
+		},
+		{
+			id: 'sky-hearts',
+			key: 'settings.wallpaper.items.skyHearts',
+			preview: 'url(/wallpapers/pack-sky-hearts.jpg)'
+		},
+		{
+			id: 'color-cubes',
+			key: 'settings.wallpaper.items.colorCubes',
+			preview: 'url(/wallpapers/pack-color-cubes.jpg)'
+		},
+		{
+			id: 'anniversary-15',
+			key: 'settings.wallpaper.items.anniversary15',
+			preview: 'url(/wallpapers/pack-anniversary-15.jpg)'
+		},
+		{
+			id: 'tiny-axolotls',
+			key: 'settings.wallpaper.items.tinyAxolotls',
+			preview: 'url(/wallpapers/pack-tiny-axolotls.jpg)'
+		},
+		{
+			id: 'tiny-bees',
+			key: 'settings.wallpaper.items.tinyBees',
+			preview: 'url(/wallpapers/pack-tiny-bees.jpg)'
+		},
+		{
+			id: 'chaos-cubed',
+			key: 'settings.wallpaper.items.chaosCubed',
+			preview: 'url(/wallpapers/pack-chaos-cubed.jpg)'
+		},
+		{
+			id: 'chase-skies',
+			key: 'settings.wallpaper.items.chaseSkies',
+			preview: 'url(/wallpapers/pack-chase-skies.jpg)'
+		},
+		{
+			id: 'blocks-obsidian',
+			key: 'settings.wallpaper.items.blocksObsidian',
+			preview: 'url(/wallpapers/pack-blocks-obsidian.jpg)'
+		},
+		{
+			id: 'village-leap',
+			key: 'settings.wallpaper.items.villageLeap',
+			preview: 'url(/wallpapers/pack-village-leap.jpg)'
+		},
+		{
+			id: 'bedrock-edition',
+			key: 'settings.wallpaper.items.bedrockEdition',
+			preview: 'url(/wallpapers/pack-bedrock-edition.jpg)'
+		},
+		{
+			id: 'lavender-balloons',
+			key: 'settings.wallpaper.items.lavenderBalloons',
+			preview: 'url(/wallpapers/pack-lavender-balloons.jpg)'
+		},
+		{
+			id: 'java-edition',
+			key: 'settings.wallpaper.items.javaEdition',
+			preview: 'url(/wallpapers/pack-java-edition.jpg)'
+		},
+		{
+			id: 'forest-adventure',
+			key: 'settings.wallpaper.items.forestAdventure',
+			preview: 'url(/wallpapers/pack-forest-adventure.jpg)'
+		},
+		{
+			id: 'mounts-mayhem',
+			key: 'settings.wallpaper.items.mountsMayhem',
+			preview: 'url(/wallpapers/pack-mounts-mayhem.jpg)'
+		},
+		{
+			id: 'copper-age',
+			key: 'settings.wallpaper.items.copperAge',
+			preview: 'url(/wallpapers/pack-copper-age.jpg)'
+		},
+		{
+			id: 'wilderness-bound',
+			key: 'settings.wallpaper.items.wildernessBound',
+			preview: 'url(/wallpapers/pack-wilderness-bound.jpg)'
+		},
+		{
+			id: 'tiny-takeover',
+			key: 'settings.wallpaper.items.tinyTakeover',
+			preview: 'url(/wallpapers/pack-tiny-takeover.jpg)'
 		}
 	];
 

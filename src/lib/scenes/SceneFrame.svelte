@@ -99,9 +99,6 @@
 	.sunset .light {
 		background: linear-gradient(140deg, #e7805744, transparent, #45255c22);
 	}
-	.pixel img {
-		image-rendering: pixelated;
-	}
 	@media (prefers-reduced-motion: reduce) {
 		.scene-frame img {
 			transition: none;

@@ -143,63 +143,54 @@ export const SCENES: {
 	},
 	{
 		id: 'forest',
-		name: ['Living Forest', 'Living Forest'],
+		name: ['Portal Glade', 'Portal Glade'],
 		description: [
-			'Pinos, montañas y luz entre la niebla.',
-			'Pines, mountains and light through the mist.'
+			'Un portal antiguo entre árboles y flores.',
+			'An ancient portal among trees and flowers.'
 		],
-		colors: ['#142e3d', '#234b49', '#a4d6a1']
+		colors: ['#242e1e', '#557754', '#6b9569']
 	},
 	{
 		id: 'embers',
-		name: ['Emberlands', 'Emberlands'],
-		description: [
-			'Formaciones volcánicas y brasas suspendidas.',
-			'Volcanic formations and drifting embers.'
-		],
-		colors: ['#2b111c', '#76302b', '#ff9a56']
+		name: ['Crimson Dusk', 'Crimson Dusk'],
+		description: ['Un atardecer rojo sobre aguas en calma.', 'A crimson sunset over still water.'],
+		colors: ['#350b10', '#8c312f', '#ee8756']
 	},
 	{
 		id: 'void',
-		name: ['The Quiet Void', 'The Quiet Void'],
-		description: ['Islas geométricas en un vacío violeta.', 'Geometric islands in a violet void.'],
-		colors: ['#151328', '#463767', '#bea0f5']
+		name: ['Ender Twilight', 'Ender Twilight'],
+		description: [
+			'Endermen y torres bajo un cielo violeta.',
+			'Endermen and towers beneath a violet sky.'
+		],
+		colors: ['#1e1427', '#483157', '#83559e']
 	},
 	{
 		id: 'night',
-		name: ['Night Sky', 'Night Sky'],
-		description: [
-			'Una cordillera bajo el cielo estrellado.',
-			'A mountain range beneath the stars.'
-		],
-		colors: ['#07192e', '#193955', '#8dbaf1']
+		name: ['Cherry Night', 'Cherry Night'],
+		description: ['Cerezos iluminados bajo la luna.', 'Cherry blossoms lit beneath the moon.'],
+		colors: ['#16080d', '#3d1c1f', '#7f4237']
 	},
 	{
 		id: 'cave',
-		name: ['Crystal Hollow', 'Crystal Hollow'],
-		description: [
-			'Profundidad mineral y reflejos de cristal.',
-			'Mineral depth and crystal reflections.'
-		],
-		colors: ['#0c2025', '#164e52', '#6cebd7']
+		name: ['Emerald Grotto', 'Emerald Grotto'],
+		description: ['Un bosque esmeralda bajo tierra.', 'An emerald forest deep underground.'],
+		colors: ['#09130f', '#24432f', '#5db28d']
 	},
 	{
 		id: 'aurora',
 		name: ['Aurora Drift', 'Aurora Drift'],
 		description: [
-			'Cortinas de luz sobre un lago distante.',
-			'Curtains of light above a distant lake.'
+			'Auroras sobre un lago helado entre montañas.',
+			'Auroras above an icy mountain lake.'
 		],
-		colors: ['#071b27', '#17464d', '#83f8ce']
+		colors: ['#17132e', '#4c3871', '#5f478e']
 	},
 	{
 		id: 'pixel',
-		name: ['Pixel Overworld', 'Pixel Overworld'],
-		description: [
-			'Horizontes originales de bloques y nubes.',
-			'Original block horizons and clouds.'
-		],
-		colors: ['#173d60', '#316744', '#aedb75']
+		name: ['Blocky Paradise', 'Blocky Paradise'],
+		description: ['Un valle de bloques con río y nubes.', 'A blocky valley with river and clouds.'],
+		colors: ['#143023', '#3b886f', '#4aaa8b']
 	}
 ];
 export function sceneInfo(id: SceneId) {
