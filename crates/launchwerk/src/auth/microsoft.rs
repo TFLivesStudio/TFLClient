@@ -334,12 +334,13 @@ impl MicrosoftAuth {
         token_endpoint: &str,
         downstream: [&str; 4],
     ) -> crate::Result<MinecraftUser> {
+        // Omit optional scope to inherit the original grant. Legacy sessions may
+        // use older Xbox scope spellings; renewal must not request new consent.
         let control = LoginControl::default();
         let (status, json) = send(http()?.post(token_endpoint).form(&[
             ("client_id", self.client_id.as_str()),
             ("refresh_token", refresh),
             ("grant_type", "refresh_token"),
-            ("scope", SCOPE),
         ]))?;
         if !successful(status) {
             return Err(service_error("microsoft", status, &json));
@@ -649,6 +650,7 @@ mod exchange_tests {
             assert_eq!(fields["client_id"], DEFAULT_CLIENT_ID);
             if refreshing {
                 assert_eq!(fields["grant_type"], "refresh_token");
+                assert!(!fields.contains_key("scope"));
             } else {
                 assert_eq!(fields["code_verifier"], "rust-verifier");
                 assert_eq!(fields["redirect_uri"], "http://localhost/");
