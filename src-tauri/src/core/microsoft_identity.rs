@@ -70,3 +70,46 @@ mod tests {
         assert!(test.test_build);
     }
 }
+
+/// Never trust a frontend/profile value to select the credential lane.
+pub(crate) fn scope_user(user: &mut launchwerk::auth::MinecraftUser) {
+    user.test_session = cfg!(feature = "auth-test-client");
+}
+
+#[cfg(any(feature = "auth-test-client", test))]
+pub(crate) fn isolate_test_config(
+    config: &mut tauri::utils::config::Config,
+    root: &std::path::Path,
+    client: &str,
+) {
+    config.identifier = format!(
+        "{}.auth-test-{}",
+        config.identifier,
+        client.replace('-', "")
+    );
+    for window in &mut config.app.windows {
+        window.incognito = true;
+        window.data_directory = Some(root.join("webview"));
+        window.title = "TFL Client — Microsoft Auth TEST".into();
+    }
+    config.app.security.asset_protocol.scope = serde_json::from_value(serde_json::json!({
+        "allow": [root.join("instances/*/icon.*"), root.join("instances/*/screenshots/*"), root.join("shared/appearance/*"), root.join("shared/appearance/scenes/*")],
+        "deny": [root.join("settings/**")]
+    })).expect("static isolated test asset scope");
+}
+#[cfg(test)]
+mod isolation_tests {
+    use super::*;
+    #[test]
+    fn test_window_uses_a_private_store_and_separate_application_identity() {
+        let mut config: tauri::utils::config::Config = serde_json::from_value(serde_json::json!({"identifier":"com.tflives.tflclient","app":{"windows":[{"label":"main"}]}})).unwrap();
+        let root = std::env::temp_dir().join("isolated-auth-profile");
+        isolate_test_config(&mut config, &root, DEFAULT_CLIENT_ID);
+        assert_ne!(config.identifier, "com.tflives.tflclient");
+        assert!(config.app.windows[0].incognito);
+        assert_eq!(
+            config.app.windows[0].data_directory.as_ref(),
+            Some(&root.join("webview"))
+        );
+    }
+}

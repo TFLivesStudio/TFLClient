@@ -22,6 +22,8 @@ pub struct MinecraftUser {
     pub refresh_token: Option<String>,
     #[serde(skip)]
     pub access_token_expires_at: Option<u64>,
+    #[serde(skip)]
+    pub test_session: bool,
     pub user_type: AccountType,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub microsoft_client_id: Option<String>,
@@ -48,6 +50,7 @@ impl MinecraftUser {
             uuid: uuid::Uuid::new_v4().to_string(),
             access_token: "0".to_string(),
             refresh_token: None,
+            test_session: false,
             access_token_expires_at: None,
             microsoft_client_id: None,
             session_only: false,
@@ -69,6 +72,7 @@ impl MinecraftUser {
             uuid,
             access_token,
             refresh_token,
+            test_session: false,
             access_token_expires_at: None,
             microsoft_client_id: None,
             session_only: false,
@@ -91,6 +95,7 @@ impl MinecraftUser {
             uuid,
             access_token,
             refresh_token: None,
+            test_session: false,
             access_token_expires_at: None,
             microsoft_client_id: None,
             session_only: false,
@@ -105,7 +110,7 @@ impl MinecraftUser {
         if self.user_type == AccountType::Cracked {
             return Ok(());
         }
-        SecureStorage::discard_for_memory(&self.provider(), &self.uuid)
+        SecureStorage::discard_for_memory(&self.provider(), &self.uuid, !self.test_session)
     }
     pub fn forget_tokens(&mut self) {
         use zeroize::Zeroize;
@@ -126,14 +131,38 @@ impl MinecraftUser {
                 .is_some_and(|expiry| expiry > now.saturating_add(60))
     }
     fn provider(&self) -> String {
-        match self.user_type {
-            AccountType::Microsoft => "microsoft".into(),
+        let provider = match self.user_type {
+            AccountType::Microsoft => {
+                let issuer = self
+                    .microsoft_client_id
+                    .as_deref()
+                    .unwrap_or(microsoft::DEFAULT_CLIENT_ID);
+                if issuer == microsoft::DEFAULT_CLIENT_ID {
+                    "microsoft".into()
+                } else {
+                    format!("microsoft:{issuer}")
+                }
+            }
             AccountType::Yggdrasil => format!(
                 "yggdrasil:{}",
                 self.yggdrasil_server_url.as_deref().unwrap_or("")
             ),
             AccountType::Cracked => "offline".into(),
+        };
+        if self.test_session {
+            format!("auth-test:{provider}")
+        } else {
+            provider
         }
+    }
+    fn may_load_legacy(&self) -> bool {
+        !self.test_session
+            && (self.user_type != AccountType::Microsoft
+                || self
+                    .microsoft_client_id
+                    .as_deref()
+                    .unwrap_or(microsoft::DEFAULT_CLIENT_ID)
+                    == microsoft::DEFAULT_CLIENT_ID)
     }
 
     /// No plaintext tokens are serialized; the OS vault protects a random envelope key.
@@ -159,7 +188,11 @@ impl MinecraftUser {
         };
         SecureStorage::save(&self.provider(), &self.uuid, &record)?;
         // Read-back has succeeded before any old credentials are removed.
-        SecureStorage::delete_legacy(&self.uuid)
+        if self.test_session {
+            Ok(())
+        } else {
+            SecureStorage::delete_legacy(&self.uuid)
+        }
     }
 
     pub fn load_tokens(&mut self) -> crate::Result<()> {
@@ -172,6 +205,9 @@ impl MinecraftUser {
         let record = match SecureStorage::load(&self.provider(), &self.uuid)? {
             Some(record) => record,
             None => {
+                if !self.may_load_legacy() {
+                    return Err(crate::Error::AuthError("REAUTHENTICATION_REQUIRED".into()));
+                }
                 let access = SecureStorage::legacy(&self.uuid, "access")?
                     .ok_or_else(|| crate::Error::AuthError("REAUTHENTICATION_REQUIRED".into()))?;
                 let record = storage::SessionSecrets {
@@ -204,7 +240,7 @@ impl MinecraftUser {
         if self.user_type == AccountType::Cracked {
             return Ok(());
         }
-        SecureStorage::delete(&self.provider(), &self.uuid)
+        SecureStorage::delete(&self.provider(), &self.uuid, !self.test_session)
     }
 }
 

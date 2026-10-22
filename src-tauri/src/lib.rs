@@ -331,7 +331,27 @@ fn init_logging() {
 /// `generate_context!` solo se puede expandir una vez por crate: la app y los
 /// tests de ACL (`acl_tests.rs`) comparten esta función.
 pub(crate) fn tauri_context<R: tauri::Runtime>() -> tauri::Context<R> {
-    tauri::generate_context!()
+    let context = tauri::generate_context!();
+    #[cfg(feature = "auth-test-client")]
+    {
+        let mut context = context;
+        let identity =
+            core::microsoft_identity::configured().expect("invalid auth test build configuration");
+        let root = core::PathManager::get()
+            .get_settings_dir()
+            .parent()
+            .expect("test settings root");
+        core::microsoft_identity::isolate_test_config(
+            context.config_mut(),
+            root,
+            &identity.client_id,
+        );
+        context
+    }
+    #[cfg(not(feature = "auth-test-client"))]
+    {
+        context
+    }
 }
 
 #[cfg(test)]

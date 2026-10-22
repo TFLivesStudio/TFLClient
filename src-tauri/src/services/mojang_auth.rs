@@ -60,6 +60,7 @@ fn can_use_cached(user: &MinecraftUser, code: &str, now: u64) -> bool {
 async fn fresh_session() -> Result<MinecraftUser, String> {
     let _guard = ACCOUNT_SESSION_LOCK.lock().await;
     let mut user = SettingsManager::read().get_user();
+    microsoft_identity::scope_user(&mut user);
     if user.user_type == AccountType::Cracked {
         return Ok(user);
     }
@@ -104,6 +105,7 @@ async fn fresh_session() -> Result<MinecraftUser, String> {
             return Err("ACCOUNT_MISMATCH".into());
         }
         fresh.session_only = user.session_only;
+        microsoft_identity::scope_user(&mut fresh);
         let copy = fresh.clone();
         tokio::task::spawn_blocking(move || copy.save_tokens())
             .await

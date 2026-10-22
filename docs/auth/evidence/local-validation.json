@@ -1,6 +1,6 @@
 {
 	"baseline": "v0.14.0-beta.6",
-	"rust_lib_tests_passed": 188,
+	"rust_lib_tests_passed": 191,
 	"node_behavior_tests_passed": 18,
 	"browser_ui_checks_passed": 13,
 	"browser_ipc": "simulated",

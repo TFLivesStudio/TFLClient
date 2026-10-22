@@ -129,7 +129,7 @@ impl SecureStorage {
         Self::write_at(&OsVault, &root, &account, &record)?;
         Ok(record)
     }
-    pub(crate) fn delete(provider: &str, uuid: &str) -> crate::Result<()> {
+    pub(crate) fn delete(provider: &str, uuid: &str, include_legacy: bool) -> crate::Result<()> {
         let _guard = STORAGE_LOCK
             .lock()
             .map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
@@ -144,14 +144,26 @@ impl SecureStorage {
             // behind such a key, so unavailability alone need not block removal.
             let _ = OsVault.delete(&key);
         }
-        Self::delete_legacy(uuid)
+        if include_legacy {
+            Self::delete_legacy(uuid)
+        } else {
+            Ok(())
+        }
     }
-    pub(crate) fn discard_for_memory(provider: &str, uuid: &str) -> crate::Result<()> {
+    pub(crate) fn discard_for_memory(
+        provider: &str,
+        uuid: &str,
+        include_legacy: bool,
+    ) -> crate::Result<()> {
         let _guard = STORAGE_LOCK
             .lock()
             .map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
         Self::discard_at(&Self::root()?, &Self::key(provider, uuid))?;
-        Self::delete_legacy(uuid)
+        if include_legacy {
+            Self::delete_legacy(uuid)
+        } else {
+            Ok(())
+        }
     }
     fn discard_at(root: &Path, account: &str) -> crate::Result<()> {
         if root.exists() && fs::symlink_metadata(root)?.file_type().is_symlink() {

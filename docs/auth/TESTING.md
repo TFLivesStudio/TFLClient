@@ -48,9 +48,13 @@ resolver, not the Unix-only HOME environment variable.
 
 ## Manual platform matrix — not yet certified
 
-Use an internal test build and an isolated, backed-up launcher profile. Use the
-owner's own account directly with Microsoft; do not supply credentials to the agent,
-CI, screenshots or test fixtures. Obtain real Client ID approval separately.
+Use an internal test build. Its application identity, private webview store, launcher
+profile and credential namespace are isolated automatically beneath
+`.tflclient-auth-tests/<Client ID>/.tflclient`; it cannot load, migrate or delete
+legacy production credentials. This remains true when `TFL_DATA_DIR` supplies a
+portable base directory. Use the owner's own account directly with Microsoft; do not
+supply credentials to the agent, CI, screenshots or test fixtures. Obtain real Client
+ID approval separately.
 
 | Scenario                                                                         | Windows | macOS   | Linux   |
 | -------------------------------------------------------------------------------- | ------- | ------- | ------- |
@@ -91,7 +95,7 @@ an interactive native vault prompt was successfully used on that OS.
 
 ## Local evidence
 
-[Validation summary](evidence/local-validation.json) records 188 Rust library tests,
+[Validation summary](evidence/local-validation.json) records 191 Rust library tests,
 18 Node behavior tests and 13 simulated-IPC browser checks.
 [Browser assertions](evidence/browser.json) list the actual verified interactions.
 

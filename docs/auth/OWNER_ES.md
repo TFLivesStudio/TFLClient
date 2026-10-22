@@ -38,6 +38,14 @@ build de prueba. No cae silenciosamente al registro anterior. La interfaz muestr
 que es una build de prueba. No distribuir estos binarios por el canal oficial.
 El build oficial existente no habilita esa feature.
 
+La build de prueba usa siempre un perfil separado en
+`.tflclient-auth-tests/<Client ID>/.tflclient` bajo la base elegida (también si se
+usa `TFL_DATA_DIR`), una identidad de aplicación distinta y almacenamiento privado
+del WebView. Sus credenciales tienen un namespace separado por carril de prueba y
+Client ID. Por ello probar la misma cuenta no puede leer, migrar ni borrar tokens,
+ajustes, instancias o sesión web de la instalación de producción. No hace falta
+renombrar ni borrar el perfil normal para hacer esta prueba.
+
 ## Registro Microsoft y prueba antes de activación
 
 En el registro de aplicación pública de escritorio, permitir cuentas Microsoft

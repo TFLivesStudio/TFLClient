@@ -4,6 +4,11 @@ The existing OAuth identity stays enabled. A new identity is compile-time test
 configuration behind `auth-test-client` and an explicit development acknowledgement.
 No remote preference, MCP tool, command argument or downloaded content sets it.
 There is no client secret. Approval of an unspecified TFL Client ID is not claimed.
+The test build has a distinct application identifier, private webview data directory
+and a profile rooted below `.tflclient-auth-tests/<Client ID>/.tflclient`, even when
+the portable base directory is configured. Its credential provider namespace includes
+both the test lane and Client ID, so it cannot read, migrate or delete a production or
+other-registration record for the same Minecraft UUID.
 
 ## Transaction owner
 
@@ -62,8 +67,11 @@ Initialization is retried per operation so an unavailable service can recover. N
 keys are verified by read-back, and encrypted AES-GCM records are atomically written
 and decrypted for verification. Records are bounded to 64 KiB; filenames hash the
 provider/UUID, and legacy path components are validated. Microsoft and Yggdrasil
-records have separate namespaces. The encrypted issuer and expiry are restored when
-loading; they are not trusted from a frontend preference update.
+records have separate namespaces. Microsoft records from a nondefault Client ID have
+their own issuer namespace, and auth-test records add a separate test-lane namespace.
+The encrypted issuer and expiry are restored when loading; they are not trusted from a
+frontend preference update. Legacy records are read only by the production/default
+lane; test sessions never remove them.
 
 The known weak legacy derivation is read-only. Migration inserts only if no newer
 protected record appeared, verifies storage before removing old files, and preserves

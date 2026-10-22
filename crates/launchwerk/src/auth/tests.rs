@@ -56,3 +56,27 @@ fn changing_identity_requires_reauthorization_without_removing_profile() {
     assert_eq!(user.uuid, "id");
     assert!(!MinecraftUser::cracked("Offline").requires_reauthorization("any-registration"));
 }
+
+#[test]
+fn test_sessions_and_application_registrations_have_independent_credential_namespaces() {
+    let mut user = MinecraftUser::premium(
+        "Same account".into(),
+        "same-uuid".into(),
+        "fixture".into(),
+        None,
+    );
+    let production = user.provider();
+    assert!(user.may_load_legacy());
+    user.test_session = true;
+    assert_ne!(user.provider(), production);
+    assert!(!user.may_load_legacy());
+    assert!(
+        !serde_json::to_string(&user)
+            .unwrap()
+            .contains("test_session")
+    );
+    user.test_session = false;
+    user.microsoft_client_id = Some("another-registration-fixture".into());
+    assert_ne!(user.provider(), production);
+    assert!(!user.may_load_legacy());
+}

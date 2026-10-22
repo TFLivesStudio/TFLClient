@@ -325,6 +325,7 @@ async fn persist(a: &Arc<Attempt>, mut user: MinecraftUser, memory: bool) -> Res
     {
         return Err("ACCOUNT_MISMATCH".into());
     }
+    crate::core::microsoft_identity::scope_user(&mut user);
     user.session_only = memory;
     a.begin_commit()?;
     let copy = user.clone();

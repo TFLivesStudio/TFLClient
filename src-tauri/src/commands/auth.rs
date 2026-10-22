@@ -66,6 +66,7 @@ pub async fn account_session_statuses() -> Result<Vec<AccountSessionStatus>, Str
         users
             .into_iter()
             .map(|mut user| {
+                crate::core::microsoft_identity::scope_user(&mut user);
                 let state = if user.user_type == launchwerk::auth::AccountType::Cracked {
                     "offline"
                 } else if user.session_only {
@@ -168,6 +169,7 @@ pub async fn logout() -> Result<(), String> {
         .await;
     info!("Cerrando sesión de usuario");
     let mut user = SettingsManager::read().get_user();
+    crate::core::microsoft_identity::scope_user(&mut user);
     let uuid = user.uuid.clone();
     tokio::task::spawn_blocking(move || {
         let result = user.delete_tokens();
@@ -242,7 +244,8 @@ pub async fn remove_user(uuid: String) -> Result<(), String> {
         .iter()
         .find(|u| u.uuid == uuid)
         .cloned();
-    if let Some(removed) = removed {
+    if let Some(mut removed) = removed {
+        crate::core::microsoft_identity::scope_user(&mut removed);
         tokio::task::spawn_blocking(move || removed.delete_tokens())
             .await
             .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?
