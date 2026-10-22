@@ -1,19 +1,19 @@
 {
-  "simulatedIPC": true,
-  "checks": [
-    "modern/accounts/800",
-    "modern/accounts/1280",
-    "modern/onboarding/800",
-    "modern/onboarding/1280",
-    "pixel/accounts/800",
-    "pixel/accounts/1280",
-    "pixel/onboarding/800",
-    "pixel/onboarding/1280",
-    "method switch cancels the previous Rust operation",
-    "registration error and explicit temporary-session consent",
-    "renew existing account and cancel",
-    "closing settings cancels pending sign-in",
-    "English labels and keyboard cancellation"
-  ],
-  "errors": []
+	"simulatedIPC": true,
+	"checks": [
+		"modern/accounts/800",
+		"modern/accounts/1280",
+		"modern/onboarding/800",
+		"modern/onboarding/1280",
+		"pixel/accounts/800",
+		"pixel/accounts/1280",
+		"pixel/onboarding/800",
+		"pixel/onboarding/1280",
+		"method switch cancels the previous Rust operation",
+		"registration error and explicit temporary-session consent",
+		"renew existing account and cancel",
+		"closing settings cancels pending sign-in",
+		"English labels and keyboard cancellation"
+	],
+	"errors": []
 }

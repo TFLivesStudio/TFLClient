@@ -1,6 +1,14 @@
 import { i18nState } from './index.svelte';
 export const authText = (es: string, en: string) => (i18nState.locale === 'en' ? en : es);
 const errors: Record<string, [string, string]> = {
+	AUTH_TEST_CONFIGURATION_REQUIRED: [
+		'Esta compilación de prueba necesita un Client ID y su activación explícita. Consulta la guía del propietario.',
+		'This test build needs a Client ID and explicit test activation. See the owner guide.'
+	],
+	AUTH_CLIENT_ID_INVALID: [
+		'El Client ID de esta compilación no es válido. El responsable debe revisar la configuración de la aplicación.',
+		'This build’s Client ID is invalid. The maintainer must review the application configuration.'
+	],
 	MICROSOFT_CONSENT_REQUIRED: [
 		'Microsoft no concedió una sesión renovable. Vuelve a autorizar el acceso o consulta la configuración de la aplicación.',
 		'Microsoft did not grant a renewable session. Authorize access again or review the application configuration.'

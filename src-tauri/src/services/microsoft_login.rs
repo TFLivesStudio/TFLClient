@@ -82,6 +82,13 @@ impl Attempt {
         let mut state = self.state.lock();
         if !terminal(&state.snapshot.phase) {
             state.snapshot.phase = phase.into();
+            if matches!(
+                phase,
+                "microsoft" | "xbox" | "xsts" | "minecraft" | "profile" | "saving"
+            ) {
+                state.snapshot.user_code = None;
+                state.snapshot.verification_uri = None;
+            }
         }
     }
     fn fail(&self, error: String) {
@@ -859,6 +866,10 @@ mod operation_tests {
     }
     #[test]
     fn expired_or_terminal_attempt_cannot_save_or_be_revived() {
+        let a = attempt();
+        a.phase("xbox");
+        assert!(a.snapshot().user_code.is_none());
+        assert!(a.snapshot().verification_uri.is_none());
         let a = attempt();
         a.fail("AUTH_TIMEOUT".into());
         assert!(a.begin_commit().is_err());

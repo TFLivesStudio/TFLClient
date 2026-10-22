@@ -53,6 +53,23 @@ function authFixture({ style, onboarding, language }) {
 		if (cmd === 'microsoft_auth_status') {
 			if (window.__authNext) {
 				operation = { ...operation, ...window.__authNext };
+				if (
+					[
+						'storage_required',
+						'error',
+						'expired',
+						'cancelled',
+						'success',
+						'xbox',
+						'xsts',
+						'minecraft',
+						'profile',
+						'saving'
+					].includes(operation.phase)
+				) {
+					operation.user_code = null;
+					operation.verification_uri = null;
+				}
 				window.__authNext = null;
 			}
 			return { ...operation };
