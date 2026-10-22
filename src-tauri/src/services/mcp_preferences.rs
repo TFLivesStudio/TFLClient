@@ -91,7 +91,7 @@ pub fn validate(key: &str, v: &Value) -> Result<(), String> {
         .contains(&v.as_str().unwrap_or("")),
         "scene_motion" => ["off", "subtle", "full"].contains(&v.as_str().unwrap_or("")),
         // Full UI documents are private Tauri IPC only, bounded and never accepted as MCP tool args.
-        "visual" | "scenes" | "console" => v.is_object() && v.to_string().len() <= 131072,
+        "visual" | "scenes" | "console" => v.is_object() && v.to_string().len() <= 1024 * 1024,
         _ => false,
     };
     if ok {

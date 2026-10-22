@@ -44,3 +44,8 @@ fails and requires an explicit separately approved deletion. This prevents using
 repeated noncritical backup creation to bypass critical delete permissions. The
 backup service serializes retention decisions across UI/MCP. Approved restoration
 still creates its safety backup using the launcher's documented retention policy.
+
+An instance-restricted client cannot change global appearance/console preferences,
+even with Configure permission. It may configure a scene for an allowed exact UUID.
+Private UI preference documents allow up to 1 MiB per record to preserve larger
+legacy libraries; MCP never accepts those full documents as arbitrary tool input.

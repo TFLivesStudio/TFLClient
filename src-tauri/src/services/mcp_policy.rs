@@ -120,6 +120,12 @@ impl Policy {
         if !c.permissions.iter().any(|s| s == p.name()) {
             return Err(format!("PERMISSION_DENIED: {}", p.name()));
         }
+        if instance.is_none() && p == Permission::Configure && !c.instances.is_empty() {
+            return Err(
+                "GLOBAL_SCOPE_DENIED: restricted clients may configure their allowed instance only"
+                    .into(),
+            );
+        }
         if instance.is_some_and(|i| {
             !c.instances.is_empty() && !c.instances.iter().any(|allowed| allowed == i)
         }) {
@@ -282,6 +288,12 @@ mod tests {
     fn read_cannot_operate_and_scope_is_enforced() {
         let (mut p, c) = approved();
         assert!(p.authorize(&c, Permission::Operate, None).is_err());
+        p.clients[0].permissions.push("configure".into());
+        assert!(p.authorize(&c, Permission::Configure, None).is_err());
+        assert!(
+            p.authorize(&c, Permission::Configure, Some("exact-uuid"))
+                .is_ok()
+        );
         assert!(p.authorize(&c, Permission::Read, Some("other")).is_err());
         assert!(
             p.authorize(&c, Permission::Read, Some("exact-uuid"))
