@@ -4,12 +4,12 @@
 
 use super::ContentService;
 use super::dependencies::{MAX_DEPENDENCY_DEPTH, conflicts_with, required_dependencies};
-use super::download::download_version_files;
 use super::filesystem::remove_file_unlocked as remove_file;
 use super::installed::InstalledProjects;
 use super::providers::ContentProvider;
 use super::types::ContentKind;
 use crate::core::{AppEvent, emit};
+use crate::services::activity_tasks::{Operation, Source, Stage, Target};
 use std::collections::HashSet;
 
 /// Qué se pidió instalar.
@@ -28,6 +28,7 @@ pub struct InstallRequest<'a> {
 /// Contexto fijo de una instalación (no cambia al bajar por las
 /// dependencias).
 struct InstallContext<'a> {
+    activity: &'a Operation,
     request: &'a InstallRequest<'a>,
     /// Lo que ya había instalado al empezar.
     installed: &'a InstalledProjects,
@@ -35,7 +36,37 @@ struct InstallContext<'a> {
 
 impl<P: ContentProvider> ContentService<P> {
     pub async fn install(&self, request: InstallRequest<'_>) -> Result<(), String> {
+        self.install_from(request, Source::Ui).await.map(|_| ())
+    }
+
+    pub async fn install_from(
+        &self,
+        request: InstallRequest<'_>,
+        source: Source,
+    ) -> Result<String, String> {
+        let target = match request.kind {
+            ContentKind::Mod => Target::Mod,
+            ContentKind::Shader => Target::Shader,
+            ContentKind::ResourcePack => Target::ResourcePack,
+            ContentKind::Plugin => Target::Plugin,
+        };
+        let activity = Operation::content(source, target)?;
+        let activity_id = activity.id().to_owned();
+        let result = self.install_tracked(request, &activity).await;
+        activity.finish(result.is_ok());
+        result.map(|_| activity_id)
+    }
+
+    async fn install_tracked(
+        &self,
+        request: InstallRequest<'_>,
+        activity: &Operation,
+    ) -> Result<(), String> {
         let _mutation = super::mutation_lock(request.instance_name).await;
+        activity.stage(Stage::Resolving);
+        let instance =
+            crate::services::instance_manager::get_instance(request.instance_name).await?;
+        activity.bind_target(&instance.uuid, None);
         let _perf = crate::core::perf::span("content.install");
         let installed = if request.kind == ContentKind::Mod {
             // Chequeo de conflictos conocidos ANTES de instalar — antes esto
@@ -65,6 +96,7 @@ impl<P: ContentProvider> ContentService<P> {
         };
 
         let ctx = InstallContext {
+            activity,
             request: &request,
             installed: &installed,
         };
@@ -99,6 +131,9 @@ impl<P: ContentProvider> ContentService<P> {
             {
                 Some(v) => v,
                 None => {
+                    if depth == 0 {
+                        return Err("No compatible content version".into());
+                    }
                     tracing::warn!(
                         "No hay versión de {project_id} compatible con {}/{}, se omite",
                         req.mc_version,
@@ -109,6 +144,12 @@ impl<P: ContentProvider> ContentService<P> {
             }
         };
 
+        if depth == 0 {
+            let instance =
+                crate::services::instance_manager::get_instance(req.instance_name).await?;
+            ctx.activity
+                .bind_target(&instance.uuid, Some(&version.project_id));
+        }
         // Una dependencia que el usuario ya tiene (de cualquier versión) no se
         // vuelve a bajar: antes se instalaba otra build al lado y el mod quedaba
         // duplicado — el loader se queja de "duplicate mod" y la lista lo muestra
@@ -129,7 +170,15 @@ impl<P: ContentProvider> ContentService<P> {
             bytes_total: 0,
             current_item: Some(version.name.clone()),
         });
-        let new_files = download_version_files(req.instance_name, &version, req.kind).await?;
+        ctx.activity.stage(Stage::Downloading);
+        let new_files = super::download::download_version_files_tracked(
+            req.instance_name,
+            &version,
+            req.kind,
+            Some(ctx.activity),
+        )
+        .await?;
+        ctx.activity.stage(Stage::Installing);
 
         // Si ya había OTRA build de este mismo proyecto instalada (incluye sus
         // `-sources.jar` de instalaciones viejas), se saca: instalar otra
@@ -144,6 +193,7 @@ impl<P: ContentProvider> ContentService<P> {
 
         let mut had_required_dep = false;
         for dep in required_dependencies(&version) {
+            ctx.activity.stage(Stage::Resolving);
             let Some(dep_project) = self.dependency_project_id(dep).await? else {
                 continue;
             };

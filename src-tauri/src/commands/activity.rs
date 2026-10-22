@@ -10,3 +10,13 @@ const DEFAULT_LIMIT: usize = 20;
 pub async fn get_recent_activity(limit: Option<usize>) -> Vec<ActivityEntry> {
     activity_log::recent(limit.unwrap_or(DEFAULT_LIMIT)).await
 }
+
+#[command]
+pub async fn get_activity_tasks() -> crate::services::activity_tasks::Snapshot {
+    crate::services::activity_tasks::hub().snapshot()
+}
+
+#[command]
+pub async fn cancel_activity_task(task_id: String) -> Result<(), String> {
+    crate::services::activity_tasks::hub().cancel(&task_id)
+}

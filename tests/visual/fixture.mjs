@@ -1,7 +1,7 @@
 // Browser-only IPC fixture. Never imported by production code.
 export function installFixture({
 	quality = 'Balanced',
-	appVersion = '0.14.0-beta.6',
+	appVersion = '0.14.0-beta.7',
 	empty = false,
 	language = 'es',
 	theme = 'dark',
@@ -83,11 +83,20 @@ export function installFixture({
 	const skinUrl = texture.toDataURL();
 	const callbacks = new Map(),
 		listeners = new Map();
+	const listenerEvents = new Map();
 	let sequence = 0;
 	window.__fixtureCommands = [];
+	window.__fixtureActivityChanged = () => {
+		for (const [id, cb] of listeners)
+			if (listenerEvents.get(id) === 'activity-changed')
+				callbacks.get(cb)?.({ event: 'activity-changed', id, payload: null });
+	};
+	window.__fixtureActivityListeners = () =>
+		[...listenerEvents.values()].filter((event) => event === 'activity-changed').length;
 	window.__fixtureEmit = (type, data) => {
-		for (const cb of listeners.values())
-			callbacks.get(cb)?.({ event: 'app-event', id: 1, payload: { type, data } });
+		for (const [id, cb] of listeners)
+			if (listenerEvents.get(id) === 'app-event')
+				callbacks.get(cb)?.({ event: 'app-event', id, payload: { type, data } });
 	};
 	window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
 	window.__TAURI_INTERNALS__ = {
@@ -103,10 +112,12 @@ export function installFixture({
 			window.__fixtureCommands.push({ cmd, args });
 			if (cmd === 'plugin:event|listen') {
 				listeners.set(++sequence, args.handler);
+				listenerEvents.set(sequence, args.event);
 				return sequence;
 			}
 			if (cmd === 'plugin:event|unlisten') {
 				listeners.delete(args.eventId);
+				listenerEvents.delete(args.eventId);
 				return null;
 			}
 			if (cmd === 'get_running_instance_stats' || cmd === 'get_running_server_stats') {

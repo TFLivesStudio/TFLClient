@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { navigate, navigation } from '$lib/visual/navigation.svelte';
 	import { vr } from '$lib/i18n/refresh';
+	import { al } from '$lib/activity/labels';
+	import { activityState } from '$lib/activity/state.svelte';
+	import { terminal } from '$lib/activity/contract';
 	import { invoke } from '@tauri-apps/api/core';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
@@ -30,7 +33,8 @@
 		Shirt,
 		Home,
 		PanelLeftClose,
-		PanelLeftOpen
+		PanelLeftOpen,
+		Activity
 	} from 'lucide-svelte';
 
 	let {
@@ -94,6 +98,9 @@
 	};
 
 	let query = $state('');
+	const activeTasks = $derived(
+		activityState.snapshot.tasks.filter((task) => !terminal(task.status)).length
+	);
 
 	// Hint de la paleta de comandos (CommandPalette.svelte) — Cmd+K en
 	// macOS, Ctrl+K en Windows/Linux. Solo texto, la tecla real la maneja
@@ -217,6 +224,19 @@
 			{#if !collapsed}<span>{vr(section as 'library' | 'discover')}</span>{/if}
 		</button>
 	{/each}
+	<button
+		type="button"
+		class="home-btn"
+		class:active={selected === null && navigation.section === 'activity'}
+		onclick={() => navigate('activity')}
+		aria-label={`${al('title')}${activeTasks ? ` · ${activeTasks} ${al('count')}` : ''}`}
+		title={collapsed ? al('title') : undefined}
+	>
+		<Activity size={18} />{#if !collapsed}<span
+				>{al('title')}{#if activeTasks}
+					· {activeTasks}{/if}</span
+			>{/if}
+	</button>
 
 	{#if !network.online && !collapsed}
 		<div class="offline-badge">
@@ -471,6 +491,7 @@
 
 	.home-btn {
 		display: flex;
+		flex-shrink: 0;
 		align-items: center;
 		gap: 8px;
 		width: 100%;
@@ -533,11 +554,13 @@
 		display: flex;
 		flex-direction: column;
 		min-height: 0;
+		overflow: hidden;
 		gap: 8px;
 	}
 
 	.section-label {
 		display: flex;
+		flex-shrink: 0;
 		align-items: center;
 		justify-content: space-between;
 		font-size: 0.68rem;
@@ -600,6 +623,7 @@
 
 	.instance-list {
 		flex: 1;
+		min-height: 0;
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
@@ -615,6 +639,9 @@
 
 	.instance-list::-webkit-scrollbar {
 		display: none;
+	}
+	.instance-list > :global(*) {
+		flex-shrink: 0;
 	}
 
 	.empty {
@@ -935,12 +962,13 @@
 	.sidebar.collapsed {
 		padding: 10px 14px;
 		gap: 6px;
+		--rail-control-size: 44px;
 	}
 	.sidebar.collapsed .sidebar-top,
 	.sidebar.collapsed .instances,
 	.sidebar.collapsed .section-label,
 	.sidebar.collapsed .instance-list {
-		width: 44px;
+		width: var(--rail-control-size);
 	}
 	.sidebar.collapsed .section-label {
 		margin-top: 6px;
@@ -956,10 +984,10 @@
 	.sidebar.collapsed .instance-item,
 	.sidebar.collapsed .empty-create,
 	.sidebar.collapsed :global(.tfl-icon-btn) {
-		width: 44px;
-		height: 44px;
-		min-height: 44px;
-		max-height: 44px;
+		width: var(--rail-control-size);
+		height: var(--rail-control-size);
+		min-height: var(--rail-control-size);
+		max-height: var(--rail-control-size);
 		padding: 0;
 		display: flex;
 		align-items: center;
@@ -969,7 +997,7 @@
 		flex-shrink: 0;
 	}
 	.sidebar.collapsed :global(.tfl-tooltip-wrap) {
-		width: 44px;
+		width: var(--rail-control-size);
 		flex-shrink: 0;
 	}
 	.sidebar.collapsed .instance-avatar {
@@ -982,11 +1010,11 @@
 		align-items: center;
 		background: transparent;
 		border: 0;
-		width: 44px;
+		width: var(--rail-control-size);
 	}
 	.sidebar.collapsed .user-profile {
-		width: 44px;
-		height: 44px;
+		width: var(--rail-control-size);
+		height: var(--rail-control-size);
 		justify-content: center;
 		border: 1px solid var(--border);
 		background: var(--surface-card);
@@ -996,11 +1024,26 @@
 		flex-direction: column;
 		flex-wrap: nowrap;
 		gap: 6px;
-		width: 44px;
+		width: var(--rail-control-size);
 		border: 0;
 		padding: 0;
 	}
 	.sidebar.collapsed .empty > :global(svg) {
 		display: none;
+	}
+	@media (max-height: 660px) {
+		.sidebar.collapsed {
+			--rail-control-size: 40px;
+			gap: 4px;
+		}
+		.sidebar.collapsed .user-chip,
+		.sidebar.collapsed .user-actions,
+		.sidebar.collapsed .section-label-actions,
+		.sidebar.collapsed .instances {
+			gap: 4px;
+		}
+		.sidebar.collapsed .section-label {
+			margin-top: 4px;
+		}
 	}
 </style>

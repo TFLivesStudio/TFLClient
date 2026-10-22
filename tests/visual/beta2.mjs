@@ -145,7 +145,7 @@ try {
 					}))
 			);
 		assert.ok(
-			sizes.every((s) => s.width === 44 && s.height === 44),
+			sizes.every((s) => s.width === 40 && s.height === 40),
 			JSON.stringify(sizes)
 		);
 		const footer = await p.locator('.user-chip').boundingBox();
@@ -154,6 +154,12 @@ try {
 			JSON.stringify(footer)
 		);
 		await shot(p, `sidebar-compact-${style}`);
+		assert.ok(
+			(await p.locator('.instance-list').boundingBox()).height >= 40,
+			'instance list retains a full control at 800x600'
+		);
+		await p.getByRole('button', { name: 'TFL Friends', exact: true }).click();
+		await p.locator('.tabs').getByRole('button', { name: 'Consola', exact: true }).waitFor();
 		await p.close();
 	}
 	const log = await open({

@@ -1,0 +1,40 @@
+{
+	"sdk": "@modelcontextprotocol/sdk 1.29.0",
+	"evidence": [
+		{
+			"protocol": "initialize/tools/list",
+			"tools": 35
+		},
+		{
+			"authorization": "unapproved read denied; approved read allowed; read-only mutation denied"
+		},
+		{
+			"preferences": "persisted change + native Tauri event; stale revision rejected"
+		},
+		{
+			"instances": "real UUID create, RAM mutation, worlds, real ZIP backup; duplicate idempotency key coalesced"
+		},
+		{
+			"restore": "exact approved real ZIP restore restores fixture bytes; automatic safety backup retained"
+		},
+		{
+			"concurrency": "second independent MCP process/session; instance scope enforced"
+		},
+		{
+			"activity": "real scoped MCP installation shares Rust activity authority",
+			"task_id": "82c1e2d5-395d-454d-84d8-2146216d0e79"
+		},
+		{
+			"content": "real Modrinth search + Fabric loader resolution + compatible Fabric API version install, hashes and managed files; exact-approved fixture cleanup"
+		},
+		{
+			"simple_tool_latency_ms": [
+				3.4161689999991722, 3.2858820000001288, 2.7615139999998064, 2.7853699999996024,
+				2.7948489999998856, 2.8255849999995917, 2.812861000000339, 3.2165079999995214
+			]
+		},
+		{
+			"critical": "unapproved and denied execution rejected; exact approved delete executes once; revocation enforced"
+		}
+	]
+}

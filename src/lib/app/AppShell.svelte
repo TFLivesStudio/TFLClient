@@ -4,6 +4,8 @@
 	import { startNotifications } from '$lib/visual/notifications.svelte';
 	import LibraryView from '$lib/components/refresh/LibraryView.svelte';
 	import DiscoverView from '$lib/components/refresh/DiscoverView.svelte';
+	import ActivityCenter from '$lib/components/refresh/ActivityCenter.svelte';
+	import { startActivities } from '$lib/activity/state.svelte';
 	import { navigation } from '$lib/visual/navigation.svelte';
 	import { restoreVisualPreferences } from '$lib/visual/preferences.svelte';
 	import { startVisualRuntime, effects, runtime } from '$lib/visual/runtime.svelte';
@@ -36,11 +38,13 @@
 	// dos lo consumen), en vez de en bootstrap.ts (fuera del alcance de esta
 	// entrega) — es idempotente, no pasa nada si se llama de más.
 	onMount(() => {
+		const stopActivities = startActivities();
 		const stopViewport = initViewportListener();
 		restoreVisualPreferences();
 		const stopVisual = startVisualRuntime();
 		const stopNotifications = startNotifications();
 		return () => {
+			stopActivities();
 			stopViewport?.();
 			stopVisual();
 			stopNotifications();
@@ -95,6 +99,8 @@
 					<LibraryView />
 				{:else if navigation.section === 'discover'}
 					<DiscoverView />
+				{:else if navigation.section === 'activity'}
+					<ActivityCenter />
 				{:else}
 					<WelcomeState />
 				{/if}

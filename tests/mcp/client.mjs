@@ -199,7 +199,7 @@ if (process.env.MCP_NETWORK_TEST === '1') {
 		await call('tfl_get_content_versions', { instance_id, kind: 'mod', project_id: 'fabric-api' })
 	);
 	assert(versions.length);
-	await job(
+	const installedJob = await job(
 		await call('tfl_install_content', {
 			instance_id,
 			kind: 'mod',
@@ -208,6 +208,18 @@ if (process.env.MCP_NETWORK_TEST === '1') {
 			idempotency_key: 'content-network'
 		})
 	);
+	const activity = await until(async () =>
+		JSON.parse(await readFile(path.join(profile, 'activities.json'), 'utf8')).tasks.find(
+			(t) => t.id === installedJob.result.activity_id && t.status === 'succeeded'
+		)
+	);
+	assert.equal(activity.source, 'mcp');
+	assert.equal(activity.instance_id, instance_id);
+	assert.equal(activity.cancellable, false);
+	evidence.push({
+		activity: 'real scoped MCP installation shares Rust activity authority',
+		task_id: activity.id
+	});
 	const files = data(await call('tfl_list_installed_content', { instance_id, kind: 'mod' }));
 	assert(files.files.some((f) => f.endsWith('.jar')));
 	const cleanup = data(await call('tfl_plan_action', { instance_id, action: 'delete_instance' }));

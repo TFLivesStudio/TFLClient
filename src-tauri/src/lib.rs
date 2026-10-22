@@ -106,6 +106,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .setup(|app| {
             core::event_bus::init(app.handle().clone());
+            services::activity_tasks::init();
             services::mcp::restore(app.handle().clone());
             #[cfg(desktop)]
             {
@@ -293,6 +294,8 @@ pub fn run() {
             commands::mojang_profile::hide_cape,
             commands::shortcuts::create_instance_shortcut,
             commands::activity::get_recent_activity,
+            commands::activity::get_activity_tasks,
+            commands::activity::cancel_activity_task,
             commands::system_status::get_system_status,
         ])
         .run(tauri_context())
@@ -394,6 +397,10 @@ pub fn mcp_integration_host() {
                     }
                     let snapshot = services::mcp::STATE.lock().snapshot();
                     let _ = std::fs::write(
+                        profile.join("activities.json"),
+                        serde_json::to_vec(&services::activity_tasks::hub().snapshot()).unwrap(),
+                    );
+                    let _ = std::fs::write(
                         profile.join("status.json"),
                         serde_json::to_vec(&snapshot).unwrap(),
                     );
@@ -404,4 +411,80 @@ pub fn mcp_integration_host() {
         })
         .run(test_context)
         .expect("integration host");
+}
+
+/// Actual Modrinth download/hash/rename pipeline, only in a disposable profile.
+#[cfg(feature = "mcp-integration-tests")]
+pub async fn activity_install_acceptance() {
+    use services::{activity_tasks, content, instance_manager};
+    let profile =
+        std::path::PathBuf::from(std::env::var_os("TFL_DATA_DIR").expect("isolated profile"));
+    assert!(profile.is_absolute() && profile.join("TEST_PROFILE").is_file());
+    core::PathManager::ensure_dirs().unwrap();
+    let instance = instance_manager::create_instance(
+        "Activity acceptance".into(),
+        "1.21.1".into(),
+        instance_manager::LoaderKind::Fabric,
+        None,
+        "1.21.1".into(),
+    )
+    .await
+    .unwrap();
+    let request = || content::install::InstallRequest {
+        instance_name: &instance.name,
+        mc_version: "1.21.1",
+        loader: "fabric",
+        project_id: "ferrite-core",
+        version_id: None,
+        kind: content::types::ContentKind::Mod,
+    };
+    let id = content::service()
+        .install_from(request(), activity_tasks::Source::Ui)
+        .await
+        .expect("real content install");
+    let files = content::filesystem::list_files(&instance.name, content::types::ContentKind::Mod)
+        .await
+        .unwrap();
+    assert!(files.iter().any(|f| f.ends_with(".jar")));
+    let s = activity_tasks::hub().snapshot();
+    let task = s.tasks.iter().find(|t| t.id == id).unwrap();
+    assert_eq!(task.status, activity_tasks::Status::Succeeded);
+    assert_eq!(task.source, activity_tasks::Source::Ui);
+    assert!(!task.cancellable);
+    let failed = content::service()
+        .install(content::install::InstallRequest {
+            instance_name: "Missing fixture instance",
+            ..request()
+        })
+        .await;
+    assert!(failed.is_err());
+    tokio::time::sleep(std::time::Duration::from_millis(600)).await;
+    let persisted: activity_tasks::Snapshot = serde_json::from_slice(
+        &std::fs::read(
+            core::PathManager::get()
+                .get_settings_dir()
+                .join("activities-v1.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert!(
+        persisted
+            .tasks
+            .iter()
+            .any(|t| t.id == id && t.status == activity_tasks::Status::Succeeded)
+    );
+    assert!(
+        persisted
+            .tasks
+            .iter()
+            .any(|t| t.status == activity_tasks::Status::Failed)
+    );
+    println!(
+        "{}",
+        serde_json::to_string_pretty(
+            &serde_json::json!({"real_network":true,"files":files,"snapshot":persisted})
+        )
+        .unwrap()
+    );
 }

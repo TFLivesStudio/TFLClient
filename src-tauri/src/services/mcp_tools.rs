@@ -609,17 +609,22 @@ pub async fn execute(app: &AppHandle, client: &str, tool: &str, p: Value) -> Res
             if (k == ContentKind::Plugin) != i.server_type.is_some() {
                 return Err("CONTENT_TARGET_MISMATCH".into());
             }
-            content::service()
-                .install(content::install::InstallRequest {
-                    instance_name: &i.name,
-                    mc_version: &i.mc_version,
-                    loader: &l,
-                    project_id: project,
-                    version_id: Some(version),
-                    kind: k,
-                })
+            let activity_id = content::service()
+                .install_from(
+                    content::install::InstallRequest {
+                        instance_name: &i.name,
+                        mc_version: &i.mc_version,
+                        loader: &l,
+                        project_id: project,
+                        version_id: Some(version),
+                        kind: k,
+                    },
+                    crate::services::activity_tasks::Source::Mcp,
+                )
                 .await?;
-            Ok(json!({"installed":true,"project_id":project,"version_id":version}))
+            Ok(
+                json!({"installed":true,"project_id":project,"version_id":version,"activity_id":activity_id}),
+            )
         }
         "tfl_set_content_enabled" => {
             let i = instance(&p).await?;

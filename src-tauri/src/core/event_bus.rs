@@ -48,6 +48,13 @@ pub fn init(handle: AppHandle) {
     let _ = APP_HANDLE.set(handle);
 }
 
+/// Main-window invalidation only; observers fetch an authoritative revisioned snapshot.
+pub fn activity_changed() {
+    if let Some(handle) = APP_HANDLE.get() {
+        let _ = handle.emit_to("main", "activity-changed", ());
+    }
+}
+
 pub fn emit(event: AppEvent) {
     if let Some(handle) = APP_HANDLE.get() {
         let _ = handle.emit("app-event", &event);

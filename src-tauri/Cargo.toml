@@ -1,6 +1,6 @@
 [package]
 name = "tflclient"
-version = "0.14.0-beta.6"
+version = "0.14.0-beta.7"
 description = "TFL Client, launcher de Minecraft de TFLives"
 authors = ["TFLives"]
 edition = "2024"
@@ -76,4 +76,8 @@ tauri = { version = "2", features = ["test"] }
 
 [[example]]
 name = "mcp_host"
+required-features = ["mcp-integration-tests"]
+
+[[example]]
+name = "activity_install"
 required-features = ["mcp-integration-tests"]
