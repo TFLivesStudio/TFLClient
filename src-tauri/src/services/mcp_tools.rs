@@ -180,7 +180,7 @@ pub async fn fingerprint(i: &InstanceData, p: &Value) -> Result<String, String> 
 }
 pub fn redact(s: &str) -> String {
     static SECRETS: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
-        regex::Regex::new(r"(?i)(access.?token|refresh.?token|authorization|bearer\s|password|passwd|cookie|client.?secret|sessionid|--uuid|--username|xbox|xsts|oauth)").unwrap()
+        regex::Regex::new(r"(?i)(token|secret|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*|authorization|bearer\s|password|passwd|cookie|client.?secret|sessionid|--uuid|--username|xbox|xsts|oauth)").unwrap()
     });
     let home = directories::UserDirs::new()
         .map(|u| u.home_dir().to_string_lossy().to_string())

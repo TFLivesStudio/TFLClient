@@ -180,7 +180,16 @@ fn replace_saves_from_zip(zip_path: &Path, saves_dir: &Path) -> Result<(), Strin
                 std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
             }
             let mut out = std::fs::File::create(out_path).map_err(|e| e.to_string())?;
-            extracted += std::io::copy(&mut entry, &mut out).map_err(|e| e.to_string())?;
+            let remaining = 32 * 1024 * 1024 * 1024u64 - extracted;
+            let count = std::io::copy(
+                &mut std::io::Read::take(&mut entry, remaining + 1),
+                &mut out,
+            )
+            .map_err(|e| e.to_string())?;
+            if count > remaining {
+                return Err("Backup exceeds 32 GiB restore limit".into());
+            }
+            extracted += count;
         }
         Ok(())
     })();

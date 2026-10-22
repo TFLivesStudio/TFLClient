@@ -52,6 +52,12 @@ struct JarMod {
     name: Option<String>,
 }
 
+fn read_metadata_text(entry: &mut impl std::io::Read) -> Option<String> {
+    let mut raw = String::new();
+    std::io::Read::read_to_string(&mut std::io::Read::take(entry, 65537), &mut raw).ok()?;
+    (raw.len() <= 65536).then_some(raw)
+}
+
 fn read_jar_mods(path: &Path) -> Option<JarMod> {
     let filename = path.file_name()?.to_str()?.to_string();
     let file = std::fs::File::open(path).ok()?;
@@ -63,8 +69,7 @@ fn read_jar_mods(path: &Path) -> Option<JarMod> {
         if entry.size() > 65536 {
             return None;
         }
-        let mut raw = String::new();
-        if std::io::Read::read_to_string(&mut entry, &mut raw).is_ok() {
+        if let Some(raw) = read_metadata_text(&mut entry) {
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
                 if let Some(id) = v.get("id").and_then(|x| x.as_str()) {
                     ids.push(id.to_string());
@@ -80,8 +85,7 @@ fn read_jar_mods(path: &Path) -> Option<JarMod> {
         if entry.size() > 65536 {
             return None;
         }
-        let mut raw = String::new();
-        if std::io::Read::read_to_string(&mut entry, &mut raw).is_ok() {
+        if let Some(raw) = read_metadata_text(&mut entry) {
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
                 if let Some(id) = v.pointer("/quilt_loader/id").and_then(|x| x.as_str()) {
                     ids.push(id.to_string());
@@ -105,10 +109,9 @@ fn read_jar_mods(path: &Path) -> Option<JarMod> {
         if entry.size() > 65536 {
             continue;
         }
-        let mut raw = String::new();
-        if std::io::Read::read_to_string(&mut entry, &mut raw).is_err() {
+        let Some(raw) = read_metadata_text(&mut entry) else {
             continue;
-        }
+        };
         let Ok(parsed) = raw.parse::<toml::Table>() else {
             continue;
         };
