@@ -1,4 +1,5 @@
 <script lang="ts">
+	import IntegrationsSettings from './IntegrationsSettings.svelte';
 	import ConsoleSettings from '$lib/components/console/ConsoleSettings.svelte';
 	import { tr } from '$lib/i18n/experience';
 	import {
@@ -82,6 +83,7 @@
 		game: Gamepad2,
 		accounts: Users,
 		console: Terminal,
+		integrations: WandSparkles,
 		updates: RefreshCw
 	};
 	let settingsQuery = $state(''),
@@ -858,8 +860,9 @@
 								openModal('skinManager');
 							}}>{tr('Abrir estudio de skins', 'Open skin studio')}</button
 						></SettingGroup
-					>{:else if tab === 'console'}<ConsoleSettings />{:else if tab === 'updates'}<SettingGroup
-						id="updates"
+					>{:else if tab === 'console'}<ConsoleSettings
+					/>{:else if tab === 'integrations'}<IntegrationsSettings
+					/>{:else if tab === 'updates'}<SettingGroup id="updates"
 						><section>
 							<span class="section-label">
 								{t('settings.updates.label')}

@@ -1,6 +1,13 @@
 // Canonical setting descriptors. Rendered groups and deep search use these same IDs/labels.
 export type SettingsPage =
-	'general' | 'appearance' | 'scenes' | 'game' | 'accounts' | 'console' | 'updates';
+	| 'general'
+	| 'appearance'
+	| 'scenes'
+	| 'game'
+	| 'accounts'
+	| 'console'
+	| 'updates'
+	| 'integrations';
 export const SETTINGS = [
 	{
 		id: 'language',
@@ -406,6 +413,19 @@ export const SETTINGS = [
 		reason: 'Readability, severity, search and follow share the log block.'
 	},
 	{
+		id: 'mcp',
+		page: 'integrations',
+		label: ['Control mediante IA (MCP)', 'AI control (MCP)'],
+		keywords: 'mcp codex opencode claude integraciones permisos ia asistente',
+		current: 'mcp_status',
+		default: 'disabled',
+		control: 'integration',
+		storage: 'settings/mcp-enabled.json',
+		profiles: 'All',
+		behavior: 'explicit',
+		reason: 'External clients need local consent and per-action authorization.'
+	},
+	{
 		id: 'updates',
 		page: 'updates',
 		label: ['Actualizaciones del launcher', 'Launcher updates'],
@@ -501,6 +521,14 @@ export const PAGES: { id: SettingsPage; label: [string, string]; description: [s
 			description: [
 				'Diseña tu consola con bloques reales. La vista previa usa datos de demostración.',
 				'Design your console with real blocks. The preview uses demonstration data.'
+			]
+		},
+		{
+			id: 'integrations',
+			label: ['Integraciones', 'Integrations'],
+			description: [
+				'Conecta asistentes de IA y controla sus permisos.',
+				'Connect AI assistants and manage their permissions.'
 			]
 		},
 		{

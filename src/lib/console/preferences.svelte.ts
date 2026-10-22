@@ -1,3 +1,4 @@
+import { persistAuthority } from '$lib/integrations/preferences';
 import {
 	CONSOLE_KEY,
 	DEFAULT_CONSOLE,
@@ -33,6 +34,7 @@ export function saveConsole(patch: Partial<ConsolePreferences>) {
 	Object.assign(consolePrefs, parseConsole({ ...$state.snapshot(consolePrefs), ...patch }));
 	try {
 		localStorage.setItem(CONSOLE_KEY, JSON.stringify($state.snapshot(consolePrefs)));
+		persistAuthority('console', $state.snapshot(consolePrefs));
 		consoleStorage.error = false;
 	} catch {
 		consoleStorage.error = true;

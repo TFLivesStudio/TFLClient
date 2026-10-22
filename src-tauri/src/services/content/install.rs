@@ -5,7 +5,7 @@
 use super::ContentService;
 use super::dependencies::{MAX_DEPENDENCY_DEPTH, conflicts_with, required_dependencies};
 use super::download::download_version_files;
-use super::filesystem::remove_file;
+use super::filesystem::remove_file_unlocked as remove_file;
 use super::installed::InstalledProjects;
 use super::providers::ContentProvider;
 use super::types::ContentKind;
@@ -35,6 +35,7 @@ struct InstallContext<'a> {
 
 impl<P: ContentProvider> ContentService<P> {
     pub async fn install(&self, request: InstallRequest<'_>) -> Result<(), String> {
+        let _mutation = super::mutation_lock(request.instance_name).await;
         let _perf = crate::core::perf::span("content.install");
         let installed = if request.kind == ContentKind::Mod {
             // Chequeo de conflictos conocidos ANTES de instalar — antes esto

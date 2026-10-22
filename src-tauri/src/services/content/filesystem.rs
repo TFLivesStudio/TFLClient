@@ -55,6 +55,15 @@ pub async fn remove_file(
     kind: ContentKind,
     filename: &str,
 ) -> Result<(), String> {
+    let _mutation = super::mutation_lock(instance_name).await;
+    remove_file_unlocked(instance_name, kind, filename).await
+}
+
+pub(crate) async fn remove_file_unlocked(
+    instance_name: &str,
+    kind: ContentKind,
+    filename: &str,
+) -> Result<(), String> {
     if is_unsafe_filename(filename) {
         return Err("Nombre de archivo inválido".into());
     }
@@ -93,6 +102,7 @@ pub async fn set_enabled(
     filename: &str,
     enabled: bool,
 ) -> Result<String, String> {
+    let _mutation = super::mutation_lock(instance_name).await;
     if is_unsafe_filename(filename) {
         return Err("Nombre de archivo inválido".into());
     }

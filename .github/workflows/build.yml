@@ -168,6 +168,9 @@ jobs:
             echo "Se exportaron $exported variable(s) de firma de Apple."
           fi
 
+      - name: Build packaged MCP helper
+        run: bun scripts/build-mcp-sidecar.mjs
+
       - name: Build + bundle (Tauri)
         id: tauri
         uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2 (action-v0.6.2)
@@ -194,7 +197,7 @@ jobs:
           releaseDraft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
           includeUpdaterJson: true
-          args: ${{ matrix.args }}
+          args: --config src-tauri/tauri.mcp.conf.json ${{ matrix.args }}
 
       # Cinturón y tirantes: si por lo que sea el Release de una beta no quedó
       # marcado como prerelease, las actualizaciones estables se la ofrecerían a

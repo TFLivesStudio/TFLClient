@@ -52,6 +52,12 @@ struct JarMod {
     name: Option<String>,
 }
 
+fn read_metadata_text(entry: &mut impl std::io::Read) -> Option<String> {
+    let mut raw = String::new();
+    std::io::Read::read_to_string(&mut std::io::Read::take(entry, 65537), &mut raw).ok()?;
+    (raw.len() <= 65536).then_some(raw)
+}
+
 fn read_jar_mods(path: &Path) -> Option<JarMod> {
     let filename = path.file_name()?.to_str()?.to_string();
     let file = std::fs::File::open(path).ok()?;
@@ -60,8 +66,10 @@ fn read_jar_mods(path: &Path) -> Option<JarMod> {
     let mut name = None;
 
     if let Ok(mut entry) = zip.by_name("fabric.mod.json") {
-        let mut raw = String::new();
-        if std::io::Read::read_to_string(&mut entry, &mut raw).is_ok() {
+        if entry.size() > 65536 {
+            return None;
+        }
+        if let Some(raw) = read_metadata_text(&mut entry) {
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
                 if let Some(id) = v.get("id").and_then(|x| x.as_str()) {
                     ids.push(id.to_string());
@@ -74,8 +82,10 @@ fn read_jar_mods(path: &Path) -> Option<JarMod> {
         }
     }
     if let Ok(mut entry) = zip.by_name("quilt.mod.json") {
-        let mut raw = String::new();
-        if std::io::Read::read_to_string(&mut entry, &mut raw).is_ok() {
+        if entry.size() > 65536 {
+            return None;
+        }
+        if let Some(raw) = read_metadata_text(&mut entry) {
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
                 if let Some(id) = v.pointer("/quilt_loader/id").and_then(|x| x.as_str()) {
                     ids.push(id.to_string());
@@ -93,10 +103,15 @@ fn read_jar_mods(path: &Path) -> Option<JarMod> {
         let Ok(mut entry) = zip.by_name(toml_path) else {
             continue;
         };
-        let mut raw = String::new();
-        if std::io::Read::read_to_string(&mut entry, &mut raw).is_err() {
+        if entry.size() > 65536 {
+            return None;
+        }
+        if entry.size() > 65536 {
             continue;
         }
+        let Some(raw) = read_metadata_text(&mut entry) else {
+            continue;
+        };
         let Ok(parsed) = raw.parse::<toml::Table>() else {
             continue;
         };
@@ -148,16 +163,33 @@ async fn newest_recent_crash_report(instance_dir: &Path) -> Option<String> {
     if age.as_secs() > CRASH_REPORT_MAX_AGE_SECS {
         return None;
     }
-    let bytes = tokio::fs::read(path).await.ok()?;
+    use tokio::io::AsyncReadExt;
+    let file = tokio::fs::File::open(path).await.ok()?;
+    let mut bytes = Vec::new();
+    file.take(LOG_TAIL_BYTES as u64)
+        .read_to_end(&mut bytes)
+        .await
+        .ok()?;
     Some(String::from_utf8_lossy(&bytes).to_string())
 }
 
 async fn latest_log_tail(instance_dir: &Path) -> Option<String> {
-    let bytes = tokio::fs::read(instance_dir.join("logs").join("latest.log"))
+    use tokio::io::{AsyncReadExt, AsyncSeekExt};
+    let mut file = tokio::fs::File::open(instance_dir.join("logs/latest.log"))
         .await
         .ok()?;
-    let start = bytes.len().saturating_sub(LOG_TAIL_BYTES);
-    Some(String::from_utf8_lossy(&bytes[start..]).to_string())
+    let size = file.metadata().await.ok()?.len();
+    file.seek(std::io::SeekFrom::Start(
+        size.saturating_sub(LOG_TAIL_BYTES as u64),
+    ))
+    .await
+    .ok()?;
+    let mut bytes = Vec::new();
+    file.take(LOG_TAIL_BYTES as u64)
+        .read_to_end(&mut bytes)
+        .await
+        .ok()?;
+    Some(String::from_utf8_lossy(&bytes).to_string())
 }
 
 /// Ids de mod / nombres de jar que el texto menciona como causa, en orden
@@ -244,7 +276,7 @@ pub async fn diagnose_crash(instance_name: String) -> Result<CrashDiagnosis, Str
         let Ok(entries) = std::fs::read_dir(&mods_dir) else {
             return out;
         };
-        for entry in entries.flatten() {
+        for entry in entries.flatten().take(2000) {
             let path = entry.path();
             if path.extension().and_then(|e| e.to_str()) != Some("jar") {
                 continue;

@@ -52,3 +52,24 @@ impl<P: ContentProvider> ContentService<P> {
 pub fn service() -> ContentService<ModrinthProvider> {
     ContentService::new(ModrinthProvider)
 }
+
+// Shared by Tauri and MCP; no UI-level guard can replace this lock.
+pub(crate) async fn mutation_lock(instance: &str) -> tokio::sync::OwnedMutexGuard<()> {
+    static LOCKS: std::sync::LazyLock<
+        parking_lot::Mutex<
+            std::collections::HashMap<String, std::sync::Weak<tokio::sync::Mutex<()>>>,
+        >,
+    > = std::sync::LazyLock::new(Default::default);
+    let lock = {
+        let mut locks = LOCKS.lock();
+        locks.retain(|_, v| v.strong_count() > 0);
+        if let Some(existing) = locks.get(instance).and_then(std::sync::Weak::upgrade) {
+            existing
+        } else {
+            let lock = std::sync::Arc::new(tokio::sync::Mutex::new(()));
+            locks.insert(instance.into(), std::sync::Arc::downgrade(&lock));
+            lock
+        }
+    };
+    lock.lock_owned().await
+}

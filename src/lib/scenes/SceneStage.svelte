@@ -1,4 +1,6 @@
 <script lang="ts">
+	import CinematicAtmosphere from './CinematicAtmosphere.svelte';
+	import { cinematicPoster } from './cinematic';
 	import { onMount } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { invoke } from '$lib/api/invoke';
@@ -93,11 +95,17 @@
 
 <div
 	class="stage"
+	data-biome={config.preset}
 	class:preview
 	data-motion={cap.motion}
 	data-video-playing={cap.video && !failed && !!source}
 >
 	<SceneFrame {config} {x} {y} {phase} />
+	{#if cap.motion && cinematicPoster(config.preset)}<CinematicAtmosphere
+			preset={config.preset}
+			fps={cap.fps}
+			depth={cap.depth}
+		/>{/if}
 	{#if cap.video && source && !failed}
 		<video
 			bind:this={video}
@@ -116,7 +124,11 @@
 				/>{:else}<source src={source} />{/if}
 		</video>
 	{/if}
-	{#if cap.shader}<ShaderLayer fps={cap.fps} dpr={cap.dpr} />{/if}
+	{#if cap.shader}{#key config.preset}<ShaderLayer
+				fps={cap.fps}
+				dpr={cap.dpr}
+				preset={config.preset}
+			/>{/key}{/if}
 	{#if cap.particles}<div class="particles" aria-hidden="true">
 			{#each Array.from({ length: cap.maxParticles }, (_, i) => i) as i (i)}<i
 					style={`--i:${i};--left:${(i * 37 + 13) % 100}%;--delay:${-i * 0.9}s;--speed:${9 + (i % 6)}s`}
@@ -154,6 +166,15 @@
 		inset: 0;
 		overflow: hidden;
 	}
+	.stage[data-biome='embers'] {
+		--particle-color: #ffae68;
+	}
+	.stage[data-biome='void'] {
+		--particle-color: #c9adff;
+	}
+	.stage[data-biome='aurora'] {
+		--particle-color: #9df8e6;
+	}
 	.particles i {
 		position: absolute;
 		bottom: -8px;
@@ -161,7 +182,7 @@
 		width: 3px;
 		height: 3px;
 		border-radius: 50%;
-		background: #e2f7c6;
+		background: var(--particle-color, #e2f7c6);
 		box-shadow: 0 0 8px #e2f7c677;
 		opacity: 0;
 		animation: drift var(--speed) var(--delay) infinite linear;

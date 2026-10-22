@@ -14,3 +14,8 @@ pub mod world_backup;
 pub mod zip_util;
 
 pub use settings_manager::{QualityProfile, SettingsManager};
+
+pub mod mcp;
+pub mod mcp_policy;
+pub mod mcp_preferences;
+pub mod mcp_tools;

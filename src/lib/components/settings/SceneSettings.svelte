@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { cinematicPoster } from '$lib/scenes/cinematic';
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 	import { invoke } from '$lib/api/invoke';
@@ -170,7 +171,7 @@
 						class="thumb"
 						style:background={`linear-gradient(145deg,${scene.colors[0]},${scene.colors[1]})`}
 						>{#if scene.id !== 'legacy'}<img
-								src={`/scenes/${scene.id}.svg`}
+								src={cinematicPoster(scene.id, true) ?? `/scenes/${scene.id}.svg`}
 								alt=""
 								loading="lazy"
 							/>{/if}{#if draft.preset === scene.id}<b><Check size={14} /></b>{/if}</span

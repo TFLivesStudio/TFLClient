@@ -106,6 +106,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .setup(|app| {
             core::event_bus::init(app.handle().clone());
+            services::mcp::restore(app.handle().clone());
             #[cfg(desktop)]
             {
                 app.handle()
@@ -136,6 +137,15 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             core::perf::get_perf_report,
             core::perf::perf_record,
+            commands::mcp::mcp_status,
+            commands::mcp::mcp_probe,
+            commands::mcp::mcp_enable,
+            commands::mcp::mcp_grant,
+            commands::mcp::mcp_revoke,
+            commands::mcp::mcp_decide,
+            commands::mcp::mcp_clear_audit,
+            commands::mcp::visual_preferences_get,
+            commands::mcp::visual_preferences_write,
             commands::auth::get_device_code,
             commands::updater::update_check,
             commands::updater::update_download,
@@ -312,3 +322,86 @@ pub(crate) fn tauri_context<R: tauri::Runtime>() -> tauri::Context<R> {
 
 #[cfg(test)]
 mod acl_tests;
+
+/// Native integration harness; excluded from every distributed build.
+#[cfg(feature = "mcp-integration-tests")]
+pub fn mcp_integration_host() {
+    use tauri::Listener;
+    let profile = std::env::var_os("TFL_DATA_DIR")
+        .map(std::path::PathBuf::from)
+        .expect("isolated TFL_DATA_DIR required");
+    assert!(profile.is_absolute() && profile.join("TEST_PROFILE").is_file());
+    core::PathManager::ensure_dirs().unwrap();
+    let mut test_context = tauri_context();
+    test_context.config_mut().app.windows.clear();
+    tauri::Builder::default()
+        .setup(move |app| {
+            core::event_bus::init(app.handle().clone());
+            let a = app.handle().clone();
+            let events = profile.join("preference-events.jsonl");
+            app.listen("mcp-preferences-changed", move |e| {
+                use std::io::Write;
+                if let Ok(mut file) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&events)
+                {
+                    let _ = writeln!(file, "{}", e.payload());
+                }
+            });
+            tauri::async_runtime::spawn(async move {
+                services::mcp::enable(a.clone(), true).await.unwrap();
+                loop {
+                    let control = profile.join("control.json");
+                    if let Ok(raw) = std::fs::read(&control) {
+                        let _ = std::fs::remove_file(&control);
+                        if let Ok(v) = serde_json::from_slice::<serde_json::Value>(&raw) {
+                            if v["op"] == "enabled" {
+                                services::mcp::enable(
+                                    a.clone(),
+                                    v["enabled"].as_bool().unwrap_or(false),
+                                )
+                                .await
+                                .unwrap();
+                                continue;
+                            }
+                            let mut state = services::mcp::STATE.lock();
+                            let id = v["client_id"].as_str().unwrap_or("");
+                            match v["op"].as_str().unwrap_or("") {
+                                "grant" => {
+                                    let _ = state.grant(
+                                        id,
+                                        serde_json::from_value(v["permissions"].clone())
+                                            .unwrap_or_default(),
+                                        serde_json::from_value(v["instances"].clone())
+                                            .unwrap_or_default(),
+                                    );
+                                }
+                                "revoke" => state.revoke(id),
+                                "approve" => {
+                                    let _ = state.decide(
+                                        v["plan_id"].as_str().unwrap_or(""),
+                                        v["approve"].as_bool().unwrap_or(false),
+                                    );
+                                }
+                                "exit" => {
+                                    a.exit(0);
+                                    return;
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                    let snapshot = services::mcp::STATE.lock().snapshot();
+                    let _ = std::fs::write(
+                        profile.join("status.json"),
+                        serde_json::to_vec(&snapshot).unwrap(),
+                    );
+                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                }
+            });
+            Ok(())
+        })
+        .run(test_context)
+        .expect("integration host");
+}

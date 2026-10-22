@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { cinematicPoster } from './cinematic';
 	import { artworkUrl } from '$lib/visual/policy';
 	import { dayPhase, type SceneConfig } from './model';
 	let {
@@ -12,6 +13,11 @@
 		y?: number;
 		phase?: ReturnType<typeof dayPhase>;
 	} = $props();
+	let imageFailed = $state(false);
+	$effect(() => {
+		void config.preset;
+		imageFailed = false;
+	});
 	const offset = $derived(config.motion === 'full' ? 12 : 5);
 </script>
 
@@ -29,7 +35,15 @@
 			draggable="false"
 		/>{:else if config.poster === 'custom'}<div
 			class="legacy"
-		></div>{:else if config.preset !== 'legacy'}
+		></div>{:else if cinematicPoster(config.preset) && !imageFailed}<img
+			src={cinematicPoster(config.preset)!}
+			alt=""
+			class="sky cinematic-art"
+			draggable="false"
+			onerror={() => (imageFailed = true)}
+			style:transform={`translate3d(${x * offset * 0.25}px,${y * offset * 0.2}px,0)`}
+		/>
+	{:else if config.preset !== 'legacy'}
 		<img src={`/scenes/${config.preset}-sky.svg`} alt="" class="sky" draggable="false" />
 		<img
 			src={`/scenes/${config.preset}-far.svg`}
@@ -68,6 +82,9 @@
 		object-fit: cover;
 		scale: 1.04;
 		transition: transform 0.4s ease-out;
+	}
+	.cinematic-art {
+		object-position: 64% center;
 	}
 	.legacy {
 		background: var(--wallpaper-bg, linear-gradient(135deg, #152130, #253545));

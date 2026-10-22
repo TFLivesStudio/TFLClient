@@ -19,3 +19,5 @@ pub mod versions;
 pub mod world_backups;
 
 pub mod scene_media;
+
+pub mod mcp;

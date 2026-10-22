@@ -57,6 +57,7 @@ pub async fn add_local_files(
     kind: ContentKind,
     paths: Vec<String>,
 ) -> Result<u32, String> {
+    let _mutation = super::mutation_lock(instance_name).await;
     let instance = instance_manager::get_instance(instance_name).await?;
     let dest_dir = instance.dir().join(kind.subdir());
     tokio::fs::create_dir_all(&dest_dir)

@@ -45,12 +45,12 @@
 		position: absolute;
 		inset: 0;
 		background:
-			linear-gradient(90deg, var(--surface-canvas) 0%, transparent 75%),
+			linear-gradient(90deg, var(--surface-canvas) 0%, transparent 62%),
 			linear-gradient(0deg, var(--surface-canvas), transparent 80%);
-		opacity: 0.82;
+		opacity: 0.64;
 	}
 	:global([data-theme='light']) .veil {
-		opacity: 0.9;
+		opacity: 0.84;
 	}
 	.reaction-light {
 		position: absolute;

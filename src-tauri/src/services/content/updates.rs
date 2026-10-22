@@ -77,6 +77,7 @@ impl<P: ContentProvider> ContentService<P> {
     /// de largo si un mod puntual falla (red, archivo corrupto, etc), no
     /// aborta el resto del lote. Devuelve cuántos se actualizaron de verdad.
     pub async fn update_all(&self, instance_name: &str) -> Result<u32, String> {
+        let _mutation = super::mutation_lock(instance_name).await;
         let updates = self.check_updates(instance_name).await?;
         if updates.is_empty() {
             return Ok(0);

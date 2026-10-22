@@ -5,6 +5,11 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.14.0-beta.2': [
+		'Conecta asistentes compatibles mediante MCP local: aprueba cada sesión, limita sus permisos y confirma las acciones críticas desde Integraciones.',
+		'Cinco paisajes cinematográficos nuevos, miniaturas fieles y vídeos a 720p, manteniendo Lite estático y los fondos personales.',
+		'Los cambios de escenas, apariencia y consola se sincronizan con el launcher; las instalaciones de contenido comparten bloqueos y validación de descargas.'
+	],
 	'0.14.0-beta.1': [
 		'Ajustes se organiza por tareas y su buscador te lleva directamente a cada opción, con ayuda y validación de RAM, Java y variables de entorno.',
 		'Fondos y escenas: siete paisajes originales, vídeos locales con vista previa y una imagen estática en Lite. Puedes asignar una escena a cada instancia.',
