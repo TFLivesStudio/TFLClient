@@ -2,78 +2,93 @@ use crate::core::http_client::get_json_retrying;
 use crate::services::SettingsManager;
 use base64::Engine;
 use launchwerk::auth::MinecraftUser;
-use launchwerk::auth::microsoft::MicrosoftAuth;
 use serde::Serialize;
 use tauri::command;
-use tracing::{info, warn};
+use tracing::info;
 
-fn tfl_microsoft_auth() -> MicrosoftAuth {
-    MicrosoftAuth::new(crate::core::TFL_MICROSOFT_CLIENT_ID.to_string())
+#[command]
+pub fn microsoft_auth_config() -> Result<crate::core::microsoft_identity::MicrosoftIdentity, String>
+{
+    crate::core::microsoft_identity::configured()
+}
+
+#[command]
+pub fn start_microsoft_auth(
+    app: tauri::AppHandle,
+    method: String,
+    expected_uuid: Option<String>,
+) -> Result<crate::services::microsoft_login::LoginSnapshot, String> {
+    crate::services::microsoft_login::start(app, &method, expected_uuid)
+}
+#[command]
+pub fn microsoft_auth_status(
+    id: String,
+) -> Result<crate::services::microsoft_login::LoginSnapshot, String> {
+    crate::services::microsoft_login::status(&id)
+}
+#[command]
+pub fn cancel_microsoft_auth(
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<crate::services::microsoft_login::LoginSnapshot, String> {
+    crate::services::microsoft_login::cancel(&app, &id)
+}
+#[command]
+pub async fn microsoft_auth_memory_session(
+    id: String,
+) -> Result<crate::services::microsoft_login::LoginSnapshot, String> {
+    crate::services::microsoft_login::accept_memory(&id).await
+}
+#[command]
+pub async fn microsoft_auth_retry_storage(
+    id: String,
+) -> Result<crate::services::microsoft_login::LoginSnapshot, String> {
+    crate::services::microsoft_login::retry_storage(&id).await
+}
+#[command]
+pub fn microsoft_auth_open_device(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    crate::services::microsoft_login::open_device(&app, &id)
 }
 
 #[derive(Serialize)]
-pub struct DeviceCode {
-    pub user_code: String,
-    pub device_code: String,
-    pub verification_uri: String,
-    pub expires_in: u64,
-    pub interval: u64,
+pub struct AccountSessionStatus {
+    pub uuid: String,
+    pub state: String,
 }
-
 #[command]
-pub async fn get_device_code() -> Result<DeviceCode, String> {
-    info!("Obteniendo código de dispositivo de Microsoft");
-    let res = tokio::task::spawn_blocking(|| {
-        tfl_microsoft_auth()
-            .get_device_code()
-            .map_err(|e| e.to_string())
+pub async fn account_session_statuses() -> Result<Vec<AccountSessionStatus>, String> {
+    let users = SettingsManager::read().user.clone();
+    let identity = crate::core::microsoft_identity::configured()?;
+    tokio::task::spawn_blocking(move || {
+        users
+            .into_iter()
+            .map(|mut user| {
+                let state = if user.user_type == launchwerk::auth::AccountType::Cracked {
+                    "offline"
+                } else if user.session_only {
+                    if user.access_token.is_empty() {
+                        "reauthenticate"
+                    } else {
+                        "memory"
+                    }
+                } else if user.load_tokens().is_err() {
+                    "storage_or_reauthentication"
+                } else if user.user_type == launchwerk::auth::AccountType::Microsoft
+                    && user.microsoft_client_id.as_deref() != Some(identity.client_id.as_str())
+                {
+                    "reauthenticate"
+                } else {
+                    "protected"
+                };
+                AccountSessionStatus {
+                    uuid: user.uuid,
+                    state: state.into(),
+                }
+            })
+            .collect()
     })
     .await
-    .map_err(|e| e.to_string())??;
-
-    Ok(DeviceCode {
-        user_code: res.user_code,
-        device_code: res.device_code,
-        verification_uri: res.verification_uri,
-        expires_in: res.expires_in,
-        interval: res.interval,
-    })
-}
-
-#[command]
-pub async fn authenticate_with_device_code(
-    device_code: String,
-    interval: u64,
-    expires_in: u64,
-) -> Result<MinecraftUser, String> {
-    let user = tokio::task::spawn_blocking(move || {
-        tfl_microsoft_auth()
-            .authenticate_with_device_code(&device_code, interval, expires_in)
-            .map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())??;
-
-    // El token de acceso/refresh vive en `#[serde(skip)]` — nunca queda en
-    // settings.tfl a propósito (no es un lugar seguro para credenciales).
-    // Sin este `save_tokens()` se perdía sin que nada lo mostrara: la
-    // cuenta quedaba guardada, pero `access_token` volvía a "" en el
-    // próximo arranque (ver `load_tokens()` en launcher.rs), y el juego se
-    // lanzaba igual con una sesión inválida en vez de fallar visiblemente.
-    if let Err(e) = user.save_tokens() {
-        warn!(
-            "No se pudieron guardar los tokens de \"{}\": {e}",
-            user.username
-        );
-    }
-
-    SettingsManager::write(|s| {
-        s.add_user(user.clone());
-        s.onboarded = true;
-    })
-    .map_err(|e| e.to_string())?;
-    SettingsManager::save().await?;
-    Ok(user)
+    .map_err(|_| "LOCAL_STORAGE_ERROR".into())
 }
 
 #[command]
@@ -184,13 +199,16 @@ pub async fn remove_user(uuid: String) -> Result<(), String> {
         s.user.get(s.active_user_idx).map(|u| u.uuid.clone())
     };
 
-    if let Some(removed) = SettingsManager::read().user.iter().find(|u| u.uuid == uuid) {
-        if let Err(e) = removed.delete_tokens() {
-            tracing::warn!(
-                "No se pudieron borrar los tokens de \"{}\": {e}",
-                removed.username
-            );
-        }
+    let removed = SettingsManager::read()
+        .user
+        .iter()
+        .find(|u| u.uuid == uuid)
+        .cloned();
+    if let Some(removed) = removed {
+        tokio::task::spawn_blocking(move || removed.delete_tokens())
+            .await
+            .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?
+            .map_err(|_| "SECURE_STORE_UNAVAILABLE".to_string())?;
     }
 
     SettingsManager::write(|s| {

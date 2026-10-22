@@ -405,3 +405,46 @@ fn asset_protocol_only_serves_icons_screenshots_and_wallpaper() {
     }
     assert!(!scope.is_allowed(Path::new(&home).join(".ssh").join("id_rsa")));
 }
+
+#[test]
+fn microsoft_window_has_no_local_or_remote_capabilities() {
+    let app = app();
+    let auth = window(&app, "microsoft-auth-fixture");
+    for origin in [
+        local_url(),
+        "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize",
+        "https://login.live.com/",
+    ] {
+        for command in [
+            "get_settings",
+            "start_microsoft_auth",
+            "microsoft_auth_status",
+            "microsoft_auth_memory_session",
+            "get_user_list",
+            "launch",
+            "mcp_grant",
+            "mcp_enable",
+            "plugin:opener|open_url",
+            "plugin:clipboard-manager|write_text",
+            "plugin:event|listen",
+            "plugin:window|close",
+        ] {
+            let result = get_ipc_response(
+                &auth,
+                InvokeRequest {
+                    cmd: command.into(),
+                    callback: CallbackFn(0),
+                    error: CallbackFn(1),
+                    url: origin.parse().unwrap(),
+                    body: InvokeBody::default(),
+                    headers: Default::default(),
+                    invoke_key: INVOKE_KEY.to_string(),
+                },
+            );
+            assert!(
+                result.is_err(),
+                "remote auth window must not invoke {command} at {origin}"
+            );
+        }
+    }
+}

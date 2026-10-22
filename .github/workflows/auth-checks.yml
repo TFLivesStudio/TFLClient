@@ -1,0 +1,44 @@
+name: Native authentication checks
+
+on:
+  pull_request:
+    paths:
+      - 'crates/launchwerk/**'
+      - 'src-tauri/**'
+      - 'Cargo.lock'
+      - '.github/workflows/auth-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auth-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: OAuth fixtures and ACL (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-rust
+      - name: OAuth and credential fixtures (no real account or OS vault)
+        run: cargo test --locked -p launchwerk --features auth --lib
+      - name: Native callback and transaction tests
+        run: cargo test --locked -p tflclient --lib services::microsoft_login
+      - name: Real Tauri permission resolver tests
+        run: cargo test --locked -p tflclient --lib acl_tests
+      - name: Check explicit test identity build
+        # A known existing public ID tests the configuration mechanism, not TFL approval.
+        run: cargo check --locked -p tflclient --features auth-test-client
+        env:
+          TFL_AUTH_TEST_CLIENT_ID: cb4acffe-727f-4dd1-ad5e-fd3553d84a7f
+          TFL_AUTH_TEST_ACK: development-only-not-for-release

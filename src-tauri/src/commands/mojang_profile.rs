@@ -35,7 +35,7 @@ pub struct MojangProfile {
 }
 
 async fn require_microsoft_token() -> Result<String, String> {
-    let user = active_user_fresh().await;
+    let user = active_user_fresh().await?;
     if user.user_type != AccountType::Microsoft {
         return Err("Esto necesita una cuenta Microsoft — las cuentas offline no tienen skin ni capas propias en Mojang.".into());
     }

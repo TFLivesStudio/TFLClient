@@ -1,51 +1,58 @@
-//! Único punto que resuelve "el usuario activo, con su sesión de Microsoft
-//! al día" — lo usan tanto el lanzamiento del juego (`launcher.rs`) como los
-//! comandos de perfil de Mojang (skin/capa). Antes esta lógica de refresco
-//! vivía solo en `launcher.rs`; cualquier otra llamada a la API de Mojang
-//! (que exige un access_token vigente) hubiera repetido el mismo refresco a
-//! mano o, peor, usado un token vencido.
-use crate::services::SettingsManager;
-use launchwerk::auth::AccountType;
-use launchwerk::auth::MinecraftUser;
-use tracing::warn;
+//! Credential provenance is checked before refresh. No identity switching or raw errors.
+use crate::{core::microsoft_identity, services::SettingsManager};
+use launchwerk::auth::{AccountType, MinecraftUser, microsoft::MicrosoftAuth};
+use std::sync::LazyLock;
+static REFRESH_LOCK: LazyLock<tokio::sync::Mutex<()>> =
+    LazyLock::new(|| tokio::sync::Mutex::new(()));
 
-/// Devuelve el usuario activo con el access_token de Microsoft refrescado
-/// best-effort — si el refresco falla (sin internet, refresh_token vencido)
-/// se sigue con el token guardado en vez de fallar, para no bloquear
-/// singleplayer offline por un problema de red.
-pub async fn active_user_fresh() -> MinecraftUser {
+pub async fn active_user_fresh() -> Result<MinecraftUser, String> {
+    let _guard = REFRESH_LOCK.lock().await;
     let mut user = SettingsManager::read().get_user();
-    if let Err(e) = user.load_tokens() {
-        warn!("No se pudieron cargar los tokens del usuario: {e:?}");
+    if user.user_type == AccountType::Cracked {
+        return Ok(user);
     }
-
+    let copy = user.clone();
+    user = tokio::task::spawn_blocking(move || {
+        let mut user = copy;
+        user.load_tokens().map(|_| user)
+    })
+    .await
+    .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?
+    .map_err(|e| crate::services::microsoft_login::safe_error(&e.to_string()))?;
     if user.user_type == AccountType::Microsoft {
-        if let Some(refresh) = user.refresh_token.clone() {
-            match tokio::task::spawn_blocking(move || {
-                launchwerk::auth::microsoft::MicrosoftAuth::new(
-                    crate::core::TFL_MICROSOFT_CLIENT_ID.to_string(),
-                )
-                .refresh_token(&refresh)
-            })
-            .await
-            {
-                Ok(Ok(fresh)) => {
-                    if let Err(e) = fresh.save_tokens() {
-                        warn!("No se pudo guardar la sesión refrescada: {e}");
-                    }
-                    user = fresh;
-                }
-                Ok(Err(e)) => {
-                    warn!(
-                        "No se pudo refrescar la sesión de Microsoft, se sigue con la guardada: {e}"
-                    );
-                }
-                Err(e) => {
-                    warn!("Falló la tarea de refresco de sesión: {e}");
-                }
-            }
+        let identity = microsoft_identity::configured()?;
+        if user.microsoft_client_id.as_deref() != Some(identity.client_id.as_str()) {
+            return Err("REAUTHENTICATION_REQUIRED".into());
         }
+        let refresh = user
+            .refresh_token
+            .clone()
+            .ok_or("REAUTHENTICATION_REQUIRED")?;
+        let mut fresh = tokio::task::spawn_blocking(move || {
+            MicrosoftAuth::new(identity.client_id).refresh_token(&refresh)
+        })
+        .await
+        .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?
+        .map_err(|e| crate::services::microsoft_login::safe_error(&e.to_string()))?;
+        if fresh.uuid != user.uuid {
+            return Err("ACCOUNT_MISMATCH".into());
+        }
+        fresh.session_only = user.session_only;
+        let copy = fresh.clone();
+        tokio::task::spawn_blocking(move || copy.save_tokens())
+            .await
+            .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?
+            .map_err(|_| "SECURE_STORE_UNAVAILABLE".to_string())?;
+        user = fresh;
     }
-
-    user
+    SettingsManager::write(|s| {
+        if let Some(stored) = s.user.iter_mut().find(|u| u.uuid == user.uuid) {
+            *stored = user.clone();
+        }
+    })
+    .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?;
+    SettingsManager::save()
+        .await
+        .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?;
+    Ok(user)
 }

@@ -25,27 +25,18 @@ fn test_token_serialization_skip() {
 }
 
 #[test]
-fn test_secure_storage_save_load() {
+fn tokens_are_redacted_in_debug_and_memory_only_is_explicit() {
     let mut user = MinecraftUser::premium(
-        "test_user_storage".to_string(),
-        "uuid_storage".to_string(),
-        "token123".to_string(),
-        Some("refresh123".to_string()),
+        "name".into(),
+        "id".into(),
+        "secret-access".into(),
+        Some("secret-refresh".into()),
     );
-
-    // Guardar tokens
-    user.save_tokens().expect("Failed to save tokens");
-
-    // Limpiar tokens en memoria
-    user.access_token = String::new();
-    user.refresh_token = None;
-
-    // Cargar tokens
-    user.load_tokens().expect("Failed to load tokens");
-
-    assert_eq!(user.access_token, "token123");
-    assert_eq!(user.refresh_token, Some("refresh123".to_string()));
-
-    // Borrar tokens
-    user.delete_tokens().unwrap();
+    assert!(!format!("{user:?}").contains("secret-"));
+    user.session_only = true;
+    user.save_tokens().unwrap();
+    let mut reloaded: MinecraftUser =
+        serde_json::from_str(&serde_json::to_string(&user).unwrap()).unwrap();
+    assert!(reloaded.load_tokens().is_err());
+    assert_eq!(reloaded.username, "name");
 }

@@ -337,7 +337,7 @@ async fn launch_inner(
     // el "andaba bien en singleplayer pero invalid session al unirse a un
     // servidor" (Minecraft no valida la sesión para jugar solo).
     let perf_auth = crate::core::perf::span("launch.auth_refresh");
-    let user = crate::services::mojang_auth::active_user_fresh().await;
+    let user = crate::services::mojang_auth::active_user_fresh().await?;
     drop(perf_auth);
 
     if server_address.is_some() && !crate::core::allows_multiplayer(user.user_type) {
