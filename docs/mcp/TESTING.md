@@ -71,3 +71,16 @@ queries measured roughly 3.8–8.8 ms. Short CPU samples, debug symbols and test
 I/O prevent extrapolating these numbers to a production launcher UI or another OS.
 The debug helper binary is 52 MB with symbols; packaged optimized size is measured
 separately by the review build script. No claim of a 10 MB whole-launcher footprint.
+
+## Review installer verification — 2026-10-22
+
+[Review build 39707495979](https://github.com/TFLivesStudio/TFLClient/actions/runs/39707495979)
+builds the same runtime sources as commit `c9d2925`. Linux DEB and macOS DMG archive
+inspection confirms the native `tflclient-mcp` helper and bundled dependency licenses.
+The extracted Linux helper runs `--manifest` successfully and exposes 35 tools.
+This verifies packaging, not an interactive installation on Windows or macOS.
+
+Integration UI evidence: [Modern](screenshots/integrations-modern.webp),
+[Pixel](screenshots/integrations-pixel.webp). Scene evidence:
+[Overworld](../scenes-2/screenshots/overworld.webp),
+[Pixel](../scenes-2/screenshots/pixel.webp).
