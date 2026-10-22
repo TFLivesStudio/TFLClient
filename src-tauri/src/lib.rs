@@ -356,6 +356,15 @@ pub fn mcp_integration_host() {
                     if let Ok(raw) = std::fs::read(&control) {
                         let _ = std::fs::remove_file(&control);
                         if let Ok(v) = serde_json::from_slice::<serde_json::Value>(&raw) {
+                            if v["op"] == "enabled" {
+                                services::mcp::enable(
+                                    a.clone(),
+                                    v["enabled"].as_bool().unwrap_or(false),
+                                )
+                                .await
+                                .unwrap();
+                                continue;
+                            }
                             let mut state = services::mcp::STATE.lock();
                             let id = v["client_id"].as_str().unwrap_or("");
                             match v["op"].as_str().unwrap_or("") {

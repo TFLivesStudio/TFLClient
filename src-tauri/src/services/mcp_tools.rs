@@ -121,7 +121,11 @@ pub async fn instance(p: &Value) -> Result<InstanceData, String> {
     {
         return Err("PATH_OUTSIDE_SANDBOX".into());
     }
-    Ok(i)
+    let current = instance_manager::get_instance(&i.name).await?;
+    if current.uuid != id || current.name != i.name {
+        return Err("INSTANCE_MANIFEST_ID_MISMATCH".into());
+    }
+    Ok(current)
 }
 fn running(i: &InstanceData) -> bool {
     super::launcher::running_instance_pid(&i.name).is_some()

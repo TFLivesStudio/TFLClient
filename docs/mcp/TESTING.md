@@ -1,7 +1,7 @@
 # Reproducible verification
 
 Baseline main `bd8fd883`: frontend check 0 errors / 7 existing warnings; 18 Node
-behavior tests and 141 Rust library tests passed. Current local checks: 152 Rust library tests and 18 Node behavior tests passed;
+behavior tests and 141 Rust library tests passed. Current local checks: 155 Rust library tests and 18 Node behavior tests passed;
 frontend check has 0 errors / 7 existing warnings; production build passed.
 The official external SDK discovered 35 tools and completed the native acceptance
 flow, including a real Modrinth/Fabric API installation with hash validation.
@@ -31,7 +31,7 @@ Install `@modelcontextprotocol/sdk@1.29.0` in a separate test-only Node project.
 Set `MCP_SDK_ROOT` to its `dist/esm` directory, `MCP_BINARY` to the actual sidecar,
 and run `node tests/mcp/client.mjs`. It verifies initialization, tools discovery,
 unapproved/approved read, read-only mutation rejection, preference persistence and
-native event, revision conflict, real instance create/RAM/world/ZIP backup, key
+native event, revision conflict, real instance create/RAM/world/ZIP backup and exact approved restore, key
 coalescing, two processes with independent scopes, local approval/denial/execution
 and revocation. A marked throwaway instance is deleted only after local test approval.
 Outputs are `acceptance.json` and audit records inside that isolated directory.
@@ -60,3 +60,14 @@ creation, server console commands and compound mass updates are not exposed in t
 version. Server start/stop/stats, plugins and managed server-world listing are covered.
 Jobs report real state and results; per-job byte attribution is not invented. Queued
 cancellation is supported; running shared installers cannot be safely aborted.
+
+## Native process observations
+
+See [native-performance.json](evidence/native-performance.json): Linux **debug**,
+windowless Tauri harness (constant test-control polling, no GPU/webview). Host RSS
+was 95,632 KiB with MCP disabled and 95,700 KiB enabled without a client in this run.
+The separate stdio helper used 6,808 KiB idle / 7,012 KiB after queries. Twelve simple
+queries measured roughly 3.8–8.8 ms. Short CPU samples, debug symbols and test-harness
+I/O prevent extrapolating these numbers to a production launcher UI or another OS.
+The debug helper binary is 52 MB with symbols; packaged optimized size is measured
+separately by the review build script. No claim of a 10 MB whole-launcher footprint.

@@ -15,6 +15,9 @@
 			"instances": "real UUID create, RAM mutation, worlds, real ZIP backup; duplicate idempotency key coalesced"
 		},
 		{
+			"restore": "exact approved real ZIP restore restores fixture bytes; automatic safety backup retained"
+		},
+		{
 			"concurrency": "second independent MCP process/session; instance scope enforced"
 		},
 		{
@@ -22,8 +25,8 @@
 		},
 		{
 			"simple_tool_latency_ms": [
-				4.198116000000482, 3.497361999999157, 8.106115999999929, 3.0567289999999048,
-				3.0099989999998797, 4.06940300000042, 3.1534449999999197, 3.5479279999999562
+				3.95238800000061, 6.663644000000204, 4.031247000000803, 3.674981000000116,
+				3.7140100000005987, 3.8269289999998364, 4.785772000000179, 3.386034999999538
 			]
 		},
 		{

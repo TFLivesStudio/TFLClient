@@ -73,3 +73,13 @@ credential. Local Codex support does not imply remote ChatGPT support.
 The external TypeScript SDK acceptance client is a real stdio MCP consumer and is
 used to verify discovery, data access, mutations and policy rejection. It is not an
 AI inference test of Codex/Claude/OpenCode.
+
+## Configuration references checked
+
+- [Codex MCP documentation](https://developers.openai.com/codex/mcp) and installed CLI help.
+- [OpenCode MCP configuration](https://opencode.ai/docs/mcp-servers/).
+- [Claude Code MCP documentation](https://code.claude.com/docs/en/mcp).
+
+Reference URLs are provided for version-specific verification. If a documentation
+site is unavailable from this environment, its configuration is a documented example,
+not a claim of installed-client certification.

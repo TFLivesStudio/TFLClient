@@ -1,0 +1,30 @@
+{
+	"scenario": "Linux debug, windowless native Tauri integration harness; includes constant test-control polling. Not full launcher UI or release build.",
+	"disabled": {
+		"rss_kib": 95632,
+		"cpu_one_core_percent": 0,
+		"interval_ms": 1502.546554
+	},
+	"enabled_no_client": {
+		"rss_kib": 95700,
+		"cpu_one_core_percent": 0.6654616792690834,
+		"interval_ms": 1502.7161310000001
+	},
+	"stdio_helper_idle": {
+		"rss_kib": 6808,
+		"cpu_one_core_percent": 0,
+		"interval_ms": 1502.4746159999995
+	},
+	"query_session": {
+		"latencies_ms": [
+			8.764601000000766, 4.165531999999985, 4.191001000000142, 3.875534000000698, 4.206543999999667,
+			4.447087999999894, 4.746321000000535, 6.361207000000832, 3.9225360000000364,
+			3.8815700000004654, 4.626667000000452, 3.7931909999997515
+		],
+		"host_rss_kib": 100144,
+		"helper_rss_kib": 7012,
+		"host_cpu_one_core_percent": 2.029482961403548,
+		"helper_cpu_one_core_percent": 0.8117220732649987
+	},
+	"helper_binary_debug_bytes": 52049312
+}

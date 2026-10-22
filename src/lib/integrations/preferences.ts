@@ -58,7 +58,15 @@ export function persistAuthority(key: string, value: unknown) {
 		}
 	});
 }
-export async function startPreferenceAuthority() {
+export async function startPreferenceAuthority(readOnly = false) {
+	if (readOnly) {
+		try {
+			await listen<Snapshot>('mcp-preferences-changed', (e) => apply(e.payload));
+		} catch {
+			/* window closing */
+		}
+		return;
+	}
 	try {
 		const next = await invoke<Snapshot>('visual_preferences_get');
 		if (!next || !Number.isInteger(next.revision)) return;

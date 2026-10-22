@@ -31,6 +31,7 @@ export const isLogWindow =
 /** Secuencia de arranque del launcher. Se llama una vez desde onMount de la página. */
 export async function startApp() {
 	if (isLogWindow) {
+		void startPreferenceAuthority(true);
 		restoreVisualPreferences();
 		document.documentElement.dataset.theme =
 			localStorage.getItem('tfl-theme') === 'light' ? 'light' : 'dark';

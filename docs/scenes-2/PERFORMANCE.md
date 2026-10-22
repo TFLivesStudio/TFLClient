@@ -19,3 +19,7 @@ shader uses software rendering in this cloud host; no hardware FPS claims are ma
 Native launcher/sidecar process memory and response latency must be reported
 separately, alongside exact scenario and sampling method. Results follow in the
 measurement artifacts; unsupported native-platform checks remain explicitly pending.
+
+The independent helper's debug RSS measured ~6.6 MiB idle and ~6.8 MiB after a small
+query session in the isolated native harness. These values exclude launcher, browser
+and GPU memory. Exact raw samples and methodology: ../mcp/evidence/native-performance.json.
