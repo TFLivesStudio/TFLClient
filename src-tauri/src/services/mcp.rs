@@ -120,11 +120,7 @@ pub async fn enable(app: AppHandle, enabled: bool) -> Result<Value, String> {
                 .local_addr()
                 .map_err(|_| "IPC address unavailable")?
                 .port(),
-            token: format!(
-                "{}{}",
-                uuid::Uuid::new_v4().simple(),
-                uuid::Uuid::new_v4().simple()
-            ),
+            token: hex::encode(rand::random::<[u8; 32]>()),
             contract: 1,
         };
         // Create a protected file before writing the secret. Its parent is owner-only.

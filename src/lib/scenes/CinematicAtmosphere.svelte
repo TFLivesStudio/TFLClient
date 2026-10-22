@@ -1,27 +1,23 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { subscribeFrame } from './frameClock';
 	import type { SceneId } from './model';
 	let {
 		preset,
 		fps = 24,
 		depth = 0.4
 	}: { preset: SceneId; fps?: number; depth?: number } = $props();
-	let root: HTMLDivElement;
-	onMount(() =>
-		subscribeFrame((_, now) => {
-			const t = now / 1000;
-			root.style.setProperty('--drift', `${Math.sin(t * 0.075) * 3 * depth}%`);
-			root.style.setProperty('--breathe', `${0.65 + Math.sin(t * 0.24) * 0.2}`);
-			root.style.setProperty('--rise', `${Math.cos(t * 0.09) * 2 * depth}%`);
-		}, fps)
-	);
 </script>
 
-<div bind:this={root} class="atmosphere" data-biome={preset} aria-hidden="true">
+<div
+	class="atmosphere"
+	data-biome={preset}
+	style:--depth={depth}
+	style:--fog-steps={Math.round(fps * 28)}
+	style:--water-steps={Math.round(fps * 16)}
+	aria-hidden="true"
+>
 	<div class="mist distant"></div>
-	<div class="mist close"></div>
-	<div class="rays"></div>
+	{#if depth > 0.5}<div class="mist close"></div>
+		<div class="rays"></div>{/if}
 	<div class="water"></div>
 	{#if preset === 'pixel'}<div class="torch a"></div>
 		<div class="torch b"></div>{/if}
@@ -33,17 +29,13 @@
 		inset: 0;
 		overflow: hidden;
 		pointer-events: none;
-		--drift: 0%;
-		--rise: 0%;
-		--breathe: 0.7;
 		--fog: #d3eee3;
-		--glow: #ffdd9a;
 	}
 	.mist {
 		position: absolute;
-		left: -12%;
-		width: 125%;
-		height: 40%;
+		left: -8%;
+		width: 116%;
+		height: 35%;
 		background:
 			radial-gradient(
 				ellipse at 30% 70%,
@@ -55,17 +47,17 @@
 				color-mix(in srgb, var(--fog) 12%, transparent),
 				transparent 60%
 			);
-		transform: translate3d(var(--drift), var(--rise), 0);
-		opacity: var(--breathe);
+		opacity: 0.5;
+		animation: mist-drift 28s steps(var(--fog-steps), end) infinite alternate;
 	}
 	.distant {
-		top: 30%;
+		top: 32%;
 		mix-blend-mode: screen;
 	}
 	.close {
 		top: 62%;
-		transform: translate3d(calc(var(--drift) * -1), 0, 0);
-		opacity: 0.3;
+		animation-direction: alternate-reverse;
+		opacity: 0.25;
 	}
 	.rays {
 		position: absolute;
@@ -79,8 +71,7 @@
 			transparent 30deg
 		);
 		mix-blend-mode: screen;
-		opacity: var(--breathe);
-		transform: translate3d(var(--drift), 0, 0);
+		opacity: 0.5;
 	}
 	.water {
 		position: absolute;
@@ -92,13 +83,12 @@
 			transparent 16px
 		);
 		clip-path: polygon(62% 0, 86% 0, 100% 100%, 24% 100%);
-		transform: translate3d(var(--rise), 0, 0);
-		opacity: var(--breathe);
+		animation: water-drift 16s steps(var(--water-steps), end) infinite alternate;
+		opacity: 0.5;
 		mix-blend-mode: screen;
 	}
 	[data-biome='embers'] {
 		--fog: #d84a2e;
-		--glow: #ff811b;
 	}
 	[data-biome='embers'] .water {
 		background: radial-gradient(ellipse at 50% 10%, #ff771a33, transparent 68%);
@@ -133,8 +123,8 @@
 		width: 4%;
 		height: 6%;
 		background: radial-gradient(ellipse, #ffb52f66, transparent 70%);
-		opacity: var(--breathe);
 		mix-blend-mode: screen;
+		animation: torch-light 16s steps(var(--water-steps), end) infinite alternate;
 	}
 	.torch.a {
 		left: 89%;
@@ -143,5 +133,30 @@
 	.torch.b {
 		left: 93%;
 		top: 57%;
+		animation-direction: alternate-reverse;
+	}
+	@keyframes mist-drift {
+		from {
+			transform: translate3d(calc(-3% * var(--depth)), 0, 0);
+		}
+		to {
+			transform: translate3d(calc(3% * var(--depth)), calc(-2% * var(--depth)), 0);
+		}
+	}
+	@keyframes water-drift {
+		from {
+			transform: translate3d(calc(-1% * var(--depth)), 0, 0);
+		}
+		to {
+			transform: translate3d(calc(1% * var(--depth)), 0, 0);
+		}
+	}
+	@keyframes torch-light {
+		from {
+			opacity: 0.45;
+		}
+		to {
+			opacity: 0.75;
+		}
 	}
 </style>

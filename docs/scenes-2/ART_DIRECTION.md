@@ -16,8 +16,10 @@ Custom backgrounds, imported videos, IDs and per-instance inheritance are preser
 
 Art is approximately 1672×941 WebP with lightweight 448px thumbnails. Only the
 selected scene loads its full asset; gallery cards do not mount players or shaders.
-Ambient motion uses the existing shared frame clock and is unmounted whenever scene
-policy suspends motion. Lite renders one static image, zero automatic video/WebGL.
+Ambient motion uses browser compositor transform/opacity timelines with quantized
+profile FPS; it adds no JavaScript RAF. The existing shared clock remains for shader
+and character rendering. Atmospheric layers are unmounted whenever scene policy
+suspends motion. Lite renders one static image, zero automatic video/WebGL.
 Experience's optional shader has a 960×540 upper resolution bound and scene-specific
 fog/curtain light, replacing the earlier single sine-wave overlay. Context loss
 stops drawing and reveals the poster; selecting another scene recreates resources.

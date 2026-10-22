@@ -6,7 +6,7 @@ A decoded 1672×941 RGBA image alone can require about 6 MiB; encoded size is no
 The user's earlier ~10 MB observation is not treated as a certified benchmark.
 
 Lite has no atmospheric subscriptions, no shader and no automatically mounted video.
-Balanced uses restrained shared-clock atmosphere (max 24 fps) and video only when
+Balanced uses restrained compositor transform atmosphere (max 24 fps) and video only when
 explicitly enabled. Experience respects the configured FPS, caps shader backing
 resolution at 960×540 and DPR at the actual screen density/profile cap. All paths
 respect visibility, focus, modal and game policies. The shared clock stops when its
@@ -34,3 +34,11 @@ scenes × three profiles × two revisions, with optional shader/video turned off
 has zero mounted video, shader or atmospheric animation layer in every observation.
 The richer scene atmosphere adds some main-thread work in Balanced/Experience; exact
 raw values are retained rather than claiming a universal speed improvement.
+
+A measured optimization replaced per-frame CSS variable writes with transform/opacity
+compositor timelines. In the same software-rendered browser probe, the median new
+Balanced scene task time fell from ~73.6 to ~17.7 ms per one-second window. The frozen
+baseline measured ~10.6 ms in the second run. Experience measured ~66.1 vs ~38.4 ms;
+Lite ~2.0 vs ~2.2 ms. These are main-thread task observations under software rendering,
+not full-process CPU percentages or a hardware performance guarantee. The prior
+measurement is preserved in evidence/scenes-before-compositor.json.
