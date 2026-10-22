@@ -4,6 +4,9 @@ use tauri::{AppHandle, Emitter};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
 pub enum AppEvent {
+    AuthSessionNotice {
+        reason: String,
+    },
     InstanceCreated {
         name: String,
     },

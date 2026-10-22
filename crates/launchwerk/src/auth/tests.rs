@@ -40,3 +40,19 @@ fn tokens_are_redacted_in_debug_and_memory_only_is_explicit() {
     assert!(reloaded.load_tokens().is_err());
     assert_eq!(reloaded.username, "name");
 }
+
+#[test]
+fn changing_identity_requires_reauthorization_without_removing_profile() {
+    let mut user = MinecraftUser::premium(
+        "Original".into(),
+        "id".into(),
+        "fixture-access".into(),
+        Some("fixture-refresh".into()),
+    );
+    user.microsoft_client_id = Some(crate::auth::microsoft::DEFAULT_CLIENT_ID.into());
+    assert!(!user.requires_reauthorization(crate::auth::microsoft::DEFAULT_CLIENT_ID));
+    assert!(user.requires_reauthorization("different-configured-registration"));
+    assert_eq!(user.username, "Original");
+    assert_eq!(user.uuid, "id");
+    assert!(!MinecraftUser::cracked("Offline").requires_reauthorization("any-registration"));
+}

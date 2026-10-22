@@ -26,6 +26,8 @@ const MAX_RECORD: u64 = 64 * 1024;
 #[derive(Serialize, Deserialize, zeroize::Zeroize, zeroize::ZeroizeOnDrop)]
 pub(crate) struct SessionSecrets {
     pub version: u8,
+    #[serde(default)]
+    pub expires_at: Option<u64>,
     pub access: String,
     pub refresh: Option<String>,
     pub client_token: Option<String>,
@@ -337,6 +339,7 @@ mod tests {
     fn record() -> SessionSecrets {
         SessionSecrets {
             version: 2,
+            expires_at: Some(2000000000),
             access: "private-access".into(),
             refresh: Some("private-refresh".into()),
             client_token: None,

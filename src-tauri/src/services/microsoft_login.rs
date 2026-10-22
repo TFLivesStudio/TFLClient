@@ -395,33 +395,50 @@ fn run(
     if selected == "device" {
         return device(app, a, &auth);
     }
-    let browser = if selected == "embedded" {
-        match embedded(app, a, &auth) {
-            Err(error)
-                if matches!(
-                    error.as_str(),
-                    "EMBEDDED_UNAVAILABLE" | "EMBEDDED_NAVIGATION_UNSUPPORTED"
-                ) =>
-            {
+    let browser = browser_or_fallback(
+        selected == "embedded",
+        || embedded(app, a, &auth),
+        || {
+            if selected == "embedded" {
                 a.phase("external_fallback");
-                external(app, a, &auth, custom)
             }
-            result => result,
-        }
-    } else {
-        external(app, a, &auth, custom)
-    };
+            external(app, a, &auth, custom)
+        },
+    );
     match browser {
-        Err(error) if error == "BROWSER_UNAVAILABLE" => {
+        Ok(None) => {
             a.phase("device_fallback");
             device(app, a, &auth)
         }
-        Ok((code, tx)) => auth
+        Ok(Some((code, tx))) => auth
             .exchange_code_control(&code, &tx.verifier, tx.redirect(), &a.control)
             .map_err(|e| safe_error(&e.to_string())),
         Err(error) => Err(error),
     }
 }
+fn browser_or_fallback<T>(
+    use_embedded: bool,
+    embedded: impl FnOnce() -> Result<T, String>,
+    external: impl FnOnce() -> Result<T, String>,
+) -> Result<Option<T>, String> {
+    if use_embedded {
+        match embedded() {
+            Ok(result) => return Ok(Some(result)),
+            Err(error)
+                if matches!(
+                    error.as_str(),
+                    "EMBEDDED_UNAVAILABLE" | "EMBEDDED_NAVIGATION_UNSUPPORTED"
+                ) => {}
+            Err(error) => return Err(error),
+        }
+    }
+    match external() {
+        Ok(result) => Ok(Some(result)),
+        Err(error) if error == "BROWSER_UNAVAILABLE" => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
 fn device(
     _app: &AppHandle,
     a: &Arc<Attempt>,
@@ -605,19 +622,28 @@ fn parse_callback(
 }
 fn respond(stream: &mut TcpStream, ok: bool) {
     let _ = stream.set_write_timeout(Some(Duration::from_secs(1)));
-    let body = if ok {
-        "TFL Client: authorization received. You can close this tab and return to the launcher."
+    let nonce = launchwerk::auth::oauth::random_secret();
+    // This is our own loopback confirmation document, never the Microsoft page.
+    // It only removes callback parameters from visible browser history; it reads
+    // neither the authorization code nor any form, cookie or account credential.
+    let message = if ok {
+        "Authorization received. Return to TFL Client; you can close this tab."
     } else {
-        "TFL Client: this callback was not accepted. Return to your original Microsoft sign-in tab."
+        "This callback was not accepted. Return to your original Microsoft sign-in tab."
     };
+    let body = format!(
+        "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>TFL Client</title><script nonce=\"{nonce}\">history.replaceState(null, '', '/complete');</script><h1>TFL Client</h1><p>{message}</p></html>"
+    );
     let _ = write!(
         stream,
-        "HTTP/1.1 {}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: {}\r\nCache-Control: no-store\r\nPragma: no-cache\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'none'; frame-ancestors 'none'\r\nConnection: close\r\n\r\n{}",
+        "HTTP/1.1 {}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nCache-Control: no-store\r\nPragma: no-cache\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'none'; script-src 'nonce-{}'; base-uri 'none'; frame-ancestors 'none'\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n{}",
         if ok { "200 OK" } else { "400 Bad Request" },
         body.len(),
+        nonce,
         body
     );
 }
+
 fn embedded(
     app: &AppHandle,
     a: &Arc<Attempt>,
@@ -886,5 +912,82 @@ mod operation_tests {
             assert!(!response.contains("fixture-code"));
         }
         server.join().unwrap();
+    }
+}
+
+#[cfg(test)]
+mod fallback_tests {
+    use super::*;
+    #[test]
+    fn browser_failures_fall_back_without_hiding_denial_or_changing_identity() {
+        let calls = std::cell::RefCell::new(Vec::new());
+        let result = browser_or_fallback(
+            true,
+            || {
+                calls.borrow_mut().push("embedded");
+                Err("EMBEDDED_UNAVAILABLE".into())
+            },
+            || {
+                calls.borrow_mut().push("external");
+                Ok("same-client-authorization")
+            },
+        )
+        .unwrap();
+        assert_eq!(result, Some("same-client-authorization"));
+        assert_eq!(*calls.borrow(), ["embedded", "external"]);
+        let result = browser_or_fallback::<()>(
+            true,
+            || Err("EMBEDDED_NAVIGATION_UNSUPPORTED".into()),
+            || Err("BROWSER_UNAVAILABLE".into()),
+        )
+        .unwrap();
+        assert!(result.is_none());
+        let result = browser_or_fallback::<()>(
+            true,
+            || Err("AUTH_DECLINED".into()),
+            || panic!("a denial must not trigger another browser"),
+        );
+        assert_eq!(result.unwrap_err(), "AUTH_DECLINED");
+        let result = browser_or_fallback::<()>(
+            false,
+            || panic!("explicit external browser does not open embedded"),
+            || Err("BROWSER_UNAVAILABLE".into()),
+        )
+        .unwrap();
+        assert!(result.is_none());
+    }
+    #[test]
+    fn single_flight_is_released_only_after_an_attempt_terminates() {
+        fn make() -> Arc<Attempt> {
+            Arc::new(Attempt {
+                id: uuid::Uuid::new_v4().to_string(),
+                control: LoginControl::default(),
+                expected_uuid: None,
+                state: Mutex::new(State {
+                    pending: None,
+                    committing: false,
+                    snapshot: LoginSnapshot {
+                        id: "test".into(),
+                        phase: "preparing".into(),
+                        method: "auto".into(),
+                        domain: None,
+                        user_code: None,
+                        verification_uri: None,
+                        error: None,
+                        user: None,
+                        expires_in: 300,
+                        test_build: false,
+                    },
+                }),
+            })
+        }
+        let mut owner = None;
+        let first = make();
+        reserve(&mut owner, first.clone()).unwrap();
+        assert_eq!(reserve(&mut owner, make()).unwrap_err(), "AUTH_BUSY");
+        first.request_cancel().unwrap();
+        first.fail("AUTH_CANCELLED".into());
+        reserve(&mut owner, make()).unwrap();
+        assert_ne!(owner.unwrap().id, first.id);
     }
 }

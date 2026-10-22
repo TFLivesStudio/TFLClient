@@ -20,6 +20,8 @@ pub struct MinecraftUser {
     pub access_token: String,
     #[serde(skip)]
     pub refresh_token: Option<String>,
+    #[serde(skip)]
+    pub access_token_expires_at: Option<u64>,
     pub user_type: AccountType,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub microsoft_client_id: Option<String>,
@@ -46,6 +48,7 @@ impl MinecraftUser {
             uuid: uuid::Uuid::new_v4().to_string(),
             access_token: "0".to_string(),
             refresh_token: None,
+            access_token_expires_at: None,
             microsoft_client_id: None,
             session_only: false,
             user_type: AccountType::Cracked,
@@ -66,6 +69,7 @@ impl MinecraftUser {
             uuid,
             access_token,
             refresh_token,
+            access_token_expires_at: None,
             microsoft_client_id: None,
             session_only: false,
             user_type: AccountType::Microsoft,
@@ -87,6 +91,7 @@ impl MinecraftUser {
             uuid,
             access_token,
             refresh_token: None,
+            access_token_expires_at: None,
             microsoft_client_id: None,
             session_only: false,
             user_type: AccountType::Yggdrasil,
@@ -95,6 +100,17 @@ impl MinecraftUser {
         }
     }
 
+    pub fn requires_reauthorization(&self, client_id: &str) -> bool {
+        self.user_type == AccountType::Microsoft
+            && self.microsoft_client_id.as_deref() != Some(client_id)
+    }
+    pub fn cached_session_valid_at(&self, now: u64) -> bool {
+        self.user_type == AccountType::Microsoft
+            && !self.access_token.is_empty()
+            && self
+                .access_token_expires_at
+                .is_some_and(|expiry| expiry > now.saturating_add(60))
+    }
     fn provider(&self) -> String {
         match self.user_type {
             AccountType::Microsoft => "microsoft".into(),
@@ -113,6 +129,7 @@ impl MinecraftUser {
         }
         let record = storage::SessionSecrets {
             version: 2,
+            expires_at: self.access_token_expires_at,
             access: self.access_token.clone(),
             refresh: self.refresh_token.clone(),
             client_token: self.client_token.clone(),
@@ -145,6 +162,7 @@ impl MinecraftUser {
                     .ok_or_else(|| crate::Error::AuthError("REAUTHENTICATION_REQUIRED".into()))?;
                 let record = storage::SessionSecrets {
                     version: 2,
+                    expires_at: None,
                     access,
                     refresh: SecureStorage::legacy(&self.uuid, "refresh")?,
                     client_token: SecureStorage::legacy(&self.uuid, "client")?,
@@ -160,6 +178,7 @@ impl MinecraftUser {
                 record
             }
         };
+        self.access_token_expires_at = record.expires_at;
         self.access_token = record.access.clone();
         self.refresh_token = record.refresh.clone();
         self.client_token = record.client_token.clone();

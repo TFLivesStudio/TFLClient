@@ -25,6 +25,10 @@ jobs:
         os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      # tauri-build embeds Common Controls v6 in app binaries, not lib test EXEs.
+      # Dialog-linked unit tests need the same activation context to start on Windows.
+      RUSTFLAGS: ${{ matrix.os == 'windows-latest' && format('-C link-arg=/MANIFEST:EMBED -C link-arg=/MANIFESTINPUT:{0}/tests/auth/windows-test.manifest', github.workspace) || '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:

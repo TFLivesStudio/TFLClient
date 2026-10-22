@@ -60,6 +60,8 @@ struct Xui {
 #[derive(Deserialize)]
 struct MinecraftLoginResponse {
     access_token: String,
+    #[serde(default)]
+    expires_in: Option<u64>,
 }
 #[derive(Deserialize)]
 struct MinecraftProfileResponse {
@@ -198,8 +200,26 @@ impl MicrosoftAuth {
         redirect: &str,
         control: &LoginControl,
     ) -> crate::Result<MinecraftUser> {
+        self.exchange_code_at(
+            code,
+            verifier,
+            redirect,
+            control,
+            TOKEN,
+            [XBL, XSTS, MC_LOGIN, PROFILE],
+        )
+    }
+    fn exchange_code_at(
+        &self,
+        code: &str,
+        verifier: &str,
+        redirect: &str,
+        control: &LoginControl,
+        token_endpoint: &str,
+        downstream: [&str; 4],
+    ) -> crate::Result<MinecraftUser> {
         control.phase("microsoft")?;
-        let (status, json) = send(http()?.post(TOKEN).form(&[
+        let (status, json) = send(http()?.post(token_endpoint).form(&[
             ("client_id", self.client_id.as_str()),
             ("code", code),
             ("code_verifier", verifier),
@@ -211,7 +231,12 @@ impl MicrosoftAuth {
         }
         let token: MicrosoftTokenResponse = decode(json)?;
         control.check()?;
-        self.complete_login(&token.access_token, token.refresh_token, control)
+        self.complete_login_at(
+            &token.access_token,
+            token.refresh_token,
+            control,
+            downstream,
+        )
     }
     pub fn get_device_code(&self) -> crate::Result<DeviceCodeResponse> {
         let (status, json) = send(
@@ -288,8 +313,16 @@ impl MicrosoftAuth {
         }
     }
     pub fn refresh_token(&self, refresh: &str) -> crate::Result<MinecraftUser> {
+        self.refresh_at(refresh, TOKEN, [XBL, XSTS, MC_LOGIN, PROFILE])
+    }
+    fn refresh_at(
+        &self,
+        refresh: &str,
+        token_endpoint: &str,
+        downstream: [&str; 4],
+    ) -> crate::Result<MinecraftUser> {
         let control = LoginControl::default();
-        let (status, json) = send(http()?.post(TOKEN).form(&[
+        let (status, json) = send(http()?.post(token_endpoint).form(&[
             ("client_id", self.client_id.as_str()),
             ("refresh_token", refresh),
             ("grant_type", "refresh_token"),
@@ -299,10 +332,11 @@ impl MicrosoftAuth {
             return Err(service_error("microsoft", status, &json));
         }
         let token: MicrosoftTokenResponse = decode(json)?;
-        self.complete_login(
+        self.complete_login_at(
             &token.access_token,
             token.refresh_token.or_else(|| Some(refresh.into())),
             &control,
+            downstream,
         )
     }
     fn complete_login(
@@ -379,6 +413,15 @@ impl MicrosoftAuth {
         control.check()?;
         let mut user = MinecraftUser::premium(profile.name, profile.id, mc.access_token, refresh);
         user.microsoft_client_id = Some(self.client_id.clone());
+        user.access_token_expires_at =
+            mc.expires_in
+                .filter(|duration| *duration > 0)
+                .and_then(|duration| {
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .ok()
+                        .map(|now| now.as_secs().saturating_add(duration.min(86400)))
+                });
         Ok(user)
     }
 }
