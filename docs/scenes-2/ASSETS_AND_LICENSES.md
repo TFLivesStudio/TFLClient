@@ -27,3 +27,8 @@ are committed. `CinematicAtmosphere.svelte` and shader expressions are original 
 Metadata was read with `cargo info rmcp@3.6.0` and `npm view <package>@<version>
 license dist.unpackedSize`. Unpacked package size is not a compressed bundle
 measurement. OGL/tsParticles/Pixi have no new code included by this change.
+
+The MCP packaging overlay also bundles original license files for rmcp and its newly
+introduced code-generation/schema dependencies under `mcp-licenses/`. Source copies
+are retained at `src-tauri/resources/mcp-licenses/`, including Apache-2.0 and MIT terms.
+The resource mapping merges with the existing icon and mp-guard mappings.
