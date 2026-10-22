@@ -56,6 +56,8 @@ fn allow_id(command: &str) -> String {
 }
 
 fn main() {
+    println!("cargo:rerun-if-env-changed=TFL_AUTH_TEST_CLIENT_ID");
+    println!("cargo:rerun-if-env-changed=TFL_AUTH_TEST_ACK");
     println!("cargo:rerun-if-changed=src/lib.rs");
     println!("cargo:rerun-if-changed=capabilities");
 

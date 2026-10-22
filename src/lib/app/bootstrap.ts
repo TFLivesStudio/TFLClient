@@ -56,6 +56,17 @@ export async function startApp() {
 	initServerSessionListener();
 	initNetworkListener();
 	void listen('mcp-library-changed', () => void refreshInstances());
+	void listen('accounts-changed', async () => {
+		try {
+			const wasOnboarded = appState.settings?.onboarded;
+			const [user, settings] = await Promise.all([getCurrentUser(), getSettings()]);
+			appState.currentUser = user;
+			appState.settings = settings;
+			if (!wasOnboarded && settings.onboarded) ui.justOnboarded = true;
+		} catch {
+			/* The main window may be closing. Reopening reloads public account state. */
+		}
+	});
 	const syncPreferences = async () => {
 		restoreVisualPreferences();
 		try {

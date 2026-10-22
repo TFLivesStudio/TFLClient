@@ -1,19 +1,16 @@
 <script lang="ts">
+	import MicrosoftSignIn from '$lib/components/auth/MicrosoftSignIn.svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
-	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-	import { getDeviceCode, authenticateWithDeviceCode, addOfflineAccount } from '$lib/api';
+	import { addOfflineAccount } from '$lib/api';
 	import type { MinecraftUser } from '$lib/types/types';
-	import { User, Gamepad2, Loader2, Copy, CheckCircle2 } from 'lucide-svelte';
+	import { User, Gamepad2, Loader2 } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
 
 	let { onDone }: { onDone: (user: MinecraftUser) => void } = $props();
 
 	let mode = $state<'choose' | 'offline' | 'microsoft'>('choose');
 	let offlineName = $state('');
-	let msCode = $state<string | null>(null);
-	let msVerificationUri = $state<string | null>(null);
 	let msError = $state<string | null>(null);
-	let codeCopied = $state(false);
 	let busy = $state(false);
 
 	async function handleOffline() {
@@ -29,32 +26,8 @@
 		}
 	}
 
-	async function handleMicrosoft() {
+	function handleMicrosoft() {
 		mode = 'microsoft';
-		busy = true;
-		msError = null;
-		try {
-			const dc = await getDeviceCode();
-			msCode = dc.user_code;
-			msVerificationUri = dc.verification_uri;
-			const user = await authenticateWithDeviceCode(dc.device_code, dc.interval, dc.expires_in);
-			onDone(user);
-		} catch (e) {
-			msError = String(e);
-		} finally {
-			busy = false;
-		}
-	}
-
-	async function copyMicrosoftCode() {
-		if (!msCode) return;
-		try {
-			await writeText(msCode);
-			codeCopied = true;
-			window.setTimeout(() => (codeCopied = false), 1800);
-		} catch {
-			msError = t('onboarding.copyCodeFailed');
-		}
 	}
 </script>
 
@@ -111,42 +84,10 @@
 						{t('common.continue')}
 					</button>
 				</div>
+				{#if msError}<p class="error" role="alert">{msError}</p>{/if}
 			</form>
 		{:else if mode === 'microsoft'}
-			<div class="ms-flow">
-				{#if busy && !msCode}
-					<Loader2 size={24} class="spin" />
-					<p>{t('onboarding.fetchingCode')}</p>
-				{:else if msCode}
-					<p>{t('onboarding.goTo')}</p>
-					<a href={msVerificationUri} target="_blank" rel="noreferrer">{msVerificationUri}</a>
-					<p>{t('onboarding.enterCode')}</p>
-					<div class="code-row">
-						<code class="code" tabindex="0">{msCode}</code>
-						<button type="button" class="copy-code" onclick={copyMicrosoftCode}>
-							{#if codeCopied}<CheckCircle2 size={15} /> {t('common.copied')}{:else}<Copy
-									size={15}
-								/>
-								{t('common.copy')}{/if}
-						</button>
-					</div>
-					<p class="hint">{t('onboarding.waitingConfirmation')}</p>
-				{/if}
-				{#if msError}
-					<p class="error">{msError}</p>
-				{/if}
-				<button
-					type="button"
-					class="option-btn"
-					onclick={() => {
-						mode = 'choose';
-						msCode = null;
-						msError = null;
-					}}
-				>
-					{t('common.cancel')}
-				</button>
-			</div>
+			<MicrosoftSignIn {onDone} onCancel={() => (mode = 'choose')} />
 		{/if}
 	</div>
 </div>
@@ -210,12 +151,6 @@
 
 	.options,
 	.offline-form,
-	.ms-flow {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-	}
-
 	.option-card {
 		display: flex;
 		align-items: center;
@@ -334,53 +269,6 @@
 
 	.form-actions .option-btn {
 		flex: 1;
-	}
-
-	.ms-flow {
-		align-items: center;
-		text-align: center;
-	}
-
-	.ms-flow a {
-		color: var(--accent);
-	}
-
-	.code {
-		font-family: var(--font-brand);
-		font-size: 1.4rem;
-		letter-spacing: 4px;
-		background: var(--bg-input);
-		border: 1px solid var(--border);
-		border-radius: var(--border-radius-sm);
-		padding: 10px 18px;
-		-webkit-user-select: text;
-		user-select: text;
-		cursor: text;
-	}
-
-	.code-row {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.copy-code {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 10px 12px;
-		border: 1px solid var(--border);
-		border-radius: var(--border-radius-sm);
-		background: var(--bg-input);
-		color: var(--text-secondary);
-		font-size: 0.75rem;
-		font-weight: 700;
-		cursor: pointer;
-	}
-
-	.copy-code:hover {
-		color: var(--accent);
-		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 	}
 
 	:global(.spin) {

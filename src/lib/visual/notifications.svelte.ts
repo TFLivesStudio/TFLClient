@@ -1,10 +1,11 @@
 import { react, stopReactions } from '$lib/scenes/reactions.svelte';
+import { authText } from '$lib/i18n/auth';
 import { listen } from '@tauri-apps/api/event';
 export interface Notice {
 	id: number;
 	kind: 'success' | 'error' | 'info';
 	message: string;
-	title: 'finished' | 'failed' | 'sessionStarted' | 'sessionStopped';
+	title: 'finished' | 'failed' | 'sessionStarted' | 'sessionStopped' | 'accountSession';
 	time: number;
 	read: boolean;
 }
@@ -26,7 +27,16 @@ export function startNotifications() {
 		'app-event',
 		({ payload: { type, data } }) => {
 			const name = String(data.task ?? data.name ?? '').slice(0, 200);
-			if (type === 'DownloadFinished')
+			if (type === 'AuthSessionNotice' && data.reason === 'cached_valid_session')
+				addNotice({
+					kind: 'info',
+					title: 'accountSession',
+					message: authText(
+						'No se pudo renovar por un problema de conexión. Se utilizará tu sesión guardada, que todavía está vigente.',
+						'A connection problem prevented renewal. Your saved session is still valid and will be used.'
+					)
+				});
+			else if (type === 'DownloadFinished')
 				addNotice({ kind: 'success', title: 'finished', message: name });
 			else if (type === 'DownloadFailed')
 				addNotice({

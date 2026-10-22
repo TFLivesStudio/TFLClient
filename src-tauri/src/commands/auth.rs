@@ -2,82 +2,104 @@ use crate::core::http_client::get_json_retrying;
 use crate::services::SettingsManager;
 use base64::Engine;
 use launchwerk::auth::MinecraftUser;
-use launchwerk::auth::microsoft::MicrosoftAuth;
 use serde::Serialize;
 use tauri::command;
-use tracing::{info, warn};
+use tracing::info;
 
-fn tfl_microsoft_auth() -> MicrosoftAuth {
-    MicrosoftAuth::new(crate::core::TFL_MICROSOFT_CLIENT_ID.to_string())
+#[command]
+pub fn microsoft_auth_config() -> Result<crate::core::microsoft_identity::MicrosoftIdentity, String>
+{
+    crate::core::microsoft_identity::configured()
+}
+
+#[command]
+pub fn start_microsoft_auth(
+    app: tauri::AppHandle,
+    method: String,
+    expected_uuid: Option<String>,
+) -> Result<crate::services::microsoft_login::LoginSnapshot, String> {
+    crate::services::microsoft_login::start(app, &method, expected_uuid)
+}
+#[command]
+pub fn microsoft_auth_status(
+    id: String,
+) -> Result<crate::services::microsoft_login::LoginSnapshot, String> {
+    crate::services::microsoft_login::status(&id)
+}
+#[command]
+pub fn cancel_microsoft_auth(
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<crate::services::microsoft_login::LoginSnapshot, String> {
+    crate::services::microsoft_login::cancel(&app, &id)
+}
+#[command]
+pub async fn microsoft_auth_memory_session(
+    id: String,
+) -> Result<crate::services::microsoft_login::LoginSnapshot, String> {
+    crate::services::microsoft_login::accept_memory(&id).await
+}
+#[command]
+pub async fn microsoft_auth_retry_storage(
+    id: String,
+) -> Result<crate::services::microsoft_login::LoginSnapshot, String> {
+    crate::services::microsoft_login::retry_storage(&id).await
+}
+#[command]
+pub fn microsoft_auth_open_device(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    crate::services::microsoft_login::open_device(&app, &id)
 }
 
 #[derive(Serialize)]
-pub struct DeviceCode {
-    pub user_code: String,
-    pub device_code: String,
-    pub verification_uri: String,
-    pub expires_in: u64,
-    pub interval: u64,
+pub struct AccountSessionStatus {
+    pub uuid: String,
+    pub state: String,
 }
-
 #[command]
-pub async fn get_device_code() -> Result<DeviceCode, String> {
-    info!("Obteniendo código de dispositivo de Microsoft");
-    let res = tokio::task::spawn_blocking(|| {
-        tfl_microsoft_auth()
-            .get_device_code()
-            .map_err(|e| e.to_string())
+pub async fn account_session_statuses() -> Result<Vec<AccountSessionStatus>, String> {
+    let _account_guard = crate::services::mojang_auth::ACCOUNT_SESSION_LOCK
+        .lock()
+        .await;
+    let users = SettingsManager::read().user.clone();
+    let identity = crate::core::microsoft_identity::configured()?;
+    tokio::task::spawn_blocking(move || {
+        users
+            .into_iter()
+            .map(|mut user| {
+                crate::core::microsoft_identity::scope_user(&mut user);
+                let state = if user.user_type == launchwerk::auth::AccountType::Cracked {
+                    "offline"
+                } else if user.session_only {
+                    if user.access_token.is_empty() {
+                        "reauthenticate"
+                    } else {
+                        "memory"
+                    }
+                } else if user.load_tokens().is_err() {
+                    "storage_or_reauthentication"
+                } else if user.user_type == launchwerk::auth::AccountType::Microsoft
+                    && user.microsoft_client_id.as_deref() != Some(identity.client_id.as_str())
+                {
+                    "reauthenticate"
+                } else {
+                    "protected"
+                };
+                AccountSessionStatus {
+                    uuid: user.uuid,
+                    state: state.into(),
+                }
+            })
+            .collect()
     })
     .await
-    .map_err(|e| e.to_string())??;
-
-    Ok(DeviceCode {
-        user_code: res.user_code,
-        device_code: res.device_code,
-        verification_uri: res.verification_uri,
-        expires_in: res.expires_in,
-        interval: res.interval,
-    })
-}
-
-#[command]
-pub async fn authenticate_with_device_code(
-    device_code: String,
-    interval: u64,
-    expires_in: u64,
-) -> Result<MinecraftUser, String> {
-    let user = tokio::task::spawn_blocking(move || {
-        tfl_microsoft_auth()
-            .authenticate_with_device_code(&device_code, interval, expires_in)
-            .map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())??;
-
-    // El token de acceso/refresh vive en `#[serde(skip)]` — nunca queda en
-    // settings.tfl a propósito (no es un lugar seguro para credenciales).
-    // Sin este `save_tokens()` se perdía sin que nada lo mostrara: la
-    // cuenta quedaba guardada, pero `access_token` volvía a "" en el
-    // próximo arranque (ver `load_tokens()` en launcher.rs), y el juego se
-    // lanzaba igual con una sesión inválida en vez de fallar visiblemente.
-    if let Err(e) = user.save_tokens() {
-        warn!(
-            "No se pudieron guardar los tokens de \"{}\": {e}",
-            user.username
-        );
-    }
-
-    SettingsManager::write(|s| {
-        s.add_user(user.clone());
-        s.onboarded = true;
-    })
-    .map_err(|e| e.to_string())?;
-    SettingsManager::save().await?;
-    Ok(user)
+    .map_err(|_| "LOCAL_STORAGE_ERROR".into())
 }
 
 #[command]
 pub async fn add_offline_account(username: String) -> Result<MinecraftUser, String> {
+    let _account_guard = crate::services::mojang_auth::ACCOUNT_SESSION_LOCK
+        .lock()
+        .await;
     if username.trim().is_empty() {
         return Err("El nombre de usuario no puede estar vacío".into());
     }
@@ -142,16 +164,43 @@ pub fn account_allows_multiplayer() -> bool {
 
 #[command]
 pub async fn logout() -> Result<(), String> {
+    let _account_guard = crate::services::mojang_auth::ACCOUNT_SESSION_LOCK
+        .lock()
+        .await;
     info!("Cerrando sesión de usuario");
-    SettingsManager::write(|s| {
-        s.active_user_idx = 0;
-        if s.user.is_empty() {
-            s.user.push(MinecraftUser::cracked("Steve"));
-        }
+    let mut user = SettingsManager::read().get_user();
+    crate::core::microsoft_identity::scope_user(&mut user);
+    let uuid = user.uuid.clone();
+    tokio::task::spawn_blocking(move || {
+        let result = user.delete_tokens();
+        user.forget_tokens();
+        result
     })
-    .map_err(|e| e.to_string())?;
-    SettingsManager::save().await?;
+    .await
+    .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?
+    .map_err(|_| "SECURE_STORE_UNAVAILABLE".to_string())?;
+    SettingsManager::write(|s| disconnect_locally(s, &uuid))
+        .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?;
+    SettingsManager::save()
+        .await
+        .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?;
     Ok(())
+}
+fn disconnect_locally(settings: &mut SettingsManager, uuid: &str) {
+    if let Some(user) = settings.user.iter_mut().find(|u| u.uuid == uuid) {
+        user.forget_tokens();
+    }
+    settings.active_user_idx = if let Some(index) = settings
+        .user
+        .iter()
+        .position(|u| u.user_type == launchwerk::auth::AccountType::Cracked)
+    {
+        index
+    } else {
+        settings.user.push(MinecraftUser::cracked("Steve"));
+        settings.user.len() - 1
+    };
+    // Preserve the disconnected profile and the existing onboarding flag.
 }
 
 #[command]
@@ -161,6 +210,9 @@ pub fn get_user_list() -> Vec<MinecraftUser> {
 
 #[command]
 pub async fn switch_user(uuid: String) -> Result<MinecraftUser, String> {
+    let _account_guard = crate::services::mojang_auth::ACCOUNT_SESSION_LOCK
+        .lock()
+        .await;
     let user = SettingsManager::write(|s| {
         if let Some(idx) = s.user.iter().position(|u| u.uuid == uuid) {
             s.active_user_idx = idx;
@@ -174,6 +226,9 @@ pub async fn switch_user(uuid: String) -> Result<MinecraftUser, String> {
 
 #[command]
 pub async fn remove_user(uuid: String) -> Result<(), String> {
+    let _account_guard = crate::services::mojang_auth::ACCOUNT_SESSION_LOCK
+        .lock()
+        .await;
     // Si la cuenta activa era otra (no la que se está borrando), reindexar
     // por posición numérica después de un `retain` la puede cambiar sola
     // sin que el usuario elija nada — ej. [A,B,C] activa=B(idx1), se borra
@@ -184,17 +239,28 @@ pub async fn remove_user(uuid: String) -> Result<(), String> {
         s.user.get(s.active_user_idx).map(|u| u.uuid.clone())
     };
 
-    if let Some(removed) = SettingsManager::read().user.iter().find(|u| u.uuid == uuid) {
-        if let Err(e) = removed.delete_tokens() {
-            tracing::warn!(
-                "No se pudieron borrar los tokens de \"{}\": {e}",
-                removed.username
-            );
-        }
+    let removed = SettingsManager::read()
+        .user
+        .iter()
+        .find(|u| u.uuid == uuid)
+        .cloned();
+    if let Some(mut removed) = removed {
+        crate::core::microsoft_identity::scope_user(&mut removed);
+        tokio::task::spawn_blocking(move || removed.delete_tokens())
+            .await
+            .map_err(|_| "LOCAL_STORAGE_ERROR".to_string())?
+            .map_err(|_| "SECURE_STORE_UNAVAILABLE".to_string())?;
     }
 
     SettingsManager::write(|s| {
-        s.user.retain(|u| u.uuid != uuid);
+        s.user.retain_mut(|u| {
+            if u.uuid == uuid {
+                u.forget_tokens();
+                false
+            } else {
+                true
+            }
+        });
         if s.user.is_empty() {
             s.user.push(MinecraftUser::cracked("Steve"));
         }
@@ -206,4 +272,34 @@ pub async fn remove_user(uuid: String) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
     SettingsManager::save().await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn logout_forgets_credentials_preserves_profile_and_does_not_repeat_onboarding() {
+        let mut settings = SettingsManager {
+            user: vec![MinecraftUser::premium(
+                "Original".into(),
+                "profile-id".into(),
+                "fixture-access".into(),
+                Some("fixture-refresh".into()),
+            )],
+            active_user_idx: 0,
+            onboarded: true,
+            ..Default::default()
+        };
+        disconnect_locally(&mut settings, "profile-id");
+        assert!(settings.onboarded);
+        assert_eq!(settings.user[0].username, "Original");
+        assert!(settings.user[0].access_token.is_empty());
+        assert!(settings.user[0].refresh_token.is_none());
+        assert_eq!(
+            settings.get_user().user_type,
+            launchwerk::auth::AccountType::Cracked
+        );
+        disconnect_locally(&mut settings, "profile-id");
+        assert_eq!(settings.user.len(), 2);
+    }
 }

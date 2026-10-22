@@ -5,6 +5,8 @@ export interface MinecraftUser {
 	uuid: string;
 	user_type: AccountType;
 	yggdrasil_server_url?: string | null;
+	microsoft_client_id?: string | null;
+	session_only?: boolean;
 }
 
 export type QualityProfile = 'Lite' | 'Balanced' | 'Experience';

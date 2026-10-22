@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { getUserList, switchUser } from '$lib/api';
 	import { appState } from '$lib/state/state.svelte';
+	import { authText } from '$lib/i18n/auth';
+	import { closeModal, openSettingsAt } from '$lib/state/uiState.svelte';
 	import { vr } from '$lib/i18n/refresh';
 	import type { MinecraftUser } from '$lib/types/types';
 	import { UserRound, Check } from 'lucide-svelte';
@@ -35,10 +37,22 @@
 			onclick={() => select(account.uuid)}
 			><UserRound size={20} /><span
 				><strong>{account.username}</strong><small
-					>{account.user_type === 'Cracked' ? 'Offline' : account.user_type}</small
+					>{account.user_type === 'Cracked'
+						? 'Offline'
+						: account.session_only
+							? authText('Sesión temporal', 'Temporary session')
+							: account.user_type}</small
 				></span
 			>{#if account.uuid === appState.currentUser?.uuid}<Check size={15} />{/if}</button
 		>{/each}{#if error}<p role="alert">{error}</p>{/if}
+	<button
+		type="button"
+		class="session-manage"
+		onclick={() => {
+			closeModal('skinManager');
+			openSettingsAt('accounts');
+		}}>{authText('Gestionar sesiones', 'Manage sessions')}</button
+	>
 </aside>
 
 <style>

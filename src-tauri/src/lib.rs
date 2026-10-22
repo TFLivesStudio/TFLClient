@@ -99,11 +99,19 @@ pub fn run() {
                 let _ = window.set_focus();
             }
         }))
-        .plugin(tauri_plugin_opener::init())
+        .plugin(
+            tauri_plugin_opener::Builder::new()
+                .open_js_links_on_click(false)
+                .build(),
+        )
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_window_state::Builder::new().build())
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_filter(|label| !label.starts_with("microsoft-auth-"))
+                .build(),
+        )
         .setup(|app| {
             core::event_bus::init(app.handle().clone());
             services::mcp::restore(app.handle().clone());
@@ -146,11 +154,17 @@ pub fn run() {
             commands::mcp::mcp_clear_audit,
             commands::mcp::visual_preferences_get,
             commands::mcp::visual_preferences_write,
-            commands::auth::get_device_code,
+            commands::auth::microsoft_auth_config,
+            commands::auth::start_microsoft_auth,
+            commands::auth::microsoft_auth_status,
+            commands::auth::cancel_microsoft_auth,
+            commands::auth::microsoft_auth_memory_session,
+            commands::auth::microsoft_auth_retry_storage,
+            commands::auth::microsoft_auth_open_device,
+            commands::auth::account_session_statuses,
             commands::updater::update_check,
             commands::updater::update_download,
             commands::updater::update_install,
-            commands::auth::authenticate_with_device_code,
             commands::auth::add_offline_account,
             commands::auth::get_current_user,
             commands::auth::get_skin_texture_url,
@@ -317,7 +331,27 @@ fn init_logging() {
 /// `generate_context!` solo se puede expandir una vez por crate: la app y los
 /// tests de ACL (`acl_tests.rs`) comparten esta función.
 pub(crate) fn tauri_context<R: tauri::Runtime>() -> tauri::Context<R> {
-    tauri::generate_context!()
+    let context = tauri::generate_context!();
+    #[cfg(feature = "auth-test-client")]
+    {
+        let mut context = context;
+        let identity =
+            core::microsoft_identity::configured().expect("invalid auth test build configuration");
+        let root = core::PathManager::get()
+            .get_settings_dir()
+            .parent()
+            .expect("test settings root");
+        core::microsoft_identity::isolate_test_config(
+            context.config_mut(),
+            root,
+            &identity.client_id,
+        );
+        context
+    }
+    #[cfg(not(feature = "auth-test-client"))]
+    {
+        context
+    }
 }
 
 #[cfg(test)]

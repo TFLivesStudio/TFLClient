@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 /// All parameters needed to launch a Minecraft instance.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct LaunchConfig {
     pub java_path: PathBuf,
     pub username: String,
@@ -20,6 +20,18 @@ pub struct LaunchConfig {
     pub extra_jvm_args: Vec<String>,
     pub authlib_injector_path: Option<PathBuf>,
     pub yggdrasil_metadata_b64: Option<String>,
+}
+
+impl std::fmt::Debug for LaunchConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LaunchConfig")
+            .field("min_ram", &self.min_ram)
+            .field("max_ram", &self.max_ram)
+            .field("cracked", &self.cracked)
+            .field("arguments", &"[REDACTED]")
+            .field("credentials", &"[REDACTED]")
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -126,5 +138,22 @@ impl LaunchConfigBuilder {
     }
     pub fn build(self) -> LaunchConfig {
         self.0
+    }
+}
+
+#[cfg(test)]
+mod privacy_tests {
+    use super::*;
+    #[test]
+    fn config_debug_excludes_tokens_environment_and_custom_arguments() {
+        let mut config = LaunchConfig {
+            access_token: Some("private-token".into()),
+            extra_jvm_args: vec!["-Dpassword=private-argument".into()],
+            ..Default::default()
+        };
+        config
+            .env
+            .insert("PASSWORD".into(), "private-environment".into());
+        assert!(!format!("{config:?}").contains("private-"));
     }
 }

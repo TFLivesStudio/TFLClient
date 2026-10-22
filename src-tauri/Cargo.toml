@@ -11,6 +11,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
 mcp-integration-tests = []
+auth-test-client = []
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

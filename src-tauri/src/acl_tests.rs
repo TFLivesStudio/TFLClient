@@ -376,7 +376,7 @@ fn asset_protocol_only_serves_icons_screenshots_and_wallpaper() {
     use tauri::Manager;
     let app = app();
     let scope = app.asset_protocol_scope();
-    let home = std::env::var("HOME").expect("HOME no definido");
+    let home = app.path().home_dir().expect("home directory unavailable");
     let p = |rel: &str| Path::new(&home).join(".tflclient").join(rel);
 
     // Lo que la interfaz muestra de verdad.
@@ -404,4 +404,47 @@ fn asset_protocol_only_serves_icons_screenshots_and_wallpaper() {
         assert!(!scope.is_allowed(p(no)), "NO debería poder servirse: {no}");
     }
     assert!(!scope.is_allowed(Path::new(&home).join(".ssh").join("id_rsa")));
+}
+
+#[test]
+fn microsoft_window_has_no_local_or_remote_capabilities() {
+    let app = app();
+    let auth = window(&app, "microsoft-auth-fixture");
+    for origin in [
+        local_url(),
+        "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize",
+        "https://login.live.com/",
+    ] {
+        for command in [
+            "get_settings",
+            "start_microsoft_auth",
+            "microsoft_auth_status",
+            "microsoft_auth_memory_session",
+            "get_user_list",
+            "launch",
+            "mcp_grant",
+            "mcp_enable",
+            "plugin:opener|open_url",
+            "plugin:clipboard-manager|write_text",
+            "plugin:event|listen",
+            "plugin:window|close",
+        ] {
+            let result = get_ipc_response(
+                &auth,
+                InvokeRequest {
+                    cmd: command.into(),
+                    callback: CallbackFn(0),
+                    error: CallbackFn(1),
+                    url: origin.parse().unwrap(),
+                    body: InvokeBody::default(),
+                    headers: Default::default(),
+                    invoke_key: INVOKE_KEY.to_string(),
+                },
+            );
+            assert!(
+                result.is_err(),
+                "remote auth window must not invoke {command} at {origin}"
+            );
+        }
+    }
 }

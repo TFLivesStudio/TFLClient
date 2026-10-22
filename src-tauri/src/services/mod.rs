@@ -19,3 +19,5 @@ pub mod mcp;
 pub mod mcp_policy;
 pub mod mcp_preferences;
 pub mod mcp_tools;
+
+pub mod microsoft_login;

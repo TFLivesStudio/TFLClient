@@ -4,6 +4,9 @@ use tauri::{AppHandle, Emitter};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
 pub enum AppEvent {
+    AuthSessionNotice {
+        reason: String,
+    },
     InstanceCreated {
         name: String,
     },
@@ -51,5 +54,12 @@ pub fn init(handle: AppHandle) {
 pub fn emit(event: AppEvent) {
     if let Some(handle) = APP_HANDLE.get() {
         let _ = handle.emit("app-event", &event);
+    }
+}
+
+/// Public invalidation only; credentials never enter an event payload.
+pub fn accounts_changed() {
+    if let Some(handle) = APP_HANDLE.get() {
+        let _ = handle.emit_to("main", "accounts-changed", ());
     }
 }

@@ -1,0 +1,26 @@
+{
+	"baseline": "v0.14.0-beta.6",
+	"rust_lib_tests_passed": 191,
+	"node_behavior_tests_passed": 18,
+	"browser_ui_checks_passed": 13,
+	"browser_ipc": "simulated",
+	"frontend_type_errors": 0,
+	"frontend_existing_warnings": 5,
+	"checks": [
+		"cargo fmt --all --check",
+		"cargo clippy --workspace --all-targets (existing warnings)",
+		"cargo test --workspace --lib",
+		"cargo audit --no-fetch (no vulnerabilities)",
+		"bun run check",
+		"bun run lint",
+		"bun run build",
+		"node --test tests/unit/*.test.mjs",
+		"node tests/visual/auth.mjs"
+	],
+	"not_certified": [
+		"real Microsoft account authorization",
+		"own Client ID approval",
+		"interactive Windows/macOS/Linux vault prompts",
+		"native embedded MFA/passkeys and browser fallback"
+	]
+}
