@@ -419,7 +419,10 @@ try {
 	// reciente) y en la miniatura de cada tarjeta de la Biblioteca en
 	// vista cuadrícula, que es lo único que no depende de cuál instancia
 	// sea "la más reciente" en este fixture.
-	await mediaPage.getByRole('button', { name: 'Biblioteca', exact: true }).click();
+	await mediaPage
+		.locator('.sidebar')
+		.getByRole('button', { name: 'Biblioteca', exact: true })
+		.click();
 	await mediaPage.getByRole('button', { name: 'Cuadrícula', exact: true }).click();
 	const horizontesCard = mediaPage.locator('.vr-library-row').filter({ hasText: 'Horizontes' });
 	await horizontesCard.waitFor();
