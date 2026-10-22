@@ -33,8 +33,10 @@ jobs:
         with:
           bun-version: '1.4.2'
       - run: bun install --frozen-lockfile
+      - name: Build MCP helper (review profile)
+        run: bun scripts/build-mcp-sidecar.mjs --review
       - name: Build review installer
-        run: bunx tauri build --config src-tauri/tauri.review.conf.json -- --profile review
+        run: bunx tauri build --config src-tauri/tauri.review.conf.json --config src-tauri/tauri.mcp.conf.json -- --profile review
       - name: Upload manual review installers (not updater artifacts)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

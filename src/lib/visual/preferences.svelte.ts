@@ -1,3 +1,4 @@
+import { persistAuthority } from '$lib/integrations/preferences';
 import {
 	DEFAULT_VISUAL,
 	accentText,
@@ -43,6 +44,7 @@ export function saveVisualPreferences() {
 	applyVisualAttributes();
 	try {
 		localStorage.setItem(KEY, JSON.stringify($state.snapshot(visual)));
+		persistAuthority('visual', $state.snapshot(visual));
 		preferenceStatus.error = false;
 	} catch {
 		preferenceStatus.error = true;

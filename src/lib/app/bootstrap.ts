@@ -1,3 +1,4 @@
+import { startPreferenceAuthority } from '$lib/integrations/preferences';
 import { restoreVisualPreferences } from '$lib/visual/preferences.svelte';
 import { listen } from '@tauri-apps/api/event';
 import { exposePerfReport, perfMarkUsable, perfMeasure } from '$lib/perf';
@@ -53,6 +54,24 @@ export async function startApp() {
 	});
 	initServerSessionListener();
 	initNetworkListener();
+	void listen('mcp-library-changed', () => void refreshInstances());
+	const syncPreferences = async () => {
+		restoreVisualPreferences();
+		try {
+			const settings = await getSettings();
+			appState.settings = settings;
+			document.documentElement.dataset.theme = settings.theme;
+			localStorage.setItem('tfl-theme', settings.theme);
+			if (settings.theme === 'light' && localStorage.getItem('tfl-surface') === 'oled') {
+				localStorage.setItem('tfl-surface', 'obsidian');
+				document.documentElement.removeAttribute('data-surface');
+			}
+			applyQualityVisuals(settings);
+		} catch {
+			/* launcher closing */
+		}
+	};
+	window.addEventListener('tfl-authority-updated', () => void syncPreferences());
 	try {
 		const [user, settings] = await perfMeasure('accounts_settings', () =>
 			Promise.all([getCurrentUser(), getSettings()])
@@ -63,6 +82,7 @@ export async function startApp() {
 			document.documentElement.setAttribute('data-theme', settings.theme);
 			localStorage.setItem('tfl-theme', settings.theme);
 		}
+		await startPreferenceAuthority();
 		await restoreAppearance();
 		applyQualityVisuals(settings);
 		await perfMeasure('instances', () => refreshInstances());

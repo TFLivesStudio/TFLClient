@@ -35,3 +35,6 @@ src-tauri/permissions/
 
 # Local design discovery context
 /.superdesign/
+
+# Platform-specific compiled MCP helper
+/src-tauri/binaries/

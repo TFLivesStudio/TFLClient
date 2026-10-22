@@ -337,3 +337,48 @@ fn now_secs() -> i64 {
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0)
 }
+
+use aqua::{FabricBatch, QuiltBatch};
+async fn resolve_loader(
+    mc_version: &str,
+    loader: LoaderKind,
+) -> Result<(Option<String>, String), String> {
+    match loader {
+        LoaderKind::Vanilla => Ok((None, mc_version.to_string())),
+        LoaderKind::Fabric => {
+            let lv = FabricBatch::resolve_latest_loader(mc_version)
+                .await
+                .map_err(|e| e.to_string())?;
+            let id = format!("fabric-loader-{lv}-{mc_version}");
+            Ok((Some(lv), id))
+        }
+        LoaderKind::Quilt => {
+            let lv = QuiltBatch::resolve_latest_loader(mc_version)
+                .await
+                .map_err(|e| e.to_string())?;
+            let id = format!("quilt-loader-{lv}-{mc_version}");
+            Ok((Some(lv), id))
+        }
+        LoaderKind::Forge => {
+            let lv = crate::commands::loaders::get_forge_version(mc_version.to_string()).await?;
+            let id = format!("{mc_version}-forge-{lv}");
+            Ok((Some(lv), id))
+        }
+        LoaderKind::NeoForge => {
+            let lv = crate::commands::loaders::get_neoforge_version(mc_version.to_string()).await?;
+            let id = format!("{mc_version}-neoforge-{lv}");
+            Ok((Some(lv), id))
+        }
+    }
+}
+
+pub async fn create_resolved(
+    name: String,
+    mc_version: String,
+    loader: String,
+) -> Result<InstanceData, String> {
+    valid_instance_name(&name)?;
+    let loader = LoaderKind::parse(&loader).ok_or("Unknown loader")?;
+    let (loader_version, launch_version_id) = resolve_loader(&mc_version, loader).await?;
+    create_instance(name, mc_version, loader, loader_version, launch_version_id).await
+}
