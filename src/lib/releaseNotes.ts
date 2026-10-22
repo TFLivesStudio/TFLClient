@@ -280,5 +280,10 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Arte nuevo para las 7 escenas cinemáticas de Ajustes → Apariencia → Fondos y escenas, con 2 escenas nuevas (Cherry Night y Emerald Grotto).',
 		'36 fondos de pantalla nuevos en Ajustes → Apariencia → Fondo de pantalla.'
+	],
+	'0.14.0-beta.4': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Rediseño: el fondo de pantalla que elegís en Ajustes ahora es siempre el fondo de todo el launcher. Las escenas (vídeo/atmósfera) pasan al cuadro grande de Home y a las tarjetas de la Biblioteca en vista cuadrícula.',
+		'Quitamos 17 de los fondos de pantalla agregados en la beta anterior — estaban en baja resolución y se veían borrosos a pantalla completa. Los demás quedan.'
 	]
 };
