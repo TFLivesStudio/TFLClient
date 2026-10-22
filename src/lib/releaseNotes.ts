@@ -275,5 +275,10 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Arreglado: el botón Detener de la ventana de log no hacía nada mientras el juego estaba realmente corriendo — quedaba trabado esperando a sí mismo. Ahora corta el proceso correctamente.',
 		'Arreglado: buscar en Ajustes podía dejar visible el contenido de una pestaña que ya no aparecía en los resultados.',
 		'Arreglado: la marca decorativa de la tarjeta "TFL Selection" en Explorar mostraba un ícono placeholder en vez del logo real de TFL.'
+	],
+	'0.14.0-beta.3': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arte nuevo para las 7 escenas cinemáticas de Ajustes → Apariencia → Fondos y escenas, con 2 escenas nuevas (Cherry Night y Emerald Grotto).',
+		'36 fondos de pantalla nuevos en Ajustes → Apariencia → Fondo de pantalla.'
 	]
 };
