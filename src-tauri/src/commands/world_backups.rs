@@ -23,10 +23,15 @@ fn backups_dir(instance: &instance_manager::InstanceData) -> std::path::PathBuf 
 /// Solo ids con la forma exacta que genera `backup_world_dir` — el id viene
 /// del frontend y termina en una ruta de archivo.
 fn parse_backup_id(id: &str) -> Option<i64> {
-    id.strip_prefix("saves-")?
-        .strip_suffix(".zip")?
-        .parse::<i64>()
-        .ok()
+    let raw = id.strip_prefix("saves-")?.strip_suffix(".zip")?;
+    let timestamp = if let Some((ts, suffix)) = raw.split_once('-') {
+        uuid::Uuid::parse_str(suffix).ok()?;
+        ts
+    } else {
+        raw
+    };
+    let timestamp = timestamp.parse::<i64>().ok()?;
+    (timestamp >= 0).then_some(timestamp)
 }
 
 async fn describe(dir: &Path, id: &str) -> Option<WorldBackup> {
@@ -108,12 +113,23 @@ pub async fn restore_world_backup(instance_name: String, id: String) -> Result<(
         return Err("Esa copia ya no existe".into());
     }
 
-    crate::services::world_backup::backup_world_dir(&instance.dir()).await?;
-
-    let saves_dir = instance.dir().join("saves");
-    tokio::task::spawn_blocking(move || replace_saves_from_zip(&zip_path, &saves_dir))
+    // Preserve the selected archive before creating/pruning the automatic safety copy.
+    let selected = backups_dir(&instance).join(format!("restore-{}.zip", uuid::Uuid::new_v4()));
+    tokio::fs::copy(&zip_path, &selected)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|_| "Cannot stage selected backup")?;
+    let safety = crate::services::world_backup::backup_world_dir(&instance.dir()).await;
+    if let Err(e) = safety {
+        let _ = tokio::fs::remove_file(&selected).await;
+        return Err(e);
+    }
+    let saves_dir = instance.dir().join("saves");
+    let source = selected.clone();
+    let result = tokio::task::spawn_blocking(move || replace_saves_from_zip(&source, &saves_dir))
+        .await
+        .map_err(|e| e.to_string())?;
+    let _ = tokio::fs::remove_file(&selected).await;
+    result
 }
 
 /// Vacía `saves_dir` y extrae el zip adentro. Descarta cualquier entrada cuya
@@ -122,25 +138,57 @@ pub async fn restore_world_backup(instance_name: String, id: String) -> Result<(
 fn replace_saves_from_zip(zip_path: &Path, saves_dir: &Path) -> Result<(), String> {
     let file = std::fs::File::open(zip_path).map_err(|e| e.to_string())?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
-    if saves_dir.exists() {
-        std::fs::remove_dir_all(saves_dir).map_err(|e| e.to_string())?;
+    if archive.len() > 50000 {
+        return Err("Backup contains too many entries".into());
     }
-    std::fs::create_dir_all(saves_dir).map_err(|e| e.to_string())?;
-    for i in 0..archive.len() {
-        let mut entry = archive.by_index(i).map_err(|e| e.to_string())?;
-        let Some(rel) = entry.enclosed_name() else {
-            continue;
-        };
-        let out_path = saves_dir.join(rel);
-        if entry.is_dir() {
-            std::fs::create_dir_all(&out_path).map_err(|e| e.to_string())?;
-            continue;
+    let parent = saves_dir.parent().ok_or("Invalid saves directory")?;
+    let staging = parent.join(format!(".tfl-restore-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&staging).map_err(|e| e.to_string())?;
+    // Fully decompress and verify the archive before replacing any live worlds.
+    let extraction = (|| -> Result<(), String> {
+        let mut extracted = 0u64;
+        for index in 0..archive.len() {
+            let mut entry = archive.by_index(index).map_err(|e| e.to_string())?;
+            let Some(rel) = entry.enclosed_name() else {
+                continue;
+            };
+            if entry.size() > 32 * 1024 * 1024 * 1024u64 - extracted {
+                return Err("Backup exceeds 32 GiB restore limit".into());
+            }
+            let out_path = staging.join(rel);
+            if entry.is_dir() {
+                std::fs::create_dir_all(&out_path).map_err(|e| e.to_string())?;
+                continue;
+            }
+            if let Some(parent) = out_path.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+            }
+            let mut out = std::fs::File::create(out_path).map_err(|e| e.to_string())?;
+            extracted += std::io::copy(&mut entry, &mut out).map_err(|e| e.to_string())?;
         }
-        if let Some(parent) = out_path.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        Ok(())
+    })();
+    if let Err(e) = extraction {
+        let _ = std::fs::remove_dir_all(&staging);
+        return Err(e);
+    }
+    let old = parent.join(format!(".tfl-replaced-{}", uuid::Uuid::new_v4()));
+    let had_old = saves_dir.exists();
+    if had_old {
+        if let Err(e) = std::fs::rename(saves_dir, &old) {
+            let _ = std::fs::remove_dir_all(&staging);
+            return Err(e.to_string());
         }
-        let mut out = std::fs::File::create(&out_path).map_err(|e| e.to_string())?;
-        std::io::copy(&mut entry, &mut out).map_err(|e| e.to_string())?;
+    }
+    if let Err(e) = std::fs::rename(&staging, saves_dir) {
+        if had_old {
+            let _ = std::fs::rename(&old, saves_dir);
+        }
+        let _ = std::fs::remove_dir_all(&staging);
+        return Err(e.to_string());
+    }
+    if had_old {
+        let _ = std::fs::remove_dir_all(old);
     }
     Ok(())
 }
@@ -149,6 +197,27 @@ fn replace_saves_from_zip(zip_path: &Path, saves_dir: &Path) -> Result<(), Strin
 mod tests {
     use super::*;
 
+    #[test]
+    fn backup_ids_accept_legacy_and_unique_but_not_paths() {
+        assert_eq!(parse_backup_id("saves-123.zip"), Some(123));
+        assert_eq!(
+            parse_backup_id("saves-123-00000000000000000000000000000001.zip"),
+            Some(123)
+        );
+        assert!(parse_backup_id("saves-123-../escape.zip").is_none());
+    }
+    #[test]
+    fn invalid_zip_keeps_existing_worlds() {
+        let base = temp_dir("invalid");
+        let saves = base.join("saves");
+        std::fs::create_dir_all(&saves).unwrap();
+        std::fs::write(saves.join("keep.dat"), b"safe").unwrap();
+        let zip = base.join("bad.zip");
+        std::fs::write(&zip, b"invalid archive").unwrap();
+        assert!(replace_saves_from_zip(&zip, &saves).is_err());
+        assert_eq!(std::fs::read(saves.join("keep.dat")).unwrap(), b"safe");
+        let _ = std::fs::remove_dir_all(base);
+    }
     fn temp_dir(tag: &str) -> std::path::PathBuf {
         let dir = std::env::temp_dir().join(format!("tfl-wb-test-{tag}-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();

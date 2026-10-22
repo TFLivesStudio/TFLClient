@@ -144,7 +144,13 @@ pub async fn fingerprint(i: &InstanceData, p: &Value) -> Result<String, String> 
         .map_err(|_| "Manifest error")?
         .hash(&mut h);
     running(i).hash(&mut h);
+    super::launcher::running_instance_pid(&i.name).hash(&mut h);
+    super::server_process::running_server_pid(&i.name).hash(&mut h);
     p.to_string().hash(&mut h);
+    if p["action"] == "stop_instance" {
+        return Ok(format!("{:016x}", h.finish()));
+    }
+    safe_tree(&i.dir())?;
     let root = i.dir();
     let mut todo = vec![root.clone()];
     while let Some(dir) = todo.pop() {

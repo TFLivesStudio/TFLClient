@@ -26,6 +26,9 @@ async fn prune_world_backups(dir: &std::path::Path) {
     names.sort_by_key(|n| {
         n.trim_start_matches("saves-")
             .trim_end_matches(".zip")
+            .split('-')
+            .next()
+            .unwrap_or("")
             .parse::<u64>()
             .unwrap_or(0)
     });
@@ -52,7 +55,7 @@ pub(crate) async fn backup_world_dir(
         .unwrap_or(0);
     let backup_path = instance_dir
         .join(".tfl_backups")
-        .join(format!("saves-{ts}.zip"));
+        .join(format!("saves-{ts}-{}.zip", uuid::Uuid::new_v4().simple()));
     let backup_path_clone = backup_path.clone();
     tokio::task::spawn_blocking(move || zip_dir(&saves_dir, &backup_path_clone))
         .await
@@ -78,4 +81,23 @@ pub async fn list_world_backup_names(instance_name: &str) -> Result<Vec<String>,
     out.sort();
     out.reverse(); // más reciente primero — el timestamp está en el nombre
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn repeated_backups_never_overwrite_selected_archive() {
+        let root = std::env::temp_dir().join(format!("tfl-backup-{}", uuid::Uuid::new_v4()));
+        let world = root.join("saves/World");
+        std::fs::create_dir_all(&world).unwrap();
+        std::fs::write(world.join("level.dat"), b"first").unwrap();
+        let first = backup_world_dir(&root).await.unwrap().unwrap();
+        let original = std::fs::read(&first).unwrap();
+        std::fs::write(world.join("level.dat"), b"second").unwrap();
+        let second = backup_world_dir(&root).await.unwrap().unwrap();
+        assert_ne!(first, second);
+        assert_eq!(std::fs::read(first).unwrap(), original);
+        let _ = std::fs::remove_dir_all(root);
+    }
 }

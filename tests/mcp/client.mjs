@@ -147,6 +147,24 @@ evidence.push({
 	instances:
 		'real UUID create, RAM mutation, worlds, real ZIP backup; duplicate idempotency key coalesced'
 });
+await writeFile(path.join(dir, 'saves', 'TestWorld', 'level.dat'), 'changed fixture world');
+const restore = data(
+	await call('tfl_plan_action', {
+		instance_id: uuid,
+		action: 'restore_backup',
+		resource_id: backup.result.backup.id
+	})
+);
+await control({ op: 'approve', plan_id: restore.plan_id, approve: true });
+await job(await call('tfl_execute_plan', { plan_id: restore.plan_id }));
+assert.equal(
+	await readFile(path.join(dir, 'saves', 'TestWorld', 'level.dat'), 'utf8'),
+	'test world fixture'
+);
+evidence.push({
+	restore:
+		'exact approved real ZIP restore restores fixture bytes; automatic safety backup retained'
+});
 const b = new Client({ name: 'second reader', version: '1.0.0' });
 await b.connect(
 	new StdioClientTransport({ command, env: { ...process.env, TFL_DATA_DIR: profile } })
