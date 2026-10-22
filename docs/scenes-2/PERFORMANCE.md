@@ -23,3 +23,14 @@ measurement artifacts; unsupported native-platform checks remain explicitly pend
 The independent helper's debug RSS measured ~6.6 MiB idle and ~6.8 MiB after a small
 query session in the isolated native harness. These values exclude launcher, browser
 and GPU memory. Exact raw samples and methodology: ../mcp/evidence/native-performance.json.
+
+## Comparable browser observations
+
+[evidence/performance.json](evidence/performance.json) compares the frozen 0.14.0-beta.1
+production frontend with this refresh using the same Chromium fixture, three runs per
+profile. This observes JS heap, main-thread tasks and UI response, not resident/GPU
+memory. [evidence/scenes.json](evidence/scenes.json) adds 30 observations: five selected
+scenes × three profiles × two revisions, with optional shader/video turned off. Lite
+has zero mounted video, shader or atmospheric animation layer in every observation.
+The richer scene atmosphere adds some main-thread work in Balanced/Experience; exact
+raw values are retained rather than claiming a universal speed improvement.

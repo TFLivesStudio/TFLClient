@@ -1,0 +1,204 @@
+{
+	"fixture": true,
+	"browser": "154.0.8037.57",
+	"samples": [
+		{
+			"revision": "baseline",
+			"quality": "Lite",
+			"run": 0,
+			"readyMs": 341,
+			"heapMiB": 4.6,
+			"idleTaskMs": 0.74,
+			"nodes": 1999,
+			"settingsMs": 71,
+			"detailMs": 90
+		},
+		{
+			"revision": "baseline",
+			"quality": "Lite",
+			"run": 1,
+			"readyMs": 298,
+			"heapMiB": 4.56,
+			"idleTaskMs": 0.64,
+			"nodes": 1999,
+			"settingsMs": 44,
+			"detailMs": 97
+		},
+		{
+			"revision": "baseline",
+			"quality": "Lite",
+			"run": 2,
+			"readyMs": 291,
+			"heapMiB": 4.55,
+			"idleTaskMs": 0.66,
+			"nodes": 1999,
+			"settingsMs": 62,
+			"detailMs": 97
+		},
+		{
+			"revision": "baseline",
+			"quality": "Balanced",
+			"run": 0,
+			"readyMs": 304,
+			"heapMiB": 4.58,
+			"idleTaskMs": 3.85,
+			"nodes": 1999,
+			"settingsMs": 64,
+			"detailMs": 107
+		},
+		{
+			"revision": "baseline",
+			"quality": "Balanced",
+			"run": 1,
+			"readyMs": 297,
+			"heapMiB": 4.55,
+			"idleTaskMs": 1.77,
+			"nodes": 1999,
+			"settingsMs": 83,
+			"detailMs": 137
+		},
+		{
+			"revision": "baseline",
+			"quality": "Balanced",
+			"run": 2,
+			"readyMs": 258,
+			"heapMiB": 4.58,
+			"idleTaskMs": 1.93,
+			"nodes": 1999,
+			"settingsMs": 69,
+			"detailMs": 116
+		},
+		{
+			"revision": "baseline",
+			"quality": "Experience",
+			"run": 0,
+			"readyMs": 277,
+			"heapMiB": 4.58,
+			"idleTaskMs": 1.77,
+			"nodes": 1999,
+			"settingsMs": 63,
+			"detailMs": 167
+		},
+		{
+			"revision": "baseline",
+			"quality": "Experience",
+			"run": 1,
+			"readyMs": 328,
+			"heapMiB": 4.56,
+			"idleTaskMs": 2.24,
+			"nodes": 1999,
+			"settingsMs": 65,
+			"detailMs": 120
+		},
+		{
+			"revision": "baseline",
+			"quality": "Experience",
+			"run": 2,
+			"readyMs": 289,
+			"heapMiB": 4.56,
+			"idleTaskMs": 1.56,
+			"nodes": 1999,
+			"settingsMs": 67,
+			"detailMs": 133
+		},
+		{
+			"revision": "refresh",
+			"quality": "Lite",
+			"run": 0,
+			"readyMs": 304,
+			"heapMiB": 4.58,
+			"idleTaskMs": 0.79,
+			"nodes": 1999,
+			"settingsMs": 52,
+			"detailMs": 99
+		},
+		{
+			"revision": "refresh",
+			"quality": "Lite",
+			"run": 1,
+			"readyMs": 286,
+			"heapMiB": 5.37,
+			"idleTaskMs": 1.95,
+			"nodes": 1999,
+			"settingsMs": 51,
+			"detailMs": 96
+		},
+		{
+			"revision": "refresh",
+			"quality": "Lite",
+			"run": 2,
+			"readyMs": 263,
+			"heapMiB": 5.42,
+			"idleTaskMs": 0.8,
+			"nodes": 1999,
+			"settingsMs": 61,
+			"detailMs": 93
+		},
+		{
+			"revision": "refresh",
+			"quality": "Balanced",
+			"run": 0,
+			"readyMs": 285,
+			"heapMiB": 4.56,
+			"idleTaskMs": 2.19,
+			"nodes": 1999,
+			"settingsMs": 71,
+			"detailMs": 120
+		},
+		{
+			"revision": "refresh",
+			"quality": "Balanced",
+			"run": 1,
+			"readyMs": 298,
+			"heapMiB": 4.59,
+			"idleTaskMs": 1.92,
+			"nodes": 1999,
+			"settingsMs": 71,
+			"detailMs": 126
+		},
+		{
+			"revision": "refresh",
+			"quality": "Balanced",
+			"run": 2,
+			"readyMs": 248,
+			"heapMiB": 4.6,
+			"idleTaskMs": 1.88,
+			"nodes": 1999,
+			"settingsMs": 82,
+			"detailMs": 119
+		},
+		{
+			"revision": "refresh",
+			"quality": "Experience",
+			"run": 0,
+			"readyMs": 299,
+			"heapMiB": 4.56,
+			"idleTaskMs": 2.13,
+			"nodes": 1999,
+			"settingsMs": 77,
+			"detailMs": 125
+		},
+		{
+			"revision": "refresh",
+			"quality": "Experience",
+			"run": 1,
+			"readyMs": 273,
+			"heapMiB": 5.39,
+			"idleTaskMs": 2.01,
+			"nodes": 1999,
+			"settingsMs": 73,
+			"detailMs": 112
+		},
+		{
+			"revision": "refresh",
+			"quality": "Experience",
+			"run": 2,
+			"readyMs": 262,
+			"heapMiB": 5.41,
+			"idleTaskMs": 4.26,
+			"nodes": 1999,
+			"settingsMs": 68,
+			"detailMs": 104
+		}
+	]
+}

@@ -136,3 +136,13 @@ mod tests {
         assert!(validate("accent", &json!("#ffffff")).is_ok());
     }
 }
+
+pub fn instance_metadata(id: &str) -> Value {
+    let d = DATA.lock();
+    let m = d
+        .values
+        .get("visual")
+        .and_then(|v| v.get("instances"))
+        .and_then(|v| v.get(id));
+    json!({"favorite":m.and_then(|v|v.get("favorite")).and_then(Value::as_bool).unwrap_or(false),"group":m.and_then(|v|v.get("group")).and_then(Value::as_str).unwrap_or("")})
+}

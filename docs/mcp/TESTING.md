@@ -1,7 +1,7 @@
 # Reproducible verification
 
 Baseline main `bd8fd883`: frontend check 0 errors / 7 existing warnings; 18 Node
-behavior tests and 141 Rust library tests passed. Current local checks: 155 Rust library tests and 18 Node behavior tests passed;
+behavior tests and 141 Rust library tests passed. Current local checks: 156 Rust library tests and 18 Node behavior tests passed;
 frontend check has 0 errors / 7 existing warnings; production build passed.
 The official external SDK discovered 35 tools and completed the native acceptance
 flow, including a real Modrinth/Fabric API installation with hash validation.

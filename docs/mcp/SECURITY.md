@@ -38,3 +38,9 @@ Windows DACL behavior, Apple signing and native webview codecs require platform 
 and manual runtime verification; see TESTING.md. Do not call remote/cloud support or an
 unverified client certified. Critical operations must remain disabled for a client
 unless the user explicitly grants that scope and approves the exact pending action.
+
+MCP backup creation cannot prune old backups: at the existing ten-backup limit it
+fails and requires an explicit separately approved deletion. This prevents using
+repeated noncritical backup creation to bypass critical delete permissions. The
+backup service serializes retention decisions across UI/MCP. Approved restoration
+still creates its safety backup using the launcher's documented retention policy.

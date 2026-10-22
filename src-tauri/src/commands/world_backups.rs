@@ -73,8 +73,24 @@ pub async fn list_world_backups(instance_name: String) -> Result<Vec<String>, St
 
 #[command]
 pub async fn create_world_backup(instance_name: String) -> Result<Option<WorldBackup>, String> {
+    create_backup_impl(instance_name, false).await
+}
+pub async fn create_world_backup_preserving(
+    instance_name: String,
+) -> Result<Option<WorldBackup>, String> {
+    create_backup_impl(instance_name, true).await
+}
+async fn create_backup_impl(
+    instance_name: String,
+    preserve: bool,
+) -> Result<Option<WorldBackup>, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
-    let Some(path) = crate::services::world_backup::backup_world_dir(&instance.dir()).await? else {
+    let path = if preserve {
+        crate::services::world_backup::backup_world_dir_preserving(&instance.dir()).await?
+    } else {
+        crate::services::world_backup::backup_world_dir(&instance.dir()).await?
+    };
+    let Some(path) = path else {
         return Ok(None);
     };
     let id = Path::new(&path)

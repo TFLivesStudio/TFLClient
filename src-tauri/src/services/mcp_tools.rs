@@ -270,7 +270,8 @@ async fn logs(i: &InstanceData, p: &Value) -> Result<Value, String> {
     )
 }
 fn summary(i: &InstanceData) -> Value {
-    json!({"instance_id":i.uuid,"name":i.name,"mc_version":i.mc_version,"loader":i.loader,"server_type":i.server_type,"min_memory_mb":i.min_memory,"max_memory_mb":i.max_memory,"running":running(i)})
+    let meta = mcp_preferences::instance_metadata(&i.uuid);
+    json!({"instance_id":i.uuid,"name":i.name,"favorite":meta["favorite"],"group":meta["group"],"mc_version":i.mc_version,"loader":i.loader,"server_type":i.server_type,"min_memory_mb":i.min_memory,"max_memory_mb":i.max_memory,"running":running(i)})
 }
 pub async fn execute(app: &AppHandle, client: &str, tool: &str, p: Value) -> Result<Value, String> {
     if p["instance_id"].is_string()
@@ -528,7 +529,9 @@ pub async fn execute(app: &AppHandle, client: &str, tool: &str, p: Value) -> Res
             if i.server_type.is_some() {
                 return Err("SERVER_BACKUP_NOT_SUPPORTED_BY_EXISTING_SERVICE".into());
             }
-            Ok(json!({"backup":commands::world_backups::create_world_backup(i.name).await?}))
+            Ok(
+                json!({"backup":commands::world_backups::create_world_backup_preserving(i.name).await?}),
+            )
         }
         "tfl_search_content" => {
             let i = instance(&p).await?;
