@@ -100,6 +100,13 @@ impl MinecraftUser {
         }
     }
 
+    /// Explicit user opt-in: remove persisted token blobs even if the OS vault is unavailable.
+    pub fn discard_persistent_tokens(&self) -> crate::Result<()> {
+        if self.user_type == AccountType::Cracked {
+            return Ok(());
+        }
+        SecureStorage::discard_for_memory(&self.provider(), &self.uuid)
+    }
     pub fn forget_tokens(&mut self) {
         use zeroize::Zeroize;
         self.access_token.zeroize();

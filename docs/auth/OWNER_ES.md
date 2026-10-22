@@ -102,7 +102,9 @@ Las preferencias generales no pueden reemplazar el estado de cuentas en memoria.
 
 Sin almacén disponible: desbloquear/configurar el llavero y reintentar, o elegir
 explícitamente **Usar sesión temporal**. La sesión temporal vive en memoria y marca
-el perfil para que al reiniciar exija autorización. Guardar otros ajustes no borra
+el perfil para que al reiniciar exija autorización. La elección explícita descarta
+los blobs de tokens de esa cuenta, incluso si un guardado anterior falló parcialmente;
+si no pueden eliminarse, no se declara una sesión temporal correcta. Guardar otros ajustes no borra
 sus tokens en memoria. No se presenta como guardada permanentemente.
 Si falla el guardado local de perfiles, no se declara éxito; se permite reintentar.
 Al eliminar una cuenta, un fallo al borrar credenciales es visible y conserva la

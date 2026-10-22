@@ -206,8 +206,8 @@
 		<div class="auth-storage">
 			<p>
 				{text(
-					'Una sesión temporal solo funciona hasta que cierres el launcher. No se guardarán sus tokens y tendrás que iniciar sesión de nuevo después.',
-					'A temporary session lasts only until you close the launcher. Its tokens will not be saved and you will need to sign in again afterwards.'
+					'Una sesión temporal solo funciona hasta que cierres el launcher. Se descartarán las credenciales guardadas de esta cuenta en el dispositivo y tendrás que iniciar sesión de nuevo después.',
+					'A temporary session lasts only until you close the launcher. Saved credentials for this account on this device will be discarded and you will need to sign in again afterwards.'
 				)}
 			</p>
 			<button type="button" disabled={starting} onclick={() => storage(false)}

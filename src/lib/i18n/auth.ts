@@ -1,6 +1,10 @@
 import { i18nState } from './index.svelte';
 export const authText = (es: string, en: string) => (i18nState.locale === 'en' ? en : es);
 const errors: Record<string, [string, string]> = {
+	MICROSOFT_CONSENT_REQUIRED: [
+		'Microsoft no concedió una sesión renovable. Vuelve a autorizar el acceso o consulta la configuración de la aplicación.',
+		'Microsoft did not grant a renewable session. Authorize access again or review the application configuration.'
+	],
 	AUTH_CANCELLED: ['Inicio de sesión cancelado.', 'Sign-in cancelled.'],
 	AUTH_TIMEOUT: [
 		'La autorización caducó. Inicia un nuevo intento.',

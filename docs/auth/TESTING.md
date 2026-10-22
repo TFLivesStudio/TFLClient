@@ -91,7 +91,7 @@ an interactive native vault prompt was successfully used on that OS.
 
 ## Local evidence
 
-[Validation summary](evidence/local-validation.json) records 186 Rust library tests,
+[Validation summary](evidence/local-validation.json) records 188 Rust library tests,
 18 Node behavior tests and 13 simulated-IPC browser checks.
 [Browser assertions](evidence/browser.json) list the actual verified interactions.
 

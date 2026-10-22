@@ -68,11 +68,18 @@ loading; they are not trusted from a frontend preference update.
 The known weak legacy derivation is read-only. Migration inserts only if no newer
 protected record appeared, verifies storage before removing old files, and preserves
 account metadata on failure. No insecure write fallback exists. A user may explicitly
-choose a memory-only session; after process restart it requires reauthorization.
+choose a memory-only session; persisted token blobs for that account are discarded
+first, including partial-save files, so a failed save cannot leave new tokens while
+claiming memory-only persistence. If cleanup fails, the choice does not report
+success. After process restart it requires reauthorization.
 Account operations and refresh share a lock; disk settings saves are also serialized.
 General settings updates preserve accounts, active selection and onboarding state.
 
-Disconnecting deletes the envelope key, ciphertext and legacy records before removing
+A memory-only choice never needs to contact the vault: removing all token blobs
+already prevents a residual random key from restoring tokens. Such an orphan key
+is reclaimed on later disconnect if the vault is reachable.
+
+Disconnecting deletes protected ciphertext, its vault key and legacy records before removing
 or clearing local credentials. A deletion failure is visible; it is not reported as a
 successful logout. Logout preserves the public account profile and selects offline.
 This is local logout, not a promise to revoke an already running Minecraft process.

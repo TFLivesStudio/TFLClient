@@ -135,12 +135,53 @@ impl SecureStorage {
             .map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
         let key = Self::key(provider, uuid);
         let path = Self::root()?.join(format!("{key}.enc"));
-        // No record means no need to initialize a potentially unavailable vault.
         if path.exists() {
             OsVault.delete(&key)?;
             fs::remove_file(path)?;
+        } else {
+            // Explicit memory-only cleanup may already have removed ciphertext.
+            // Reclaim any orphan key if the vault is reachable; no token remains
+            // behind such a key, so unavailability alone need not block removal.
+            let _ = OsVault.delete(&key);
         }
         Self::delete_legacy(uuid)
+    }
+    pub(crate) fn discard_for_memory(provider: &str, uuid: &str) -> crate::Result<()> {
+        let _guard = STORAGE_LOCK
+            .lock()
+            .map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
+        Self::discard_at(&Self::root()?, &Self::key(provider, uuid))?;
+        Self::delete_legacy(uuid)
+    }
+    fn discard_at(root: &Path, account: &str) -> crate::Result<()> {
+        if root.exists() && fs::symlink_metadata(root)?.file_type().is_symlink() {
+            return Err(failure("SESSION_PATH_INVALID"));
+        }
+        let target = root.join(format!("{account}.enc"));
+        match fs::remove_file(target) {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
+        }
+        let entries = match fs::read_dir(root) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(error.into()),
+        };
+        let prefix = format!(".{account}-");
+        for entry in entries {
+            let entry = entry?;
+            if entry
+                .file_name()
+                .to_str()
+                .is_some_and(|name| name.starts_with(&prefix) && name.ends_with(".tmp"))
+            {
+                fs::remove_file(entry.path())?;
+            }
+        }
+        // An OS-vault key without any ciphertext cannot restore tokens. Do not
+        // contact a locked/unavailable vault just to use an explicit memory session.
+        Ok(())
     }
     fn vault_key(
         vault: &impl Vault,
@@ -205,7 +246,7 @@ impl SecureStorage {
         let encrypted = cipher
             .encrypt(Nonce::from_slice(&nonce), plain.as_slice())
             .map_err(|_| failure("SESSION_ENCRYPTION_FAILED"))?;
-        let temp = root.join(format!(".{}.tmp", uuid::Uuid::new_v4()));
+        let temp = root.join(format!(".{account}-{}.tmp", uuid::Uuid::new_v4()));
         let result = (|| {
             let mut options = fs::OpenOptions::new();
             options.write(true).create_new(true);
@@ -429,5 +470,24 @@ mod tests {
             SecureStorage::key("yggdrasil:https://example.test", "a")
         );
         assert!(SecureStorage::legacy_path("../outside", "access").is_err());
+    }
+}
+
+#[cfg(test)]
+mod memory_tests {
+    use super::*;
+    #[test]
+    fn temporary_session_discards_partial_persistence_without_vault_access() {
+        let dir = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("account.enc"), b"encrypted-partial-save").unwrap();
+        fs::write(dir.join(".account-fixture.tmp"), b"encrypted-temporary").unwrap();
+        fs::write(dir.join("other.enc"), b"preserve-other-account").unwrap();
+        SecureStorage::discard_at(&dir, "account").unwrap();
+        assert!(!dir.join("account.enc").exists());
+        assert!(!dir.join(".account-fixture.tmp").exists());
+        assert!(dir.join("other.enc").exists());
+        SecureStorage::discard_at(&dir, "account").unwrap();
+        fs::remove_dir_all(dir).unwrap();
     }
 }

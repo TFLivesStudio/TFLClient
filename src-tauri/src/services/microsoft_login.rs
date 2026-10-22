@@ -132,6 +132,7 @@ pub fn safe_error(error: &str) -> String {
         "AUTH_SERVICE_UNAVAILABLE",
         "AUTH_RESPONSE_INVALID",
         "MICROSOFT_REGISTRATION_ERROR",
+        "MICROSOFT_CONSENT_REQUIRED",
         "MICROSOFT_AUTH_ERROR",
         "MINECRAFT_APP_NOT_APPROVED",
         "MINECRAFT_SERVICES_ERROR",
@@ -319,23 +320,35 @@ async fn persist(a: &Arc<Attempt>, mut user: MinecraftUser, memory: bool) -> Res
     }
     user.session_only = memory;
     a.begin_commit()?;
-    if !memory {
-        let copy = user.clone();
-        let saved = tauri::async_runtime::spawn_blocking(move || copy.save_tokens()).await;
-        if !matches!(saved, Ok(Ok(()))) {
-            let mut state = a.state.lock();
-            state.committing = false;
-            if a.control.check().is_err() {
-                state.snapshot.phase = "expired".into();
-                state.snapshot.error = Some("AUTH_TIMEOUT".into());
-                return Ok(());
-            }
-            state.pending = Some(user);
-            state.snapshot.phase = "storage_required".into();
-            state.snapshot.user_code = None;
-            state.snapshot.error = Some("SECURE_STORE_UNAVAILABLE".into());
+    let copy = user.clone();
+    let saved = tauri::async_runtime::spawn_blocking(move || {
+        if memory {
+            copy.discard_persistent_tokens()
+        } else {
+            copy.save_tokens()
+        }
+    })
+    .await;
+    if !matches!(saved, Ok(Ok(()))) {
+        let mut state = a.state.lock();
+        state.committing = false;
+        if a.control.check().is_err() {
+            state.snapshot.phase = "expired".into();
+            state.snapshot.error = Some("AUTH_TIMEOUT".into());
             return Ok(());
         }
+        state.pending = Some(user);
+        state.snapshot.phase = "storage_required".into();
+        state.snapshot.user_code = None;
+        state.snapshot.error = Some(
+            if memory {
+                "LOCAL_STORAGE_ERROR"
+            } else {
+                "SECURE_STORE_UNAVAILABLE"
+            }
+            .into(),
+        );
+        return Ok(());
     }
     let previous = SettingsManager::snapshot();
     let write = SettingsManager::write(|s| {

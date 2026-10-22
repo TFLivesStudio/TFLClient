@@ -113,6 +113,19 @@ fn send(request: reqwest::blocking::RequestBuilder) -> crate::Result<(u16, serde
 fn decode<T: DeserializeOwned>(json: serde_json::Value) -> crate::Result<T> {
     serde_json::from_value(json).map_err(|_| auth_error("AUTH_RESPONSE_INVALID"))
 }
+fn validate_initial_token(token: &MicrosoftTokenResponse) -> crate::Result<()> {
+    if token.access_token.is_empty() {
+        return Err(auth_error("AUTH_RESPONSE_INVALID"));
+    }
+    if token
+        .refresh_token
+        .as_ref()
+        .is_none_or(|value| value.is_empty())
+    {
+        return Err(auth_error("MICROSOFT_CONSENT_REQUIRED"));
+    }
+    Ok(())
+}
 fn successful(status: u16) -> bool {
     (200..300).contains(&status)
 }
@@ -228,6 +241,7 @@ impl MicrosoftAuth {
             return Err(service_error("microsoft", status, &json));
         }
         let token: MicrosoftTokenResponse = decode(json)?;
+        validate_initial_token(&token)?;
         control.check()?;
         self.complete_login_at(
             &token.access_token,
@@ -287,7 +301,7 @@ impl MicrosoftAuth {
         let client = http()?;
         let start = Instant::now();
         let expires = Duration::from_secs(expires_in.min(900));
-        let mut interval = interval.clamp(5, 60);
+        let mut interval = interval.clamp(5, 900);
         loop {
             control.wait(Duration::from_secs(interval))?;
             if start.elapsed() >= expires {
@@ -301,11 +315,12 @@ impl MicrosoftAuth {
             control.check()?;
             if successful(status) {
                 let token: MicrosoftTokenResponse = decode(json)?;
+                validate_initial_token(&token)?;
                 return self.complete_login(&token.access_token, token.refresh_token, control);
             }
             match json.get("error").and_then(|v| v.as_str()) {
                 Some("authorization_pending") => {}
-                Some("slow_down") => interval = (interval + 5).min(60),
+                Some("slow_down") => interval = interval.saturating_add(5).min(900),
                 _ => return Err(service_error("microsoft", status, &json)),
             }
         }
@@ -674,5 +689,28 @@ mod exchange_tests {
                 .to_string()
                 .contains("NOT_APPROVED")
         );
+    }
+}
+
+#[cfg(test)]
+mod consent_tests {
+    use super::*;
+    #[test]
+    fn missing_offline_consent_does_not_create_an_unusable_saved_account() {
+        let token = MicrosoftTokenResponse {
+            access_token: "fixture-access".into(),
+            refresh_token: None,
+        };
+        assert!(
+            validate_initial_token(&token)
+                .unwrap_err()
+                .to_string()
+                .contains("MICROSOFT_CONSENT_REQUIRED")
+        );
+        let token = MicrosoftTokenResponse {
+            access_token: "fixture-access".into(),
+            refresh_token: Some("fixture-refresh".into()),
+        };
+        assert!(validate_initial_token(&token).is_ok());
     }
 }
