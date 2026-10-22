@@ -1,4 +1,12 @@
 <script lang="ts">
+	// Antes se montaba una sola vez a nivel de app, a pantalla completa,
+	// tapando el fondo de pantalla elegido en Ajustes — el usuario pidió
+	// que el wallpaper sea SIEMPRE el fondo del launcher entero, y que las
+	// escenas en cambio aparezcan en el hero de Home (ver InstanceHero.svelte,
+	// que ahora es quien monta este componente, pasándole su propia
+	// instancia). `instance` es opcional y cae a la instancia seleccionada
+	// globalmente solo por compatibilidad, para no romper otro uso futuro
+	// que no tenga una instancia propia a mano.
 	import { onMount } from 'svelte';
 	import { scenes, watchScenes } from './preferences.svelte';
 	import { appearance } from '$lib/state/appearanceState.svelte';
@@ -8,14 +16,11 @@
 	import { reaction } from './reactions.svelte';
 	import { effects } from '$lib/visual/runtime.svelte';
 	import SceneStage from './SceneStage.svelte';
-	const config = $derived(
-		(appState.selectedInstance && scenes.instances[appState.selectedInstance.uuid]) || scenes.global
-	);
+	import type { InstanceData } from '$lib/types/types';
+	let { instance = null }: { instance?: InstanceData | null } = $props();
+	const target = $derived(instance ?? appState.selectedInstance);
+	const config = $derived((target && scenes.instances[target.uuid]) || scenes.global);
 	onMount(watchScenes);
-	$effect(() => {
-		document.documentElement.toggleAttribute('data-living-scene', config.preset !== 'legacy');
-		return () => document.documentElement.removeAttribute('data-living-scene');
-	});
 </script>
 
 {#if config.preset !== 'legacy'}<div class="living-scene" aria-hidden="true">

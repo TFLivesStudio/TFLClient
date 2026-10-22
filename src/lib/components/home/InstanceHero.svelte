@@ -9,6 +9,7 @@
 	import { effects } from '$lib/visual/runtime.svelte';
 	import { parallax } from '$lib/visual/motion';
 	import { selectInstance } from '$lib/state/instanceState.svelte';
+	import LivingScene from '$lib/scenes/LivingScene.svelte';
 	import type { InstanceData, MojangProfile } from '$lib/types/types';
 	let {
 		featured,
@@ -51,6 +52,7 @@
 	style={image ? `--hero-image:url("${image}")` : artwork === 'none' ? '--hero-image:none' : ''}
 >
 	<div class="hero-art" aria-hidden="true"></div>
+	<div class="hero-scene" aria-hidden="true"><LivingScene instance={featured} /></div>
 	<div class="hero-light" aria-hidden="true"></div>
 	<div class="hero-identity">
 		<span class="vr-eyebrow"><span class="hero-dot"></span>{vr('continue')}</span>
@@ -104,9 +106,6 @@
 		--pointer-x: 0px;
 		--pointer-y: 0px;
 	}
-	:global(:root[data-wallpaper]:not([data-wallpaper='none'])) .hero {
-		--hero-image: var(--wallpaper-bg);
-	}
 	.hero-art {
 		position: absolute;
 		inset: -12px;
@@ -114,6 +113,18 @@
 		background: var(--hero-image);
 		background-size: cover;
 		background-position: center 42%;
+		transform: translate3d(var(--pointer-x), var(--pointer-y), 0);
+		transition: transform 180ms ease-out;
+	}
+	/* Encima de .hero-art (reemplaza la imagen fija por la escena viva
+	   —vídeo/atmósfera— cuando hay una configurada; si no, .hero-art se ve
+	   sin tapar). Mismo inset que .hero-art para que el parallax coincida. */
+	.hero-scene {
+		position: absolute;
+		inset: -12px;
+		z-index: -3;
+		overflow: hidden;
+		border-radius: inherit;
 		transform: translate3d(var(--pointer-x), var(--pointer-y), 0);
 		transition: transform 180ms ease-out;
 	}

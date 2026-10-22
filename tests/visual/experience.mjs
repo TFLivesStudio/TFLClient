@@ -414,9 +414,20 @@ try {
 		'cave'
 	);
 	await mediaPage.keyboard.press('Escape');
-	await mediaPage.getByRole('button', { name: 'Abrir Horizontes', exact: true }).click();
-	await mediaPage.locator('.living-scene [data-scene="cave"]').waitFor();
-	await mediaPage.waitForTimeout(350);
+	// Las escenas ya no se ven en toda la app (antes cubrían el fondo
+	// completo) — ahora viven en el hero de Home (la instancia más
+	// reciente) y en la miniatura de cada tarjeta de la Biblioteca en
+	// vista cuadrícula, que es lo único que no depende de cuál instancia
+	// sea "la más reciente" en este fixture.
+	await mediaPage.getByRole('button', { name: 'Biblioteca', exact: true }).click();
+	await mediaPage.getByRole('button', { name: 'Cuadrícula', exact: true }).click();
+	const horizontesCard = mediaPage.locator('.vr-library-row').filter({ hasText: 'Horizontes' });
+	await horizontesCard.waitFor();
+	assert.ok(
+		(await horizontesCard.evaluate((el) => getComputedStyle(el).backgroundImage)).includes(
+			'cave-thumb.webp'
+		)
+	);
 	await shot(mediaPage, 'instance-scene-override');
 	await mediaPage.close();
 	checks.push('local-video-import-preview-in-use-delete-instance-override');

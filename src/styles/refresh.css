@@ -617,11 +617,6 @@ html[data-visual='pixel']
 	}
 }
 
-html[data-living-scene] .ambient-bg::after {
-	animation: none;
-	opacity: 0;
-}
-
 /* Without blur, an opaque surface preserves text contrast over the scene. */
 html:is([data-quality='lite'], [data-no-blur]) {
 	--surface-elevated: color-mix(in srgb, var(--accent) 3%, var(--raw-sidebar));

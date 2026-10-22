@@ -27,7 +27,16 @@
 	import { i18nState } from '$lib/i18n/index.svelte';
 	import InstanceMark from './InstanceMark.svelte';
 	import LaunchControl from './LaunchControl.svelte';
+	import { scenes } from '$lib/scenes/preferences.svelte';
+	import { cinematicPoster } from '$lib/scenes/cinematic';
 	import type { InstanceData } from '$lib/types/types';
+	// Miniatura de escena para la tarjeta en vista cuadrícula — mismo origen
+	// que el fondo del hero de Home (ver InstanceHero.svelte), con el
+	// archivo -thumb liviano en vez del poster completo.
+	function sceneThumb(instance: InstanceData) {
+		const config = scenes.instances[instance.uuid] ?? scenes.global;
+		return cinematicPoster(config.preset, true);
+	}
 	let query = $state(''),
 		filter = $state('all'),
 		groupName = $state(''),
@@ -137,7 +146,12 @@
 	<div class="library-items vr-stagger" class:grid={visual.libraryView === 'grid'}>
 		{#each filtered as instance (instance.uuid)}
 			{@const meta = instanceVisual(instance.uuid)}
-			<article class="vr-library-row" class:running={running(instance)}>
+			{@const thumb = sceneThumb(instance)}
+			<article
+				class="vr-library-row"
+				class:running={running(instance)}
+				style={thumb ? `--scene-thumb:url("${thumb}")` : ''}
+			>
 				<button class="instance-open" onclick={() => selectInstance(instance)}
 					><InstanceMark {instance} /><span class="instance-copy"
 						><strong>{instance.name}</strong><span
@@ -386,6 +400,14 @@
 	.grid .vr-library-row {
 		flex-wrap: wrap;
 		padding: 22px;
+		position: relative;
+		background:
+			linear-gradient(
+				0deg,
+				var(--surface-card) 15%,
+				color-mix(in srgb, var(--surface-card) 55%, transparent) 75%
+			),
+			var(--scene-thumb, none) center / cover;
 	}
 	.grid .instance-open {
 		flex-basis: 100%;

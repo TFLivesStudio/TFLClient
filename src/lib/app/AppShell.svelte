@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { scenes } from '$lib/scenes/preferences.svelte';
 	import { contentExplorer } from '$lib/state/uiState.svelte';
 	import LivingScene from '$lib/scenes/LivingScene.svelte';
 	import { reveal } from '$lib/visual/motion';
@@ -64,7 +63,7 @@
 	{:else}
 		<div class="app-body">
 			<div class="ambient-bg">
-				{#if appearance.ambience === 'particles' && effects.current.ambient && ((appState.selectedInstance && scenes.instances[appState.selectedInstance.uuid]) || scenes.global).preset === 'legacy'}
+				{#if appearance.ambience === 'particles' && effects.current.ambient}
 					<ParticlesBackground />
 				{/if}
 			</div>
