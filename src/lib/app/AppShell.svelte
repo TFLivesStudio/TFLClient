@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { contentExplorer } from '$lib/state/uiState.svelte';
-	import LivingScene from '$lib/scenes/LivingScene.svelte';
 	import { reveal } from '$lib/visual/motion';
 	import { startNotifications } from '$lib/visual/notifications.svelte';
 	import LibraryView from '$lib/components/refresh/LibraryView.svelte';
@@ -67,7 +66,6 @@
 					<ParticlesBackground />
 				{/if}
 			</div>
-			<LivingScene />
 			<Sidebar
 				instances={appState.instances}
 				selected={appState.selectedInstance}
