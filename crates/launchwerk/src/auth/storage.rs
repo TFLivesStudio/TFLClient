@@ -18,6 +18,8 @@ use std::{
 };
 use zeroize::Zeroizing;
 
+static STORAGE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 const SERVICE: &str = "com.tflives.tflclient.sessions.v2";
 const MAX_RECORD: u64 = 64 * 1024;
 
@@ -80,12 +82,37 @@ impl SecureStorage {
         format!("{:x}", h.finalize())
     }
     pub(crate) fn save(provider: &str, uuid: &str, record: &SessionSecrets) -> crate::Result<()> {
+        let _guard = STORAGE_LOCK
+            .lock()
+            .map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
         Self::write_at(&OsVault, &Self::root()?, &Self::key(provider, uuid), record)
     }
     pub(crate) fn load(provider: &str, uuid: &str) -> crate::Result<Option<SessionSecrets>> {
+        let _guard = STORAGE_LOCK
+            .lock()
+            .map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
         Self::read_at(&OsVault, &Self::root()?, &Self::key(provider, uuid))
     }
+    pub(crate) fn migrate(
+        provider: &str,
+        uuid: &str,
+        record: SessionSecrets,
+    ) -> crate::Result<SessionSecrets> {
+        let _guard = STORAGE_LOCK
+            .lock()
+            .map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
+        let root = Self::root()?;
+        let account = Self::key(provider, uuid);
+        if let Some(current) = Self::read_at(&OsVault, &root, &account)? {
+            return Ok(current);
+        }
+        Self::write_at(&OsVault, &root, &account, &record)?;
+        Ok(record)
+    }
     pub(crate) fn delete(provider: &str, uuid: &str) -> crate::Result<()> {
+        let _guard = STORAGE_LOCK
+            .lock()
+            .map_err(|_| failure("SECURE_STORE_UNAVAILABLE"))?;
         let key = Self::key(provider, uuid);
         let path = Self::root()?.join(format!("{key}.enc"));
         // No record means no need to initialize a potentially unavailable vault.
@@ -105,7 +132,7 @@ impl SecureStorage {
             None if create => {
                 let mut key = Zeroizing::new([0u8; 32]);
                 rand::rng().fill_bytes(&mut *key);
-                let encoded = Zeroizing::new(STANDARD.encode(&*key));
+                let encoded = Zeroizing::new(STANDARD.encode(*key));
                 vault.set(account, &encoded)?;
                 let verified = Zeroizing::new(
                     vault
@@ -145,7 +172,7 @@ impl SecureStorage {
             fs::set_permissions(root, fs::Permissions::from_mode(0o700))?;
         }
         let target = root.join(format!("{account}.enc"));
-        let key = Self::vault_key(vault, account, !target.exists())?;
+        let key = Self::vault_key(vault, account, true)?;
         let cipher = Aes256Gcm::new_from_slice(&key).map_err(|_| failure("SESSION_KEY_INVALID"))?;
         let mut nonce = [0u8; 12];
         rand::rng().fill_bytes(&mut nonce);

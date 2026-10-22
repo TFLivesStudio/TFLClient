@@ -2,11 +2,11 @@
 use crate::{core::microsoft_identity, services::SettingsManager};
 use launchwerk::auth::{AccountType, MinecraftUser, microsoft::MicrosoftAuth};
 use std::sync::LazyLock;
-static REFRESH_LOCK: LazyLock<tokio::sync::Mutex<()>> =
+pub(crate) static ACCOUNT_SESSION_LOCK: LazyLock<tokio::sync::Mutex<()>> =
     LazyLock::new(|| tokio::sync::Mutex::new(()));
 
 pub async fn active_user_fresh() -> Result<MinecraftUser, String> {
-    let _guard = REFRESH_LOCK.lock().await;
+    let _guard = ACCOUNT_SESSION_LOCK.lock().await;
     let mut user = SettingsManager::read().get_user();
     if user.user_type == AccountType::Cracked {
         return Ok(user);

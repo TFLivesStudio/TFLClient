@@ -57,6 +57,9 @@ pub struct AccountSessionStatus {
 }
 #[command]
 pub async fn account_session_statuses() -> Result<Vec<AccountSessionStatus>, String> {
+    let _account_guard = crate::services::mojang_auth::ACCOUNT_SESSION_LOCK
+        .lock()
+        .await;
     let users = SettingsManager::read().user.clone();
     let identity = crate::core::microsoft_identity::configured()?;
     tokio::task::spawn_blocking(move || {
@@ -93,6 +96,9 @@ pub async fn account_session_statuses() -> Result<Vec<AccountSessionStatus>, Str
 
 #[command]
 pub async fn add_offline_account(username: String) -> Result<MinecraftUser, String> {
+    let _account_guard = crate::services::mojang_auth::ACCOUNT_SESSION_LOCK
+        .lock()
+        .await;
     if username.trim().is_empty() {
         return Err("El nombre de usuario no puede estar vacío".into());
     }
@@ -157,6 +163,9 @@ pub fn account_allows_multiplayer() -> bool {
 
 #[command]
 pub async fn logout() -> Result<(), String> {
+    let _account_guard = crate::services::mojang_auth::ACCOUNT_SESSION_LOCK
+        .lock()
+        .await;
     info!("Cerrando sesión de usuario");
     SettingsManager::write(|s| {
         s.active_user_idx = 0;
@@ -176,6 +185,9 @@ pub fn get_user_list() -> Vec<MinecraftUser> {
 
 #[command]
 pub async fn switch_user(uuid: String) -> Result<MinecraftUser, String> {
+    let _account_guard = crate::services::mojang_auth::ACCOUNT_SESSION_LOCK
+        .lock()
+        .await;
     let user = SettingsManager::write(|s| {
         if let Some(idx) = s.user.iter().position(|u| u.uuid == uuid) {
             s.active_user_idx = idx;
@@ -189,6 +201,9 @@ pub async fn switch_user(uuid: String) -> Result<MinecraftUser, String> {
 
 #[command]
 pub async fn remove_user(uuid: String) -> Result<(), String> {
+    let _account_guard = crate::services::mojang_auth::ACCOUNT_SESSION_LOCK
+        .lock()
+        .await;
     // Si la cuenta activa era otra (no la que se está borrando), reindexar
     // por posición numérica después de un `retain` la puede cambiar sola
     // sin que el usuario elija nada — ej. [A,B,C] activa=B(idx1), se borra

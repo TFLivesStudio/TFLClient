@@ -180,6 +180,7 @@
 		</p>
 	{/if}
 	{#if login?.user_code}
+		<p class="auth-hint">{login.verification_uri}</p>
 		<div class="auth-device">
 			<code aria-label={text('Código de dispositivo', 'Device code')}>{login.user_code}</code>
 			<button type="button" onclick={copyCode}
@@ -236,8 +237,8 @@
 	{/if}
 	<p class="auth-footnote">
 		{text(
-			'El inicio de sesión requiere tu autorización local. Los asistentes MCP no pueden acceder a tus credenciales.',
-			'Sign-in requires your local authorization. MCP assistants cannot access your credentials.'
+			'La sesión se protege con el almacén seguro del sistema. Si no está disponible, podrás elegir una sesión temporal.',
+			'The system secure store protects your session. If it is unavailable, you can choose a temporary session.'
 		)}
 	</p>
 </div>

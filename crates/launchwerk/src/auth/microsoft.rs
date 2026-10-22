@@ -140,8 +140,10 @@ pub fn service_error(stage: &str, status: u16, json: &serde_json::Value) -> crat
             },
             "minecraft"
                 if status == 403
-                    && json.get("error").and_then(|v| v.as_str()).is_some_and(|s| {
-                        s.to_ascii_lowercase().contains("invalid app registration")
+                    && ["error", "errorMessage"].iter().any(|key| {
+                        json.get(*key).and_then(|v| v.as_str()).is_some_and(|s| {
+                            s.to_ascii_lowercase().contains("invalid app registration")
+                        })
                     }) =>
             {
                 "MINECRAFT_APP_NOT_APPROVED"

@@ -154,7 +154,7 @@ impl MinecraftUser {
                         None
                     },
                 };
-                SecureStorage::save(&self.provider(), &self.uuid, &record)?;
+                let record = SecureStorage::migrate(&self.provider(), &self.uuid, record)?;
                 // Failure preserves the account and old files; never silently downgrades.
                 SecureStorage::delete_legacy(&self.uuid)?;
                 record

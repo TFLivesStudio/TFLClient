@@ -46,6 +46,29 @@ fn terminal(phase: &str) -> bool {
     matches!(phase, "success" | "error" | "cancelled" | "expired")
 }
 impl Attempt {
+    fn begin_commit(&self) -> Result<(), String> {
+        let mut state = self.state.lock();
+        self.control
+            .check()
+            .map_err(|e| safe_error(&e.to_string()))?;
+        if terminal(&state.snapshot.phase) {
+            return Err("AUTH_CANCELLED".into());
+        }
+        if state.committing {
+            return Err("AUTH_FINISHING".into());
+        }
+        state.committing = true;
+        state.snapshot.phase = "saving".into();
+        Ok(())
+    }
+    fn request_cancel(&self) -> Result<(), String> {
+        let state = self.state.lock();
+        if state.committing {
+            return Err("AUTH_FINISHING".into());
+        }
+        self.control.cancel();
+        Ok(())
+    }
     fn snapshot(&self) -> LoginSnapshot {
         let mut public = self.state.lock().snapshot.clone();
         public.expires_in = self
@@ -127,6 +150,16 @@ pub fn safe_error(error: &str) -> String {
         .unwrap_or(&"AUTH_RESPONSE_INVALID")
         .to_string()
 }
+fn reserve(current: &mut Option<Arc<Attempt>>, attempt: Arc<Attempt>) -> Result<(), String> {
+    if current
+        .as_ref()
+        .is_some_and(|a| !terminal(&a.state.lock().snapshot.phase))
+    {
+        return Err("AUTH_BUSY".into());
+    }
+    *current = Some(attempt);
+    Ok(())
+}
 fn find(id: &str) -> Result<Arc<Attempt>, String> {
     CURRENT
         .lock()
@@ -189,16 +222,7 @@ pub fn start(
             committing: false,
         }),
     });
-    {
-        let mut current = CURRENT.lock();
-        if current
-            .as_ref()
-            .is_some_and(|a| !terminal(&a.state.lock().snapshot.phase))
-        {
-            return Err("AUTH_BUSY".into());
-        }
-        *current = Some(attempt.clone());
-    }
+    reserve(&mut CURRENT.lock(), attempt.clone())?;
     let initial = attempt.snapshot();
     let method = method.to_string();
     let watchdog = attempt.clone();
@@ -244,13 +268,7 @@ fn close_window(app: &AppHandle, id: &str) {
 }
 pub fn cancel(app: &AppHandle, id: &str) -> Result<LoginSnapshot, String> {
     let a = find(id)?;
-    {
-        let state = a.state.lock();
-        if state.committing {
-            return Err("AUTH_FINISHING".into());
-        }
-        a.control.cancel();
-    }
+    a.request_cancel()?;
     a.fail("AUTH_CANCELLED".into());
     close_window(app, id);
     Ok(a.snapshot())
@@ -282,7 +300,16 @@ pub async fn retry_storage(id: &str) -> Result<LoginSnapshot, String> {
     Ok(a.snapshot())
 }
 async fn persist(a: &Arc<Attempt>, mut user: MinecraftUser, memory: bool) -> Result<(), String> {
+    let _account_guard = crate::services::mojang_auth::ACCOUNT_SESSION_LOCK
+        .lock()
+        .await;
     a.control.check().map_err(|e| safe_error(&e.to_string()))?;
+    if a.expected_uuid
+        .as_ref()
+        .is_some_and(|uuid| !SettingsManager::read().user.iter().any(|u| u.uuid == *uuid))
+    {
+        return Err("ACCOUNT_MISMATCH".into());
+    }
     if a.expected_uuid
         .as_ref()
         .is_some_and(|uuid| *uuid != user.uuid)
@@ -290,15 +317,7 @@ async fn persist(a: &Arc<Attempt>, mut user: MinecraftUser, memory: bool) -> Res
         return Err("ACCOUNT_MISMATCH".into());
     }
     user.session_only = memory;
-    {
-        let mut state = a.state.lock();
-        a.control.check().map_err(|e| safe_error(&e.to_string()))?;
-        if terminal(&state.snapshot.phase) {
-            return Err("AUTH_CANCELLED".into());
-        }
-        state.committing = true;
-        state.snapshot.phase = "saving".into();
-    }
+    a.begin_commit()?;
     if !memory {
         let copy = user.clone();
         let saved = tauri::async_runtime::spawn_blocking(move || copy.save_tokens()).await;
@@ -419,7 +438,9 @@ fn device(
         let mut state = a.state.lock();
         state.snapshot.method = "device".into();
         state.snapshot.phase = "waiting".into();
-        state.snapshot.domain = Some("microsoft.com".into());
+        state.snapshot.domain = Url::parse(&device.verification_uri)
+            .ok()
+            .and_then(|url| url.host_str().map(str::to_string));
         state.snapshot.user_code = Some(device.user_code);
         state.snapshot.verification_uri = Some(device.verification_uri);
     }
@@ -627,6 +648,9 @@ fn embedded(
     // Deliberately no capability matches this label, no remote capability is granted,
     // no initialization script, no IPC command or arbitrary opener is exposed.
     let page_attempt = a.clone();
+    let loaded = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let page_loaded = loaded.clone();
+    let first_load_deadline = std::time::Instant::now() + Duration::from_secs(20);
     let builder = WebviewWindowBuilder::new(app, &label, WebviewUrl::External(url))
         .title("Iniciar sesión con Microsoft — login.microsoftonline.com")
         .inner_size(540.0, 740.0)
@@ -634,6 +658,7 @@ fn embedded(
         .resizable(true)
         .decorations(true)
         .incognito(true)
+        .devtools(false)
         .disable_drag_drop_handler()
         .on_navigation(move |url| {
             let mut holder = navigation_tx.lock();
@@ -664,7 +689,12 @@ fn embedded(
                 let host = payload.url().host_str().unwrap_or("Microsoft");
                 let _ = window.set_title(&format!("Iniciar sesión con Microsoft — {host}"));
                 page_attempt.state.lock().snapshot.domain = Some(host.into());
-                page_attempt.phase("waiting");
+                if payload.event() == tauri::webview::PageLoadEvent::Finished {
+                    page_loaded.store(true, std::sync::atomic::Ordering::SeqCst);
+                    page_attempt.phase("waiting");
+                } else {
+                    page_attempt.phase("opening");
+                }
             }
         });
     let window = builder.build().map_err(|_| "EMBEDDED_UNAVAILABLE")?;
@@ -674,6 +704,11 @@ fn embedded(
         }
     });
     let result = loop {
+        if !loaded.load(std::sync::atomic::Ordering::SeqCst)
+            && std::time::Instant::now() >= first_load_deadline
+        {
+            break Err("EMBEDDED_UNAVAILABLE".into());
+        }
         if let Err(error) = a.control.check() {
             break Err(safe_error(&error.to_string()));
         }
@@ -729,5 +764,127 @@ mod tests {
             safe_error("https://callback?code=secret&access_token=private"),
             "AUTH_RESPONSE_INVALID"
         );
+    }
+}
+
+#[cfg(test)]
+mod operation_tests {
+    use super::*;
+    fn attempt() -> Arc<Attempt> {
+        Arc::new(Attempt {
+            id: "isolated-test".into(),
+            control: LoginControl::default(),
+            expected_uuid: None,
+            state: Mutex::new(State {
+                pending: None,
+                committing: false,
+                snapshot: LoginSnapshot {
+                    id: "isolated-test".into(),
+                    phase: "waiting".into(),
+                    method: "device".into(),
+                    domain: None,
+                    user_code: Some("PUBLIC-CODE".into()),
+                    verification_uri: None,
+                    error: None,
+                    user: None,
+                    expires_in: 300,
+                    test_build: false,
+                },
+            }),
+        })
+    }
+    #[test]
+    fn cancellation_and_commit_are_mutually_exclusive() {
+        for _ in 0..64 {
+            let a = attempt();
+            let b = a.clone();
+            let barrier = Arc::new(std::sync::Barrier::new(2));
+            let other = barrier.clone();
+            let commit = std::thread::spawn(move || {
+                other.wait();
+                b.begin_commit()
+            });
+            barrier.wait();
+            let cancelled = a.request_cancel();
+            let committed = commit.join().unwrap();
+            assert_ne!(cancelled.is_ok(), committed.is_ok());
+            if cancelled.is_ok() {
+                a.fail("AUTH_CANCELLED".into());
+                assert_eq!(a.snapshot().phase, "cancelled");
+                assert!(a.snapshot().user_code.is_none());
+            } else {
+                assert_eq!(a.snapshot().phase, "saving");
+            }
+        }
+    }
+    #[test]
+    fn expired_or_terminal_attempt_cannot_save_or_be_revived() {
+        let a = attempt();
+        a.fail("AUTH_TIMEOUT".into());
+        assert!(a.begin_commit().is_err());
+        a.phase("waiting");
+        assert_eq!(a.snapshot().phase, "expired");
+        let a = attempt();
+        a.control.cancel();
+        assert!(a.begin_commit().is_err());
+    }
+    #[test]
+    fn secret_fields_are_not_part_of_public_progress() {
+        let a = attempt();
+        let mut s = a.state.lock();
+        s.pending = Some(MinecraftUser::premium(
+            "Fixture".into(),
+            "id".into(),
+            "never-access".into(),
+            Some("never-refresh".into()),
+        ));
+        s.snapshot.phase = "storage_required".into();
+        drop(s);
+        let public = serde_json::to_string(&a.snapshot()).unwrap();
+        assert!(!public.contains("never-"));
+        assert!(!public.contains("device_code"));
+        assert!(!public.contains("verifier"));
+        a.request_cancel().unwrap();
+        a.fail("AUTH_CANCELLED".into());
+        assert!(a.state.lock().pending.is_none());
+    }
+    #[test]
+    fn loopback_socket_rejects_host_injection_and_accepts_one_valid_response() {
+        let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let mut tx = OAuthTransaction::new(
+            format!("http://localhost:{port}/").parse().unwrap(),
+            LoginControl::default(),
+        );
+        let state = tx.state().to_string();
+        let server = std::thread::spawn(move || {
+            for accepted in [false, true] {
+                let (mut stream, peer) = listener.accept().unwrap();
+                assert!(peer.ip().is_loopback());
+                let result = callback_request(&mut stream, port, &mut tx);
+                if accepted {
+                    assert_eq!(result.unwrap().as_deref(), Some("fixture-code"));
+                } else {
+                    assert!(result.is_err());
+                }
+                respond(&mut stream, accepted);
+            }
+        });
+        for host in ["untrusted.invalid".to_string(), format!("localhost:{port}")] {
+            let mut client = TcpStream::connect((std::net::Ipv4Addr::LOCALHOST, port)).unwrap();
+            client
+                .set_read_timeout(Some(Duration::from_secs(3)))
+                .unwrap();
+            write!(
+                client,
+                "GET /?code=fixture-code&state={state} HTTP/1.1\r\nHost: {host}\r\n\r\n"
+            )
+            .unwrap();
+            let mut response = String::new();
+            client.read_to_string(&mut response).unwrap();
+            assert!(response.contains("Cache-Control: no-store"));
+            assert!(!response.contains("fixture-code"));
+        }
+        server.join().unwrap();
     }
 }
