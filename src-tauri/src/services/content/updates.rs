@@ -54,7 +54,7 @@ impl<P: ContentProvider> ContentService<P> {
             .provider
             .latest_versions_from_hashes(&hashes, &loader_str, &instance.mc_version)
             .await
-            .unwrap_or_default();
+            .map_err(|_| "No se pudieron consultar las actualizaciones de mods. Comprueba tu conexión e inténtalo nuevamente".to_string())?;
 
         let mut out = Vec::new();
         for (filename, hash) in hashed {
