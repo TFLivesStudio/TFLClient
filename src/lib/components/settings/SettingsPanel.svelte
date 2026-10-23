@@ -136,7 +136,7 @@
 			: 'aurora'
 	);
 	let font = $state(
-		typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-font') ?? 'system') : 'system'
+		typeof localStorage !== 'undefined' ? (localStorage.getItem('tfl-font') ?? 'nunito') : 'nunito'
 	);
 	let density = $state(
 		typeof localStorage !== 'undefined'
