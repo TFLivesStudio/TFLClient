@@ -194,6 +194,7 @@ pub async fn update_download(app: AppHandle) -> Result<(), String> {
         .map(|p| p.update.clone())
         .ok_or("No hay ninguna actualización pendiente: buscala de nuevo")?;
 
+    let downloaded_version = update.version.clone();
     let mut downloaded: u64 = 0;
     let mut last_emit = Instant::now() - PROGRESS_MIN_INTERVAL;
     let progress_app = app.clone();
@@ -220,10 +221,16 @@ pub async fn update_download(app: AppHandle) -> Result<(), String> {
         },
     );
 
-    if let Some(pending) = PENDING.lock().as_mut() {
-        pending.bytes = Some(bytes);
+    // A manual/automatic update_check may replace PENDING while the old package
+    // is downloading. Never attach old bytes to another version's signed Update.
+    let mut pending_guard = PENDING.lock();
+    match pending_guard.as_mut() {
+        Some(pending) if pending.update.version == downloaded_version => {
+            pending.bytes = Some(bytes);
+            Ok(())
+        }
+        _ => Err("La actualización cambió durante la descarga. Compruébala nuevamente".into()),
     }
-    Ok(())
 }
 
 /// Instala el paquete ya descargado. En Windows el instalador puede cerrar el
