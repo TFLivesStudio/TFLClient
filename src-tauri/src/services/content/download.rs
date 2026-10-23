@@ -116,9 +116,11 @@ pub(crate) async fn download_version_files_tracked(
         filenames.push(file.filename.clone());
     }
 
-    emit(AppEvent::DownloadFinished {
-        task: format!("{}:{}", kind.subdir(), version.name),
-    });
+    if activity.is_none() {
+        emit(AppEvent::DownloadFinished {
+            task: format!("{}:{}", kind.subdir(), version.name),
+        });
+    }
     Ok(filenames)
 }
 

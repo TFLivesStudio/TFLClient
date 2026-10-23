@@ -70,7 +70,9 @@ try {
 		checks.push(`${style}: real-byte presentation, MCP, safe detail, keyboard, noncancellable`);
 		for (let n = 0; n < 5; n++) {
 			await page.getByRole('button', { name: 'Biblioteca', exact: true }).click();
+			assert.equal(await page.locator('.progress-stack progress').getAttribute('value'), '1048576');
 			await page.getByRole('button', { name: /Actividades/ }).click();
+			assert.equal(await page.locator('.progress-stack').count(), 0);
 		}
 		assert.equal(await page.evaluate(() => window.__fixtureActivityListeners()), 1);
 		await page.evaluate(() => {
@@ -92,6 +94,16 @@ try {
 			window.__fixtureActivityChanged();
 		});
 		await page.getByText('Falló', { exact: true }).waitFor();
+		await page.getByRole('button', { name: 'Biblioteca', exact: true }).click();
+		assert.equal(
+			await page.locator('.progress-stack').count(),
+			0,
+			'failed activity cannot leave a phantom download'
+		);
+		await page.getByRole('button', { name: /Actividades/ }).click();
+		checks.push(
+			`${style}: floating bar shares real task progress and disappears on backend failure`
+		);
 		await page.evaluate(() => {
 			window.__activityError = true;
 			window.__fixtureActivityChanged();

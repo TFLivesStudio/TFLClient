@@ -5,10 +5,11 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
-	'0.14.0-beta.7': [
+	'0.14.0-beta.7.1': [
 		'Nuevo centro de Actividades en la barra lateral: sigue las instalaciones de mods, shaders, resource packs y plugins aunque cambies de pantalla.',
 		'Consulta descargas con bytes reales, resultados y detalles de cada operación. El historial conserva las últimas 100 tareas y distingue las interrumpidas tras cerrar el launcher.',
-		'Las instalaciones autorizadas desde MCP aparecen en el mismo centro, respetando tus permisos. Modern y Pixel conservan su estilo y funcionan también en Lite.'
+		'Las instalaciones autorizadas desde MCP aparecen en el mismo centro, respetando tus permisos. Modern y Pixel conservan su estilo y funcionan también en Lite.',
+		'La barra flotante y el personaje siguen el mismo estado real de instalación: no quedan esperando después de un fallo.'
 	],
 	'0.14.0-beta.2': [
 		'Conecta asistentes compatibles mediante MCP local: aprueba cada sesión, limita sus permisos y confirma las acciones críticas desde Integraciones.',

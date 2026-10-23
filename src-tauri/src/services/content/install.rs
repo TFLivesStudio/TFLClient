@@ -52,8 +52,18 @@ impl<P: ContentProvider> ContentService<P> {
         };
         let activity = Operation::content(source, target)?;
         let activity_id = activity.id().to_owned();
+        let label = format!("{}: instalación", request.kind.subdir());
         let result = self.install_tracked(request, &activity).await;
         activity.finish(result.is_ok());
+        // Existing notifications remain; the floating bar now projects the domain task.
+        if result.is_ok() {
+            emit(AppEvent::DownloadFinished { task: label });
+        } else {
+            emit(AppEvent::DownloadFailed {
+                task: label,
+                error: "No se pudo completar la instalación de contenido".into(),
+            });
+        }
         result.map(|_| activity_id)
     }
 
@@ -161,15 +171,6 @@ impl<P: ContentProvider> ContentService<P> {
             return Ok(());
         }
 
-        emit(AppEvent::DownloadProgress {
-            task: format!("{}:{}", req.kind.subdir(), version.name),
-            stage: "downloading".into(),
-            item_current: 0,
-            item_total: 1,
-            bytes_current: 0,
-            bytes_total: 0,
-            current_item: Some(version.name.clone()),
-        });
         ctx.activity.stage(Stage::Downloading);
         let new_files = super::download::download_version_files_tracked(
             req.instance_name,

@@ -53,7 +53,7 @@ este tipo en producción.
 | `bun run lint`                             | PASS                                                                                                                      |
 | `bun run build`                            | PASS                                                                                                                      |
 | `activity_install` con red real            | PASS: descarga/archivo/hash, éxito/fallo e historial                                                                      |
-| `tests/visual/activity.mjs`                | PASS: Modern/Pixel a 800×600 y 1280×720, 8 grupos de comprobaciones; IPC simulado explícito                               |
+| `tests/visual/activity.mjs`                | PASS: Modern/Pixel a 800×600 y 1280×720, 10 grupos de comprobaciones; IPC simulado explícito                              |
 | Login real, lanzamiento de Minecraft y MFA | NO EJECUTADO: no forman parte de la operación piloto; no se usan credenciales del usuario                                 |
 | Recorrido GUI nativo Windows/macOS/Linux   | NO EJECUTADO localmente: entorno Linux headless con WebKit desempaquetado; compilación/empaquetado se verifica en Actions |
 
@@ -67,7 +67,7 @@ almacenamiento. No se afirma que IPC simulado certifique una sesión nativa comp
 
 ## Validar manualmente en Windows, Linux o macOS
 
-1. Activar canal beta y actualizar a beta.7; confirmar versión en Ajustes.
+1. Activar canal beta y actualizar a beta.7.1; confirmar versión en Ajustes.
 2. En una instancia de prueba detenida, instalar contenido compatible. Abrir
    Actividades desde sidebar mientras descarga. Ver tipo, instancia, origen Usuario,
    bytes del archivo actual o progreso indeterminado y resultado final.
@@ -83,6 +83,13 @@ almacenamiento. No se afirma que IPC simulado certifique una sesión nativa comp
    no llega al servicio y no crea actividad ni instala archivos.
 
 ## Aceptación
+
+La revisión final encontró que la barra flotante heredada podía conservar una descarga
+tras un fallo. Se detuvo el workflow de beta.7 antes de publicar una release y se
+preparó beta.7.1, sin reescribir tags. Barra flotante, personaje y Activity Center
+consumen ahora la misma autoridad para la operación piloto. Una prueba de regresión
+comprueba el progreso en Biblioteca, ausencia de duplicados en Actividades y retirada
+de la barra al llegar un fallo backend.
 
 | Criterio | Estado y evidencia                                                                               |
 | -------- | ------------------------------------------------------------------------------------------------ |

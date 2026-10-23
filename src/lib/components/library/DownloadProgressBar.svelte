@@ -1,5 +1,10 @@
 <script lang="ts">
 	import { downloadTasks } from '$lib/state/downloadState.svelte';
+	import { activityState } from '$lib/activity/state.svelte';
+	import { terminal } from '$lib/activity/contract';
+	import { al } from '$lib/activity/labels';
+	import { navigation } from '$lib/visual/navigation.svelte';
+	import { appState } from '$lib/state/state.svelte';
 	import { Download, AlertTriangle } from 'lucide-svelte';
 	import { t as tr, type TranslationKey } from '$lib/i18n/index.svelte';
 
@@ -20,10 +25,31 @@
 	};
 
 	const tasks = $derived(Object.values(downloadTasks));
+	const active = $derived(activityState.snapshot.tasks.filter((task) => !terminal(task.status)));
+	const activityCards = $derived(
+		navigation.section === 'activity' && !appState.selectedInstance ? [] : active.slice(0, 2)
+	);
 </script>
 
-{#if tasks.length > 0}
+{#if tasks.length > 0 || activityCards.length > 0}
 	<div class="progress-stack">
+		{#each activityCards as task (task.id)}
+			<div class="progress-card">
+				<div class="progress-header">
+					<Download size={14} /><span class="progress-title">{al(task.target)}</span>
+				</div>
+				<p class="progress-sub">{al(task.stage)}</p>
+				{#if task.progress}<progress
+						value={task.progress.current}
+						max={task.progress.total}
+						aria-label={al('downloading')}
+					></progress>
+				{:else}<p class="progress-count">{al('unknown')}</p>{/if}
+			</div>
+		{/each}
+		{#if activityCards.length && active.length > activityCards.length}<p class="progress-count">
+				{active.length} · {al('count')}
+			</p>{/if}
 		{#each tasks as t (t.task)}
 			<div class="progress-card" class:failed={!!t.failed}>
 				<div class="progress-header">
@@ -62,6 +88,11 @@
 {/if}
 
 <style>
+	progress {
+		width: 100%;
+		height: 6px;
+		accent-color: var(--accent);
+	}
 	.progress-stack {
 		position: fixed;
 		right: 16px;

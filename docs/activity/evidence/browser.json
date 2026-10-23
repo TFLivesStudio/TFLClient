@@ -3,10 +3,12 @@
 	"checks": [
 		"modern: empty and navigation",
 		"modern: real-byte presentation, MCP, safe detail, keyboard, noncancellable",
+		"modern: floating bar shares real task progress and disappears on backend failure",
 		"modern: navigation retains task, one listener, indeterminate, error/recovery, interrupted history, storage warning, reduced motion",
 		"modern: Light/Dark/OLED, reserved cancel-requested disabled, cancellation rejection stays truthful, success history",
 		"pixel: empty and navigation",
 		"pixel: real-byte presentation, MCP, safe detail, keyboard, noncancellable",
+		"pixel: floating bar shares real task progress and disappears on backend failure",
 		"pixel: navigation retains task, one listener, indeterminate, error/recovery, interrupted history, storage warning, reduced motion",
 		"pixel: Light/Dark/OLED, reserved cancel-requested disabled, cancellation rejection stays truthful, success history"
 	],

@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { reaction } from '$lib/scenes/reactions.svelte';
 	import { downloadTasks } from '$lib/state/downloadState.svelte';
+	import { activityState } from '$lib/activity/state.svelte';
+	import { terminal } from '$lib/activity/contract';
 	import { effects } from '$lib/visual/runtime.svelte';
 	import { scenes } from '$lib/scenes/preferences.svelte';
-	const downloading = $derived(Object.values(downloadTasks).some((t) => !t.failed));
+	const downloading = $derived(
+		Object.values(downloadTasks).some((t) => !t.failed) ||
+			activityState.snapshot.tasks.some((task) => !terminal(task.status))
+	);
 
 	import { SkinViewer3D, Mascot } from '$lib/components/ui';
 	import Tfl from '$lib/icons/Tfl.svelte';

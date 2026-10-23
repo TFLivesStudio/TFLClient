@@ -1,4 +1,4 @@
-# Task/Activity Core v1 — beta.7
+# Task/Activity Core v1 — beta.7.1
 
 ## Authority and existing infrastructure
 
@@ -20,8 +20,12 @@ There was no shared domain task manager. The played-session history remains in
 jobs remain a scoped transport envelope for authorization, queueing, cancellation
 before execution and idempotency. Their content-install result adds `activity_id`
 referencing the single domain activity. No MCP tools/policies/permissions changed.
-The existing download strip remains for legacy installers; new Activity Center never
-derives completion from it. Only the shared content-install service creates these
+The existing download strip and Home character project the same Rust tasks for the
+pilot. The pilot no longer creates transient legacy progress entries, so failure
+cannot leave a phantom download running after Activity Center reports failure. Whole-
+installation completion notifications still use the existing notification bus. Legacy
+installers retain their old strip contract. Activity Center never derives completion
+from that strip. Only the shared content-install service creates these
 activities, so UI and MCP cannot publish conflicting activity state.
 
 ## Public contract
