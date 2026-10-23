@@ -10,6 +10,13 @@ pub(crate) async fn download_single_file(
     dest_dir: &std::path::Path,
     file: &ContentFile,
 ) -> Result<(), String> {
+    download_single_file_tracked(dest_dir, file, None).await
+}
+async fn download_single_file_tracked(
+    dest_dir: &std::path::Path,
+    file: &ContentFile,
+    activity: Option<&crate::services::activity_tasks::Operation>,
+) -> Result<(), String> {
     if is_unsafe_filename(&file.filename) {
         return Err(format!(
             "Nombre de archivo inválido recibido del proveedor: {}",
@@ -33,7 +40,7 @@ pub(crate) async fn download_single_file(
     let mut last_err = String::new();
     for _attempt in 1..=3u8 {
         let tmp = dest_dir.join(format!(".tfl-download-{}", uuid::Uuid::new_v4()));
-        let result = stream_content_download(file, &tmp).await;
+        let result = stream_content_download(file, &tmp, activity).await;
         match result {
             Ok(actual) if actual == *expected => {
                 if let Err(e) = tokio::fs::rename(&tmp, &dest).await {
@@ -78,6 +85,14 @@ pub(crate) async fn download_version_files(
     version: &ContentVersion,
     kind: ContentKind,
 ) -> Result<Vec<String>, String> {
+    download_version_files_tracked(instance_name, version, kind, None).await
+}
+pub(crate) async fn download_version_files_tracked(
+    instance_name: &str,
+    version: &ContentVersion,
+    kind: ContentKind,
+    activity: Option<&crate::services::activity_tasks::Operation>,
+) -> Result<Vec<String>, String> {
     if version.files.is_empty() {
         return Err("No tiene archivos para descargar".into());
     }
@@ -90,13 +105,22 @@ pub(crate) async fn download_version_files(
 
     let mut filenames = Vec::new();
     for file in files_to_install(&version.files) {
-        download_single_file(&dest_dir, file).await?;
+        if let Some(a) = activity {
+            a.stage(crate::services::activity_tasks::Stage::Downloading);
+        }
+        if activity.is_some() {
+            download_single_file_tracked(&dest_dir, file, activity).await?;
+        } else {
+            download_single_file(&dest_dir, file).await?;
+        }
         filenames.push(file.filename.clone());
     }
 
-    emit(AppEvent::DownloadFinished {
-        task: format!("{}:{}", kind.subdir(), version.name),
-    });
+    if activity.is_none() {
+        emit(AppEvent::DownloadFinished {
+            task: format!("{}:{}", kind.subdir(), version.name),
+        });
+    }
     Ok(filenames)
 }
 
@@ -191,6 +215,7 @@ async fn hash_file(path: &std::path::Path) -> Result<String, String> {
 async fn stream_content_download(
     file: &ContentFile,
     tmp: &std::path::Path,
+    activity: Option<&crate::services::activity_tasks::Operation>,
 ) -> Result<String, String> {
     use sha1::{Digest, Sha1};
     use tokio::io::AsyncWriteExt;
@@ -230,6 +255,7 @@ async fn stream_content_download(
         .await
         .map_err(|_| "Cannot create content staging file")?;
     let mut received = 0u64;
+    let total = response.content_length();
     let mut hash = Sha1::new();
     while let Some(chunk) = response
         .chunk()
@@ -237,6 +263,9 @@ async fn stream_content_download(
         .map_err(|_| "Content stream failed")?
     {
         received += chunk.len() as u64;
+        if let Some(a) = activity {
+            a.bytes(received, total);
+        }
         if received > MAX {
             return Err("Content exceeds download limit".into());
         }

@@ -1,0 +1,44 @@
+{
+	"files": ["ferritecore-7.0.3-fabric.jar"],
+	"real_network": true,
+	"snapshot": {
+		"revision": 11,
+		"storage_warning": false,
+		"tasks": [
+			{
+				"cancellable": false,
+				"created_at": 1792711182,
+				"error": "install_failed",
+				"finished_at": 1792711182,
+				"id": "57423777-e455-4b3f-aa5a-01918af006a1",
+				"instance_id": null,
+				"kind": "content.install",
+				"progress": null,
+				"project_id": null,
+				"revision": 11,
+				"source": "ui",
+				"stage": "finished",
+				"status": "failed",
+				"target": "mod",
+				"updated_at": 1792711182
+			},
+			{
+				"cancellable": false,
+				"created_at": 1792711181,
+				"error": null,
+				"finished_at": 1792711182,
+				"id": "1fdc2470-5dbc-43ba-92a8-2e81eeee303d",
+				"instance_id": "ad0ce5cf-d342-45a8-91c5-537ab8024841",
+				"kind": "content.install",
+				"progress": null,
+				"project_id": "uXXizFIs",
+				"revision": 8,
+				"source": "ui",
+				"stage": "finished",
+				"status": "succeeded",
+				"target": "mod",
+				"updated_at": 1792711182
+			}
+		]
+	}
+}

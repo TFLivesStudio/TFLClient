@@ -1,6 +1,7 @@
 <script lang="ts">
 	import NotificationCenter from '$lib/components/refresh/NotificationCenter.svelte';
 	import { vr } from '$lib/i18n/refresh';
+	import { al } from '$lib/activity/labels';
 	import { navigation } from '$lib/visual/navigation.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import { Search } from 'lucide-svelte';
@@ -51,7 +52,8 @@
 	</div>
 	<div class="titlebar-drag" data-tauri-drag-region>
 		<span class="titlebar-location" data-tauri-drag-region
-			>{appState.selectedInstance?.name ?? vr(navigation.section)}</span
+			>{appState.selectedInstance?.name ??
+				(navigation.section === 'activity' ? al('title') : vr(navigation.section))}</span
 		>
 	</div>
 	<button

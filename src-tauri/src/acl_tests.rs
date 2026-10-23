@@ -79,6 +79,8 @@ fn main_window_can_use_every_app_command_and_log_window_only_its_own() {
         "import_scene_video",
         "remove_scene_media",
         "pick_scene_video_file",
+        "get_activity_tasks",
+        "cancel_activity_task",
     ] {
         assert!(
             allowed(&main, cmd),
@@ -110,6 +112,8 @@ fn main_window_can_use_every_app_command_and_log_window_only_its_own() {
         "create_instance_shortcut",
         "remove_mod",
         "import_external_instance",
+        "get_activity_tasks",
+        "cancel_activity_task",
         "playit_unlink",
         "get_perf_report",
         "perf_record",
