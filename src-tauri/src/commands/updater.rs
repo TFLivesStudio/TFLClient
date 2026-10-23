@@ -213,24 +213,31 @@ pub async fn update_download(app: AppHandle) -> Result<(), String> {
         )
         .await
         .map_err(|e| e.to_string())?;
+    let completed_bytes = bytes.len() as u64;
+    // A manual/automatic update_check may replace PENDING while the old package
+    // is downloading. Never attach old bytes to another version's signed Update.
+    {
+        let mut pending_guard = PENDING.lock();
+        match pending_guard.as_mut() {
+            Some(pending) if pending.update.version == downloaded_version => {
+                pending.bytes = Some(bytes);
+            }
+            _ => {
+                return Err(
+                    "La actualización cambió durante la descarga. Compruébala nuevamente".into(),
+                );
+            }
+        }
+    }
+    // Only report 100% after accepting these bytes for the same update.
     let _ = app.emit(
         PROGRESS_EVENT,
         DownloadProgress {
-            downloaded: bytes.len() as u64,
-            total: Some(bytes.len() as u64),
+            downloaded: completed_bytes,
+            total: Some(completed_bytes),
         },
     );
-
-    // A manual/automatic update_check may replace PENDING while the old package
-    // is downloading. Never attach old bytes to another version's signed Update.
-    let mut pending_guard = PENDING.lock();
-    match pending_guard.as_mut() {
-        Some(pending) if pending.update.version == downloaded_version => {
-            pending.bytes = Some(bytes);
-            Ok(())
-        }
-        _ => Err("La actualización cambió durante la descarga. Compruébala nuevamente".into()),
-    }
+    Ok(())
 }
 
 /// Instala el paquete ya descargado. En Windows el instalador puede cerrar el
