@@ -11,6 +11,8 @@ Diagnosticar y reparar fallos de USO REAL, no centrarse en temas/animaciones. Pr
 1. Nombres de instancias nuevas: rechazar nombres de dispositivos reservados por Windows (`CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`, `LPT1`–`LPT9`), nombres ambiguos con espacios/puntos finales y controles. La búsqueda de instancias heredadas sigue utilizando la validación anterior para permitir acceso/migración de nombres históricos.
 2. La consulta de actualizaciones deja de ocultar los errores de Modrinth como «sin actualizaciones». Ahora devuelve un error visible al consumidor del comando.
 
+3. Updater del launcher: si otro chequeo de actualizaciones cambia la versión pendiente durante una descarga, se rechaza asociar bytes del paquete anterior a la nueva versión. Pendiente validar concurrencia y firma con QA.
+
 ## Inventario: hallazgos revisados en fuente, NO todos reproducidos en GUI
 
 ### P0 — riesgo de datos
@@ -20,6 +22,8 @@ Diagnosticar y reparar fallos de USO REAL, no centrarse en temas/animaciones. Pr
 - **B7.2-04: backup de mundo antes de update es best-effort silencioso** — `content/updates.rs::update_all` ignora el resultado de `backup_world_dir`; si existe `saves/` y falla la copia, se sigue tocando el conjunto de mods. Al menos mostrar aviso/permitir abortar de forma segura.
 
 ### P1 — funcionalidad
+- **B7.2-10: race de updater con actualización concurrente** — `commands/updater.rs::update_download` antes guardaba bytes del download terminado en `PENDING` sin comparar la versión contra la que se inició; si otro `update_check` había reemplazado la actualización pendiente, se podían mezclar bytes y metadata. Corregido en PR #11 con validación de versión; pendiente prueba de concurrencia en ejecutable real.
+
 - **B7.2-05: proveedor Modrinth caído se interpreta como «sin updates»** — `content/updates.rs::check_updates` usaba `.unwrap_or_default()`; corregido en esta rama, pendiente CI+GUI.
 - **B7.2-06: nombres reservados/ambiguos en Windows** — `instance_manager.rs::valid_instance_name` validaba separadores pero no nombres especiales; corregido en creación/rename en esta rama, pendiente CI+GUI.
 - **B7.2-07: macOS chooser mata la app** — issue #1, crash confirmado por reporte de usuario de selector nativo para icono/skin. Se necesita ruta alternativa o solución de firmado/notarización con QA real. No cerrar por build exitoso.
