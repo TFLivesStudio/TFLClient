@@ -139,7 +139,7 @@ fn valid_new_instance_name(name: &str) -> Result<(), String> {
     // Enforce on every OS so exported/transferred instances remain usable.
     let basename = name.split('.').next().unwrap_or("").to_ascii_uppercase();
     let reserved = matches!(basename.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
-        || ["COM", "LPT"].iter().any(|prefix| {
+        || ["COM", "LPT"].into_iter().any(|prefix| {
             basename.strip_prefix(prefix).is_some_and(|suffix| {
                 suffix.len() == 1 && matches!(suffix.as_bytes()[0], b'1'..=b'9')
             })
