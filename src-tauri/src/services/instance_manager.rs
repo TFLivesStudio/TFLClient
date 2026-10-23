@@ -138,12 +138,14 @@ fn valid_new_instance_name(name: &str) -> Result<(), String> {
     // Windows reserves these device names even when an extension follows them.
     // Enforce on every OS so exported/transferred instances remain usable.
     let basename = name.split('.').next().unwrap_or("").to_ascii_uppercase();
-    let reserved = matches!(basename.as_str(), "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$")
-        || ["COM", "LPT"].into_iter().any(|prefix| {
-            basename.strip_prefix(prefix).is_some_and(|suffix| {
-                suffix.len() == 1 && matches!(suffix.as_bytes()[0], b'1'..=b'9')
-            })
-        });
+    let reserved = matches!(
+        basename.as_str(),
+        "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$"
+    ) || ["COM", "LPT"].into_iter().any(|prefix| {
+        basename
+            .strip_prefix(prefix)
+            .is_some_and(|suffix| suffix.len() == 1 && matches!(suffix.as_bytes()[0], b'1'..=b'9'))
+    });
     if reserved {
         return Err("Este nombre está reservado por Windows".into());
     }
@@ -411,18 +413,46 @@ mod instance_name_portability_tests {
 
     #[test]
     fn rejects_windows_reserved_devices_even_with_extensions() {
-        for name in ["CON", "con.txt", "AUX", "NUL.zip", "PRN", "COM1", "com9.log", "LPT1", "lpt9.jar", "CONIN$"] {
-            assert!(valid_new_instance_name(name).is_err(), "accepted reserved name: {name}");
+        for name in [
+            "CON", "con.txt", "AUX", "NUL.zip", "PRN", "COM1", "com9.log", "LPT1", "lpt9.jar",
+            "CONIN$",
+        ] {
+            assert!(
+                valid_new_instance_name(name).is_err(),
+                "accepted reserved name: {name}"
+            );
         }
     }
 
     #[test]
     fn rejects_ambiguous_or_invalid_new_names() {
-        for name in ["world.", "world ", " world", "hello\\nthere", ".", "..", "../oops", "name:invalid"] {
-            assert!(valid_new_instance_name(name).is_err(), "accepted invalid name: {name}");
+        for name in [
+            "world.",
+            "world ",
+            " world",
+            "hello\\nthere",
+            ".",
+            "..",
+            "../oops",
+            "name:invalid",
+        ] {
+            assert!(
+                valid_new_instance_name(name).is_err(),
+                "accepted invalid name: {name}"
+            );
         }
-        for name in ["Survival 1.21", "Mi Mundo", "CONstruct", "COM10", "fantasy.world", ".hidden"] {
-            assert!(valid_new_instance_name(name).is_ok(), "rejected valid name: {name}");
+        for name in [
+            "Survival 1.21",
+            "Mi Mundo",
+            "CONstruct",
+            "COM10",
+            "fantasy.world",
+            ".hidden",
+        ] {
+            assert!(
+                valid_new_instance_name(name).is_ok(),
+                "rejected valid name: {name}"
+            );
         }
     }
 
