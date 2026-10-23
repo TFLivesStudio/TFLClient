@@ -254,7 +254,7 @@ export const en: Dictionary = {
 		customTitle: 'Custom',
 		customDesc: 'Create your own instance with the mods you choose.',
 		modpackTitle: 'Modpack',
-		modpackDesc: 'Download an instance already built from TFL Selection.',
+		modpackDesc: 'Download an instance already built from TFL Client.',
 		serverTitle: 'Server',
 		serverDesc: 'Create your own Minecraft server to play with others.',
 		nameLabel: 'Name',
@@ -553,7 +553,7 @@ export const en: Dictionary = {
 		presetHigh: 'High'
 	},
 	home: {
-		exploreTflSelection: 'Explore TFL Selection',
+		exploreTflSelection: 'Explore TFL Client',
 		title: 'Your Minecraft library,\nnicely organized.',
 		subtitle: 'Create an instance to play, install content, and tweak each profile.',
 		modsCardTitle: 'Mods and modpacks',
@@ -591,7 +591,7 @@ export const en: Dictionary = {
 		welcomeTitle: 'Welcome to TFL Client',
 		updatesTitle: "What's new in v{{version}}",
 		tip1: 'Ctrl+K (⌘K on Mac) opens a palette to jump between instances or actions without touching the mouse.',
-		tip2: '"TFL Selection" brings curated modpacks and whatever the team publishes — one click and they\'re ready.',
+		tip2: '"TFL Client" brings curated modpacks and whatever the team publishes — one click and they\'re ready.',
 		tip3: 'Each instance has its own Mods, Shaders and Modpacks tab — nothing mixes between instances.',
 		tip4: 'In Settings → Style you can change accent, surface, density, and even the animated background.',
 		updatedToVersionWithNotes: 'It auto-updated to version {{version}}:',

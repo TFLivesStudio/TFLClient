@@ -129,7 +129,7 @@
 	--sidebar-width: 272px;
 	--titlebar-height: 36px;
 
-	--font-family: -apple-system, 'Segoe UI Variable', 'Segoe UI', Cantarell, sans-serif;
+	--font-family: 'Nunito', -apple-system, 'Segoe UI Variable', 'Segoe UI', Cantarell, sans-serif;
 	--font-brand: 'Monocraft', var(--font-family);
 	--font-size-base: 14px;
 
@@ -846,4 +846,9 @@ html:not([data-no-infinite-fx]):not([data-reduce-motion]):not([data-ambience='mi
 
 .anim-fade-in {
 	animation: tfl-fade-in 0.22s ease both;
+}
+
+/* Explicit OS-font preference remains available after changing the first-run default. */
+:root[data-font='system'] {
+	--font-family: -apple-system, 'Segoe UI Variable', 'Segoe UI', Cantarell, sans-serif;
 }

@@ -253,7 +253,7 @@ export const es = {
 		customTitle: 'Personalizada',
 		customDesc: 'Creá tu propia instancia con los mods que vos elijas.',
 		modpackTitle: 'Modpack',
-		modpackDesc: 'Descargá una instancia ya armada de TFL Selection.',
+		modpackDesc: 'Descargá una instancia ya armada de TFL Client.',
 		serverTitle: 'Servidor',
 		serverDesc: 'Creá tu propio servidor de Minecraft para jugar con otros.',
 		nameLabel: 'Nombre',
@@ -553,7 +553,7 @@ export const es = {
 		presetHigh: 'Alto'
 	},
 	home: {
-		exploreTflSelection: 'Explorar TFL Selection',
+		exploreTflSelection: 'Explorar TFL Client',
 		title: 'Tu biblioteca Minecraft,\nbien organizada.',
 		subtitle: 'Creá una instancia para jugar, instalar contenido y ajustar cada perfil.',
 		modsCardTitle: 'Mods y modpacks',
@@ -591,7 +591,7 @@ export const es = {
 		welcomeTitle: 'Bienvenido a TFL Client',
 		updatesTitle: 'Novedades en v{{version}}',
 		tip1: 'Ctrl+K (⌘K en Mac) abre una paleta para saltar entre instancias o acciones sin tocar el mouse.',
-		tip2: '"TFL Selection" trae modpacks curados y los que publique el equipo — un click y quedan listos.',
+		tip2: '"TFL Client" trae modpacks curados y los que publique el equipo — un click y quedan listos.',
 		tip3: 'Cada instancia tiene su propia pestaña de Mods, Shaders y Modpacks — nada se mezcla entre instancias.',
 		tip4: 'En Ajustes → Estilo podés cambiar acento, superficie, densidad y hasta el fondo animado.',
 		updatedToVersionWithNotes: 'Se actualizó solo a la versión {{version}}:',

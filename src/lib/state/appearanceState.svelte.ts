@@ -70,7 +70,7 @@ export async function restoreAppearance() {
 		['tfl-density', 'data-density', 'comfortable'],
 		['tfl-wallpaper', 'data-wallpaper', 'none'],
 		['tfl-card-style', 'data-card-style', 'rich'],
-		['tfl-font', 'data-font', 'system']
+		['tfl-font', 'data-font', 'nunito']
 	] as const;
 	for (const [storageKey, attribute, defaultValue] of preferences) {
 		let value = localStorage.getItem(storageKey) ?? defaultValue;
