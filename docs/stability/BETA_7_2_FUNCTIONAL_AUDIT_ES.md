@@ -1,3 +1,5 @@
+<!-- prettier-ignore-start -->
+
 # TFL Client 0.14.0-beta.7.2 — Stability & Bugfix (Windows-first)
 
 Base exacta: tag `v0.14.0-beta.7.1` (`f922bb50236a11d47b0197aec62b9ffe516b4d75`), no `main` (rama atrasada) ni PR #9. Esta rama es **trabajo en curso**, no una release ni una certificación.
@@ -65,3 +67,5 @@ Diagnosticar y reparar fallos de USO REAL, no centrarse en temas/animaciones. Pr
 - PR #10 `feat/activity-center` todavía no fue fusionado a `main`; la rama beta.7.2 parte del tag beta.7.1, y el PR de corrección deberá tomar como base `feat/activity-center` para no arrastrar una mezcla espuria de cambios.
 - PR #9 autenticación pendiente y PR #4 Content Discovery mantienen su independencia.
 - Issue #1 macOS ya documenta selección de archivos nativa y crash; no asumir resuelto.
+
+<!-- prettier-ignore-end -->
