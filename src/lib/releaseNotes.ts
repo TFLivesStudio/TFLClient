@@ -286,7 +286,7 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Rediseño: el fondo de pantalla que elegís en Ajustes ahora es siempre el fondo de todo el launcher. Las escenas (vídeo/atmósfera) pasan al cuadro grande de Home y a las tarjetas de la Biblioteca en vista cuadrícula.',
 		'Quitamos 17 de los fondos de pantalla agregados en la beta anterior — estaban en baja resolución y se veían borrosos a pantalla completa. Los demás quedan.'
 	],
-	'0.14.0': [
+	'0.14.1': [
 		'Ajustes rediseñado: se organiza por tareas (General, Apariencia, Rendimiento, Sistema...) con buscador que te lleva directo a cada opción, más ayuda y validación de RAM, Java y variables de entorno.',
 		'Fondos y escenas: 19 fondos de pantalla nuevos (en alta resolución) y 7 paisajes cinemáticos animados. El fondo que elegís es siempre el fondo de todo el launcher; las escenas en vídeo aparecen en el cuadro grande de Home y en las tarjetas de la Biblioteca en vista cuadrícula. Podés asignar una escena distinta a cada instancia.',
 		'Diseña tu consola de rendimiento arrastrando sus tarjetas: varios moldes, gráficas por métrica y colores a elección.',
