@@ -27,7 +27,7 @@
 		onOpenSkinManager
 	}: {
 		instances: InstanceData[];
-		/** true mientras otro modal (Ajustes, Crear instancia, TFL Selection)
+		/** true mientras otro modal (Ajustes, Crear instancia, TFL Client)
 		 * ya está abierto — Cmd/Ctrl+K no debe apilar la paleta encima. */
 		blocked?: boolean;
 		onSelectInstance: (i: InstanceData) => void;
@@ -85,7 +85,7 @@
 		},
 		{
 			id: 'action:tfl-selection',
-			label: 'TFL Selection',
+			label: 'TFL Client',
 			hint: t('commandPalette.action'),
 			icon: Sparkles,
 			run: () => {
