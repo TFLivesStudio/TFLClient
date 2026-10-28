@@ -285,5 +285,13 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Rediseño: el fondo de pantalla que elegís en Ajustes ahora es siempre el fondo de todo el launcher. Las escenas (vídeo/atmósfera) pasan al cuadro grande de Home y a las tarjetas de la Biblioteca en vista cuadrícula.',
 		'Quitamos 17 de los fondos de pantalla agregados en la beta anterior — estaban en baja resolución y se veían borrosos a pantalla completa. Los demás quedan.'
+	],
+	'0.14.0': [
+		'Ajustes rediseñado: se organiza por tareas (General, Apariencia, Rendimiento, Sistema...) con buscador que te lleva directo a cada opción, más ayuda y validación de RAM, Java y variables de entorno.',
+		'Fondos y escenas: 19 fondos de pantalla nuevos (en alta resolución) y 7 paisajes cinemáticos animados. El fondo que elegís es siempre el fondo de todo el launcher; las escenas en vídeo aparecen en el cuadro grande de Home y en las tarjetas de la Biblioteca en vista cuadrícula. Podés asignar una escena distinta a cada instancia.',
+		'Diseña tu consola de rendimiento arrastrando sus tarjetas: varios moldes, gráficas por métrica y colores a elección.',
+		'Conectá asistentes compatibles por MCP local desde Integraciones: aprobás cada sesión y limitás sus permisos a mano.',
+		'36 íconos de instancia nuevos, y la lista de instancias en la barra lateral ahora muestra el ícono real en vez de solo las iniciales.',
+		'Arreglado: el botón Detener de la ventana de log no respondía mientras el juego corría; búsquedas en Ajustes podían dejar visible una pestaña fuera de los resultados; la marca "TFL Selection" en Explorar mostraba un ícono genérico en vez del logo real.'
 	]
 };
