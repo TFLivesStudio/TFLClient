@@ -5,6 +5,11 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.0-beta.1': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Importá un archivo .mrpack suelto (de Modrinth, Prism o CurseForge) desde Biblioteca → Importar instancia: configura sola la versión de Minecraft, el loader y los mods.',
+		'La detección automática de instancias para importar ahora también encuentra las de la app de Modrinth, además de Prism, MultiMC, PolyMC y CurseForge.'
+	],
 	'0.14.0-beta.2': [
 		'Conecta asistentes compatibles mediante MCP local: aprueba cada sesión, limita sus permisos y confirma las acciones críticas desde Integraciones.',
 		'Cinco paisajes cinematográficos nuevos, miniaturas fieles y vídeos a 720p, manteniendo Lite estático y los fondos personales.',
