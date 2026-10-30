@@ -110,6 +110,8 @@ fn main_window_can_use_every_app_command_and_log_window_only_its_own() {
         "create_instance_shortcut",
         "remove_mod",
         "import_external_instance",
+        "inspect_mrpack",
+        "import_mrpack_file",
         "playit_unlink",
         "get_perf_report",
         "perf_record",

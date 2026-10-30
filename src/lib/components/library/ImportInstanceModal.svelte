@@ -1,10 +1,17 @@
 <script lang="ts">
 	import { modalFocus } from '$lib/visual/modalFocus';
 	import { onMount } from 'svelte';
-	import type { ImportCandidate, InstanceData } from '$lib/types/types';
-	import { detectImportableInstances, importExternalInstance } from '$lib/api';
+	import type { ImportCandidate, InstanceData, MrpackPreview } from '$lib/types/types';
+	import {
+		detectImportableInstances,
+		importExternalInstance,
+		inspectMrpack,
+		importMrpackFile,
+		pickContentFiles
+	} from '$lib/api';
+	import { appState } from '$lib/state/state.svelte';
 	import { t } from '$lib/i18n/index.svelte';
-	import { Loader2, Download } from 'lucide-svelte';
+	import { Loader2, Download, FolderInput } from 'lucide-svelte';
 
 	let {
 		onClose,
@@ -22,8 +29,80 @@
 		prism: 'Prism Launcher',
 		multimc: 'MultiMC',
 		polymc: 'PolyMC',
-		curseforge: 'CurseForge'
+		curseforge: 'CurseForge',
+		modrinth_app: 'Modrinth App'
 	};
+
+	// Importar un .mrpack suelto (exportado de Prism, de la app de Modrinth,
+	// de CurseForge, o bajado de cualquier lado) — vista aparte de la lista
+	// de arriba, que solo detecta instalaciones de OTROS launchers en el
+	// equipo. Mismo modal porque las dos terminan en lo mismo: una
+	// instancia nueva vía `onImported`.
+	let view = $state<'list' | 'mrpack'>('list');
+	let mrpackPath = $state<string | null>(null);
+	let mrpackPreview = $state<MrpackPreview | null>(null);
+	let mrpackName = $state('');
+	let mrpackBusy = $state<'pick' | 'inspect' | 'import' | null>(null);
+	let mrpackError = $state<string | null>(null);
+
+	// El diálogo nativo de archivos crashea el launcher en macOS con la
+	// firma ad-hoc del build (ver CHANGELOG_macos-dialog-crash-java26.txt) —
+	// mismo gate que `pick_content_files` en ContentManager/InstanceIconPicker.
+	let dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');
+
+	const LOADER_LABEL: Record<MrpackPreview['loader'], string> = {
+		vanilla: 'Vanilla',
+		fabric: 'Fabric',
+		quilt: 'Quilt',
+		forge: 'Forge',
+		neoforge: 'NeoForge'
+	};
+
+	async function pickMrpack() {
+		if (dialogsBlocked || mrpackBusy) return;
+		mrpackError = null;
+		mrpackBusy = 'pick';
+		const paths = await pickContentFiles('mrpack', 'Modpack (.mrpack)');
+		if (paths.length === 0) {
+			mrpackBusy = null;
+			return;
+		}
+		mrpackBusy = 'inspect';
+		try {
+			const preview = await inspectMrpack(paths[0]);
+			mrpackPath = paths[0];
+			mrpackPreview = preview;
+			mrpackName = preview.suggested_name;
+			view = 'mrpack';
+		} catch (e) {
+			mrpackError = String(e);
+		} finally {
+			mrpackBusy = null;
+		}
+	}
+
+	async function confirmMrpackImport() {
+		const name = mrpackName.trim();
+		if (!mrpackPath || !name || mrpackBusy) return;
+		mrpackBusy = 'import';
+		mrpackError = null;
+		try {
+			const instance = await importMrpackFile(mrpackPath, name);
+			onImported(instance);
+		} catch (e) {
+			mrpackError = String(e);
+			mrpackBusy = null;
+		}
+	}
+
+	function backToList() {
+		if (mrpackBusy) return;
+		view = 'list';
+		mrpackPath = null;
+		mrpackPreview = null;
+		mrpackName = '';
+		mrpackError = null;
+	}
 
 	onMount(async () => {
 		try {
@@ -57,12 +136,18 @@
 	}
 </script>
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && !importing && onClose()} />
+<svelte:window
+	onkeydown={(e) =>
+		e.key === 'Escape' &&
+		!importing &&
+		!mrpackBusy &&
+		(view === 'mrpack' ? backToList() : onClose())}
+/>
 
 <div
 	class="overlay"
-	onclick={() => !importing && onClose()}
-	onkeydown={(e) => e.key === 'Escape' && !importing && onClose()}
+	onclick={() => !importing && !mrpackBusy && onClose()}
+	onkeydown={(e) => e.key === 'Escape' && !importing && !mrpackBusy && onClose()}
 	role="button"
 	tabindex="-1"
 >
@@ -75,65 +160,135 @@
 		aria-modal="true"
 		tabindex="-1"
 	>
-		<h2>{t('importInstance.title')}</h2>
-		<p class="subtitle">{t('importInstance.subtitle')}</p>
+		{#if view === 'list'}
+			<h2>{t('importInstance.title')}</h2>
+			<p class="subtitle">{t('importInstance.subtitle')}</p>
 
-		{#if loading}
-			<div class="state"><Loader2 size={16} class="spin" /> {t('importInstance.searching')}</div>
-		{:else if candidates.length === 0}
-			<p class="empty">{t('importInstance.none')}</p>
-		{:else}
-			<div class="list">
-				{#each candidates as c (c.path)}
-					<button
-						type="button"
-						class="candidate"
-						class:selected={selectedPath === c.path}
-						disabled={!c.mc_version}
-						onclick={() => select(c)}
-					>
-						<span class="c-main">
-							<span class="c-name">{c.name}</span>
-							<span class="c-meta">
-								{c.mc_version ?? t('importInstance.unknownVersion')} · {c.loader} · {t(
-									'importInstance.modCount',
-									{
-										count: c.mod_count
-									}
-								)}
+			{#if loading}
+				<div class="state">
+					<Loader2 size={16} class="spin" />
+					{t('importInstance.searching')}
+				</div>
+			{:else if candidates.length === 0}
+				<p class="empty">{t('importInstance.none')}</p>
+			{:else}
+				<div class="list">
+					{#each candidates as c (c.path)}
+						<button
+							type="button"
+							class="candidate"
+							class:selected={selectedPath === c.path}
+							disabled={!c.mc_version}
+							onclick={() => select(c)}
+						>
+							<span class="c-main">
+								<span class="c-name">{c.name}</span>
+								<span class="c-meta">
+									{c.mc_version ?? t('importInstance.unknownVersion')} · {c.loader} · {t(
+										'importInstance.modCount',
+										{
+											count: c.mod_count
+										}
+									)}
+								</span>
 							</span>
-						</span>
-						<span class="c-source">{SOURCE_LABEL[c.source]}</span>
-					</button>
-				{/each}
-			</div>
-		{/if}
+							<span class="c-source">{SOURCE_LABEL[c.source]}</span>
+						</button>
+					{/each}
+				</div>
+			{/if}
 
-		{#if selectedPath}
-			<label class="name-field">
-				{t('importInstance.nameLabel')}
-				<input type="text" bind:value={nameInput} disabled={importing} maxlength="60" />
-			</label>
-			<p class="hint">{t('importInstance.hint')}</p>
-		{/if}
+			{#if selectedPath}
+				<label class="name-field">
+					{t('importInstance.nameLabel')}
+					<input type="text" bind:value={nameInput} disabled={importing} maxlength="60" />
+				</label>
+				<p class="hint">{t('importInstance.hint')}</p>
+			{/if}
 
-		{#if error}<p class="error">{error}</p>{/if}
+			{#if error}<p class="error">{error}</p>{/if}
 
-		<div class="actions">
-			<button type="button" class="secondary" disabled={importing} onclick={onClose}>
-				{t('common.cancel')}
-			</button>
+			<div class="divider"><span>{t('importInstance.orDivider')}</span></div>
+
 			<button
 				type="button"
-				class="primary"
-				disabled={!selectedPath || !nameInput.trim() || importing}
-				onclick={handleImport}
+				class="mrpack-btn"
+				disabled={dialogsBlocked || !!mrpackBusy}
+				title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
+				onclick={pickMrpack}
 			>
-				{#if importing}<Loader2 size={14} class="spin" />{t(
-						'importInstance.importing'
-					)}{:else}<Download size={14} />{t('importInstance.import')}{/if}
+				{#if mrpackBusy === 'pick' || mrpackBusy === 'inspect'}
+					<Loader2 size={14} class="spin" />
+				{:else}
+					<FolderInput size={14} />
+				{/if}
+				{t('importInstance.mrpackButton')}
 			</button>
-		</div>
+			{#if dialogsBlocked}
+				<p class="hint">{t('importInstance.mrpackDialogsBlocked')}</p>
+			{/if}
+			{#if mrpackError}<p class="error">{mrpackError}</p>{/if}
+
+			<div class="actions">
+				<button type="button" class="secondary" disabled={importing} onclick={onClose}>
+					{t('common.cancel')}
+				</button>
+				<button
+					type="button"
+					class="primary"
+					disabled={!selectedPath || !nameInput.trim() || importing}
+					onclick={handleImport}
+				>
+					{#if importing}<Loader2 size={14} class="spin" />{t(
+							'importInstance.importing'
+						)}{:else}<Download size={14} />{t('importInstance.import')}{/if}
+				</button>
+			</div>
+		{:else if mrpackPreview}
+			<h2>{t('importInstance.mrpackPreviewTitle')}</h2>
+			<p class="subtitle">
+				{mrpackPreview.mc_version} · {LOADER_LABEL[mrpackPreview.loader]}
+				{#if mrpackPreview.loader_version}
+					{mrpackPreview.loader_version}
+				{/if}
+				· {t('importInstance.mrpackFileCount', { count: mrpackPreview.file_count })}
+			</p>
+			{#if mrpackPreview.summary}<p class="hint">{mrpackPreview.summary}</p>{/if}
+
+			<label class="name-field">
+				{t('importInstance.nameLabel')}
+				<input
+					type="text"
+					bind:value={mrpackName}
+					disabled={mrpackBusy === 'import'}
+					maxlength="60"
+				/>
+			</label>
+			<p class="hint">{t('importInstance.hint')}</p>
+
+			{#if mrpackError}<p class="error">{mrpackError}</p>{/if}
+
+			<div class="actions">
+				<button
+					type="button"
+					class="secondary"
+					disabled={mrpackBusy === 'import'}
+					onclick={backToList}
+				>
+					{t('common.back')}
+				</button>
+				<button
+					type="button"
+					class="primary"
+					disabled={!mrpackName.trim() || mrpackBusy === 'import'}
+					onclick={confirmMrpackImport}
+				>
+					{#if mrpackBusy === 'import'}<Loader2 size={14} class="spin" />{t(
+							'importInstance.mrpackImporting'
+						)}{:else}<Download size={14} />{t('importInstance.mrpackConfirm')}{/if}
+				</button>
+			</div>
+		{/if}
 	</div>
 </div>
 
@@ -244,6 +399,50 @@
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
 		color: var(--text-muted);
+	}
+
+	.divider {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 6px 0;
+		font-size: 0.68rem;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--text-muted);
+	}
+
+	.divider::before,
+	.divider::after {
+		content: '';
+		flex: 1;
+		height: 1px;
+		background: var(--border);
+	}
+
+	.mrpack-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 10px 12px;
+		border-radius: var(--border-radius);
+		border: 1px dashed var(--border);
+		background: var(--bg-input);
+		color: var(--text-primary);
+		font-size: 0.82rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.mrpack-btn:hover:not(:disabled) {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.mrpack-btn:disabled {
+		opacity: 0.5;
+		cursor: default;
 	}
 
 	.name-field {

@@ -317,13 +317,20 @@ export const en: Dictionary = {
 		title: 'Import instance',
 		subtitle: 'We found these instances in other launchers installed on your computer.',
 		searching: 'Looking for instances…',
-		none: 'We did not find Prism, MultiMC, PolyMC or CurseForge instances in the usual folders.',
+		none: 'We did not find Prism, MultiMC, PolyMC, CurseForge or Modrinth App instances in the usual folders.',
 		unknownVersion: 'unknown version',
 		modCount: '{{count}} mods',
 		nameLabel: 'Name in TFL Client',
 		hint: 'A new instance is created with its mods, configs, worlds and packs. The original is not touched. The loader is installed at its latest version for that Minecraft version.',
 		import: 'Import',
-		importing: 'Importing…'
+		importing: 'Importing…',
+		orDivider: 'or',
+		mrpackButton: 'Import .mrpack file',
+		mrpackDialogsBlocked: 'Enable Manual mode in Settings to pick a .mrpack file.',
+		mrpackPreviewTitle: 'Confirm modpack',
+		mrpackFileCount: '{{count}} files',
+		mrpackConfirm: 'Import modpack',
+		mrpackImporting: 'Importing modpack…'
 	},
 	contentManager: {
 		manageTab: 'Manage',

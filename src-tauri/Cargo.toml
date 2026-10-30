@@ -62,6 +62,10 @@ playit-agent-core = "0.20"
 playit-api-client = "0.1"
 rand = "0.9"
 hex = "0.4"
+# Solo para leer (nunca escribir) la base de datos SQLite de la app de
+# Modrinth al detectar sus instancias para importar — ver import_launchers.rs.
+# "bundled" para no depender de libsqlite3 del sistema en ninguna plataforma.
+rusqlite = { version = "0.37", features = ["bundled"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"

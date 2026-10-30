@@ -36,36 +36,42 @@ pub async fn create_instance(
     loader: String,
 ) -> Result<InstanceData, String> {
     let data = instance_manager::create_resolved(name, mc_version, loader).await?;
+    assign_random_icon(&app, &data).await;
+    Ok(data)
+}
 
-    // Ícono al azar del set vendoreado — el usuario lo puede cambiar
-    // después por otro del mismo set o subir el suyo (ver
-    // set_instance_icon_from_preset / set_instance_icon). Si falla (SO
-    // sin el recurso bundleado, por ejemplo en un dev build roto), no
-    // bloquea la creación de la instancia — se queda con el avatar de
-    // letra por defecto.
-    if let Ok(dir) = icon_presets_dir(&app) {
-        if let Ok(mut entries) = tokio::fs::read_dir(&dir).await {
-            let mut files = Vec::new();
-            while let Ok(Some(entry)) = entries.next_entry().await {
-                if entry.path().extension().and_then(|e| e.to_str()) == Some("png") {
-                    files.push(entry.path());
-                }
-            }
-            if !files.is_empty() {
-                let idx = (std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_nanos())
-                    .unwrap_or(0)
-                    % files.len() as u128) as usize;
-                let chosen = &files[idx];
-                let dest = data.dir().join("icon.png");
-                let _ = tokio::fs::create_dir_all(data.dir()).await;
-                let _ = tokio::fs::copy(chosen, &dest).await;
-            }
+/// Ícono al azar del set vendoreado — el usuario lo puede cambiar
+/// después por otro del mismo set o subir el suyo (ver
+/// set_instance_icon_from_preset / set_instance_icon). Si falla (SO
+/// sin el recurso bundleado, por ejemplo en un dev build roto), no
+/// bloquea la creación de la instancia — se queda con el avatar de
+/// letra por defecto. `pub(crate)` para que el import de `.mrpack`
+/// (que crea la instancia con su propia versión de loader) lo reuse.
+pub(crate) async fn assign_random_icon(app: &AppHandle, data: &InstanceData) {
+    let Ok(dir) = icon_presets_dir(app) else {
+        return;
+    };
+    let Ok(mut entries) = tokio::fs::read_dir(&dir).await else {
+        return;
+    };
+    let mut files = Vec::new();
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        if entry.path().extension().and_then(|e| e.to_str()) == Some("png") {
+            files.push(entry.path());
         }
     }
-
-    Ok(data)
+    if files.is_empty() {
+        return;
+    }
+    let idx = (std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0)
+        % files.len() as u128) as usize;
+    let chosen = &files[idx];
+    let dest = data.dir().join("icon.png");
+    let _ = tokio::fs::create_dir_all(data.dir()).await;
+    let _ = tokio::fs::copy(chosen, &dest).await;
 }
 
 #[command]
