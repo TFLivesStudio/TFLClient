@@ -194,9 +194,9 @@ fn detect_curseforge(dir: &Path) -> Option<Detected> {
 /// leyendo el código fuente real de `packages/app-lib` en
 /// github.com/modrinth/code (no hay forma de adivinar esto sin leerlo):
 /// tabla `instances` (name, path relativo a `profiles/`,
-/// applied_content_set_id) y tabla `content_sets` (game_version, loader —
-/// ya en minúsculas: "vanilla"/"fabric"/"quilt"/"forge"/"neoforge", mismo
-/// vocabulario que usa este archivo para Prism/CurseForge).
+/// applied_content_set_id) y tabla `instance_content_sets` (game_version,
+/// loader — ya en minúsculas: "vanilla"/"fabric"/"quilt"/"forge"/"neoforge",
+/// mismo vocabulario que usa este archivo para Prism/CurseForge).
 ///
 /// Limitación conocida: si el usuario cambió la carpeta de instancias desde
 /// los Ajustes de la app de Modrinth (`custom_dir`), esto no la encuentra —
@@ -234,7 +234,7 @@ fn query_modrinth_app_db(settings_dir: &Path, db_path: &Path) -> rusqlite::Resul
     let mut stmt = conn.prepare(
         "SELECT i.name, i.path, cs.game_version, cs.loader \
          FROM instances i \
-         LEFT JOIN content_sets cs ON cs.id = i.applied_content_set_id",
+         LEFT JOIN instance_content_sets cs ON cs.id = i.applied_content_set_id",
     )?;
     let rows = stmt.query_map([], |row| {
         Ok((
@@ -475,13 +475,13 @@ mod tests {
                 path TEXT NOT NULL,
                 applied_content_set_id TEXT
             );
-            CREATE TABLE content_sets (
+            CREATE TABLE instance_content_sets (
                 id TEXT PRIMARY KEY,
                 instance_id TEXT NOT NULL,
                 game_version TEXT NOT NULL,
                 loader TEXT NOT NULL
             );
-            INSERT INTO content_sets (id, instance_id, game_version, loader)
+            INSERT INTO instance_content_sets (id, instance_id, game_version, loader)
                 VALUES ('cs1', 'i1', '1.21.1', 'fabric');
             INSERT INTO instances (id, name, path, applied_content_set_id)
                 VALUES ('i1', 'Mi Pack Fabric', 'fabric-pack', 'cs1');
