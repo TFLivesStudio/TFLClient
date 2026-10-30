@@ -1,6 +1,6 @@
 // Backups de mundos, exportación/importación de instancias
 import { invoke } from './invoke';
-import type { InstanceData, WorldBackup, ImportCandidate } from '$lib/types/types';
+import type { InstanceData, WorldBackup, ImportCandidate, MrpackPreview } from '$lib/types/types';
 
 export const getWorldBackups = (instanceName: string) =>
 	invoke<WorldBackup[]>('get_world_backups', { instanceName });
@@ -18,3 +18,6 @@ export const detectImportableInstances = () =>
 	invoke<ImportCandidate[]>('detect_importable_instances');
 export const importExternalInstance = (path: string, newName: string) =>
 	invoke<InstanceData>('import_external_instance', { path, newName });
+export const inspectMrpack = (path: string) => invoke<MrpackPreview>('inspect_mrpack', { path });
+export const importMrpackFile = (path: string, newName?: string) =>
+	invoke<InstanceData>('import_mrpack_file', { path, newName });

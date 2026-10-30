@@ -339,7 +339,22 @@ fn now_secs() -> i64 {
 }
 
 use aqua::{FabricBatch, QuiltBatch};
-async fn resolve_loader(
+
+/// Id de versión que el launcher usa para lanzar una instancia con ese
+/// loader — mismo formato que arma `resolve_loader` para la versión más
+/// reciente, para cuando la versión del loader se conoce de antemano (ej.
+/// un `.mrpack` que fija una versión exacta).
+pub(crate) fn launch_version_id(mc_version: &str, loader: LoaderKind, lv: &str) -> String {
+    match loader {
+        LoaderKind::Vanilla => mc_version.to_string(),
+        LoaderKind::Fabric => format!("fabric-loader-{lv}-{mc_version}"),
+        LoaderKind::Quilt => format!("quilt-loader-{lv}-{mc_version}"),
+        LoaderKind::Forge => format!("{mc_version}-forge-{lv}"),
+        LoaderKind::NeoForge => format!("{mc_version}-neoforge-{lv}"),
+    }
+}
+
+pub(crate) async fn resolve_loader(
     mc_version: &str,
     loader: LoaderKind,
 ) -> Result<(Option<String>, String), String> {

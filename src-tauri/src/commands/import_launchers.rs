@@ -188,8 +188,90 @@ fn detect_curseforge(dir: &Path) -> Option<Detected> {
     })
 }
 
+/// App de Modrinth (Theseus): desde que pasó a guardar sus datos en SQLite
+/// (antes era un `profile.json` por instancia) hay que leer `app.db` con una
+/// consulta de solo lectura — nunca se escribe ahí. Esquema verificado
+/// leyendo el código fuente real de `packages/app-lib` en
+/// github.com/modrinth/code (no hay forma de adivinar esto sin leerlo):
+/// tabla `instances` (name, path relativo a `profiles/`,
+/// applied_content_set_id) y tabla `content_sets` (game_version, loader —
+/// ya en minúsculas: "vanilla"/"fabric"/"quilt"/"forge"/"neoforge", mismo
+/// vocabulario que usa este archivo para Prism/CurseForge).
+///
+/// Limitación conocida: si el usuario cambió la carpeta de instancias desde
+/// los Ajustes de la app de Modrinth (`custom_dir`), esto no la encuentra —
+/// solo mira la ubicación estándar, igual que el resto de este archivo con
+/// Prism/CurseForge.
+fn detect_modrinth_app() -> Vec<Detected> {
+    let Some(base) = BaseDirs::new() else {
+        return Vec::new();
+    };
+    let settings_dir = base.data_dir().join("ModrinthApp");
+    let db_path = settings_dir.join("app.db");
+    if !db_path.is_file() {
+        return Vec::new();
+    }
+    match query_modrinth_app_db(&settings_dir, &db_path) {
+        Ok(rows) => rows,
+        Err(e) => {
+            // No bloquea el resto de la detección (Prism/CurseForge) por un
+            // problema puntual acá — ej. la app de Modrinth tiene el
+            // archivo bloqueado en ese instante, o cambió de esquema en una
+            // versión nueva.
+            tracing::warn!("No se pudo leer instancias de la app de Modrinth: {e}");
+            Vec::new()
+        }
+    }
+}
+
+fn query_modrinth_app_db(settings_dir: &Path, db_path: &Path) -> rusqlite::Result<Vec<Detected>> {
+    let flags =
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX;
+    let conn = rusqlite::Connection::open_with_flags(db_path, flags)?;
+    // Si la app de Modrinth tiene el archivo con un lock de escritura en
+    // este instante, no nos quedamos colgados esperando.
+    conn.busy_timeout(std::time::Duration::from_millis(500))?;
+    let mut stmt = conn.prepare(
+        "SELECT i.name, i.path, cs.game_version, cs.loader \
+         FROM instances i \
+         LEFT JOIN content_sets cs ON cs.id = i.applied_content_set_id",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, Option<String>>(2)?,
+            row.get::<_, Option<String>>(3)?,
+        ))
+    })?;
+
+    let profiles_dir = settings_dir.join("profiles");
+    let mut out = Vec::new();
+    for row in rows.flatten() {
+        let (name, rel_path, mc_version, loader) = row;
+        let game_dir = profiles_dir.join(&rel_path);
+        if !game_dir.is_dir() {
+            // Fila vieja de una instancia que ya se borró — la carpeta no
+            // existe más.
+            continue;
+        }
+        out.push(Detected {
+            candidate: ImportCandidate {
+                source: "modrinth_app".into(),
+                name,
+                path: game_dir.to_string_lossy().to_string(),
+                mc_version,
+                loader: loader.unwrap_or_else(|| "vanilla".into()),
+                mod_count: count_mods(&game_dir),
+            },
+            game_dir,
+        });
+    }
+    Ok(out)
+}
+
 fn detect_all() -> Vec<Detected> {
-    let mut out: Vec<Detected> = Vec::new();
+    let mut out: Vec<Detected> = detect_modrinth_app();
     for (source, root) in launcher_roots() {
         let Ok(entries) = std::fs::read_dir(&root) else {
             continue;
@@ -376,6 +458,64 @@ mod tests {
             "neoforge"
         );
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    fn make_modrinth_app_db(dir: &Path) -> PathBuf {
+        let settings_dir = dir.join("ModrinthApp");
+        std::fs::create_dir_all(settings_dir.join("profiles").join("fabric-pack")).unwrap();
+        let db_path = settings_dir.join("app.db");
+        // Subconjunto mínimo del esquema real de `packages/app-lib`
+        // (sqlite migrations) — solo las columnas que `query_modrinth_app_db`
+        // lee.
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE instances (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                path TEXT NOT NULL,
+                applied_content_set_id TEXT
+            );
+            CREATE TABLE content_sets (
+                id TEXT PRIMARY KEY,
+                instance_id TEXT NOT NULL,
+                game_version TEXT NOT NULL,
+                loader TEXT NOT NULL
+            );
+            INSERT INTO content_sets (id, instance_id, game_version, loader)
+                VALUES ('cs1', 'i1', '1.21.1', 'fabric');
+            INSERT INTO instances (id, name, path, applied_content_set_id)
+                VALUES ('i1', 'Mi Pack Fabric', 'fabric-pack', 'cs1');
+            -- Instancia sin content set aplicado todavía (recién creada,
+            -- vacía) — mc_version/loader deben salir None/vanilla, no
+            -- tirar error.
+            INSERT INTO instances (id, name, path, applied_content_set_id)
+                VALUES ('i2', 'Vacía', 'no-existe-en-disco', NULL);",
+        )
+        .unwrap();
+        settings_dir
+    }
+
+    #[test]
+    fn modrinth_app_instance_is_detected_with_loader_and_version() {
+        let root = temp_dir("mrapp");
+        let settings_dir = make_modrinth_app_db(&root);
+        let found = query_modrinth_app_db(&settings_dir, &settings_dir.join("app.db")).unwrap();
+        assert_eq!(found.len(), 1, "la fila sin carpeta en disco se descarta");
+        let d = &found[0];
+        assert_eq!(d.candidate.name, "Mi Pack Fabric");
+        assert_eq!(d.candidate.source, "modrinth_app");
+        assert_eq!(d.candidate.mc_version.as_deref(), Some("1.21.1"));
+        assert_eq!(d.candidate.loader, "fabric");
+        assert!(d.game_dir.ends_with("fabric-pack"));
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn modrinth_app_missing_db_file_returns_empty() {
+        let root = temp_dir("mrapp-missing");
+        let err = query_modrinth_app_db(&root, &root.join("no-existe.db"));
+        assert!(err.is_err(), "abrir un archivo que no existe debe fallar");
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]

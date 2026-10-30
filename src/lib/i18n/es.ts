@@ -317,13 +317,20 @@ export const es = {
 		title: 'Importar instancia',
 		subtitle: 'Encontramos estas instancias en otros launchers instalados en tu equipo.',
 		searching: 'Buscando instancias…',
-		none: 'No encontramos instancias de Prism, MultiMC, PolyMC ni CurseForge en las carpetas habituales.',
+		none: 'No encontramos instancias de Prism, MultiMC, PolyMC, CurseForge ni la app de Modrinth en las carpetas habituales.',
 		unknownVersion: 'versión desconocida',
 		modCount: '{{count}} mods',
 		nameLabel: 'Nombre en TFL Client',
 		hint: 'Se crea una instancia nueva con sus mods, configs, mundos y packs. La original no se toca. El loader se instala en su última versión para esa versión de Minecraft.',
 		import: 'Importar',
-		importing: 'Importando…'
+		importing: 'Importando…',
+		orDivider: 'o',
+		mrpackButton: 'Importar archivo .mrpack',
+		mrpackDialogsBlocked: 'Activá el modo Manual en Ajustes para elegir un archivo .mrpack.',
+		mrpackPreviewTitle: 'Confirmar modpack',
+		mrpackFileCount: '{{count}} archivos',
+		mrpackConfirm: 'Importar modpack',
+		mrpackImporting: 'Importando modpack…'
 	},
 	contentManager: {
 		manageTab: 'Gestionar',

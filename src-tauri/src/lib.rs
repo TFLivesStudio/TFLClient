@@ -231,6 +231,8 @@ pub fn run() {
             commands::crash_diagnosis::diagnose_crash,
             commands::import_launchers::detect_importable_instances,
             commands::import_launchers::import_external_instance,
+            commands::import_mrpack::inspect_mrpack,
+            commands::import_mrpack::import_mrpack_file,
             commands::favorite_servers::get_favorite_servers,
             commands::favorite_servers::add_favorite_server,
             commands::favorite_servers::remove_favorite_server,
