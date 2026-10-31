@@ -5,6 +5,10 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.1-beta.1': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arrastrá un archivo .mrpack y soltalo sobre la ventana para importarlo directo, sin pasar por el selector de archivos.'
+	],
 	'0.15.0': [
 		'Importá un archivo .mrpack suelto (de Modrinth, Prism o CurseForge) desde Biblioteca → Importar instancia: configura sola la versión de Minecraft, el loader y los mods.',
 		'La detección automática de instancias para importar ahora también encuentra las de la app de Modrinth, además de Prism, MultiMC, PolyMC y CurseForge.'
