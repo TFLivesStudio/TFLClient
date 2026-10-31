@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import AppShell from '$lib/app/AppShell.svelte';
 	import ModalHost from '$lib/app/ModalHost.svelte';
+	import DragDropOverlay from '$lib/app/DragDropOverlay.svelte';
 	import { isLogWindow, startApp } from '$lib/app/bootstrap';
 	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
 	import CommandPalette from '$lib/components/layout/CommandPalette.svelte';
@@ -29,6 +30,7 @@
 <ModalHost />
 
 {#if !isLogWindow}
+	<DragDropOverlay />
 	<CommandPalette
 		instances={appState.instances}
 		blocked={isCommandPaletteBlocked()}

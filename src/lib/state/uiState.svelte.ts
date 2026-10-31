@@ -140,3 +140,14 @@ export function openSettingsAt(target: import('$lib/settings/catalog').SettingId
 	settingsIntent.target = target;
 	openModal('settings');
 }
+
+/** Arrastrar un .mrpack sobre la ventana y soltarlo abre el modal de
+ * importar directo en la vista de confirmación de ese archivo (ver
+ * `initDragDropListener` en bootstrap.ts y `ImportInstanceModal.svelte`).
+ * Mismo patrón de "intent" que `settingsIntent`: el modal consume y limpia
+ * este valor al montarse. */
+export const mrpackDropIntent = $state<{ path: string | null }>({ path: null });
+export function openMrpackDrop(path: string) {
+	mrpackDropIntent.path = path;
+	openModal('importInstance');
+}

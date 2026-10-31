@@ -330,7 +330,8 @@ export const es = {
 		mrpackPreviewTitle: 'Confirmar modpack',
 		mrpackFileCount: '{{count}} archivos',
 		mrpackConfirm: 'Importar modpack',
-		mrpackImporting: 'Importando modpack…'
+		mrpackImporting: 'Importando modpack…',
+		dropHint: 'Soltá para importar el modpack'
 	},
 	contentManager: {
 		manageTab: 'Gestionar',

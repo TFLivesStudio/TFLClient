@@ -330,7 +330,8 @@ export const en: Dictionary = {
 		mrpackPreviewTitle: 'Confirm modpack',
 		mrpackFileCount: '{{count}} files',
 		mrpackConfirm: 'Import modpack',
-		mrpackImporting: 'Importing modpack…'
+		mrpackImporting: 'Importing modpack…',
+		dropHint: 'Drop to import the modpack'
 	},
 	contentManager: {
 		manageTab: 'Manage',

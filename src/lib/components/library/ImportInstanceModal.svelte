@@ -10,6 +10,7 @@
 		pickContentFiles
 	} from '$lib/api';
 	import { appState } from '$lib/state/state.svelte';
+	import { mrpackDropIntent } from '$lib/state/uiState.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { Loader2, Download, FolderInput } from 'lucide-svelte';
 
@@ -58,6 +59,25 @@
 		neoforge: 'NeoForge'
 	};
 
+	// Compartido entre elegir el archivo a mano (pickMrpack) y soltarlo
+	// arrastrado sobre la ventana (ver mrpackDropIntent más abajo) — las dos
+	// vías terminan en la misma vista de confirmación.
+	async function inspectAndShow(path: string) {
+		mrpackBusy = 'inspect';
+		mrpackError = null;
+		try {
+			const preview = await inspectMrpack(path);
+			mrpackPath = path;
+			mrpackPreview = preview;
+			mrpackName = preview.suggested_name;
+			view = 'mrpack';
+		} catch (e) {
+			mrpackError = String(e);
+		} finally {
+			mrpackBusy = null;
+		}
+	}
+
 	async function pickMrpack() {
 		if (dialogsBlocked || mrpackBusy) return;
 		mrpackError = null;
@@ -67,18 +87,7 @@
 			mrpackBusy = null;
 			return;
 		}
-		mrpackBusy = 'inspect';
-		try {
-			const preview = await inspectMrpack(paths[0]);
-			mrpackPath = paths[0];
-			mrpackPreview = preview;
-			mrpackName = preview.suggested_name;
-			view = 'mrpack';
-		} catch (e) {
-			mrpackError = String(e);
-		} finally {
-			mrpackBusy = null;
-		}
+		await inspectAndShow(paths[0]);
 	}
 
 	async function confirmMrpackImport() {
@@ -103,6 +112,16 @@
 		mrpackName = '';
 		mrpackError = null;
 	}
+
+	// Si se soltó un .mrpack sobre la ventana (ver initDragDropListener) —
+	// al abrir el modal o con el modal ya abierto en la lista — salta directo
+	// a la vista de confirmación con ese archivo.
+	$effect(() => {
+		const path = mrpackDropIntent.path;
+		if (!path) return;
+		mrpackDropIntent.path = null;
+		void inspectAndShow(path);
+	});
 
 	onMount(async () => {
 		try {
