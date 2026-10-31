@@ -85,9 +85,16 @@ export function installFixture({
 		listeners = new Map();
 	let sequence = 0;
 	window.__fixtureCommands = [];
+	// `listen()` real de Tauri separa por nombre de evento — este mock tiene
+	// que hacer lo mismo, si no cualquier listener nuevo (ej. los de
+	// onDragDropEvent, que escuchan tauri://drag-*) recibe también los
+	// `__fixtureEmit` pensados para 'app-event' con un payload que no
+	// entiende y revienta (ver `new PhysicalPosition(undefined)`).
 	window.__fixtureEmit = (type, data) => {
-		for (const cb of listeners.values())
+		for (const { event, cb } of listeners.values()) {
+			if (event !== 'app-event') continue;
 			callbacks.get(cb)?.({ event: 'app-event', id: 1, payload: { type, data } });
+		}
 	};
 	window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
 	window.__TAURI_INTERNALS__ = {
@@ -102,7 +109,7 @@ export function installFixture({
 		invoke: async (cmd, args = {}) => {
 			window.__fixtureCommands.push({ cmd, args });
 			if (cmd === 'plugin:event|listen') {
-				listeners.set(++sequence, args.handler);
+				listeners.set(++sequence, { event: args.event, cb: args.handler });
 				return sequence;
 			}
 			if (cmd === 'plugin:event|unlisten') {
