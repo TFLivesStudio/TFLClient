@@ -5,6 +5,9 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.1': [
+		'Arrastrá un archivo .mrpack y soltalo sobre la ventana para importarlo directo, sin pasar por el selector de archivos.'
+	],
 	'0.15.1-beta.2': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Arrastrá un archivo .mrpack y soltalo sobre la ventana para importarlo directo, sin pasar por el selector de archivos.'
