@@ -1,7 +1,7 @@
 // Browser-only IPC fixture. Never imported by production code.
 export function installFixture({
 	quality = 'Balanced',
-	appVersion = '0.15.2-beta.2',
+	appVersion = '0.15.2',
 	empty = false,
 	language = 'es',
 	theme = 'dark',
