@@ -7,6 +7,7 @@ pub mod mojang_auth;
 pub mod playit_tunnel;
 pub mod port_forward;
 pub mod progress;
+pub mod selection;
 pub mod server_downloads;
 pub mod server_process;
 pub mod settings_manager;
