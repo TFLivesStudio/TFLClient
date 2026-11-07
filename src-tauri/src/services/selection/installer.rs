@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use serde::{Deserialize, Serialize};
 use tokio::sync::Semaphore;
 use tracing::{info, warn};
 
@@ -10,7 +10,7 @@ use super::net::{GithubTransport, Transport};
 use super::signatures::TRUSTED_KEYS;
 use super::util::{atomic_write, sha256_file};
 use crate::core::PathManager;
-use crate::core::event_bus::{emit, AppEvent};
+use crate::core::event_bus::{AppEvent, emit};
 use crate::services::instance_manager::{InstanceData, LoaderKind};
 use crate::services::java_manager;
 
@@ -65,24 +65,6 @@ pub fn write_lockfile(dir: &Path, lock: &SelectionLockfile) -> Result<(), String
     let json = serde_json::to_string_pretty(lock)
         .map_err(|e| format!("Error serializando lockfile: {e}"))?;
     atomic_write(&p, json.as_bytes()).map_err(|e| format!("Error guardando lockfile: {e}"))
-}
-
-fn host_platform() -> &'static str {
-    if cfg!(target_os = "windows") {
-        "windows"
-    } else if cfg!(target_os = "macos") {
-        "macos"
-    } else {
-        "linux"
-    }
-}
-
-fn host_arch() -> &'static str {
-    if cfg!(target_arch = "aarch64") {
-        "arm64"
-    } else {
-        "x64"
-    }
 }
 
 /// Descarga o recupera de la caché el archivo correspondiente a `f`,
@@ -153,7 +135,10 @@ pub async fn ensure_cached_file(
 }
 
 /// Mueve cualquier mod ajeno a la selección hacia `quarantine/`.
-pub fn quarantine_foreign_mods(instance_dir: &Path, managed_rel_paths: &[String]) -> Result<Vec<String>, String> {
+pub fn quarantine_foreign_mods(
+    instance_dir: &Path,
+    managed_rel_paths: &[String],
+) -> Result<Vec<String>, String> {
     let mods_dir = instance_dir.join("mods");
     if !mods_dir.exists() {
         return Ok(Vec::new());
@@ -164,7 +149,12 @@ pub fn quarantine_foreign_mods(instance_dir: &Path, managed_rel_paths: &[String]
 
     let allowed_filenames: std::collections::HashSet<String> = managed_rel_paths
         .iter()
-        .filter_map(|p| Path::new(p).file_name().and_then(|n| n.to_str()).map(|s| s.to_ascii_lowercase()))
+        .filter_map(|p| {
+            Path::new(p)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .map(|s| s.to_ascii_lowercase())
+        })
         .collect();
 
     let read_dir = std::fs::read_dir(&mods_dir).map_err(|e| e.to_string())?;
@@ -258,7 +248,11 @@ pub async fn install_target(
     channel: Channel,
 ) -> Result<InstanceData, String> {
     let transport = GithubTransport;
-    let store = CatalogStore::new(PathManager::get().get_shared_dir().join("selection_catalog"));
+    let store = CatalogStore::new(
+        PathManager::get()
+            .get_shared_dir()
+            .join("selection_catalog"),
+    );
     let snapshot = catalog::refresh(&transport, &store, false)
         .await
         .map_err(|e| format!("No se pudo obtener el catálogo oficial: {e}"))?;
@@ -291,8 +285,14 @@ pub async fn install_target(
         .map_err(|e| format!("Error descargando firma del manifiesto: {e}"))?;
 
     let expected = Expected { target, pointer };
-    let manifest = manifest::load_manifest(&m_bytes.body, &m_sig_bytes.body, &expected, "0.15.2", TRUSTED_KEYS)
-        .map_err(|e| format!("Manifiesto no válido: {e:?}"))?;
+    let manifest = manifest::load_manifest(
+        &m_bytes.body,
+        &m_sig_bytes.body,
+        &expected,
+        env!("CARGO_PKG_VERSION"),
+        TRUSTED_KEYS,
+    )
+    .map_err(|e| format!("Manifiesto no válido: {e:?}"))?;
 
     // Instancia en disco
     let instance_dir = PathManager::get().get_instance_dir().join(instance_name);
@@ -300,8 +300,8 @@ pub async fn install_target(
         .await
         .map_err(|e| e.to_string())?;
 
-    let platform = host_platform();
-    let arch = host_arch();
+    let platform = manifest::current_platform();
+    let arch = manifest::current_arch();
     let applicable_files: Vec<&ManifestFile> = manifest.files_for(platform, arch).collect();
 
     // Descarga concurrente de todos los archivos al blob cache
@@ -336,7 +336,9 @@ pub async fn install_target(
             let res = ensure_cached_file(&m_clone, &file_clone, &GithubTransport).await;
 
             let cur_items = d_items.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-            let cur_bytes = d_bytes.fetch_add(file_clone.bytes, std::sync::atomic::Ordering::Relaxed) + file_clone.bytes;
+            let cur_bytes = d_bytes
+                .fetch_add(file_clone.bytes, std::sync::atomic::Ordering::Relaxed)
+                + file_clone.bytes;
 
             emit(AppEvent::DownloadProgress {
                 task: format!("selection:{}", target_id_str),
@@ -368,10 +370,12 @@ pub async fn install_target(
     for (f, blob_path) in staged_files {
         let dest = instance_dir.join(&f.path);
         if let Some(parent) = dest.parent() {
-            tokio::fs::create_dir_all(parent).await.map_err(|e| e.to_string())?;
+            tokio::fs::create_dir_all(parent)
+                .await
+                .map_err(|e| e.to_string())?;
         }
 
-        if f.install_policy == "managed" {
+        if f.is_managed() {
             tokio::fs::copy(&blob_path, &dest)
                 .await
                 .map_err(|e| format!("Error copiando mod {} a la instancia: {e}", f.path))?;
@@ -397,15 +401,26 @@ pub async fn install_target(
         channel: channel.as_str().to_string(),
         release: manifest.release.clone(),
         manifest_sha256: pointer.manifest_sha256.clone(),
-        installed_at: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs().to_string(),
+        installed_at: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+            .to_string(),
         managed_files: managed_list,
         seeded_files: seeded_list,
     };
     write_lockfile(&instance_dir, &lock)?;
 
     // Guardar / Actualizar instancia
-    let loader_ver = manifest.minecraft.loader_version.as_deref().unwrap_or("0.20.1");
-    let launch_id = format!("fabric-loader-{}-{}-ornithe-gen2", loader_ver, manifest.minecraft.version);
+    let loader_ver = manifest
+        .minecraft
+        .loader_version
+        .as_deref()
+        .unwrap_or("0.20.1");
+    let launch_id = format!(
+        "fabric-loader-{}-{}-ornithe-gen2",
+        loader_ver, manifest.minecraft.version
+    );
 
     let instance = InstanceData {
         uuid: uuid::Uuid::new_v4().to_string(),
@@ -425,7 +440,10 @@ pub async fn install_target(
 
     instance.save().await.map_err(|e| e.to_string())?;
 
-    info!("TFL Selection {} instalada exitosamente como \"{}\"", manifest.release, instance_name);
+    info!(
+        "TFL Selection {} instalada exitosamente como \"{}\"",
+        manifest.release, instance_name
+    );
     Ok(instance)
 }
 
@@ -434,7 +452,9 @@ pub async fn repair_selection(instance_name: &str) -> Result<(), String> {
     let instance_dir = PathManager::get().get_instance_dir().join(instance_name);
     let lock = read_lockfile(&instance_dir)?;
     let channel = Channel::parse(&lock.channel).unwrap_or(Channel::Beta);
-    install_target(instance_name, &lock.target_id, channel).await.map(|_| ())
+    install_target(instance_name, &lock.target_id, channel)
+        .await
+        .map(|_| ())
 }
 
 /// Comprueba si existe una actualización disponible en el catálogo para esta instancia.
@@ -444,7 +464,11 @@ pub async fn check_update(instance_name: &str) -> Result<Option<SelectionUpdateI
     let channel = Channel::parse(&lock.channel).unwrap_or(Channel::Beta);
 
     let transport = GithubTransport;
-    let store = CatalogStore::new(PathManager::get().get_shared_dir().join("selection_catalog"));
+    let store = CatalogStore::new(
+        PathManager::get()
+            .get_shared_dir()
+            .join("selection_catalog"),
+    );
     let snapshot = catalog::refresh(&transport, &store, false)
         .await
         .map_err(|e| format!("Error consultando catálogo: {e}"))?;

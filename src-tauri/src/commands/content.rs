@@ -218,7 +218,9 @@ pub async fn get_mod_version_changelog(version_id: String) -> Result<Option<Stri
 // ── Instalación ─────────────────────────────────────────────────────────────
 
 fn ensure_not_selection(instance_name: &str) -> Result<(), String> {
-    let dir = crate::core::PathManager::get().get_instance_dir().join(instance_name);
+    let dir = crate::core::PathManager::get()
+        .get_instance_dir()
+        .join(instance_name);
     if crate::services::selection::installer::is_selection_instance(&dir) {
         return Err("Las instancias de TFL Selection están administradas y protegidas. No se pueden modificar sus mods manualmente.".into());
     }

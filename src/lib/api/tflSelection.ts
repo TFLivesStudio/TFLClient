@@ -1,33 +1,31 @@
 import { invoke } from './invoke';
 import type { InstanceData } from '$lib/types/types';
 
-export interface ChannelPointer {
+export type SelectionChannelName = 'stable' | 'beta' | 'dev';
+
+export interface SelectionChannelView {
+	channel: SelectionChannelName;
 	release: string;
 	tag: string;
-	manifest_sha256: string;
-	published_at?: string;
+	manifestSha256: string;
 }
 
+/** Espeja `catalog::Support` del backend: siempre viene uno de los dos. */
+export type SelectionSupport =
+	{ state: 'supported' } | { state: 'launcher-update-required'; reason: string };
+
+/** Espeja `catalog::TargetView` — ya filtrado/gateado en el backend: nunca
+ * trae un target sin canal publicado, en canal dev, ni con loader que este
+ * launcher no sabe instalar (eso lo indica `support`, no una ausencia). */
 export interface SelectionTarget {
-	target_id: string;
-	displayName?: string;
-	summary?: string;
-	minecraft_version: string;
+	targetId: string;
+	displayName: string;
+	summary: string;
+	minecraftVersion: string;
 	loader: string;
-	sort_order?: number;
-	channels: {
-		stable?: ChannelPointer;
-		beta?: ChannelPointer;
-		dev?: ChannelPointer;
-	};
-}
-
-export interface SelectionCatalog {
-	schema_version: number;
-	pack_id: string;
-	generation: number;
-	updated_at: string;
-	targets: SelectionTarget[];
+	sortOrder: number;
+	channels: SelectionChannelView[];
+	support: SelectionSupport;
 }
 
 export interface SelectionIntegrityReport {
@@ -45,7 +43,7 @@ export interface SelectionUpdateInfo {
 }
 
 export const getSelectionCatalog = (forceRefresh = false) =>
-	invoke<SelectionCatalog>('get_selection_catalog', { forceRefresh });
+	invoke<SelectionTarget[]>('get_selection_catalog', { forceRefresh });
 
 export const installSelectionTarget = (instanceName: string, targetId: string, channel: string) =>
 	invoke<InstanceData>('install_selection_target', { instanceName, targetId, channel });

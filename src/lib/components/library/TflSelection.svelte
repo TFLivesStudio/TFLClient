@@ -8,7 +8,6 @@
 		verifySelectionIntegrity,
 		repairSelectionInstance,
 		checkSelectionUpdate,
-		type SelectionCatalog,
 		type SelectionTarget,
 		type SelectionIntegrityReport,
 		type SelectionUpdateInfo
@@ -45,7 +44,11 @@
 		onInstanceCreated?: (instance: InstanceData) => void;
 	} = $props();
 
-	let catalog = $state<SelectionCatalog | null>(null);
+	// Ya viene filtrada por el backend: solo targets con canal publicado,
+	// sin canal dev y, si el loader no es soportado por este launcher, con
+	// `support.state === 'launcher-update-required'` en lugar de omitirse
+	// en silencio.
+	let targets = $state<SelectionTarget[]>([]);
 	let loading = $state(true);
 	let catalogError = $state<string | null>(null);
 
@@ -65,25 +68,10 @@
 
 	let showComponents = $state(false);
 
-	// Targets que tengan al menos un canal publicado (ej. mc-1.8.9-ornithe en canal beta)
-	const publishedTargets = $derived.by(() => {
-		if (!catalog) return [];
-		return catalog.targets.filter((target) => {
-			const ch = target.channels;
-			return !!(ch.stable || ch.beta || ch.dev);
-		});
-	});
+	const activeTarget = $derived<SelectionTarget | undefined>(targets[0]);
 
-	const activeTarget = $derived<SelectionTarget | undefined>(publishedTargets[0]);
-
-	// Canal por defecto (prioridad stable > beta > dev)
-	const defaultChannel = $derived.by(() => {
-		if (!activeTarget) return 'beta';
-		if (activeTarget.channels.stable) return 'stable';
-		if (activeTarget.channels.beta) return 'beta';
-		if (activeTarget.channels.dev) return 'dev';
-		return 'beta';
-	});
+	// `channels` ya viene ordenado stable > beta > dev desde el backend.
+	const defaultChannel = $derived(activeTarget?.channels[0]?.channel ?? 'beta');
 
 	let selectedChannel = $state<string>('beta');
 
@@ -108,7 +96,7 @@
 
 	const activeDownloadTask = $derived.by(() => {
 		if (!activeTarget) return null;
-		return downloadTasks[`selection:${activeTarget.target_id}`] ?? null;
+		return downloadTasks[`selection:${activeTarget.targetId}`] ?? null;
 	});
 
 	onMount(async () => {
@@ -119,7 +107,7 @@
 		loading = true;
 		catalogError = null;
 		try {
-			catalog = await getSelectionCatalog(forceRefresh);
+			targets = await getSelectionCatalog(forceRefresh);
 		} catch (e) {
 			catalogError = String(e);
 		} finally {
@@ -128,12 +116,12 @@
 	}
 
 	async function handleInstall() {
-		if (!activeTarget || installing) return;
+		if (!activeTarget || installing || activeTarget.support.state !== 'supported') return;
 		installing = true;
 		installError = null;
 		try {
 			const name = customInstanceName.trim() || 'TFL Selection 1.8.9';
-			const created = await installSelectionTarget(name, activeTarget.target_id, selectedChannel);
+			const created = await installSelectionTarget(name, activeTarget.targetId, selectedChannel);
 			onInstanceCreated?.(created);
 			addNotice({
 				kind: 'success',
@@ -322,8 +310,7 @@
 			</div>
 		{:else}
 			{@const ch = activeTarget.channels}
-			{@const activePointer =
-				ch[selectedChannel as keyof typeof ch] || ch.beta || ch.stable || ch.dev}
+			{@const activePointer = ch.find((c) => c.channel === selectedChannel) ?? ch[0]}
 			<div class="target-card">
 				<!-- Header de la tarjeta del target -->
 				<div class="target-header">
@@ -352,7 +339,7 @@
 				<div class="specs-grid">
 					<div class="spec-pill">
 						<span class="spec-label">Minecraft</span>
-						<span class="spec-value">{activeTarget.minecraft_version}</span>
+						<span class="spec-value">{activeTarget.minecraftVersion}</span>
 					</div>
 					<div class="spec-pill">
 						<span class="spec-label">Loader</span>
@@ -504,11 +491,20 @@
 							<div class="form-row">
 								<label for="channel-select">Canal oficial:</label>
 								<select id="channel-select" bind:value={selectedChannel} disabled={installing}>
-									{#if ch.stable}<option value="stable">Stable</option>{/if}
-									{#if ch.beta}<option value="beta">Beta (Oficial 1.8.9)</option>{/if}
-									{#if ch.dev}<option value="dev">Dev</option>{/if}
+									{#each ch as c (c.channel)}
+										<option value={c.channel}>{c.channel.toUpperCase()} • v{c.release}</option>
+									{/each}
 								</select>
 							</div>
+
+							{#if activeTarget.support.state === 'launcher-update-required'}
+								<div class="notice-box notice-warning">
+									<AlertTriangle size={15} />
+									<span>
+										Actualizá TFL Client para instalar esta versión: {activeTarget.support.reason}.
+									</span>
+								</div>
+							{/if}
 
 							{#if installError}
 								<div class="notice-box notice-warning">
@@ -556,7 +552,7 @@
 							<button
 								type="button"
 								class="primary-btn install-btn"
-								disabled={installing}
+								disabled={installing || activeTarget.support.state !== 'supported'}
 								onclick={handleInstall}
 							>
 								{#if installing}

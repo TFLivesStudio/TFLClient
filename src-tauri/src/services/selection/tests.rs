@@ -51,7 +51,12 @@ impl MockTransport {
         );
     }
     pub fn calls_to(&self, url: &str) -> usize {
-        self.calls.lock().unwrap().iter().filter(|c| c.0 == url).count()
+        self.calls
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|c| c.0 == url)
+            .count()
     }
 }
 
@@ -160,10 +165,7 @@ fn only_targets_with_a_published_release_are_visible() {
 #[test]
 fn modified_catalog_is_rejected() {
     let mut tampered = REAL_CATALOG.to_vec();
-    let pos = tampered
-        .windows(5)
-        .position(|w| w == b"beta\"")
-        .unwrap();
+    let pos = tampered.windows(5).position(|w| w == b"beta\"").unwrap();
     tampered[pos..pos + 4].copy_from_slice(b"stab");
     assert!(matches!(
         verify_and_parse(&tampered, REAL_CATALOG_SIG),
@@ -181,9 +183,11 @@ fn schema_is_strict() {
     let cases: Vec<(&str, String)> = vec![
         (
             "campo extra en raíz",
-            String::from_utf8(ok.clone())
-                .unwrap()
-                .replacen("\"generation\"", "\"evil\":1,\"generation\"", 1),
+            String::from_utf8(ok.clone()).unwrap().replacen(
+                "\"generation\"",
+                "\"evil\":1,\"generation\"",
+                1,
+            ),
         ),
         (
             "otro repositorio",
@@ -199,12 +203,10 @@ fn schema_is_strict() {
         ),
         (
             "tag de otro target",
-            String::from_utf8(ok.clone())
-                .unwrap()
-                .replace(
-                    "\"tag\":\"selection-mc-1.8.9-ornithe-v0.1.0-preview.1\"",
-                    "\"tag\":\"selection-mc-26.3-fabric-v0.1.0-preview.1\"",
-                ),
+            String::from_utf8(ok.clone()).unwrap().replace(
+                "\"tag\":\"selection-mc-1.8.9-ornithe-v0.1.0-preview.1\"",
+                "\"tag\":\"selection-mc-26.3-fabric-v0.1.0-preview.1\"",
+            ),
         ),
         (
             "sha256 con mayúsculas",
@@ -214,19 +216,25 @@ fn schema_is_strict() {
         ),
         (
             "targetId con path traversal",
-            String::from_utf8(ok.clone())
-                .unwrap()
-                .replace("mc-1.8.9-ornithe\",\"minecraftVersion", "mc-../../x\",\"minecraftVersion"),
+            String::from_utf8(ok.clone()).unwrap().replace(
+                "mc-1.8.9-ornithe\",\"minecraftVersion",
+                "mc-../../x\",\"minecraftVersion",
+            ),
         ),
         (
             "release no semver",
-            String::from_utf8(ok.clone())
-                .unwrap()
-                .replacen("0.1.0-preview.1\",\"tag", "latest\",\"tag", 1),
+            String::from_utf8(ok.clone()).unwrap().replacen(
+                "0.1.0-preview.1\",\"tag",
+                "latest\",\"tag",
+                1,
+            ),
         ),
     ];
     for (name, bad) in cases {
-        assert!(parse_catalog(bad.as_bytes()).is_err(), "debía fallar: {name}");
+        assert!(
+            parse_catalog(bad.as_bytes()).is_err(),
+            "debía fallar: {name}"
+        );
     }
     assert!(matches!(
         parse_catalog(br#"{"schemaVersion":3,"targets":[]}"#),
@@ -241,7 +249,9 @@ fn duplicate_target_ids_are_rejected() {
         2,
         r#",{"targetId":"mc-1.8.9-ornithe","minecraftVersion":"1.8.9","loader":"fabric","channels":{}}"#,
     );
-    assert!(matches!(parse_catalog(&dup), Err(CatalogError::Invalid(m)) if m.contains("duplicado")));
+    assert!(
+        matches!(parse_catalog(&dup), Err(CatalogError::Invalid(m)) if m.contains("duplicado"))
+    );
 }
 
 // ── Descubrimiento dinámico y compatibilidad ────────────────────────────
@@ -272,10 +282,16 @@ fn unknown_loader_is_flagged_as_launcher_update_required() {
     let c = parse_catalog(&raw).unwrap();
     let v = visible_targets(&c, false);
     let quilt = v.iter().find(|t| t.loader == "quilt").unwrap();
-    assert!(matches!(quilt.support, Support::LauncherUpdateRequired { .. }));
+    assert!(matches!(
+        quilt.support,
+        Support::LauncherUpdateRequired { .. }
+    ));
     // Y el soportado de siempre sigue instalable.
     assert_eq!(
-        v.iter().find(|t| t.loader == "ornithe-gen2").unwrap().support,
+        v.iter()
+            .find(|t| t.loader == "ornithe-gen2")
+            .unwrap()
+            .support,
         Support::Supported
     );
 }
@@ -307,7 +323,10 @@ fn generation_policy() {
     assert!(check_generation(Some(3), 3, true).is_ok());
     assert_eq!(
         check_generation(Some(3), 2, false),
-        Err(CatalogError::Replay { seen: 3, offered: 2 })
+        Err(CatalogError::Replay {
+            seen: 3,
+            offered: 2
+        })
     );
     assert_eq!(
         check_generation(Some(3), 3, false),
@@ -401,7 +420,14 @@ async fn github_down_uses_verified_cache_and_says_so() {
     assert!(s.degraded_reason.unwrap().contains("sin conexión"));
     assert_eq!(visible_targets(&s.catalog, false).len(), 1);
 
-    t.set(CATALOG_URL, Ok(Fetched { status: 503, body: vec![], etag: None }));
+    t.set(
+        CATALOG_URL,
+        Ok(Fetched {
+            status: 503,
+            body: vec![],
+            etag: None,
+        }),
+    );
     let s = refresh(&t, &store, true).await.unwrap();
     assert_eq!(s.origin, Origin::Cached);
     let _ = std::fs::remove_dir_all(dir);
@@ -483,7 +509,14 @@ async fn fresh_cache_avoids_network_and_304_keeps_snapshot() {
     assert_eq!(t.calls_to(CATALOG_URL), 1);
 
     // Refresco manual: pregunta con ETag y un 304 conserva el snapshot.
-    t.set(CATALOG_URL, Ok(Fetched { status: 304, body: vec![], etag: None }));
+    t.set(
+        CATALOG_URL,
+        Ok(Fetched {
+            status: 304,
+            body: vec![],
+            etag: None,
+        }),
+    );
     let s = refresh(&t, &store, true).await.unwrap();
     assert_eq!(s.origin, Origin::Online);
     let last = t.calls.lock().unwrap().last().cloned().unwrap();

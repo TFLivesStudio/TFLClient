@@ -120,7 +120,10 @@ impl std::fmt::Display for ManifestError {
             Self::Malformed(e) => write!(f, "manifiesto ilegible: {e}"),
             Self::Invalid(e) => write!(f, "manifiesto inválido: {e}"),
             Self::LauncherUpdateRequired(e) => {
-                write!(f, "hace falta actualizar TFL Client para instalar esto: {e}")
+                write!(
+                    f,
+                    "hace falta actualizar TFL Client para instalar esto: {e}"
+                )
             }
         }
     }
@@ -200,7 +203,10 @@ fn valid_download_tag(tag: &str) -> bool {
 
 fn valid_download_asset(asset: &str) -> bool {
     // ^[A-Za-z0-9][A-Za-z0-9_.+-]{0,199}$
-    asset.chars().next().is_some_and(|c| c.is_ascii_alphanumeric())
+    asset
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_ascii_alphanumeric())
         && asset.len() <= 200
         && asset
             .chars()
@@ -253,17 +259,6 @@ pub fn file_download_url(m: &Manifest, f: &ManifestFile) -> Result<String, Manif
             dist.repository, dist.tag, f.asset_name
         ),
     })
-}
-
-pub fn asset_download_url(m: &Manifest, asset_name: &str) -> Result<String, ManifestError> {
-    let dist = m
-        .distribution
-        .as_ref()
-        .ok_or_else(|| ManifestError::Invalid("sin distribution".into()))?;
-    Ok(format!(
-        "https://github.com/{}/releases/download/{}/{}",
-        dist.repository, dist.tag, asset_name
-    ))
 }
 
 // ── Carga y validación ──────────────────────────────────────────────────
@@ -357,7 +352,10 @@ pub fn validate_manifest(
         )));
     }
     let bootstrap_ok = matches!(
-        (m.minecraft.loader.as_str(), m.minecraft.bootstrap.as_deref()),
+        (
+            m.minecraft.loader.as_str(),
+            m.minecraft.bootstrap.as_deref()
+        ),
         ("ornithe-gen2", Some("launcher-pinned-ornithe"))
             | ("fabric", Some("launcher-pinned-fabric"))
     );
@@ -367,8 +365,16 @@ pub fn validate_manifest(
         ));
     }
     match &m.minecraft.loader_version {
-        Some(v) if !v.is_empty() && v.len() <= 100 && v.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '+' | '_')) => {}
-        _ => return bad("loaderVersion ausente o inválido (se instala EXACTA, nunca la última)".into()),
+        Some(v)
+            if !v.is_empty()
+                && v.len() <= 100
+                && v.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '+' | '_')) => {}
+        _ => {
+            return bad(
+                "loaderVersion ausente o inválido (se instala EXACTA, nunca la última)".into(),
+            );
+        }
     }
     if !(8..=30).contains(&m.minecraft.java_major) {
         return bad("javaMajor fuera de rango".into());
@@ -391,10 +397,13 @@ pub fn validate_manifest(
     for f in &m.files {
         let id_ok = f.id.len() >= 2
             && f.id.len() <= 120
-            && f.id.chars().next().is_some_and(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
             && f.id
                 .chars()
-                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '_' | '-'));
+                .next()
+                .is_some_and(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+            && f.id.chars().all(|c| {
+                c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '_' | '-')
+            });
         if !id_ok {
             return bad(format!("id de archivo inválido: {:?}", f.id));
         }
@@ -406,7 +415,10 @@ pub fn validate_manifest(
         }
         // Dos rutas que difieren solo en mayúsculas colisionan en macOS/Windows.
         if !paths.insert(f.path.to_ascii_lowercase()) {
-            return bad(format!("ruta duplicada (o que solo difiere en mayúsculas): {}", f.path));
+            return bad(format!(
+                "ruta duplicada (o que solo difiere en mayúsculas): {}",
+                f.path
+            ));
         }
         // Kinds que esta versión sabe instalar, y dónde pueden caer.
         let top = f.path.split('/').next().unwrap_or("");
@@ -459,7 +471,8 @@ pub fn validate_manifest(
             }
         }
         if let Some(p) = &f.platforms
-            && p.iter().any(|x| !matches!(x.as_str(), "windows" | "linux" | "macos"))
+            && p.iter()
+                .any(|x| !matches!(x.as_str(), "windows" | "linux" | "macos"))
         {
             return bad(format!("plataforma desconocida en {}", f.id));
         }
@@ -513,14 +526,16 @@ impl Manifest {
         platform: &'a str,
         arch: &'a str,
     ) -> impl Iterator<Item = &'a ManifestFile> {
-        self.files.iter().filter(move |f| f.applies_to(platform, arch))
+        self.files
+            .iter()
+            .filter(move |f| f.applies_to(platform, arch))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::services::selection::catalog::{parse_catalog, Catalog, Channel};
+    use crate::services::selection::catalog::{Catalog, Channel, parse_catalog};
     use crate::services::selection::signatures::TRUSTED_KEYS;
 
     const MANIFEST_BYTES: &[u8] = include_bytes!("testdata/manifest-1.8.9.json");
@@ -546,7 +561,14 @@ mod tests {
             target: &target,
             pointer: &pointer,
         };
-        let m = load_manifest(MANIFEST_BYTES, MANIFEST_SIG, &expected, "0.15.2", TRUSTED_KEYS).unwrap();
+        let m = load_manifest(
+            MANIFEST_BYTES,
+            MANIFEST_SIG,
+            &expected,
+            "0.15.2",
+            TRUSTED_KEYS,
+        )
+        .unwrap();
         assert_eq!(m.pack_id, "tfl-selection");
         assert_eq!(m.target_id, "mc-1.8.9-ornithe");
         assert_eq!(m.release, "0.1.0-preview.1");
@@ -575,7 +597,10 @@ mod tests {
         let mut tampered = MANIFEST_BYTES.to_vec();
         tampered.push(b' ');
         let err = load_manifest(&tampered, MANIFEST_SIG, &expected, "0.15.2", TRUSTED_KEYS);
-        assert!(matches!(err, Err(ManifestError::HashMismatch | ManifestError::Signature(_))));
+        assert!(matches!(
+            err,
+            Err(ManifestError::HashMismatch | ManifestError::Signature(_))
+        ));
     }
 
     #[test]
@@ -586,7 +611,13 @@ mod tests {
             target: &target,
             pointer: &pointer,
         };
-        let err = load_manifest(MANIFEST_BYTES, MANIFEST_SIG, &expected, "0.15.2", TRUSTED_KEYS);
+        let err = load_manifest(
+            MANIFEST_BYTES,
+            MANIFEST_SIG,
+            &expected,
+            "0.15.2",
+            TRUSTED_KEYS,
+        );
         assert!(matches!(err, Err(ManifestError::HashMismatch)));
     }
 
@@ -598,7 +629,13 @@ mod tests {
             pointer: &pointer,
         };
         // 0.1.0-preview.1 requiere minimumLauncherVersion = 0.1.0
-        let err = load_manifest(MANIFEST_BYTES, MANIFEST_SIG, &expected, "0.0.9", TRUSTED_KEYS);
+        let err = load_manifest(
+            MANIFEST_BYTES,
+            MANIFEST_SIG,
+            &expected,
+            "0.0.9",
+            TRUSTED_KEYS,
+        );
         assert!(matches!(err, Err(ManifestError::LauncherUpdateRequired(_))));
     }
 
@@ -616,4 +653,3 @@ mod tests {
         assert!(safe_relative_path("config/tfl/settings.json"));
     }
 }
-

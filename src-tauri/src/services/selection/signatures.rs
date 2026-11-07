@@ -145,9 +145,16 @@ mod tests {
             // Base64 válido pero de 63 bytes en lugar de 64.
             b"DtLKxSG2Y5oQNFSEfxJBNeCaycFy36ghp//AsH1p+WKlM5fPk1eicO+grWukuaNYPMrjh9oTu4PScjrenYh",
         ] {
-            assert_eq!(verify(CATALOG, bad), Err(SignatureError::Malformed), "{bad:?}");
+            assert_eq!(
+                verify(CATALOG, bad),
+                Err(SignatureError::Malformed),
+                "{bad:?}"
+            );
         }
-        assert_eq!(verify(CATALOG, &[0xff, 0xfe]), Err(SignatureError::Malformed));
+        assert_eq!(
+            verify(CATALOG, &[0xff, 0xfe]),
+            Err(SignatureError::Malformed)
+        );
     }
 
     #[test]

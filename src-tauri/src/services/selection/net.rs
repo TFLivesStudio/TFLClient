@@ -143,10 +143,7 @@ impl Transport for GithubTransport {
                 .get(reqwest::header::ETAG)
                 .and_then(|v| v.to_str().ok())
                 .map(String::from);
-            if resp
-                .content_length()
-                .is_some_and(|l| l > max_bytes as u64)
-            {
+            if resp.content_length().is_some_and(|l| l > max_bytes as u64) {
                 return Err(FetchError::TooLarge);
             }
             let mut body = Vec::new();

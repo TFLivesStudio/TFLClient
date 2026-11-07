@@ -163,7 +163,10 @@ pub enum CatalogError {
     UnknownSchema(u64),
     Invalid(String),
     /// Catálogo con `generation` menor a la última verificada (replay).
-    Replay { seen: u64, offered: u64 },
+    Replay {
+        seen: u64,
+        offered: u64,
+    },
     /// Misma `generation` pero bytes distintos.
     Conflict(u64),
     Network(String),
@@ -273,7 +276,11 @@ fn validate_catalog(c: &Catalog) -> Result<(), CatalogError> {
                 continue;
             };
             if !valid_release(&p.release) {
-                return bad(format!("release inválida en {}/{}", t.target_id, ch.as_str()));
+                return bad(format!(
+                    "release inválida en {}/{}",
+                    t.target_id,
+                    ch.as_str()
+                ));
             }
             if !valid_tag(&p.tag) || p.tag != expected_tag(&t.target_id, &p.release) {
                 return bad(format!(
@@ -329,7 +336,9 @@ pub fn check_generation(
 pub enum Support {
     Supported,
     /// El target necesita algo que este launcher no trae.
-    LauncherUpdateRequired { reason: String },
+    LauncherUpdateRequired {
+        reason: String,
+    },
 }
 
 pub fn target_support(t: &Target) -> Support {
@@ -343,7 +352,10 @@ pub fn target_support(t: &Target) -> Support {
 
 /// ¿El launcher actual alcanza para un manifiesto que pide `minimum`?
 pub fn launcher_meets(minimum: &str, current: &str) -> bool {
-    match (semver::Version::parse(minimum), semver::Version::parse(current)) {
+    match (
+        semver::Version::parse(minimum),
+        semver::Version::parse(current),
+    ) {
         (Ok(min), Ok(cur)) => {
             // Una pre-release del launcher (0.15.3-beta.1) cuenta como su
             // versión base a efectos de compatibilidad mínima.
@@ -358,6 +370,7 @@ pub fn launcher_meets(minimum: &str, current: &str) -> bool {
 // ── Vista para la UI ────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChannelView {
     pub channel: Channel,
     pub release: String,
@@ -366,6 +379,7 @@ pub struct ChannelView {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TargetView {
     pub target_id: String,
     pub minecraft_version: String,
@@ -553,10 +567,7 @@ pub async fn refresh(
         None => Err(CatalogError::Unavailable(reason)),
     };
 
-    let fetched = match transport
-        .get(CATALOG_URL, MAX_CATALOG_BYTES, etag)
-        .await
-    {
+    let fetched = match transport.get(CATALOG_URL, MAX_CATALOG_BYTES, etag).await {
         Ok(f) => f,
         Err(e) => return degrade(e.to_string(), cached),
     };
@@ -576,10 +587,7 @@ pub async fn refresh(
         return Box::pin(refresh_without_etag(transport, store, state)).await;
     }
     if fetched.status != 200 {
-        return degrade(
-            FetchError::Status(fetched.status).to_string(),
-            cached,
-        );
+        return degrade(FetchError::Status(fetched.status).to_string(), cached);
     }
 
     let sig = match transport
