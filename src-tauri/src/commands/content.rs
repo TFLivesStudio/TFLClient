@@ -217,6 +217,14 @@ pub async fn get_mod_version_changelog(version_id: String) -> Result<Option<Stri
 
 // ── Instalación ─────────────────────────────────────────────────────────────
 
+fn ensure_not_selection(instance_name: &str) -> Result<(), String> {
+    let dir = crate::core::PathManager::get().get_instance_dir().join(instance_name);
+    if crate::services::selection::installer::is_selection_instance(&dir) {
+        return Err("Las instancias de TFL Selection están administradas y protegidas. No se pueden modificar sus mods manualmente.".into());
+    }
+    Ok(())
+}
+
 #[command]
 pub async fn install_mod(
     instance_name: String,
@@ -225,6 +233,7 @@ pub async fn install_mod(
     loader: String,
     version_id: Option<String>,
 ) -> Result<(), String> {
+    ensure_not_selection(&instance_name)?;
     content::service()
         .install(InstallRequest {
             instance_name: &instance_name,
@@ -304,6 +313,7 @@ pub async fn get_instance_mods(instance_name: String) -> Result<Vec<String>, Str
 
 #[command]
 pub async fn remove_mod(instance_name: String, filename: String) -> Result<(), String> {
+    ensure_not_selection(&instance_name)?;
     filesystem::remove_file(&instance_name, ContentKind::Mod, &filename).await
 }
 
@@ -345,6 +355,7 @@ pub async fn set_mod_enabled(
     filename: String,
     enabled: bool,
 ) -> Result<String, String> {
+    ensure_not_selection(&instance_name)?;
     filesystem::set_enabled(&instance_name, ContentKind::Mod, &filename, enabled).await
 }
 
@@ -404,6 +415,7 @@ pub async fn check_mod_updates(instance_name: String) -> Result<Vec<ContentUpdat
 
 #[command]
 pub async fn update_all_mods(instance_name: String) -> Result<u32, String> {
+    ensure_not_selection(&instance_name)?;
     content::service().update_all(&instance_name).await
 }
 
@@ -417,11 +429,13 @@ pub async fn get_mod_rollback_info(
 
 #[command]
 pub async fn rollback_mod_update(instance_name: String) -> Result<u32, String> {
+    ensure_not_selection(&instance_name)?;
     rollback::rollback_update(&instance_name).await
 }
 
 #[command]
 pub async fn discard_mod_rollback(instance_name: String) -> Result<(), String> {
+    ensure_not_selection(&instance_name)?;
     rollback::discard_rollback(&instance_name).await
 }
 
@@ -432,6 +446,7 @@ pub async fn find_duplicate_mods(instance_name: String) -> Result<Vec<Vec<String
 
 #[command]
 pub async fn remove_duplicate_mods(instance_name: String) -> Result<u32, String> {
+    ensure_not_selection(&instance_name)?;
     content::service().remove_duplicates(&instance_name).await
 }
 
@@ -457,6 +472,7 @@ pub async fn pick_content_files(
 
 #[command]
 pub async fn add_local_mod_files(instance_name: String, paths: Vec<String>) -> Result<u32, String> {
+    ensure_not_selection(&instance_name)?;
     local_files::add_local_files(&instance_name, ContentKind::Mod, paths).await
 }
 

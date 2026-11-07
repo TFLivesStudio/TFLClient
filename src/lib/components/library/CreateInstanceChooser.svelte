@@ -42,13 +42,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div
-	class="overlay"
-	onclick={onClose}
-	onkeydown={handleKeydown}
-	role="button"
-	tabindex="-1"
->
+<div class="overlay" onclick={onClose} onkeydown={handleKeydown} role="button" tabindex="-1">
 	<div
 		class="modal"
 		onclick={(e) => e.stopPropagation()}
@@ -125,18 +119,16 @@
 					<span class="choice-icon"><PackageOpen size={22} /></span>
 					<span class="choice-text">
 						<span class="choice-title">Modrinth</span>
-						<span class="choice-desc">Explora miles de modpacks creados por la comunidad en Modrinth.</span>
+						<span class="choice-desc"
+							>Explora miles de modpacks creados por la comunidad en Modrinth.</span
+						>
 					</span>
 					<ChevronRight size={16} class="choice-arrow" />
 				</button>
 			</div>
 
 			<div class="footer-actions">
-				<button
-					type="button"
-					class="cancel-btn secondary"
-					onclick={() => (step = 'main')}
-				>
+				<button type="button" class="cancel-btn secondary" onclick={() => (step = 'main')}>
 					Volver
 				</button>
 				<button type="button" class="cancel-btn" onclick={onClose}>{t('common.cancel')}</button>
@@ -185,7 +177,9 @@
 		background: var(--bg-input);
 		color: var(--text-primary);
 		cursor: pointer;
-		transition: background 0.15s, border-color 0.15s;
+		transition:
+			background 0.15s,
+			border-color 0.15s;
 	}
 
 	.back-btn:hover {
@@ -286,7 +280,9 @@
 		font-weight: 600;
 		font-size: 0.82rem;
 		cursor: pointer;
-		transition: background 0.15s, border-color 0.15s;
+		transition:
+			background 0.15s,
+			border-color 0.15s;
 	}
 
 	.cancel-btn.secondary {

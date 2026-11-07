@@ -196,3 +196,49 @@ fn extract_versions(raw: &serde_json::Value) -> Vec<ModpackVersion> {
     }
     parse_one(raw).into_iter().collect()
 }
+
+// ── TFL Selection Oficial (Catálogo v2 firmado + Ornithe Gen2 + Java 25) ────
+
+use crate::services::instance_manager::InstanceData;
+use crate::services::selection::catalog::{self, Catalog, CatalogStore, Channel};
+use crate::services::selection::installer::{
+    self, IntegrityReport, SelectionUpdateInfo,
+};
+use crate::core::PathManager;
+use crate::services::selection::net::GithubTransport;
+
+#[command]
+pub async fn get_selection_catalog(force_refresh: Option<bool>) -> Result<Catalog, String> {
+    let transport = GithubTransport;
+    let store = CatalogStore::new(PathManager::get().get_shared_dir().join("selection_catalog"));
+    let snapshot = catalog::refresh(&transport, &store, force_refresh.unwrap_or(false))
+        .await
+        .map_err(|e| format!("Error cargando catálogo: {e}"))?;
+    Ok(snapshot.catalog)
+}
+
+#[command]
+pub async fn install_selection_target(
+    instance_name: String,
+    target_id: String,
+    channel: String,
+) -> Result<InstanceData, String> {
+    let chan = Channel::parse(&channel).unwrap_or(Channel::Beta);
+    installer::install_target(&instance_name, &target_id, chan).await
+}
+
+#[command]
+pub async fn verify_selection_integrity(instance_name: String) -> Result<IntegrityReport, String> {
+    let dir = crate::core::PathManager::get().get_instance_dir().join(&instance_name);
+    installer::verify_integrity(&dir)
+}
+
+#[command]
+pub async fn repair_selection_instance(instance_name: String) -> Result<(), String> {
+    installer::repair_selection(&instance_name).await
+}
+
+#[command]
+pub async fn check_selection_update(instance_name: String) -> Result<Option<SelectionUpdateInfo>, String> {
+    installer::check_update(&instance_name).await
+}

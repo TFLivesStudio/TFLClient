@@ -6,6 +6,7 @@
 //! `.mrpack` ni `latest`: el catálogo firmado es la única fuente autorizada.
 
 pub mod catalog;
+pub mod installer;
 pub mod manifest;
 pub mod net;
 pub mod signatures;

@@ -37,7 +37,7 @@ export interface Settings {
 	sidebar_collapsed: boolean;
 }
 
-export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt';
+export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt' | 'ornithe-gen2';
 export type ServerType = 'vanilla' | 'paper' | 'purpur';
 
 export interface InstanceData {

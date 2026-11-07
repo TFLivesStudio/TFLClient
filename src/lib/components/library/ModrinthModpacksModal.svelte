@@ -10,18 +10,9 @@
 		SortIndex,
 		InstanceData,
 		Loader,
-		ContentProjectDetail,
-		ModVersionSummary
+		ContentProjectDetail
 	} from '$lib/types/types';
-	import {
-		X,
-		Search,
-		Download,
-		Loader2,
-		ArrowLeft,
-		Check,
-		PackageOpen
-	} from 'lucide-svelte';
+	import { X, Search, Download, Loader2, Check, PackageOpen } from 'lucide-svelte';
 	import Pagination from '$lib/components/ui/Pagination.svelte';
 	import SortSelect from '$lib/components/ui/SortSelect.svelte';
 	import ProjectDetailView from './ProjectDetailView.svelte';
@@ -130,6 +121,7 @@
 	}
 
 	async function handleInstall(hit: ModSearchHit, versionId?: string) {
+		void versionId;
 		installingId = hit.project_id;
 		installError = null;
 		try {
@@ -183,7 +175,9 @@
 				<PackageOpen size={20} class="header-icon" />
 				<div>
 					<h2>Modpacks de Modrinth</h2>
-					<p class="subtitle">Explora la comunidad de modpacks y crea una instancia directamente.</p>
+					<p class="subtitle">
+						Explora la comunidad de modpacks y crea una instancia directamente.
+					</p>
 				</div>
 			</div>
 			<button type="button" class="close-btn" onclick={onClose} aria-label={t('settings.close')}>
@@ -253,11 +247,7 @@
 							{/if}
 							<div class="hit-content">
 								<div class="hit-title-row">
-									<button
-										type="button"
-										class="hit-title-btn"
-										onclick={() => openDetail(hit)}
-									>
+									<button type="button" class="hit-title-btn" onclick={() => openDetail(hit)}>
 										{hit.title}
 									</button>
 									<span class="hit-author">de {hit.author}</span>
@@ -297,14 +287,7 @@
 		</div>
 
 		<div class="panel-footer">
-			<Pagination
-				{offset}
-				{limit}
-				{totalHits}
-				{loading}
-				onPrev={handlePrev}
-				onNext={handleNext}
-			/>
+			<Pagination {offset} {limit} {totalHits} {loading} onPrev={handlePrev} onNext={handleNext} />
 		</div>
 	</div>
 </div>
