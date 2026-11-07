@@ -27,6 +27,7 @@
 		Boxes,
 		WifiOff,
 		Globe,
+		Compass,
 		Shirt,
 		Home,
 		PanelLeftClose,
@@ -213,7 +214,7 @@
 			aria-label={vr(section as 'library' | 'discover')}
 			title={collapsed ? vr(section as 'library' | 'discover') : undefined}
 		>
-			{#if section === 'library'}<Boxes size={18} />{:else}<Globe size={18} />{/if}
+			{#if section === 'library'}<Boxes size={18} />{:else}<Compass size={18} />{/if}
 			{#if !collapsed}<span>{vr(section as 'library' | 'discover')}</span>{/if}
 		</button>
 	{/each}

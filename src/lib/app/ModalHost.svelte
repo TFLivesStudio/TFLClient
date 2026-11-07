@@ -8,6 +8,7 @@
 	import ServerConnectionInfoModal from '$lib/components/library/ServerConnectionInfoModal.svelte';
 	import SettingsPanel from '$lib/components/settings/SettingsPanel.svelte';
 	import TflSelection from '$lib/components/library/TflSelection.svelte';
+	import ModrinthModpacksModal from '$lib/components/library/ModrinthModpacksModal.svelte';
 	import ContentExplorerView from '$lib/components/library/ContentExplorerView.svelte';
 	import ContextMenu from '$lib/components/ui/ContextMenu.svelte';
 	import { buildInstanceContextMenuItems } from '$lib/app/instanceContextMenu';
@@ -37,9 +38,13 @@
 			closeModal('createChooser');
 			openModal('create');
 		}}
-		onChooseModpack={() => {
+		onChooseTflSelection={() => {
 			closeModal('createChooser');
 			openModal('tflSelection');
+		}}
+		onChooseModrinth={() => {
+			closeModal('createChooser');
+			openModal('modrinthModpacks');
 		}}
 		onChooseServer={() => {
 			closeModal('createChooser');
@@ -108,6 +113,16 @@
 		instances={appState.instances}
 		onClose={() => closeModal('tflSelection')}
 		onInstanceCreated={() => refreshInstances()}
+	/>
+{/if}
+
+{#if modals.modrinthModpacks}
+	<ModrinthModpacksModal
+		onClose={() => closeModal('modrinthModpacks')}
+		onInstanceCreated={async (instance) => {
+			closeModal('modrinthModpacks');
+			await handleCreated(instance);
+		}}
 	/>
 {/if}
 
