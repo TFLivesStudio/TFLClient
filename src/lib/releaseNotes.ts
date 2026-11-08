@@ -5,6 +5,13 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.3-beta.1': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Nuevo: TFL Selection 1.8.9 ya se instala con un solo click, con catálogo oficial firmado y verificado — arranca con Ornithe Gen2 y Java 25.',
+		'El botón "Modpack" al crear una instancia ahora te deja elegir entre TFL Selection o Modrinth.',
+		'Arreglado: el logo se veía casi invisible en modo oscuro.',
+		'Arreglado: el ícono de "Explorar" en la barra lateral era igual al de "Unirse a servidor".'
+	],
 	'0.15.2': [
 		'Arreglado: el botón de copiar captura de pantalla al portapapeles tiraba error y no copiaba nada.'
 	],
