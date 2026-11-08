@@ -10,7 +10,7 @@ pub(crate) mod utilities;
 pub use downloaders::{
     DownloadBatch, DownloadHandle, DownloadItemSpec, DownloadManager, FabricBatch, ForgeBatch,
     ForgeVersionInfo, GenericBatch, JreBatch, MinecraftBatch, NeoForgeBatch, NeoForgeVersionInfo,
-    OrnitheBatch, QuiltBatch,
+    OrnitheBatch, QuiltBatch, needs_log4j_repair,
 };
 pub use errors::AquaError;
 pub use jre::{

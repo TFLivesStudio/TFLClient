@@ -119,7 +119,22 @@ async fn ensure_downloaded(
         info!("Vanilla {} listo", data.mc_version);
     }
 
-    if version_json_exists(&shared_dir, &data.launch_version_id) {
+    // Para Ornithe Gen2 no alcanza con que el .json exista: uno escrito
+    // antes del fix del issue #16 no tiene log4j-api propio, así que el
+    // log4j viejo de vanilla 1.8.9 le gana y Sarcio revienta con
+    // NoSuchMethodError al arrancar. `needs_log4j_repair` lo detecta sin
+    // pedirle al usuario que borre nada a mano — después de reparado una
+    // vez, el .json ya tiene log4j-api y este chequeo vuelve a tomar el
+    // camino rápido normal.
+    let ornithe_needs_repair = data.loader == LoaderKind::OrnitheGen2
+        && aqua::needs_log4j_repair(&shared_dir, &data.launch_version_id);
+    if ornithe_needs_repair {
+        info!(
+            "\"{}\": classpath de Ornithe Gen2 desactualizado (sin log4j-api, issue #16) — reparando",
+            data.name
+        );
+    }
+    if !ornithe_needs_repair && version_json_exists(&shared_dir, &data.launch_version_id) {
         return Ok(());
     }
 

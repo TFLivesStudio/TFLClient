@@ -20,6 +20,8 @@ struct ManifestEntry {
     #[serde(rename = "type")]
     #[allow(dead_code)]
     version_type: String,
+    #[serde(rename = "releaseTime")]
+    release_time: String,
 }
 
 async fn fetch_manifest_v2(client: &Client) -> Result<ManifestV2, AquaError> {
@@ -30,6 +32,24 @@ async fn fetch_manifest_v2(client: &Client) -> Result<ManifestV2, AquaError> {
         .json::<ManifestV2>()
         .await?;
     Ok(resp)
+}
+
+/// Mapa `version id -> releaseTime` (ISO 8601, `+00:00`) del manifiesto
+/// oficial de Mojang — incluye snapshots históricos, no solo releases.
+/// `releaseTime` en ese formato es comparable lexicográficamente como
+/// cadena, así que alcanza para ordenar versiones cronológicamente sin
+/// tener que parsear el formato de nombre de snapshot ("17w14a", etc.).
+/// Lo usa `OrnitheBatch` para decidir si un `libraryUpgrade` con
+/// `minGameVersion`/`maxGameVersion` aplica a la versión que se está
+/// instalando (ver `crates/aqua/src/downloaders/ornithe.rs`).
+pub(crate) async fn fetch_release_times()
+-> Result<std::collections::HashMap<String, String>, AquaError> {
+    let manifest = fetch_manifest_v2(&HTTP_CLIENT).await?;
+    Ok(manifest
+        .versions
+        .into_iter()
+        .map(|v| (v.id, v.release_time))
+        .collect())
 }
 
 async fn fetch_version_json(
