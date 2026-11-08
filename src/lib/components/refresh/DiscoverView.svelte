@@ -23,7 +23,7 @@
 				>{vr('selectionAction')}<ArrowUpRight size={18} /></button
 			>
 		</div>
-		<div class="editorial-mark" aria-hidden="true"><img src="/images/tfl.svg" alt="" /></div>
+		<div class="editorial-mark" aria-hidden="true"><Tfl width="100%" height="100%" /></div>
 	</article>
 	<div class="discover-context">
 		<h2>{vr('contextual')}</h2>
@@ -83,9 +83,7 @@
 		flex-shrink: 0;
 		opacity: 0.65;
 		transform: rotate(-12deg);
-	}
-	.editorial-mark img {
-		width: 100%;
+		color: var(--text-primary);
 	}
 	.discover-context h2 {
 		font-size: var(--text-subtitle);

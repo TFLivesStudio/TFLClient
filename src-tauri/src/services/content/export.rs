@@ -45,6 +45,7 @@ fn loader_dependency_key(loader: instance_manager::LoaderKind) -> Option<&'stati
         instance_manager::LoaderKind::Forge => Some("forge"),
         instance_manager::LoaderKind::NeoForge => Some("neoforge"),
         instance_manager::LoaderKind::Quilt => Some("quilt-loader"),
+        instance_manager::LoaderKind::OrnitheGen2 => Some("fabric-loader"),
         instance_manager::LoaderKind::Vanilla => None,
     }
 }

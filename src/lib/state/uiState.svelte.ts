@@ -37,7 +37,8 @@ export const modals = $state({
 	joinServer: false,
 	skinManager: false,
 	settings: false,
-	tflSelection: false
+	tflSelection: false,
+	modrinthModpacks: false
 });
 
 export type ModalName = keyof typeof modals;

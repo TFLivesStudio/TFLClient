@@ -98,6 +98,7 @@ fn loader_str(kind: LoaderKind) -> &'static str {
         LoaderKind::Quilt => "quilt",
         LoaderKind::Forge => "forge",
         LoaderKind::NeoForge => "neoforge",
+        LoaderKind::OrnitheGen2 => "ornithe-gen2",
     }
 }
 
@@ -213,6 +214,15 @@ async fn exact_loader_installable(kind: LoaderKind, mc_version: &str, lv: &str) 
         }
         LoaderKind::NeoForge => {
             url_ok(false, &aqua::NeoForgeBatch::resolve_installer_url(lv)).await
+        }
+        LoaderKind::OrnitheGen2 => {
+            url_ok(
+                true,
+                &format!(
+                    "https://meta.ornithemc.net/v3/versions/gen2/fabric-loader/{mc_version}/{lv}/profile/json"
+                ),
+            )
+            .await
         }
     }
 }
