@@ -5,6 +5,12 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.3-beta.2': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arreglado: la instancia de TFL Selection no abría al seleccionarla en la barra lateral.',
+		'Arreglado: el aviso de "instalando" de TFL Selection se quedaba pegado en pantalla después de terminar.',
+		'La pestaña Mods de una instancia de TFL Selection ahora explica que se administra sola, en vez de mostrar "0 instalados" sin contexto.'
+	],
 	'0.15.3-beta.1': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Nuevo: TFL Selection 1.8.9 ya se instala con un solo click, con catálogo oficial firmado y verificado — arranca con Ornithe Gen2 y Java 25.',

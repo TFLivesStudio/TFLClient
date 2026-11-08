@@ -671,7 +671,9 @@ export const en: Dictionary = {
 	},
 	modsPanel: {
 		vanillaHint:
-			"Vanilla doesn't support mods — pick Fabric, Forge, NeoForge or Quilt when creating the instance."
+			"Vanilla doesn't support mods — pick Fabric, Forge, NeoForge or Quilt when creating the instance.",
+		selectionHint:
+			"This TFL Selection instance manages its own mods: they can't be added or removed by hand. Use the shield icon next to the name to verify integrity, and the TFL Selection page under Explore to repair or update."
 	},
 	resourcePacksPanel: {
 		hint: "Resource packs work on any instance, with or without mods — you don't need anything extra installed. Enable them from Minecraft's menu (Options → Resource Packs)."

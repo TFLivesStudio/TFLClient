@@ -241,8 +241,31 @@ pub async fn prepare_for_launch(instance_data: &InstanceData) -> Result<(), Stri
     Ok(())
 }
 
-/// Instalación completa y atómica de una versión de TFL Selection.
+/// Instalación completa y atómica de una versión de TFL Selection. Envuelve
+/// `install_target_inner` para garantizar que el task de progreso
+/// `selection:{target_id}` siempre cierra con `DownloadFinished` o
+/// `DownloadFailed` — `install_target_inner` emite `DownloadProgress` pero
+/// nunca su evento terminal, así que sin este wrapper el toast de descarga
+/// quedaba en la UI para siempre aunque la instalación ya hubiera
+/// terminado (bien o mal).
 pub async fn install_target(
+    instance_name: &str,
+    target_id: &str,
+    channel: Channel,
+) -> Result<InstanceData, String> {
+    let task = format!("selection:{target_id}");
+    let result = install_target_inner(instance_name, target_id, channel).await;
+    match &result {
+        Ok(_) => emit(AppEvent::DownloadFinished { task }),
+        Err(e) => emit(AppEvent::DownloadFailed {
+            task,
+            error: e.clone(),
+        }),
+    }
+    result
+}
+
+async fn install_target_inner(
     instance_name: &str,
     target_id: &str,
     channel: Channel,

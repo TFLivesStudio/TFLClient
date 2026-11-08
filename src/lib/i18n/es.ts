@@ -671,7 +671,9 @@ export const es = {
 	},
 	modsPanel: {
 		vanillaHint:
-			'Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.'
+			'Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.',
+		selectionHint:
+			'Esta instancia de TFL Selection administra sus mods sola: no se pueden agregar ni sacar a mano. Usá el ícono de escudo junto al nombre para verificar la integridad, y la página de TFL Selection en Explorar para reparar o actualizar.'
 	},
 	resourcePacksPanel: {
 		hint: 'Los resource packs funcionan en cualquier instancia, con o sin mods — no necesitás nada extra instalado. Se activan desde el menú de Minecraft (Opciones → Paquetes de recursos).'

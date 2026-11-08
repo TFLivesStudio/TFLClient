@@ -91,7 +91,8 @@
 		fabric: 'var(--loader-fabric)',
 		forge: 'var(--loader-forge)',
 		neoforge: 'var(--loader-neoforge)',
-		quilt: 'var(--loader-quilt)'
+		quilt: 'var(--loader-quilt)',
+		'ornithe-gen2': 'var(--loader-ornithe-gen2)'
 	};
 
 	let query = $state('');

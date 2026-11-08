@@ -11,6 +11,10 @@
 		<p class="hint">
 			{t('modsPanel.vanillaHint')}
 		</p>
+	{:else if instance.loader === 'ornithe-gen2'}
+		<p class="hint">
+			{t('modsPanel.selectionHint')}
+		</p>
 	{:else}
 		<ContentManager kind="mod" {instance} />
 	{/if}

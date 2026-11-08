@@ -1,7 +1,7 @@
 // Browser-only IPC fixture. Never imported by production code.
 export function installFixture({
 	quality = 'Balanced',
-	appVersion = '0.15.3-beta.1',
+	appVersion = '0.15.3-beta.2',
 	empty = false,
 	language = 'es',
 	theme = 'dark',
@@ -44,6 +44,11 @@ export function installFixture({
 				instance('Horizontes', 'horizons'),
 				instance('Create · New beginnings', 'create', 'forge'),
 				instance('Vanilla stories', 'vanilla', 'vanilla'),
+				// Instancia administrada de TFL Selection — cubre el loader
+				// 'ornithe-gen2' en las vistas visuales (ver LOADER_META en
+				// InstanceDetail.svelte/Sidebar.svelte: sin esta entrada acá
+				// nunca se hubiera notado que faltaba la del loader ahí).
+				instance('TFL Selection 1.8.9', 'tfl-selection', 'ornithe-gen2'),
 				instance('TFL Friends', 'server', 'vanilla', 'paper')
 			];
 	let settings = {
