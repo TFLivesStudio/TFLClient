@@ -43,9 +43,9 @@ impl OrnitheBatch {
             game_version, loader_version
         );
 
-        let mut profile_text = fetch_text_retrying(&profile_url)
-            .await
-            .map_err(|e| AquaError::Other(format!("No se pudo conectar a meta.ornithemc.net: {e}")))?;
+        let mut profile_text = fetch_text_retrying(&profile_url).await.map_err(|e| {
+            AquaError::Other(format!("No se pudo conectar a meta.ornithemc.net: {e}"))
+        })?;
 
         // En meta.ornithemc.net el inheritsFrom es "{game_version}-vanilla", pero
         // el launcher almacena la versión base como "{game_version}". Lo adaptamos
