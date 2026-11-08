@@ -5,6 +5,10 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.3-beta.4': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arreglado: TFL Selection 1.8.9 crasheaba al iniciar por una librería de logging (log4j) desactualizada — si ya tenías la instancia instalada, se repara sola la próxima vez que le des Jugar.'
+	],
 	'0.15.3-beta.3': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Arreglado: la instancia de TFL Selection no abría al seleccionarla en la barra lateral.',
