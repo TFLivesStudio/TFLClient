@@ -30,7 +30,7 @@ try {
 	await p.getByRole('button', { name: 'Añadir', exact: true }).click();
 	assert.ok(await p.getByRole('button', { name: 'Survival', exact: true }).isVisible());
 	await p.getByRole('button', { name: 'Eliminar colección: Survival', exact: true }).click();
-	assert.equal(await p.locator('.vr-library-row').count(), 4);
+	assert.equal(await p.locator('.vr-library-row').count(), 5);
 	await p.getByRole('button', { name: 'TFL Friends', exact: true }).click();
 	await p.locator('.tabs').getByRole('button', { name: 'Consola', exact: true }).click();
 	await shot('server-console-800x600');

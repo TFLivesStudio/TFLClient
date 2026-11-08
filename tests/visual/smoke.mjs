@@ -73,7 +73,7 @@ try {
 	}
 	const p = await open();
 	await p.getByRole('button', { name: 'Biblioteca', exact: true }).first().click();
-	assert.equal(await p.locator('.vr-library-row').count(), 4);
+	assert.equal(await p.locator('.vr-library-row').count(), 5);
 	await shot(p, 'library');
 	await p.getByRole('button', { name: 'Favorita: Horizontes', exact: true }).click();
 	await p.reload();
