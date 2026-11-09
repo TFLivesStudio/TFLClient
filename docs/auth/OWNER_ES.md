@@ -62,16 +62,16 @@ En el registro de aplicación pública de escritorio (`40fffa46-b69c-4ae1-9410-1
 comprobar manualmente en el portal de Microsoft Entra — no se puede verificar
 desde este entorno, así que esta tabla es lo que hay que confirmar a mano:
 
-| Pantalla (Entra ID → App registrations → esta app) | Campo                              | Valor esperado                                                                 |
-| ---------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
-| Authentication                                       | Supported account types             | "Personal Microsoft accounts only" (cuentas MSA, no org/multi-tenant)          |
-| Authentication → Platform configurations             | Tipo de plataforma                  | "Mobile and desktop applications" (NO "Web")                                  |
-| Authentication → Platform → Redirect URIs             | URI 1                                | `https://login.microsoftonline.com/common/oauth2/nativeclient`                |
-| Authentication → Platform → Redirect URIs             | URI 2                                | `http://localhost` (sin puerto ni ruta fija; Microsoft trata loopback aparte) |
-| Authentication → Advanced settings                    | "Allow public client flows"         | **Yes**                                                                        |
-| Authentication                                        | Implicit grant / hybrid flows       | Ambas casillas **sin marcar**                                                 |
-| Certificates & secrets                                 | Client secrets                      | Ninguno creado — esta app nunca debe tenerlo                                  |
-| API permissions                                        | Permisos                            | Solo los de Xbox Live/Minecraft necesarios; **sin** Microsoft Graph añadido   |
+| Pantalla (Entra ID → App registrations → esta app) | Campo                         | Valor esperado                                                                |
+| -------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------- |
+| Authentication                                     | Supported account types       | "Personal Microsoft accounts only" (cuentas MSA, no org/multi-tenant)         |
+| Authentication → Platform configurations           | Tipo de plataforma            | "Mobile and desktop applications" (NO "Web")                                  |
+| Authentication → Platform → Redirect URIs          | URI 1                         | `https://login.microsoftonline.com/common/oauth2/nativeclient`                |
+| Authentication → Platform → Redirect URIs          | URI 2                         | `http://localhost` (sin puerto ni ruta fija; Microsoft trata loopback aparte) |
+| Authentication → Advanced settings                 | "Allow public client flows"   | **Yes**                                                                       |
+| Authentication                                     | Implicit grant / hybrid flows | Ambas casillas **sin marcar**                                                 |
+| Certificates & secrets                             | Client secrets                | Ninguno creado — esta app nunca debe tenerlo                                  |
+| API permissions                                    | Permisos                      | Solo los de Xbox Live/Minecraft necesarios; **sin** Microsoft Graph añadido   |
 
 Si cualquiera de estos valores no coincide, hay que corregirlo manualmente en el
 portal — esto no se puede hacer ni verificar por API/código desde este entorno.
