@@ -39,7 +39,7 @@ export interface Settings {
 	sidebar_collapsed: boolean;
 }
 
-export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt';
+export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt' | 'ornithe-gen2';
 export type ServerType = 'vanilla' | 'paper' | 'purpur';
 
 export interface InstanceData {
@@ -297,12 +297,23 @@ export interface WorldBackup {
 }
 
 export interface ImportCandidate {
-	source: 'prism' | 'multimc' | 'polymc' | 'curseforge';
+	source: 'prism' | 'multimc' | 'polymc' | 'curseforge' | 'modrinth_app';
 	name: string;
 	path: string;
 	mc_version: string | null;
 	loader: Loader;
 	mod_count: number;
+}
+
+export interface MrpackPreview {
+	name: string;
+	suggested_name: string;
+	summary: string | null;
+	version_id: string;
+	mc_version: string;
+	loader: 'vanilla' | 'fabric' | 'quilt' | 'forge' | 'neoforge';
+	loader_version: string | null;
+	file_count: number;
 }
 
 export interface ActivityEntry {

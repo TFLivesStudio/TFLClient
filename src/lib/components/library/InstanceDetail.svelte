@@ -38,6 +38,7 @@
 	import { bumpInstanceIcon } from '$lib/state/instanceState.svelte';
 	import { multiInstanceWarningKind } from '$lib/state/launch';
 	import { t } from '$lib/i18n/index.svelte';
+	import { verifySelectionIntegrity } from '$lib/api/tflSelection';
 	import ModsPanel from './ModsPanel.svelte';
 	import ShadersPanel from './ShadersPanel.svelte';
 	import ModpacksPanel from './ModpacksPanel.svelte';
@@ -226,9 +227,16 @@
 		fabric: { label: 'Fabric', color: 'var(--loader-fabric)' },
 		forge: { label: 'Forge', color: 'var(--loader-forge)' },
 		neoforge: { label: 'NeoForge', color: 'var(--loader-neoforge)' },
-		quilt: { label: 'Quilt', color: 'var(--loader-quilt)' }
+		quilt: { label: 'Quilt', color: 'var(--loader-quilt)' },
+		'ornithe-gen2': { label: 'Ornithe Gen2', color: 'var(--loader-ornithe-gen2)' }
 	};
-	const loaderMeta = $derived(serverMeta ?? LOADER_META[instance.loader]);
+	// Instancia con loader sin entrada en LOADER_META/SERVER_META (no debería
+	// pasar — ver test abajo — pero si pasa, undefined.color tiraba abajo
+	// TODO el render de InstanceDetail: el panel quedaba trabado mostrando
+	// la instancia anterior, porque Svelte nunca llegaba a montar la nueva.
+	const loaderMeta = $derived(
+		serverMeta ?? LOADER_META[instance.loader] ?? { label: instance.loader, color: '#8a8f98' }
+	);
 
 	const playTimeLabel = $derived.by(() => {
 		const secs = instance.play_time_secs ?? 0;
@@ -373,7 +381,17 @@
 		error = null;
 		integrityIssues = null;
 		try {
-			integrityIssues = await verifyInstanceIntegrity(instance.name);
+			// Las instancias de TFL Selection no usan el tracking de mods
+			// genérico (`verify_instance_integrity` mira manifiestos que esta
+			// instancia nunca tiene) — tienen su propio lockfile firmado, así
+			// que acá se verifica contra ese en vez de siempre devolver "sin
+			// problemas" aunque falte algo.
+			if (instance.loader === 'ornithe-gen2') {
+				const report = await verifySelectionIntegrity(instance.name);
+				integrityIssues = [...report.missing, ...report.corrupted];
+			} else {
+				integrityIssues = await verifyInstanceIntegrity(instance.name);
+			}
 		} catch (e) {
 			error = String(e);
 		} finally {

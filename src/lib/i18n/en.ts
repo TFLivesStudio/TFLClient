@@ -317,13 +317,21 @@ export const en: Dictionary = {
 		title: 'Import instance',
 		subtitle: 'We found these instances in other launchers installed on your computer.',
 		searching: 'Looking for instances…',
-		none: 'We did not find Prism, MultiMC, PolyMC or CurseForge instances in the usual folders.',
+		none: 'We did not find Prism, MultiMC, PolyMC, CurseForge or Modrinth App instances in the usual folders.',
 		unknownVersion: 'unknown version',
 		modCount: '{{count}} mods',
 		nameLabel: 'Name in TFL Client',
 		hint: 'A new instance is created with its mods, configs, worlds and packs. The original is not touched. The loader is installed at its latest version for that Minecraft version.',
 		import: 'Import',
-		importing: 'Importing…'
+		importing: 'Importing…',
+		orDivider: 'or',
+		mrpackButton: 'Import .mrpack file',
+		mrpackDialogsBlocked: 'Enable Manual mode in Settings to pick a .mrpack file.',
+		mrpackPreviewTitle: 'Confirm modpack',
+		mrpackFileCount: '{{count}} files',
+		mrpackConfirm: 'Import modpack',
+		mrpackImporting: 'Importing modpack…',
+		dropHint: 'Drop to import the modpack'
 	},
 	contentManager: {
 		manageTab: 'Manage',
@@ -663,7 +671,9 @@ export const en: Dictionary = {
 	},
 	modsPanel: {
 		vanillaHint:
-			"Vanilla doesn't support mods — pick Fabric, Forge, NeoForge or Quilt when creating the instance."
+			"Vanilla doesn't support mods — pick Fabric, Forge, NeoForge or Quilt when creating the instance.",
+		selectionHint:
+			"This TFL Selection instance manages its own mods: they can't be added or removed by hand. Use the shield icon next to the name to verify integrity, and the TFL Selection page under Explore to repair or update."
 	},
 	resourcePacksPanel: {
 		hint: "Resource packs work on any instance, with or without mods — you don't need anything extra installed. Enable them from Minecraft's menu (Options → Resource Packs)."

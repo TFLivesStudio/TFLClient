@@ -23,7 +23,9 @@ fn search_facets(q: &SearchQuery<'_>) -> String {
         q.project_type.as_modrinth_param()
     )];
     if let Some(loader) = q.loader {
-        facet_groups.push(format!(r#"["categories:{}"]"#, loader.to_lowercase()));
+        if !loader.is_empty() {
+            facet_groups.push(format!(r#"["categories:{}"]"#, loader.to_lowercase()));
+        }
     }
     // Categorías elegidas por el usuario en el filtro de la pestaña
     // Descargar — se combinan entre sí con OR (cualquiera de las elegidas
@@ -37,7 +39,9 @@ fn search_facets(q: &SearchQuery<'_>) -> String {
             .join(",");
         facet_groups.push(format!("[{cats}]"));
     }
-    facet_groups.push(format!(r#"["versions:{}"]"#, q.mc_version));
+    if !q.mc_version.is_empty() {
+        facet_groups.push(format!(r#"["versions:{}"]"#, q.mc_version));
+    }
     format!("[{}]", facet_groups.join(","))
 }
 

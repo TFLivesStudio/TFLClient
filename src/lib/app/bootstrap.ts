@@ -9,6 +9,7 @@ import {
 	restoreAppearance
 } from '$lib/state/appearanceState.svelte';
 import { initDownloadListener } from '$lib/state/downloadState.svelte';
+import { initDragDropListener } from '$lib/state/dragDrop.svelte';
 import { initGameSessionListener } from '$lib/state/gameSession.svelte';
 import { refreshAfterInstanceStopped, refreshInstances } from '$lib/state/instanceState.svelte';
 import { initNetworkListener } from '$lib/state/network.svelte';
@@ -47,6 +48,7 @@ export async function startApp() {
 	observeAppearance();
 
 	initDownloadListener();
+	initDragDropListener();
 	initGameSessionListener();
 	listen<{ type: string; data: { status?: string } }>('app-event', async (event) => {
 		if (event.payload.type !== 'InstanceStatusChanged' || event.payload.data.status !== 'stopped')

@@ -50,6 +50,7 @@ ignore = [
 	"RUSTSEC-2026-0367",
 	"RUSTSEC-2026-0368",
 	"RUSTSEC-2026-0369",
+	"RUSTSEC-2026-0429", # symlink extract aborta el proceso, mismo zip@4.6.1 de arriba
 
 	# zbus_names / zvariant / zvariant_derive — unmaintained (3 avisos, no
 	# vulnerabilidades). Vienen de zbus 5.19 (soporte D-Bus de Linux),

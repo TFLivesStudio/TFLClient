@@ -317,13 +317,21 @@ export const es = {
 		title: 'Importar instancia',
 		subtitle: 'Encontramos estas instancias en otros launchers instalados en tu equipo.',
 		searching: 'Buscando instancias…',
-		none: 'No encontramos instancias de Prism, MultiMC, PolyMC ni CurseForge en las carpetas habituales.',
+		none: 'No encontramos instancias de Prism, MultiMC, PolyMC, CurseForge ni la app de Modrinth en las carpetas habituales.',
 		unknownVersion: 'versión desconocida',
 		modCount: '{{count}} mods',
 		nameLabel: 'Nombre en TFL Client',
 		hint: 'Se crea una instancia nueva con sus mods, configs, mundos y packs. La original no se toca. El loader se instala en su última versión para esa versión de Minecraft.',
 		import: 'Importar',
-		importing: 'Importando…'
+		importing: 'Importando…',
+		orDivider: 'o',
+		mrpackButton: 'Importar archivo .mrpack',
+		mrpackDialogsBlocked: 'Activá el modo Manual en Ajustes para elegir un archivo .mrpack.',
+		mrpackPreviewTitle: 'Confirmar modpack',
+		mrpackFileCount: '{{count}} archivos',
+		mrpackConfirm: 'Importar modpack',
+		mrpackImporting: 'Importando modpack…',
+		dropHint: 'Soltá para importar el modpack'
 	},
 	contentManager: {
 		manageTab: 'Gestionar',
@@ -663,7 +671,9 @@ export const es = {
 	},
 	modsPanel: {
 		vanillaHint:
-			'Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.'
+			'Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.',
+		selectionHint:
+			'Esta instancia de TFL Selection administra sus mods sola: no se pueden agregar ni sacar a mano. Usá el ícono de escudo junto al nombre para verificar la integridad, y la página de TFL Selection en Explorar para reparar o actualizar.'
 	},
 	resourcePacksPanel: {
 		hint: 'Los resource packs funcionan en cualquier instancia, con o sin mods — no necesitás nada extra instalado. Se activan desde el menú de Minecraft (Opciones → Paquetes de recursos).'

@@ -3,7 +3,7 @@ use crate::core::event_bus::{AppEvent, emit};
 use crate::services::activity_log;
 use crate::services::instance_manager::LoaderKind;
 use crate::services::{SettingsManager, instance_manager, java_manager, progress};
-use aqua::{DownloadManager, FabricBatch, ForgeBatch, NeoForgeBatch, QuiltBatch};
+use aqua::{DownloadManager, FabricBatch, ForgeBatch, NeoForgeBatch, OrnitheBatch, QuiltBatch};
 use launchwerk::Launchwerk;
 use launchwerk::auth::AccountType;
 use launchwerk::models::VersionManifest;
@@ -119,7 +119,22 @@ async fn ensure_downloaded(
         info!("Vanilla {} listo", data.mc_version);
     }
 
-    if version_json_exists(&shared_dir, &data.launch_version_id) {
+    // Para Ornithe Gen2 no alcanza con que el .json exista: uno escrito
+    // antes del fix del issue #16 no tiene log4j-api propio, así que el
+    // log4j viejo de vanilla 1.8.9 le gana y Sarcio revienta con
+    // NoSuchMethodError al arrancar. `needs_log4j_repair` lo detecta sin
+    // pedirle al usuario que borre nada a mano — después de reparado una
+    // vez, el .json ya tiene log4j-api y este chequeo vuelve a tomar el
+    // camino rápido normal.
+    let ornithe_needs_repair = data.loader == LoaderKind::OrnitheGen2
+        && aqua::needs_log4j_repair(&shared_dir, &data.launch_version_id);
+    if ornithe_needs_repair {
+        info!(
+            "\"{}\": classpath de Ornithe Gen2 desactualizado (sin log4j-api, issue #16) — reparando",
+            data.name
+        );
+    }
+    if !ornithe_needs_repair && version_json_exists(&shared_dir, &data.launch_version_id) {
         return Ok(());
     }
 
@@ -217,6 +232,28 @@ async fn ensure_downloaded(
                 .await
                 .inspect_err(|e| error!("Falló la instalación de NeoForge: {e}"))?;
         }
+        LoaderKind::OrnitheGen2 => {
+            let batch = OrnitheBatch::new(&shared_dir, &data.mc_version, loader_version)
+                .await
+                .map_err(|e| {
+                    error!("No se pudo resolver el perfil de Ornithe Gen2: {e}");
+                    e.to_string()
+                })?;
+            let manager = DownloadManager::new(shared_dir.clone());
+            let handle = manager
+                .prepare_batch(Box::new(batch))
+                .await
+                .map_err(|e| e.to_string())?;
+            let (tx, watcher) = progress::watch(&format!("ornithe:{}", data.mc_version));
+            let result = handle
+                .download_all(Some(tx))
+                .await
+                .map_err(|e| e.to_string());
+            watcher
+                .finish(result)
+                .await
+                .inspect_err(|e| error!("Falló la instalación de Ornithe Gen2: {e}"))?;
+        }
     }
 
     info!(
@@ -306,7 +343,12 @@ async fn launch_inner(
 
     // Java se resuelve una vez acá: lo necesitan tanto el lanzamiento final
     // como (para Forge/NeoForge) el propio instalador del loader.
-    let java_major = aqua::infer_java_version(&data.mc_version);
+    // Para TFL Selection (Ornithe Gen2), Java 25 es mandatorio.
+    let java_major = if data.loader == LoaderKind::OrnitheGen2 {
+        25
+    } else {
+        aqua::infer_java_version(&data.mc_version)
+    };
     let perf_java = crate::core::perf::span("launch.java");
     let java_path = java_manager::ensure_java(java_major, &data.mc_version)
         .await
@@ -317,6 +359,9 @@ async fn launch_inner(
     info!("Java {java_major}: {}", java_path.display());
 
     let perf_prepare = crate::core::perf::span("launch.prepare_minecraft");
+    if data.loader == LoaderKind::OrnitheGen2 {
+        crate::services::selection::installer::prepare_for_launch(&data).await?;
+    }
     ensure_downloaded(&data, Some(java_path.clone())).await?;
     drop(perf_prepare);
 

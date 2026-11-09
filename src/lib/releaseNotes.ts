@@ -5,6 +5,63 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.3-beta.4': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arreglado: TFL Selection 1.8.9 crasheaba al iniciar por una librería de logging (log4j) desactualizada — si ya tenías la instancia instalada, se repara sola la próxima vez que le des Jugar.'
+	],
+	'0.15.3-beta.3': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arreglado: la instancia de TFL Selection no abría al seleccionarla en la barra lateral.',
+		'Arreglado: el aviso de "instalando" de TFL Selection se quedaba pegado en pantalla después de terminar.',
+		'La pestaña Mods de una instancia de TFL Selection ahora explica que se administra sola, en vez de mostrar "0 instalados" sin contexto.'
+	],
+	'0.15.3-beta.2': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arreglado: la instancia de TFL Selection no abría al seleccionarla en la barra lateral.',
+		'Arreglado: el aviso de "instalando" de TFL Selection se quedaba pegado en pantalla después de terminar.',
+		'La pestaña Mods de una instancia de TFL Selection ahora explica que se administra sola, en vez de mostrar "0 instalados" sin contexto.'
+	],
+	'0.15.3-beta.1': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Nuevo: TFL Selection 1.8.9 ya se instala con un solo click, con catálogo oficial firmado y verificado — arranca con Ornithe Gen2 y Java 25.',
+		'El botón "Modpack" al crear una instancia ahora te deja elegir entre TFL Selection o Modrinth.',
+		'Arreglado: el logo se veía casi invisible en modo oscuro.',
+		'Arreglado: el ícono de "Explorar" en la barra lateral era igual al de "Unirse a servidor".'
+	],
+	'0.15.2': [
+		'Arreglado: el botón de copiar captura de pantalla al portapapeles tiraba error y no copiaba nada.'
+	],
+	'0.15.2-beta.2': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arreglado: el botón de copiar captura de pantalla al portapapeles tiraba error y no copiaba nada.'
+	],
+	'0.15.2-beta.1': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arreglado: el botón de copiar captura de pantalla al portapapeles tiraba error y no copiaba nada.'
+	],
+	'0.15.1': [
+		'Arrastrá un archivo .mrpack y soltalo sobre la ventana para importarlo directo, sin pasar por el selector de archivos.'
+	],
+	'0.15.1-beta.2': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arrastrá un archivo .mrpack y soltalo sobre la ventana para importarlo directo, sin pasar por el selector de archivos.'
+	],
+	'0.15.1-beta.1': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arrastrá un archivo .mrpack y soltalo sobre la ventana para importarlo directo, sin pasar por el selector de archivos.'
+	],
+	'0.15.0': [
+		'Importá un archivo .mrpack suelto (de Modrinth, Prism o CurseForge) desde Biblioteca → Importar instancia: configura sola la versión de Minecraft, el loader y los mods.',
+		'La detección automática de instancias para importar ahora también encuentra las de la app de Modrinth, además de Prism, MultiMC, PolyMC y CurseForge.'
+	],
+	'0.15.0-beta.2': [
+		'Arreglado: la detección automática de instancias de la app de Modrinth no encontraba ninguna — ahora sí aparecen todas al importar.'
+	],
+	'0.15.0-beta.1': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Importá un archivo .mrpack suelto (de Modrinth, Prism o CurseForge) desde Biblioteca → Importar instancia: configura sola la versión de Minecraft, el loader y los mods.',
+		'La detección automática de instancias para importar ahora también encuentra las de la app de Modrinth, además de Prism, MultiMC, PolyMC y CurseForge.'
+	],
 	'0.14.0-beta.2': [
 		'Conecta asistentes compatibles mediante MCP local: aprueba cada sesión, limita sus permisos y confirma las acciones críticas desde Integraciones.',
 		'Cinco paisajes cinematográficos nuevos, miniaturas fieles y vídeos a 720p, manteniendo Lite estático y los fondos personales.',
@@ -285,5 +342,13 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Rediseño: el fondo de pantalla que elegís en Ajustes ahora es siempre el fondo de todo el launcher. Las escenas (vídeo/atmósfera) pasan al cuadro grande de Home y a las tarjetas de la Biblioteca en vista cuadrícula.',
 		'Quitamos 17 de los fondos de pantalla agregados en la beta anterior — estaban en baja resolución y se veían borrosos a pantalla completa. Los demás quedan.'
+	],
+	'0.14.1': [
+		'Ajustes rediseñado: se organiza por tareas (General, Apariencia, Rendimiento, Sistema...) con buscador que te lleva directo a cada opción, más ayuda y validación de RAM, Java y variables de entorno.',
+		'Fondos y escenas: 19 fondos de pantalla nuevos (en alta resolución) y 7 paisajes cinemáticos animados. El fondo que elegís es siempre el fondo de todo el launcher; las escenas en vídeo aparecen en el cuadro grande de Home y en las tarjetas de la Biblioteca en vista cuadrícula. Podés asignar una escena distinta a cada instancia.',
+		'Diseña tu consola de rendimiento arrastrando sus tarjetas: varios moldes, gráficas por métrica y colores a elección.',
+		'Conectá asistentes compatibles por MCP local desde Integraciones: aprobás cada sesión y limitás sus permisos a mano.',
+		'36 íconos de instancia nuevos, y la lista de instancias en la barra lateral ahora muestra el ícono real en vez de solo las iniciales.',
+		'Arreglado: el botón Detener de la ventana de log no respondía mientras el juego corría; búsquedas en Ajustes podían dejar visible una pestaña fuera de los resultados; la marca "TFL Selection" en Explorar mostraba un ícono genérico en vez del logo real.'
 	]
 };

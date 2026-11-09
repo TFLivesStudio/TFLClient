@@ -40,7 +40,21 @@ pub struct MrpackMetadata {
     /// Permite desinstalar el modpack más tarde borrando exactamente lo
     /// que puso, sin adivinar.
     pub installed_paths: Vec<String>,
+    /// Claves de `dependencies` que no son Minecraft ni un loader conocido
+    /// (`fabric-loader`/`quilt-loader`/`forge`/`neoforge`) — ej. loaders
+    /// legacy que este motor no instala. Vacío en un pack normal. Permite
+    /// avisar "loader no soportado" en vez de crear una instancia vanilla
+    /// a la que le faltan los mods.
+    pub unsupported_dependencies: Vec<String>,
 }
+
+const KNOWN_DEPENDENCIES: &[&str] = &[
+    "minecraft",
+    "fabric-loader",
+    "quilt-loader",
+    "forge",
+    "neoforge",
+];
 
 impl PackFormat {
     pub fn extract_metadata(&self) -> MrpackMetadata {
@@ -81,6 +95,52 @@ impl PackFormat {
             game_version,
             file_count: self.files.len(),
             installed_paths: Vec::new(),
+            unsupported_dependencies: {
+                let mut v: Vec<String> = self
+                    .dependencies
+                    .keys()
+                    .filter(|k| !KNOWN_DEPENDENCIES.contains(&k.as_str()))
+                    .cloned()
+                    .collect();
+                v.sort();
+                v
+            },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn pack(deps: &[(&str, &str)]) -> PackFormat {
+        PackFormat {
+            game: "minecraft".into(),
+            format_version: 1,
+            version_id: "1.0.0".into(),
+            name: "Test".into(),
+            summary: None,
+            files: Vec::new(),
+            dependencies: deps
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn known_loader_has_no_unsupported_dependencies() {
+        let m = pack(&[("minecraft", "1.20.1"), ("fabric-loader", "0.15.11")]).extract_metadata();
+        assert!(m.unsupported_dependencies.is_empty());
+        assert!(matches!(
+            m.game_version.unwrap().loader,
+            Loader::Fabric(v) if v == "0.15.11"
+        ));
+    }
+
+    #[test]
+    fn unknown_dependency_is_reported() {
+        let m = pack(&[("minecraft", "1.12.2"), ("legacy-fabric", "0.1")]).extract_metadata();
+        assert_eq!(m.unsupported_dependencies, vec!["legacy-fabric"]);
     }
 }

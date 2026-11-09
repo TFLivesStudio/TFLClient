@@ -27,6 +27,7 @@
 		Boxes,
 		WifiOff,
 		Globe,
+		Compass,
 		Shirt,
 		Home,
 		PanelLeftClose,
@@ -90,7 +91,8 @@
 		fabric: 'var(--loader-fabric)',
 		forge: 'var(--loader-forge)',
 		neoforge: 'var(--loader-neoforge)',
-		quilt: 'var(--loader-quilt)'
+		quilt: 'var(--loader-quilt)',
+		'ornithe-gen2': 'var(--loader-ornithe-gen2)'
 	};
 
 	let query = $state('');
@@ -213,7 +215,7 @@
 			aria-label={vr(section as 'library' | 'discover')}
 			title={collapsed ? vr(section as 'library' | 'discover') : undefined}
 		>
-			{#if section === 'library'}<Boxes size={18} />{:else}<Globe size={18} />{/if}
+			{#if section === 'library'}<Boxes size={18} />{:else}<Compass size={18} />{/if}
 			{#if !collapsed}<span>{vr(section as 'library' | 'discover')}</span>{/if}
 		</button>
 	{/each}

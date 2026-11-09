@@ -11,6 +11,8 @@ pub enum LoaderKind {
     Forge,
     NeoForge,
     Quilt,
+    #[serde(rename = "ornithe-gen2")]
+    OrnitheGen2,
 }
 
 /// Software de servidor Minecraft — distinto de `LoaderKind`, que es sobre
@@ -43,7 +45,19 @@ impl LoaderKind {
             "forge" => Some(Self::Forge),
             "neoforge" => Some(Self::NeoForge),
             "quilt" => Some(Self::Quilt),
+            "ornithe-gen2" | "ornithe" => Some(Self::OrnitheGen2),
             _ => None,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Vanilla => "vanilla",
+            Self::Fabric => "fabric",
+            Self::Forge => "forge",
+            Self::NeoForge => "neoforge",
+            Self::Quilt => "quilt",
+            Self::OrnitheGen2 => "ornithe-gen2",
         }
     }
 }
@@ -339,7 +353,23 @@ fn now_secs() -> i64 {
 }
 
 use aqua::{FabricBatch, QuiltBatch};
-async fn resolve_loader(
+
+/// Id de versión que el launcher usa para lanzar una instancia con ese
+/// loader — mismo formato que arma `resolve_loader` para la versión más
+/// reciente, para cuando la versión del loader se conoce de antemano (ej.
+/// un `.mrpack` que fija una versión exacta).
+pub(crate) fn launch_version_id(mc_version: &str, loader: LoaderKind, lv: &str) -> String {
+    match loader {
+        LoaderKind::Vanilla => mc_version.to_string(),
+        LoaderKind::Fabric => format!("fabric-loader-{lv}-{mc_version}"),
+        LoaderKind::Quilt => format!("quilt-loader-{lv}-{mc_version}"),
+        LoaderKind::Forge => format!("{mc_version}-forge-{lv}"),
+        LoaderKind::NeoForge => format!("{mc_version}-neoforge-{lv}"),
+        LoaderKind::OrnitheGen2 => format!("fabric-loader-{lv}-{mc_version}-ornithe-gen2"),
+    }
+}
+
+pub(crate) async fn resolve_loader(
     mc_version: &str,
     loader: LoaderKind,
 ) -> Result<(Option<String>, String), String> {
@@ -367,6 +397,11 @@ async fn resolve_loader(
         LoaderKind::NeoForge => {
             let lv = crate::commands::loaders::get_neoforge_version(mc_version.to_string()).await?;
             let id = format!("{mc_version}-neoforge-{lv}");
+            Ok((Some(lv), id))
+        }
+        LoaderKind::OrnitheGen2 => {
+            let lv = "0.20.1".to_string();
+            let id = format!("fabric-loader-{lv}-{mc_version}-ornithe-gen2");
             Ok((Some(lv), id))
         }
     }

@@ -20,6 +20,34 @@
 	};
 
 	const tasks = $derived(Object.values(downloadTasks));
+
+	// Las tareas se identifican internamente como "fabric:1.21.1",
+	// "selection:tfl-selection-1.8.9", "java:25" — mostrar eso tal cual es
+	// ilegible para el usuario, así que se separa en un rótulo prolijo.
+	function taskLabel(task: string): string {
+		const [kind, ...rest] = task.split(':');
+		const id = rest.join(':');
+		switch (kind) {
+			case 'minecraft':
+				return `Minecraft ${id}`;
+			case 'fabric':
+				return `Fabric — ${id}`;
+			case 'forge':
+				return `Forge — ${id}`;
+			case 'neoforge':
+				return `NeoForge — ${id}`;
+			case 'quilt':
+				return `Quilt — ${id}`;
+			case 'ornithe':
+				return `Ornithe Gen2 — ${id}`;
+			case 'java':
+				return `Java ${id}`;
+			case 'selection':
+				return 'TFL Selection';
+			default:
+				return task;
+		}
+	}
 </script>
 
 {#if tasks.length > 0}
@@ -32,7 +60,7 @@
 					{:else}
 						<Download size={14} />
 					{/if}
-					<span class="progress-title">{t.task}</span>
+					<span class="progress-title">{taskLabel(t.task)}</span>
 				</div>
 				{#if t.failed}
 					<p class="progress-error">{t.failed}</p>

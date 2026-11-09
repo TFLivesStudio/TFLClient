@@ -4,6 +4,7 @@ mod forge;
 mod jre;
 mod minecraft;
 mod neoforge;
+mod ornithe;
 mod quilt;
 
 use std::path::{Path, PathBuf};
@@ -20,6 +21,7 @@ pub use jre::JreBatch;
 use log::warn;
 pub use minecraft::MinecraftBatch;
 pub use neoforge::{NeoForgeBatch, NeoForgeVersionInfo};
+pub use ornithe::{OrnitheBatch, needs_log4j_repair};
 pub use quilt::QuiltBatch;
 use tokio::sync::{Mutex, Semaphore};
 use tokio::task::JoinHandle;

@@ -59,7 +59,7 @@ pub struct InstalledModpack {
     pub file_count: usize,
 }
 
-fn manifest_dir(instance_dir: &std::path::Path) -> std::path::PathBuf {
+pub(crate) fn manifest_dir(instance_dir: &std::path::Path) -> std::path::PathBuf {
     instance_dir.join(".tfl_modpacks")
 }
 
@@ -69,7 +69,7 @@ fn manifest_dir(instance_dir: &std::path::Path) -> std::path::PathBuf {
 /// sale del `modrinth.index.json` DENTRO del .mrpack, que puede venir de
 /// cualquier repo de GitHub. `remove_modpack` ya validaba esto; acá se
 /// aplica el mismo criterio antes de escribir, no solo antes de borrar.
-fn valid_version_id(version_id: &str) -> Result<(), String> {
+pub(crate) fn valid_version_id(version_id: &str) -> Result<(), String> {
     if version_id.is_empty()
         || version_id.contains('/')
         || version_id.contains('\\')
