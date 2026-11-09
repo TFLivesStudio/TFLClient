@@ -1,25 +1,34 @@
 {
-	"baseline": "v0.14.0-beta.6",
-	"rust_lib_tests_passed": 191,
+	"baseline": "main @ 905b063 (merge of origin/main post 0.15.3-beta.4 into feat/microsoft-auth-2)",
+	"own_client_id": "40fffa46-b69c-4ae1-9410-16f74d7847fd",
+	"own_client_id_minecraft_approval": "requested, not confirmed",
+	"production_client_id_changed": false,
+	"rust_workspace_tests_passed": 250,
+	"rust_workspace_tests_failed": 0,
 	"node_behavior_tests_passed": 18,
-	"browser_ui_checks_passed": 13,
 	"browser_ipc": "simulated",
 	"frontend_type_errors": 0,
 	"frontend_existing_warnings": 5,
+	"frontend_lint_errors": 0,
+	"frontend_build": "ok",
+	"cargo_fmt": "clean",
+	"cargo_audit_advisories": 3,
+	"cargo_audit_advisories_preexisting_on_main": true,
+	"cargo_audit_advisories_in_auth_crates": false,
 	"checks": [
 		"cargo fmt --all --check",
-		"cargo clippy --workspace --all-targets (existing warnings)",
-		"cargo test --workspace --lib",
-		"cargo audit --no-fetch (no vulnerabilities)",
+		"cargo clippy --workspace --all-targets (existing warnings, no new errors)",
+		"cargo test --workspace",
+		"cargo audit (3 pre-existing advisories, none in auth crates, see TESTING.md)",
 		"bun run check",
 		"bun run lint",
 		"bun run build",
 		"node --test tests/unit/*.test.mjs",
-		"node tests/visual/auth.mjs"
+		"node tests/visual/auth.mjs (pending local Playwright run against this merge; CI will reconfirm on the PR)"
 	],
 	"not_certified": [
 		"real Microsoft account authorization",
-		"own Client ID approval",
+		"Minecraft approval of TFL Client's own Client ID",
 		"interactive Windows/macOS/Linux vault prompts",
 		"native embedded MFA/passkeys and browser fallback"
 	]

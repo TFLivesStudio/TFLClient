@@ -1,18 +1,28 @@
 # Microsoft Authentication 2.0 — guía del propietario
 
-Base: `v0.14.0-beta.6`. Entrega en PR borrador, **sin release ni cambio de Client ID
-de producción**. El Client ID identifica una aplicación pública: no es un secreto.
-Los access/refresh tokens, códigos de autorización y verificadores PKCE sí lo son.
-Nunca se necesita un Client Secret.
+Base: integrado contra `main` (post `0.15.3-beta.4`). Entrega en PR, **sin release
+ni cambio de Client ID de producción**. El Client ID identifica una aplicación
+pública: no es un secreto. Los access/refresh tokens, códigos de autorización y
+verificadores PKCE sí lo son. Nunca se necesita un Client Secret.
 
 ## Estado y configuración
 
 El punto de configuración es `src-tauri/src/core/microsoft_identity.rs`.
-`PRODUCTION_CLIENT_ID` sigue apuntando al registro existente de CubicLauncher.
-No se suministró el GUID real de TFL ni evidencia de aprobación de Minecraft;
-no se inventó ninguno. El modo automático conserva código de dispositivo para
-ese registro conocido. Los otros métodos se pueden elegir explícitamente, pero
-no se afirma que un tercero tenga registradas las nuevas URI.
+`PRODUCTION_CLIENT_ID` sigue apuntando al registro existente (heredado de
+CubicLauncher). **No cambia en esta misión.** El registro propio de TFL Client
+ya existe en Microsoft Entra:
+
+```
+40fffa46-b69c-4ae1-9410-16f74d7847fd
+```
+
+Se envió solicitud de aprobación de Minecraft para este ID, pero **esa aprobación
+no está confirmada**: no hay evidencia (correo, panel, respuesta de API) de que
+Minecraft Services la haya aceptado. Hasta tener esa evidencia, este ID solo se usa
+mediante la build de prueba (`auth-test-client`); nunca es la identidad de producción.
+El modo automático conserva código de dispositivo para el registro heredado. Los
+otros métodos se pueden elegir explícitamente, pero no se afirma que el registro
+propio tenga ya sus URI validadas por Minecraft.
 
 Las variables de ejecución, ajustes, archivos remotos y herramientas MCP **no**
 cambian la identidad OAuth. Las variables siguientes son de **compilación** y
@@ -48,9 +58,25 @@ renombrar ni borrar el perfil normal para hacer esta prueba.
 
 ## Registro Microsoft y prueba antes de activación
 
-En el registro de aplicación pública de escritorio, permitir cuentas Microsoft
-personales y flujo de cliente público. Sin secreto. Comprobar las URI según
-el flujo, sin reemplazarlas unas por otras:
+En el registro de aplicación pública de escritorio (`40fffa46-b69c-4ae1-9410-16f74d7847fd`),
+comprobar manualmente en el portal de Microsoft Entra — no se puede verificar
+desde este entorno, así que esta tabla es lo que hay que confirmar a mano:
+
+| Pantalla (Entra ID → App registrations → esta app) | Campo                              | Valor esperado                                                                 |
+| ---------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
+| Authentication                                       | Supported account types             | "Personal Microsoft accounts only" (cuentas MSA, no org/multi-tenant)          |
+| Authentication → Platform configurations             | Tipo de plataforma                  | "Mobile and desktop applications" (NO "Web")                                  |
+| Authentication → Platform → Redirect URIs             | URI 1                                | `https://login.microsoftonline.com/common/oauth2/nativeclient`                |
+| Authentication → Platform → Redirect URIs             | URI 2                                | `http://localhost` (sin puerto ni ruta fija; Microsoft trata loopback aparte) |
+| Authentication → Advanced settings                    | "Allow public client flows"         | **Yes**                                                                        |
+| Authentication                                        | Implicit grant / hybrid flows       | Ambas casillas **sin marcar**                                                 |
+| Certificates & secrets                                 | Client secrets                      | Ninguno creado — esta app nunca debe tenerlo                                  |
+| API permissions                                        | Permisos                            | Solo los de Xbox Live/Minecraft necesarios; **sin** Microsoft Graph añadido   |
+
+Si cualquiera de estos valores no coincide, hay que corregirlo manualmente en el
+portal — esto no se puede hacer ni verificar por API/código desde este entorno.
+
+Comprobar las URI según el flujo, sin reemplazarlas unas por otras:
 
 - Ventana integrada: `https://login.microsoftonline.com/common/oauth2/nativeclient`.
 - Navegador del sistema: `http://localhost`. El receptor usa un puerto efímero y
@@ -58,7 +84,16 @@ el flujo, sin reemplazarlas unas por otras:
   heredado conserva `/callback` para pruebas explícitas con su configuración previa.
 - Código de dispositivo: no utiliza callback.
 
-Se usan los endpoints v2.0 `consumers` y los scopes `XboxLive.signin offline_access`.
+Se usan los endpoints v2.0 `consumers` y el scope `XboxLive.signin offline_access`.
+**Auditoría de scopes (esta misión):** se contrastó contra la documentación y las
+implementaciones de referencia de otros launchers (wiki.vg, crates `minecraft-msa-auth`
+y `lighty-auth`). Todas usan exactamente `XboxLive.signin offline_access` para este
+flujo de cliente público con Authorization Code + PKCE contra el endpoint v2.0
+`consumers`/`common`. La variante `XboxLive.offline_access` que menciona la misión
+corresponde a ejemplos con problemas reportados (tokens opacos en vez de JWT) y no
+es la forma usada por el ecosistema de launchers de terceros para este flujo. No se
+cambia el scope actual.
+
 La sesión termina en Xbox Live → XSTS → Minecraft Services → perfil real.
 No hay formulario Microsoft recreado, iframe, servidor OAuth propio, Graph scopes
 innecesarios ni intercambio de tokens en Svelte.
@@ -72,16 +107,22 @@ almacenes del sistema en cada SO. No pedir al usuario contraseñas ni tokens.
 
 ## Activar producción después de la aprobación
 
-1. Conservar evidencia de aprobación del ID exacto y autorización del propietario.
-2. Verificar una cuenta real en build de prueba, con navegador y código, y repetir
-   la matriz manual documentada. Guardar resultados sin credenciales.
-3. En otro PR explícito, cambiar solo la configuración de producción al GUID
-   aprobado. Revisar el comportamiento automático asociado a `custom_identity`:
-   un ID propio selecciona ventana integrada con alternativas visibles.
-4. Avisar que las cuentas Microsoft anteriores necesitarán autorizar de nuevo.
-   No borrar perfiles, instancias, ajustes ni onboarding ya completado.
+1. Conservar evidencia real de que Minecraft Services aprobó
+   `40fffa46-b69c-4ae1-9410-16f74d7847fd` (no basta con haber enviado la solicitud),
+   más la autorización explícita del propietario para activar.
+2. Verificar una cuenta real en build de prueba (`auth-test-client` con este mismo
+   GUID), con navegador y código, y repetir la matriz manual documentada en
+   [TESTING.md](TESTING.md). Guardar resultados sin credenciales.
+3. En otro PR explícito, cambiar `PRODUCTION_CLIENT_ID` en
+   `src-tauri/src/core/microsoft_identity.rs` de `DEFAULT_CLIENT_ID` (heredado) a
+   `40fffa46-b69c-4ae1-9410-16f74d7847fd`. Revisar el comportamiento automático
+   asociado a `custom_identity`: un ID propio selecciona ventana integrada con
+   alternativas visibles.
+4. Avisar que las cuentas Microsoft anteriores necesitarán autorizar de nuevo
+   (nuevo Client ID = nuevo consentimiento). No borrar perfiles, instancias,
+   ajustes ni onboarding ya completado.
 5. Solo tras revisión, preparar la versión y la publicación que corresponda.
-   Esta misión no crea tags, no integra el PR y no publica una release.
+   Esta misión no crea tags, no hace merge a `main` y no publica una release.
 
 Las credenciales protegidas guardan el Client ID que las emitió. La renovación
 compara ese emisor con la identidad de la build antes de enviar un refresh token.

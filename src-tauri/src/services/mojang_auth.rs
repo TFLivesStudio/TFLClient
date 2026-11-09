@@ -57,6 +57,12 @@ fn can_use_cached(user: &MinecraftUser, code: &str, now: u64) -> bool {
     matches!(code, "NETWORK_ERROR" | "AUTH_SERVICE_UNAVAILABLE")
         && user.cached_session_valid_at(now)
 }
+/// A refresh must never silently swap which Minecraft account is signed in:
+/// if Microsoft's refresh grant returns a different profile UUID than the one
+/// stored, the session is rejected (`ACCOUNT_MISMATCH`), not adopted.
+fn is_account_mismatch(stored_uuid: &str, refreshed_uuid: &str) -> bool {
+    stored_uuid != refreshed_uuid
+}
 async fn fresh_session() -> Result<MinecraftUser, String> {
     let _guard = ACCOUNT_SESSION_LOCK.lock().await;
     let mut user = SettingsManager::read().get_user();
@@ -101,7 +107,7 @@ async fn fresh_session() -> Result<MinecraftUser, String> {
             }
             Err(code) => return Err(code),
         };
-        if fresh.uuid != user.uuid {
+        if is_account_mismatch(&user.uuid, &fresh.uuid) {
             return Err("ACCOUNT_MISMATCH".into());
         }
         fresh.session_only = user.session_only;
@@ -139,5 +145,11 @@ mod tests {
         assert!(!can_use_cached(&user, "REAUTHENTICATION_REQUIRED", 1000));
         assert!(!can_use_cached(&user, "MINECRAFT_APP_NOT_APPROVED", 1000));
         assert!(session_message("MINECRAFT_APP_NOT_APPROVED", false).contains("403"));
+    }
+
+    #[test]
+    fn refreshing_a_different_microsoft_account_is_rejected_not_swapped() {
+        assert!(is_account_mismatch("uuid-a", "uuid-b"));
+        assert!(!is_account_mismatch("uuid-a", "uuid-a"));
     }
 }

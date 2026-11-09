@@ -3,7 +3,13 @@
 The existing OAuth identity stays enabled. A new identity is compile-time test
 configuration behind `auth-test-client` and an explicit development acknowledgement.
 No remote preference, MCP tool, command argument or downloaded content sets it.
-There is no client secret. Approval of an unspecified TFL Client ID is not claimed.
+There is no client secret. TFL Client's own Microsoft Entra registration
+(`40fffa46-b69c-4ae1-9410-16f74d7847fd`, public, not secret) exists and a
+Minecraft approval request was sent for it, but that approval is not claimed
+as confirmed — there is no evidence (API response, portal status, email) that
+Minecraft Services has accepted it. Until such evidence exists, this ID is only
+ever reachable through the isolated test-client lane below, never as the
+production default.
 The test build has a distinct application identifier, private webview data directory
 and a profile rooted below `.tflclient-auth-tests/<Client ID>/.tflclient`, even when
 the portable base directory is configured. Its credential provider namespace includes

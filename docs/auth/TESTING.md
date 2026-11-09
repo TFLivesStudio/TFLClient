@@ -1,8 +1,12 @@
 # Authentication validation
 
-Baseline: v0.14.0-beta.6. All account identities and credentials in automated tests
-are synthetic fixtures or the already existing public application ID. No real
-account login, new Minecraft approval or native vault certification is claimed.
+Baseline: integrated against `main` (post `0.15.3-beta.4`), merge commit
+`905b063` (merge of `origin/main` into `feat/microsoft-auth-2`). All account
+identities and credentials in automated tests are synthetic fixtures, the
+already existing public application ID, or TFL Client's own registered Client
+ID (`40fffa46-b69c-4ae1-9410-16f74d7847fd`, public, used only through the
+isolated test-client lane). No real account login, confirmed Minecraft
+approval of the own ID, or native vault certification is claimed.
 
 ## Automated checks
 
@@ -32,6 +36,8 @@ resolver, not the Unix-only HOME environment variable.
 
 | Area         | Automated evidence                                                                                                                         |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Own Client ID | TFL Client's real registered ID only reachable through `auth-test-client` + explicit ack; production ignores it with no secret; isolated app identifier/profile/webview for that exact ID |
+| Account swap | Refresh returning a different Minecraft UUID than the stored one is rejected (`ACCOUNT_MISMATCH`), never silently adopted                  |
 | PKCE         | Random independent verifiers, S256, RFC 7636 test vector, authorization parameters                                                         |
 | Callback     | Valid callback once, duplicate code/state, wrong host/path/origin/method, fragments, replay, real TCP socket                               |
 | Lifecycle    | Expiry, cancellation, 64 commit/cancel races, single-flight ownership, pending-secret cleanup                                              |
@@ -95,9 +101,17 @@ an interactive native vault prompt was successfully used on that OS.
 
 ## Local evidence
 
-[Validation summary](evidence/local-validation.json) records 191 Rust library tests,
-18 Node behavior tests and 13 simulated-IPC browser checks.
+[Validation summary](evidence/local-validation.json) records 250 Rust library/unit
+tests (workspace total, including the auth crates), 18 Node behavior tests, and the
+simulated-IPC browser checks from the beta UI suites and `auth.mjs`.
 [Browser assertions](evidence/browser.json) list the actual verified interactions.
+
+`cargo audit` reports 3 known advisories (`libsqlite3-sys`/SQLite CVE, `rmcp`
+SSRF/body-size issues, a `tokio` soundness warning). All three were confirmed
+present on `main` before this integration (checked against commit `d33e1bb` in
+a separate worktree) — none are introduced by, or specific to, the authentication
+crates. They are not fixed as part of this mission; fixing them is a separate,
+unrelated dependency-upgrade task.
 
 - [Modern accounts](screenshots/modern-accounts.png)
 - [Pixel onboarding at 800×600](screenshots/pixel-onboarding-800.png)

@@ -5,6 +5,12 @@ use serde::Serialize;
 // Deliberately unchanged. Replacing this requires owner approval and Minecraft approval.
 pub const PRODUCTION_CLIENT_ID: &str = DEFAULT_CLIENT_ID;
 
+/// Microsoft Entra registration for TFL Client itself. Public (not secret), but
+/// only ever active through the `auth-test-client` lane until Minecraft approves
+/// it — see `resolve()` and docs/auth/OWNER_ES.md for the activation procedure.
+#[cfg(test)]
+pub(crate) const TFL_CLIENT_OWN_CLIENT_ID: &str = "40fffa46-b69c-4ae1-9410-16f74d7847fd";
+
 #[derive(Clone, Serialize)]
 pub struct MicrosoftIdentity {
     pub client_id: String,
@@ -69,6 +75,33 @@ mod tests {
         .unwrap();
         assert!(test.test_build);
     }
+
+    /// TFL Client's own Entra registration must only ever surface through the
+    /// isolated test-client lane, never as the default production identity,
+    /// until Minecraft approval is confirmed (mission issue: Microsoft Auth 2.0).
+    #[test]
+    fn own_registration_is_only_reachable_through_the_test_client_lane() {
+        assert_ne!(TFL_CLIENT_OWN_CLIENT_ID, DEFAULT_CLIENT_ID);
+
+        let production = resolve(false, Some(TFL_CLIENT_OWN_CLIENT_ID), None).unwrap();
+        assert_eq!(production.client_id, DEFAULT_CLIENT_ID);
+        assert!(!production.test_build);
+        assert!(!production.custom_identity);
+
+        let test = resolve(
+            true,
+            Some(TFL_CLIENT_OWN_CLIENT_ID),
+            Some("development-only-not-for-release"),
+        )
+        .unwrap();
+        assert_eq!(test.client_id, TFL_CLIENT_OWN_CLIENT_ID);
+        assert!(test.test_build);
+        assert!(test.custom_identity);
+
+        // Missing/wrong acknowledgement still blocks it even with the real ID supplied.
+        assert!(resolve(true, Some(TFL_CLIENT_OWN_CLIENT_ID), None).is_err());
+        assert!(resolve(true, Some(TFL_CLIENT_OWN_CLIENT_ID), Some("yes")).is_err());
+    }
 }
 
 /// Never trust a frontend/profile value to select the credential lane.
@@ -106,6 +139,27 @@ mod isolation_tests {
         let root = std::env::temp_dir().join("isolated-auth-profile");
         isolate_test_config(&mut config, &root, DEFAULT_CLIENT_ID);
         assert_ne!(config.identifier, "com.tflives.tflclient");
+        assert!(config.app.windows[0].incognito);
+        assert_eq!(
+            config.app.windows[0].data_directory.as_ref(),
+            Some(&root.join("webview"))
+        );
+    }
+
+    #[test]
+    fn own_registration_gets_its_own_isolated_identifier_and_profile_root() {
+        let mut config: tauri::utils::config::Config = serde_json::from_value(
+            serde_json::json!({"identifier":"com.tflives.tflclient","app":{"windows":[{"label":"main"}]}}),
+        )
+        .unwrap();
+        let root = std::env::temp_dir().join("isolated-auth-profile-own-id");
+        isolate_test_config(&mut config, &root, TFL_CLIENT_OWN_CLIENT_ID);
+        assert_ne!(config.identifier, "com.tflives.tflclient");
+        assert!(
+            config
+                .identifier
+                .contains("40fffa46b69c4ae1941016f74d7847fd")
+        );
         assert!(config.app.windows[0].incognito);
         assert_eq!(
             config.app.windows[0].data_directory.as_ref(),
