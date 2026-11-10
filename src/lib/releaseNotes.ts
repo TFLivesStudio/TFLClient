@@ -5,6 +5,11 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.3-beta.6': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Nuevo: el inicio de sesión con Microsoft ahora usa la identidad oficial de TFL Client. La primera vez vas a tener que autorizar tu cuenta de nuevo.',
+		'Probá entrar con tu cuenta que tiene Minecraft Java y avisá si el login llega hasta tu perfil y te deja jugar.'
+	],
 	'0.15.3-beta.5': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Mantenimiento interno: actualización de librerías de seguridad, sin cambios visibles para vos.'
