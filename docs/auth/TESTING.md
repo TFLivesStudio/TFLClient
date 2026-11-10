@@ -4,9 +4,10 @@ Baseline: integrated against `main` (post `0.15.3-beta.4`), merge commit
 `905b063` (merge of `origin/main` into `feat/microsoft-auth-2`). All account
 identities and credentials in automated tests are synthetic fixtures, the
 already existing public application ID, or TFL Client's own registered Client
-ID (`40fffa46-b69c-4ae1-9410-16f74d7847fd`, public, used only through the
-isolated test-client lane). No real account login, confirmed Minecraft
-approval of the own ID, or native vault certification is claimed.
+ID (`40fffa46-b69c-4ae1-9410-16f74d7847fd`, public, now the production identity).
+No real account login or native vault certification is claimed. The owner confirmed
+Minecraft approval of the own ID on 2026-11-10; a real-account check remains
+required before release.
 
 ## Automated checks
 
@@ -36,7 +37,7 @@ resolver, not the Unix-only HOME environment variable.
 
 | Area          | Automated evidence                                                                                                                                                                        |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Own Client ID | TFL Client's real registered ID only reachable through `auth-test-client` + explicit ack; production ignores it with no secret; isolated app identifier/profile/webview for that exact ID |
+| Own Client ID | TFL Client's approved registered ID is the production identity with no secret; `auth-test-client` remains isolated behind explicit acknowledgement and uses a separate app identifier/profile/webview |
 | Account swap  | Refresh returning a different Minecraft UUID than the stored one is rejected (`ACCOUNT_MISMATCH`), never silently adopted                                                                 |
 | PKCE          | Random independent verifiers, S256, RFC 7636 test vector, authorization parameters                                                                                                        |
 | Callback      | Valid callback once, duplicate code/state, wrong host/path/origin/method, fragments, replay, real TCP socket                                                                              |

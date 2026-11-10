@@ -1,8 +1,8 @@
 {
 	"baseline": "main @ 905b063 (merge of origin/main post 0.15.3-beta.4 into feat/microsoft-auth-2)",
 	"own_client_id": "40fffa46-b69c-4ae1-9410-16f74d7847fd",
-	"own_client_id_minecraft_approval": "requested, not confirmed",
-	"production_client_id_changed": false,
+	"own_client_id_minecraft_approval": "owner confirmed approved on 2026-11-10; awaiting real-account release verification",
+	"production_client_id_changed": true,
 	"rust_workspace_tests_passed": 250,
 	"rust_workspace_tests_failed": 0,
 	"node_behavior_tests_passed": 18,

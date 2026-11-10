@@ -2,14 +2,14 @@
 use launchwerk::auth::microsoft::DEFAULT_CLIENT_ID;
 use serde::Serialize;
 
-// Deliberately unchanged. Replacing this requires owner approval and Minecraft approval.
-pub const PRODUCTION_CLIENT_ID: &str = DEFAULT_CLIENT_ID;
+/// Approved Microsoft Entra registration owned by TFL Client. This is a public
+/// OAuth client ID, not a credential or a secret.
+pub const TFL_CLIENT_OWN_CLIENT_ID: &str = "40fffa46-b69c-4ae1-9410-16f74d7847fd";
 
-/// Microsoft Entra registration for TFL Client itself. Public (not secret), but
-/// only ever active through the `auth-test-client` lane until Minecraft approves
-/// it — see `resolve()` and docs/auth/OWNER_ES.md for the activation procedure.
-#[cfg(test)]
-pub(crate) const TFL_CLIENT_OWN_CLIENT_ID: &str = "40fffa46-b69c-4ae1-9410-16f74d7847fd";
+/// The owner confirmed Minecraft approval on 2026-11-10. Keep the selection at
+/// build time: preferences, environment variables and remote configuration must
+/// never be able to choose an OAuth identity.
+pub const PRODUCTION_CLIENT_ID: &str = TFL_CLIENT_OWN_CLIENT_ID;
 
 #[derive(Clone, Serialize)]
 pub struct MicrosoftIdentity {
@@ -55,7 +55,7 @@ mod tests {
     fn production_ignores_environment_and_requires_no_secret() {
         assert_eq!(
             resolve(false, Some("untrusted"), None).unwrap().client_id,
-            DEFAULT_CLIENT_ID
+            PRODUCTION_CLIENT_ID
         );
         assert!(resolve(true, None, None).is_err());
         assert!(
@@ -76,17 +76,16 @@ mod tests {
         assert!(test.test_build);
     }
 
-    /// TFL Client's own Entra registration must only ever surface through the
-    /// isolated test-client lane, never as the default production identity,
-    /// until Minecraft approval is confirmed (mission issue: Microsoft Auth 2.0).
+    /// Production uses the approved TFL Client registration. The test lane stays
+    /// isolated and requires its explicit development acknowledgement.
     #[test]
-    fn own_registration_is_only_reachable_through_the_test_client_lane() {
+    fn production_uses_the_approved_tfl_client_registration() {
         assert_ne!(TFL_CLIENT_OWN_CLIENT_ID, DEFAULT_CLIENT_ID);
 
         let production = resolve(false, Some(TFL_CLIENT_OWN_CLIENT_ID), None).unwrap();
-        assert_eq!(production.client_id, DEFAULT_CLIENT_ID);
+        assert_eq!(production.client_id, TFL_CLIENT_OWN_CLIENT_ID);
         assert!(!production.test_build);
-        assert!(!production.custom_identity);
+        assert!(production.custom_identity);
 
         let test = resolve(
             true,

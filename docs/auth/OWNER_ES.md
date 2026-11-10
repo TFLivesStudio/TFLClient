@@ -1,28 +1,21 @@
 # Microsoft Authentication 2.0 — guía del propietario
 
-Base: integrado contra `main` (post `0.15.3-beta.4`). Entrega en PR, **sin release
-ni cambio de Client ID de producción**. El Client ID identifica una aplicación
+Base: integrado contra `main` (post `0.15.3-beta.4`). El Client ID identifica una aplicación
 pública: no es un secreto. Los access/refresh tokens, códigos de autorización y
 verificadores PKCE sí lo son. Nunca se necesita un Client Secret.
 
 ## Estado y configuración
 
 El punto de configuración es `src-tauri/src/core/microsoft_identity.rs`.
-`PRODUCTION_CLIENT_ID` sigue apuntando al registro existente (heredado de
-CubicLauncher). **No cambia en esta misión.** El registro propio de TFL Client
-ya existe en Microsoft Entra:
+`PRODUCTION_CLIENT_ID` apunta al registro propio de TFL Client en Microsoft Entra:
 
 ```
 40fffa46-b69c-4ae1-9410-16f74d7847fd
 ```
 
-Se envió solicitud de aprobación de Minecraft para este ID, pero **esa aprobación
-no está confirmada**: no hay evidencia (correo, panel, respuesta de API) de que
-Minecraft Services la haya aceptado. Hasta tener esa evidencia, este ID solo se usa
-mediante la build de prueba (`auth-test-client`); nunca es la identidad de producción.
-El modo automático conserva código de dispositivo para el registro heredado. Los
-otros métodos se pueden elegir explícitamente, pero no se afirma que el registro
-propio tenga ya sus URI validadas por Minecraft.
+El propietario confirmó el 2026-11-10 que Minecraft aprobó este ID. Por ello es la
+identidad de producción. La build de prueba (`auth-test-client`) se conserva para
+pruebas aisladas y nunca debe distribuirse como release oficial.
 
 Las variables de ejecución, ajustes, archivos remotos y herramientas MCP **no**
 cambian la identidad OAuth. Las variables siguientes son de **compilación** y
@@ -105,24 +98,19 @@ otro Client ID. Tampoco se afirma que todo 403 sea falta de aprobación.
 Comprobar además MFA, permisos familiares, licencia/perfil, varias cuentas y los
 almacenes del sistema en cada SO. No pedir al usuario contraseñas ni tokens.
 
-## Activar producción después de la aprobación
+## Activación de producción
 
-1. Conservar evidencia real de que Minecraft Services aprobó
-   `40fffa46-b69c-4ae1-9410-16f74d7847fd` (no basta con haber enviado la solicitud),
-   más la autorización explícita del propietario para activar.
-2. Verificar una cuenta real en build de prueba (`auth-test-client` con este mismo
+La activación se realizó el 2026-11-10 después de la confirmación del propietario.
+Antes de publicar una versión que incluya este cambio:
+
+1. Verificar una cuenta real en build de prueba (`auth-test-client` con este mismo
    GUID), con navegador y código, y repetir la matriz manual documentada en
    [TESTING.md](TESTING.md). Guardar resultados sin credenciales.
-3. En otro PR explícito, cambiar `PRODUCTION_CLIENT_ID` en
-   `src-tauri/src/core/microsoft_identity.rs` de `DEFAULT_CLIENT_ID` (heredado) a
-   `40fffa46-b69c-4ae1-9410-16f74d7847fd`. Revisar el comportamiento automático
-   asociado a `custom_identity`: un ID propio selecciona ventana integrada con
-   alternativas visibles.
-4. Avisar que las cuentas Microsoft anteriores necesitarán autorizar de nuevo
+2. Avisar que las cuentas Microsoft anteriores necesitarán autorizar de nuevo
    (nuevo Client ID = nuevo consentimiento). No borrar perfiles, instancias,
    ajustes ni onboarding ya completado.
-5. Solo tras revisión, preparar la versión y la publicación que corresponda.
-   Esta misión no crea tags, no hace merge a `main` y no publica una release.
+3. Solo tras revisión, preparar la versión y la publicación que corresponda.
+   Esta activación no crea tags, no hace merge a `main` y no publica una release.
 
 Las credenciales protegidas guardan el Client ID que las emitió. La renovación
 compara ese emisor con la identidad de la build antes de enviar un refresh token.
