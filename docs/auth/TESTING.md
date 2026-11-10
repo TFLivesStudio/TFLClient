@@ -35,23 +35,23 @@ normal application resource embedding targets application binaries. The workflow
 adds that manifest only for tests. The asset-scope test uses Tauri's platform home
 resolver, not the Unix-only HOME environment variable.
 
-| Area          | Automated evidence                                                                                                                                                                        |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Area          | Automated evidence                                                                                                                                                                                    |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Own Client ID | TFL Client's approved registered ID is the production identity with no secret; `auth-test-client` remains isolated behind explicit acknowledgement and uses a separate app identifier/profile/webview |
-| Account swap  | Refresh returning a different Minecraft UUID than the stored one is rejected (`ACCOUNT_MISMATCH`), never silently adopted                                                                 |
-| PKCE          | Random independent verifiers, S256, RFC 7636 test vector, authorization parameters                                                                                                        |
-| Callback      | Valid callback once, duplicate code/state, wrong host/path/origin/method, fragments, replay, real TCP socket                                                                              |
-| Lifecycle     | Expiry, cancellation, 64 commit/cancel races, single-flight ownership, pending-secret cleanup                                                                                             |
-| Alternatives  | Embedded unavailable/unsupported → external; external unavailable → device; denial never retried with another identity                                                                    |
-| Microsoft     | Real HTTP fixture for code exchange and refresh grant; verifier/redirect/client ID checked; safe error/consent classification                                                             |
-| Xbox/XSTS     | HTTP fixture, missing claims, user-hash match, distinct errors and family/profile restrictions                                                                                            |
-| Minecraft     | HTTP fixture profile, valid UUID/name, distinct profile errors, both registration error fields, unknown 403 not mislabeled                                                                |
-| Credentials   | OS-vault abstraction, random key + ciphertext roundtrip, unavailable vault preserving record, original legacy format, provider isolation                                                  |
-| Refresh       | Rotated/omitted refresh token handling, expiry, issuer change, no network fallback for rejection                                                                                          |
-| Public data   | Tokens skipped by serialization/Debug; pending credentials absent from progress; launch/diagnostic redaction                                                                              |
-| Logout        | Memory cleared, profile retained, offline selected, onboarding preserved                                                                                                                  |
-| Permissions   | Actual Tauri resolver denies auth window at local and Microsoft origins; MCP preference allowlist rejects auth keys                                                                       |
-| UI            | Modern/Pixel onboarding/accounts at 800×600 and 1280×720; method switch, storage consent, retry, renewal, cancel/close, English and Escape                                                |
+| Account swap  | Refresh returning a different Minecraft UUID than the stored one is rejected (`ACCOUNT_MISMATCH`), never silently adopted                                                                             |
+| PKCE          | Random independent verifiers, S256, RFC 7636 test vector, authorization parameters                                                                                                                    |
+| Callback      | Valid callback once, duplicate code/state, wrong host/path/origin/method, fragments, replay, real TCP socket                                                                                          |
+| Lifecycle     | Expiry, cancellation, 64 commit/cancel races, single-flight ownership, pending-secret cleanup                                                                                                         |
+| Alternatives  | Embedded unavailable/unsupported → external; external unavailable → device; denial never retried with another identity                                                                                |
+| Microsoft     | Real HTTP fixture for code exchange and refresh grant; verifier/redirect/client ID checked; safe error/consent classification                                                                         |
+| Xbox/XSTS     | HTTP fixture, missing claims, user-hash match, distinct errors and family/profile restrictions                                                                                                        |
+| Minecraft     | HTTP fixture profile, valid UUID/name, distinct profile errors, both registration error fields, unknown 403 not mislabeled                                                                            |
+| Credentials   | OS-vault abstraction, random key + ciphertext roundtrip, unavailable vault preserving record, original legacy format, provider isolation                                                              |
+| Refresh       | Rotated/omitted refresh token handling, expiry, issuer change, no network fallback for rejection                                                                                                      |
+| Public data   | Tokens skipped by serialization/Debug; pending credentials absent from progress; launch/diagnostic redaction                                                                                          |
+| Logout        | Memory cleared, profile retained, offline selected, onboarding preserved                                                                                                                              |
+| Permissions   | Actual Tauri resolver denies auth window at local and Microsoft origins; MCP preference allowlist rejects auth keys                                                                                   |
+| UI            | Modern/Pixel onboarding/accounts at 800×600 and 1280×720; method switch, storage consent, retry, renewal, cancel/close, English and Escape                                                            |
 
 ## Manual platform matrix — not yet certified
 
