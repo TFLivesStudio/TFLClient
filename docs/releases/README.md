@@ -6,6 +6,8 @@ Cada archivo corresponde a una release existente. La fecha y el canal conservan
 los de la publicación original; la revisión editorial no añade una versión nueva.
 
 Para preparar una publicación, consulta la [guía de notas](../maintainers/release-notes.md).
+La [guía paso a paso](../maintainers/publishing.md) explica las rutas de los
+changelogs, las comprobaciones y cómo publicar el tag.
 El [registro de fuentes](provenance.json) identifica los tags, commits y archivos
 utilizados en la reconstrucción histórica. Las [notas anteriores](../history/release-notes-before-2026-11-13.json)
 se conservan para poder consultar o restaurar su redacción original.

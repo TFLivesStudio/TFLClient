@@ -54,6 +54,7 @@ Estos comandos compilan y previsualizan la interfaz web. Para revisar cómo se g
 
 ## Documentación y publicaciones
 
+- **[Guía paso a paso: publicar versiones y guardar changelogs](docs/maintainers/publishing.md).**
 - [Índice de documentación](docs/README.md).
 - [Notas completas de cada versión](docs/releases/README.md).
 - [Guía para preparar notas de publicación](docs/maintainers/release-notes.md).

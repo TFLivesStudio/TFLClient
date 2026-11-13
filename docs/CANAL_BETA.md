@@ -32,24 +32,34 @@ aviso).
 
 ## Cómo sacar una beta
 
-1. Versionar con sufijo: `bun run release:version 0.11.0-beta.1 --force`
-   (`--force` solo hace falta si el número "baja" respecto al actual, por ejemplo
-   al pasar de `0.11.0` a `0.11.0-beta.1`).
-2. Agregar las notas en `src/lib/releaseNotes.ts` con **la versión completa como
-   clave** (`'0.11.0-beta.1'`).
-3. Commit y tag con el mismo nombre: `git tag v0.11.0-beta.1`.
-4. El workflow de release (`build.yml`) detecta el guion del tag y publica el
-   Release como **prerelease** (y un paso final lo fuerza, por si acaso).
-5. **Verificar** que quedó como prerelease:
-   `gh release view v0.11.0-beta.1 --json isPrerelease`. Si saliera `false`, hay
-   que corregirlo YA (`gh release edit v0.11.0-beta.1 --prerelease`): sería la
-   "latest" y se le ofrecería a todos los usuarios del canal estable.
+La [guía de publicación](maintainers/publishing.md) explica el recorrido completo,
+con comandos y ejemplos. Para una beta:
+
+1. Elige una versión nueva con sufijo, como `0.15.4-beta.1`, y actualiza los cuatro
+   archivos con `bun run release:version 0.15.4-beta.1`. El número es un ejemplo;
+   comprueba las versiones existentes antes de usarlo.
+2. Escribe las notas completas en `docs/releases/v0.15.4-beta.1.md` y añade la
+   entrada breve `'0.15.4-beta.1'` a `src/lib/releaseNotes.ts`.
+3. Sube el commit de preparación y comprueba que su CI pasa. Crea el tag
+   correspondiente sobre ese mismo commit y súbelo para activar la publicación.
+4. El workflow detecta el guion del tag y publica la release como prerelease.
+   Espera a que terminen los instaladores de las tres plataformas.
+5. Verifica `isPrerelease` con
+   `gh release view v0.15.4-beta.1 --json isPrerelease -R TFLivesStudio/TFLClient`.
+   Debe ser `true`. Si no lo es, corrige el estado con
+   `gh release edit v0.15.4-beta.1 --prerelease -R TFLivesStudio/TFLClient`
+   antes de distribuirla, y revisa el workflow que la publicó.
 
 ## Cómo pasar una beta a estable
 
-Versionar sin sufijo (`bun run release:version 0.11.0`), notas con la clave
-`'0.11.0'` y tag `v0.11.0` (sin prerelease). Los usuarios de beta la reciben por
-ser más alta que su beta; los estables, porque pasa a ser "latest".
+Prepara una versión nueva sin sufijo, con sus notas completas y breves y un tag
+propio. Por ejemplo: versión `0.15.4`, entrada `'0.15.4'`, archivo
+`docs/releases/v0.15.4.md` y tag `v0.15.4`. El proceso construye nuevos binarios
+con la versión estable; no consiste en cambiar la casilla de prerelease del
+instalador beta existente.
+
+Los usuarios del canal beta la reciben si es una versión superior a la suya;
+los del canal estable la reciben cuando es la última estable disponible.
 
 ## Limitaciones conocidas
 

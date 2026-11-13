@@ -5,8 +5,9 @@
 - Usa [docs/README.md](docs/README.md) como índice. Conserva en la raíz los manifiestos,
   configuraciones, lockfiles, README, licencia, estas instrucciones y el instalador
   público de Linux. No añadas changelogs de sesiones a la raíz.
-- Guarda los informes de cambios antiguos en `docs/history/legacy/`; conserva sus
-  bytes y fechas como material histórico, sin presentarlos como estado actual.
+- Los informes antiguos de `docs/history/legacy/` conservan sus bytes y fechas
+  como material histórico. Los informes técnicos nuevos van a `docs/changes/`,
+  con fecha y tema en el nombre; no se añaden a la raíz ni al archivo original.
 - Las pruebas de navegador siguen generando `artifacts/`, ignorado por Git. La
   evidencia histórica versionada está en `docs/qa/`; los instaladores heredados
   que ya existían están en `archives/installers/legacy/`.
@@ -14,6 +15,7 @@
 
 ## Notas de versión
 
+- Para preparar una publicación sigue la [guía práctica](docs/maintainers/publishing.md).
 - Sigue [la guía editorial](docs/maintainers/release-notes.md). El resumen inicial y
   la voz deben ser consistentes en GitHub y en la web oficial, `launcher.tflives.com`.
 - Las notas completas son `docs/releases/<tag>.md`. Las breves de

@@ -1,5 +1,9 @@
 # Notas de versión para GitHub y la web
 
+Para seguir la secuencia completa de versión, CI, tag y publicación, consulta la
+[guía práctica de publicación](publishing.md). Este documento detalla la redacción
+y el formato de las notas.
+
 Las notas completas viven en `docs/releases/<tag>.md`. El workflow las publica
 mediante `scripts/release-notes-body.mjs` y la web las consulta desde la API de
 GitHub. No hay que mantener una segunda redacción para Novedades.

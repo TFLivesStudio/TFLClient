@@ -5,6 +5,7 @@ Para conocer el launcher y obtener una descarga, visita la
 
 ## Publicaciones
 
+- [Guía paso a paso: publicar versiones y guardar changelogs](maintainers/publishing.md).
 - [Notas completas por versión](releases/README.md).
 - [Cómo escribir y publicar notas de versión](maintainers/release-notes.md).
 - [Validación de la revisión histórica](maintainers/release-notes-validation.md).
@@ -20,6 +21,7 @@ Para conocer el launcher y obtener una descarga, visita la
 
 ## Historial y archivos
 
+- [Informes técnicos nuevos](changes/README.md).
 - [Documentos históricos y notas anteriores](history/README.md).
 - [Evidencia visual conservada](qa/README.md).
 - [Instaladores heredados](../archives/README.md).
