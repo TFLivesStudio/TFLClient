@@ -128,6 +128,30 @@ fn valid_instance_name(name: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Validate NEW portable filesystem names. Keep legacy lookup/deletion permissive
+/// enough to access instances created by older versions of TFL.
+fn valid_new_instance_name(name: &str) -> Result<(), String> {
+    valid_instance_name(name)?;
+    if name != name.trim() || name.ends_with('.') || name.chars().any(char::is_control) {
+        return Err("El nombre de la instancia no puede comenzar o terminar con espacios, terminar en punto ni contener caracteres de control".into());
+    }
+    // Windows reserves these device names even when an extension follows them.
+    // Enforce on every OS so exported/transferred instances remain usable.
+    let basename = name.split('.').next().unwrap_or("").to_ascii_uppercase();
+    let reserved = matches!(
+        basename.as_str(),
+        "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$"
+    ) || ["COM", "LPT"].into_iter().any(|prefix| {
+        basename
+            .strip_prefix(prefix)
+            .is_some_and(|suffix| suffix.len() == 1 && matches!(suffix.as_bytes()[0], b'1'..=b'9'))
+    });
+    if reserved {
+        return Err("Este nombre está reservado por Windows".into());
+    }
+    Ok(())
+}
+
 pub async fn create_instance(
     name: String,
     mc_version: String,
@@ -160,7 +184,7 @@ pub async fn create_instance_full(
     server_jar: Option<String>,
     server_build: Option<String>,
 ) -> Result<InstanceData, String> {
-    valid_instance_name(&name)?;
+    valid_new_instance_name(&name)?;
     let data = InstanceData {
         uuid: Uuid::new_v4().to_string(),
         name,
@@ -221,7 +245,7 @@ pub async fn delete_instance(name: &str) -> Result<(), String> {
 }
 
 pub async fn rename_instance(old_name: &str, new_name: String) -> Result<InstanceData, String> {
-    valid_instance_name(&new_name)?;
+    valid_new_instance_name(&new_name)?;
     let mut data = get_instance(old_name).await?;
     if old_name == new_name {
         return Ok(data);
@@ -377,8 +401,64 @@ pub async fn create_resolved(
     mc_version: String,
     loader: String,
 ) -> Result<InstanceData, String> {
-    valid_instance_name(&name)?;
+    valid_new_instance_name(&name)?;
     let loader = LoaderKind::parse(&loader).ok_or("Unknown loader")?;
     let (loader_version, launch_version_id) = resolve_loader(&mc_version, loader).await?;
     create_instance(name, mc_version, loader, loader_version, launch_version_id).await
+}
+
+#[cfg(test)]
+mod instance_name_portability_tests {
+    use super::{valid_instance_name, valid_new_instance_name};
+
+    #[test]
+    fn rejects_windows_reserved_devices_even_with_extensions() {
+        for name in [
+            "CON", "con.txt", "AUX", "NUL.zip", "PRN", "COM1", "com9.log", "LPT1", "lpt9.jar",
+            "CONIN$",
+        ] {
+            assert!(
+                valid_new_instance_name(name).is_err(),
+                "accepted reserved name: {name}"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_ambiguous_or_invalid_new_names() {
+        for name in [
+            "world.",
+            "world ",
+            " world",
+            "hello\\nthere",
+            ".",
+            "..",
+            "../oops",
+            "name:invalid",
+        ] {
+            assert!(
+                valid_new_instance_name(name).is_err(),
+                "accepted invalid name: {name}"
+            );
+        }
+        for name in [
+            "Survival 1.21",
+            "Mi Mundo",
+            "CONstruct",
+            "COM10",
+            "fantasy.world",
+            ".hidden",
+        ] {
+            assert!(
+                valid_new_instance_name(name).is_ok(),
+                "rejected valid name: {name}"
+            );
+        }
+    }
+
+    #[test]
+    fn legacy_lookup_keeps_historical_names_accessible() {
+        assert!(valid_instance_name(" world ").is_ok());
+        assert!(valid_new_instance_name(" world ").is_err());
+    }
 }
