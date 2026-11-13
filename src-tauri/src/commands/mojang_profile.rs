@@ -35,7 +35,7 @@ pub struct MojangProfile {
 }
 
 async fn require_microsoft_token() -> Result<String, String> {
-    let user = active_user_fresh().await;
+    let user = active_user_fresh().await?;
     if user.user_type != AccountType::Microsoft {
         return Err("Esto necesita una cuenta Microsoft — las cuentas offline no tienen skin ni capas propias en Mojang.".into());
     }
@@ -75,13 +75,12 @@ pub async fn get_mojang_profile() -> Result<MojangProfile, String> {
         })?;
     if !resp.status().is_success() {
         let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        warn!("get_mojang_profile: Mojang devolvió {status}: {body}");
+        warn!("get_mojang_profile: Mojang devolvió {status}");
         return Err(map_status(status));
     }
     let raw = resp.text().await.map_err(|e| e.to_string())?;
     let json: serde_json::Value = serde_json::from_str(&raw).map_err(|e| {
-        warn!("get_mojang_profile: respuesta no es JSON válido ({e}): {raw}");
+        warn!("get_mojang_profile: respuesta no es JSON válido");
         format!("Mojang devolvió una respuesta inesperada: {e}")
     })?;
     let mut profile = MojangProfile {

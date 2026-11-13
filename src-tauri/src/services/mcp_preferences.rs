@@ -130,7 +130,19 @@ mod tests {
     use super::*;
     #[test]
     fn preferences_are_allowlisted() {
-        assert!(validate("access_token", &json!("secret")).is_err());
+        for key in [
+            "access_token",
+            "refresh_token",
+            "microsoft_client_id",
+            "client_id",
+            "device_code",
+            "oauth_code",
+            "cookies",
+            "user",
+            "accounts",
+        ] {
+            assert!(validate(key, &json!("not-allowed")).is_err());
+        }
         assert!(validate("scene", &json!("https://evil")).is_err());
         assert!(validate("style", &json!("pixel")).is_ok());
         assert!(validate("accent", &json!("#ffffff")).is_ok());

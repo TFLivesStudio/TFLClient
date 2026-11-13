@@ -1,4 +1,6 @@
 <script lang="ts">
+	import MicrosoftSignIn from '$lib/components/auth/MicrosoftSignIn.svelte';
+	import { authText, authError } from '$lib/i18n/auth';
 	import IntegrationsSettings from './IntegrationsSettings.svelte';
 	import ConsoleSettings from '$lib/components/console/ConsoleSettings.svelte';
 	import { tr } from '$lib/i18n/experience';
@@ -19,7 +21,6 @@
 	import { modalFocus } from '$lib/visual/modalFocus';
 	import { onMount, tick } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
-	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 	import { applyQualityVisuals } from '$lib/state/appearanceState.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import {
@@ -44,8 +45,7 @@
 		removeUser,
 		addOfflineAccount,
 		getCurrentUser,
-		getDeviceCode,
-		authenticateWithDeviceCode,
+		accountSessionStatuses,
 		pickImageFile,
 		setCustomWallpaper,
 		getCustomWallpaperPath
@@ -64,8 +64,6 @@
 		Users,
 		Palette,
 		WandSparkles,
-		Copy,
-		CheckCircle2,
 		Download,
 		RefreshCw,
 		Terminal,
@@ -170,11 +168,9 @@
 	let users = $state<MinecraftUser[]>([]);
 	let newOfflineName = $state('');
 	let accountBusy = $state(false);
-	let msCode = $state<string | null>(null);
-	let msVerificationUri = $state<string | null>(null);
-	let msBusy = $state(false);
-	let msError = $state<string | null>(null);
-	let codeCopied = $state(false);
+	let showMicrosoft = $state(false);
+	let reauthUuid = $state<string | undefined>();
+	let sessionStates = $state<Record<string, string>>({});
 	let mascotTick = $state(0);
 
 	let javaStatuses = $state<JavaStatus[]>([]);
@@ -355,17 +351,6 @@
 		mascotTick++;
 	}
 
-	async function copyMicrosoftCode() {
-		if (!msCode) return;
-		try {
-			await writeText(msCode);
-			codeCopied = true;
-			window.setTimeout(() => (codeCopied = false), 1800);
-		} catch {
-			msError = t('onboarding.copyCodeFailed');
-		}
-	}
-
 	async function saveRam() {
 		if (!appState.settings) return;
 		if (
@@ -415,6 +400,8 @@
 	async function loadAccounts() {
 		try {
 			users = await getUserList();
+			const states = await accountSessionStatuses();
+			sessionStates = Object.fromEntries((states || []).map((s) => [s.uuid, s.state]));
 		} catch (e) {
 			settingsError = String(e);
 		}
@@ -425,6 +412,8 @@
 		try {
 			appState.currentUser = await switchUser(uuid);
 			await loadAccounts();
+		} catch (error) {
+			settingsError = authError(String(error));
 		} finally {
 			accountBusy = false;
 		}
@@ -436,6 +425,8 @@
 			await removeUser(uuid);
 			appState.currentUser = await getCurrentUser();
 			await loadAccounts();
+		} catch (error) {
+			settingsError = authError(String(error));
 		} finally {
 			accountBusy = false;
 		}
@@ -448,33 +439,22 @@
 			await addOfflineAccount(newOfflineName.trim());
 			newOfflineName = '';
 			await loadAccounts();
+		} catch (error) {
+			settingsError = authError(String(error));
 		} finally {
 			accountBusy = false;
 		}
 	}
 
-	async function handleAddMicrosoft() {
-		msBusy = true;
-		msError = null;
-		msCode = null;
-		try {
-			const dc = await getDeviceCode();
-			msCode = dc.user_code;
-			msVerificationUri = dc.verification_uri;
-			appState.currentUser = await authenticateWithDeviceCode(
-				dc.device_code,
-				dc.interval,
-				dc.expires_in
-			);
-			msCode = null;
-			await loadAccounts();
-		} catch (e) {
-			msError = String(e);
-		} finally {
-			msBusy = false;
-		}
+	function handleAddMicrosoft(uuid?: string) {
+		reauthUuid = uuid;
+		showMicrosoft = true;
 	}
-
+	async function microsoftConnected(user: MinecraftUser) {
+		appState.currentUser = user;
+		showMicrosoft = false;
+		await loadAccounts();
+	}
 	async function loadJava() {
 		try {
 			javaStatuses = await getJavaStatus();
@@ -739,8 +719,22 @@
 										{/if}
 										<div class="account-info">
 											<span class="account-name">{u.username}</span>
-											<span class="account-type">{u.user_type}</span>
+											<span class="account-type"
+												>{u.user_type}{#if u.user_type === 'Microsoft'}
+													· {sessionStates[u.uuid] === 'memory'
+														? authText('Sesión temporal', 'Temporary session')
+														: sessionStates[u.uuid] === 'protected'
+															? authText('Sesión protegida', 'Protected session')
+															: authText('Revisar sesión', 'Review session')}{/if}</span
+											>
 										</div>
+										{#if u.user_type === 'Microsoft'}<button
+												type="button"
+												class="mini-btn"
+												disabled={accountBusy || showMicrosoft}
+												onclick={() => handleAddMicrosoft(u.uuid)}
+												>{authText('Renovar sesión', 'Sign in again')}</button
+											>{/if}
 										{#if appState.currentUser?.uuid !== u.uuid}
 											<button
 												type="button"
@@ -787,43 +781,17 @@
 					><SettingGroup id="account-microsoft"
 						><section>
 							<span class="section-label">{t('settings.accounts.addMicrosoft')}</span>
-							{#if msCode}
-								<div class="ms-pending">
-									<p>
-										{t('onboarding.goTo')}
-										<a href={msVerificationUri} target="_blank" rel="noreferrer"
-											>{msVerificationUri}</a
-										>
-										{t('settings.accounts.microsoftEnter')}
-									</p>
-									<div class="ms-code-row">
-										<code class="ms-code" tabindex="0">{msCode}</code>
-										<button
-											type="button"
-											class="copy-code-btn"
-											onclick={copyMicrosoftCode}
-											aria-label={t('settings.accounts.copyCode')}
-										>
-											{#if codeCopied}<CheckCircle2 size={14} /> {t('common.copied')}{:else}<Copy
-													size={14}
-												/>
-												{t('common.copy')}{/if}
-										</button>
-									</div>
-									<p class="hint">{t('settings.accounts.waitingConfirmation')}</p>
-								</div>
+							{#if showMicrosoft}
+								{#key reauthUuid}<MicrosoftSignIn
+										expectedUuid={reauthUuid}
+										onDone={microsoftConnected}
+										onCancel={() => (showMicrosoft = false)}
+									/>{/key}
 							{:else}
-								<button
-									type="button"
-									class="mini-btn ms-btn"
-									disabled={msBusy}
-									onclick={handleAddMicrosoft}
+								<button type="button" class="mini-btn ms-btn" onclick={() => handleAddMicrosoft()}
+									><Gamepad2 size={16} />{t('settings.accounts.startMicrosoft')}</button
 								>
-									{#if msBusy}<Loader2 size={13} class="spin" />{:else}<Gamepad2 size={13} />{/if}
-									{t('settings.accounts.startMicrosoft')}
-								</button>
 							{/if}
-							{#if msError}<p class="error">{msError}</p>{/if}
 						</section></SettingGroup
 					><SettingGroup id="account-offline"
 						><section>
@@ -1338,58 +1306,6 @@
 		width: 100%;
 		justify-content: center;
 		padding: 8px;
-	}
-
-	.ms-pending {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		font-size: 0.76rem;
-		color: var(--text-secondary);
-	}
-
-	.ms-pending a {
-		color: var(--accent);
-	}
-
-	.ms-code-row {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.ms-code {
-		font-family: monospace;
-		font-size: 1rem;
-		font-weight: 700;
-		letter-spacing: 2px;
-		padding: 6px 12px;
-		border-radius: var(--border-radius-sm);
-		border: 1px solid var(--border);
-		background: var(--bg-input);
-		color: var(--text-primary);
-		-webkit-user-select: text;
-		user-select: text;
-		cursor: text;
-	}
-
-	.copy-code-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 5px;
-		padding: 7px 9px;
-		border: 1px solid var(--border);
-		border-radius: var(--border-radius-sm);
-		background: var(--bg-input);
-		color: var(--text-secondary);
-		font-size: 0.7rem;
-		font-weight: 700;
-		cursor: pointer;
-	}
-
-	.copy-code-btn:hover {
-		color: var(--accent);
-		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 	}
 
 	:global(.spin) {

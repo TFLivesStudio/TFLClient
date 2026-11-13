@@ -88,7 +88,14 @@ pub async fn update_settings(mut new_settings: SettingsManager) -> Result<(), St
     if new_settings.max_memory < new_settings.min_memory {
         new_settings.max_memory = new_settings.min_memory * 2;
     }
-    SettingsManager::write(|s| *s = new_settings).map_err(|e| e.to_string())?;
+    SettingsManager::write(|s| {
+        // Account/credential state only changes through local authentication commands.
+        new_settings.user = s.user.clone();
+        new_settings.active_user_idx = s.active_user_idx;
+        new_settings.onboarded = s.onboarded;
+        *s = new_settings;
+    })
+    .map_err(|e| e.to_string())?;
     SettingsManager::save().await?;
     Ok(())
 }

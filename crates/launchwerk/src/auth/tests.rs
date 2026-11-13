@@ -25,27 +25,58 @@ fn test_token_serialization_skip() {
 }
 
 #[test]
-fn test_secure_storage_save_load() {
+fn tokens_are_redacted_in_debug_and_memory_only_is_explicit() {
     let mut user = MinecraftUser::premium(
-        "test_user_storage".to_string(),
-        "uuid_storage".to_string(),
-        "token123".to_string(),
-        Some("refresh123".to_string()),
+        "name".into(),
+        "id".into(),
+        "secret-access".into(),
+        Some("secret-refresh".into()),
     );
+    assert!(!format!("{user:?}").contains("secret-"));
+    user.session_only = true;
+    user.save_tokens().unwrap();
+    let mut reloaded: MinecraftUser =
+        serde_json::from_str(&serde_json::to_string(&user).unwrap()).unwrap();
+    assert!(reloaded.load_tokens().is_err());
+    assert_eq!(reloaded.username, "name");
+}
 
-    // Guardar tokens
-    user.save_tokens().expect("Failed to save tokens");
+#[test]
+fn changing_identity_requires_reauthorization_without_removing_profile() {
+    let mut user = MinecraftUser::premium(
+        "Original".into(),
+        "id".into(),
+        "fixture-access".into(),
+        Some("fixture-refresh".into()),
+    );
+    user.microsoft_client_id = Some(crate::auth::microsoft::DEFAULT_CLIENT_ID.into());
+    assert!(!user.requires_reauthorization(crate::auth::microsoft::DEFAULT_CLIENT_ID));
+    assert!(user.requires_reauthorization("different-configured-registration"));
+    assert_eq!(user.username, "Original");
+    assert_eq!(user.uuid, "id");
+    assert!(!MinecraftUser::cracked("Offline").requires_reauthorization("any-registration"));
+}
 
-    // Limpiar tokens en memoria
-    user.access_token = String::new();
-    user.refresh_token = None;
-
-    // Cargar tokens
-    user.load_tokens().expect("Failed to load tokens");
-
-    assert_eq!(user.access_token, "token123");
-    assert_eq!(user.refresh_token, Some("refresh123".to_string()));
-
-    // Borrar tokens
-    user.delete_tokens().unwrap();
+#[test]
+fn test_sessions_and_application_registrations_have_independent_credential_namespaces() {
+    let mut user = MinecraftUser::premium(
+        "Same account".into(),
+        "same-uuid".into(),
+        "fixture".into(),
+        None,
+    );
+    let production = user.provider();
+    assert!(user.may_load_legacy());
+    user.test_session = true;
+    assert_ne!(user.provider(), production);
+    assert!(!user.may_load_legacy());
+    assert!(
+        !serde_json::to_string(&user)
+            .unwrap()
+            .contains("test_session")
+    );
+    user.test_session = false;
+    user.microsoft_client_id = Some("another-registration-fixture".into());
+    assert_ne!(user.provider(), production);
+    assert!(!user.may_load_legacy());
 }

@@ -8,6 +8,8 @@ use std::path::PathBuf;
 use std::sync::LazyLock;
 use tracing::{info, warn};
 
+static SAVE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 static SETTINGS: LazyLock<RwLock<SettingsManager>> =
     LazyLock::new(|| RwLock::new(SettingsManager::load()));
 
@@ -274,6 +276,7 @@ impl SettingsManager {
     }
 
     pub async fn save() -> Result<(), String> {
+        let _save_guard = SAVE_LOCK.lock().await;
         let snapshot = Self::snapshot();
         let path = Self::settings_path();
         let json = serde_json::to_string_pretty(&snapshot).map_err(|e| e.to_string())?;

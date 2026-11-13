@@ -264,9 +264,15 @@ impl<'a> CommandBuilder<'a> {
         if !self.config.extra_jvm_args.is_empty() {
             debug!("extra_jvm_args ({}):", self.config.extra_jvm_args.len());
             for arg in &self.config.extra_jvm_args {
-                debug!("  extra: {arg}");
                 cmd.push(arg.clone());
             }
+        }
+
+        // On macOS, all Minecraft GUI clients (both LWJGL 2 and LWJGL 3 GLFW/SDL3) require
+        // -XstartOnFirstThread so Cocoa/AppKit can initialize display/video on the main thread.
+        if cfg!(target_os = "macos") && !cmd.iter().any(|a| a == "-XstartOnFirstThread") {
+            debug!("Adding mandatory macOS JVM flag: -XstartOnFirstThread");
+            cmd.push("-XstartOnFirstThread".to_string());
         }
     }
 
@@ -492,7 +498,7 @@ impl<'a> CommandBuilder<'a> {
         remove.dedup();
         remove.reverse();
         for idx in remove {
-            info!("Removing unresolved placeholder: {}", cmd[idx]);
+            info!("Removing an unresolved argument at index {idx}");
             cmd.remove(idx);
         }
     }

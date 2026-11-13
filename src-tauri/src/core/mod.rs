@@ -20,22 +20,6 @@ pub use http_client::{
 };
 pub use path_manager::PathManager;
 
-/// Azure AD (Entra ID) app registration usada para el login "Iniciar sesión
-/// con Microsoft" (device code + Xbox Live + XSTS + Minecraft Services).
-/// Hoy sigue siendo la de CubicLauncher — el proyecto del que TFL Client
-/// viene (ver `launchwerk::auth::microsoft::DEFAULT_CLIENT_ID`) — por eso la
-/// pantalla de "sesión iniciada" de Microsoft dice "CubicLauncher" en vez de
-/// "TFL Client", y por qué depende de un registro ajeno (si ellos lo
-/// revocan o cambian, el login de acá se rompe sin aviso).
-///
-/// Para que sea propio: registrar una app en portal.azure.com → Entra ID →
-/// App registrations → New registration. Tipo "Public client/native",
-/// sin necesidad de un plan pago (el nivel gratis de Entra ID alcanza).
-/// Habilitar el flujo "Allow public client flows" (para device code) y
-/// agregar el permiso delegado `XboxLive.signin` (API "Xbox Live",
-/// requiere buscarla por App ID `00000000-0000-0000-0000-000000000000` o
-/// agregarla manual si no aparece en la lista). Con eso ya alcanza — no
-/// hace falta client secret (es un public client) ni verificación de
-/// dominio. Una vez creada, reemplazar el valor de acá por el
-/// "Application (client) ID" que Azure le asigna.
-pub const TFL_MICROSOFT_CLIENT_ID: &str = launchwerk::auth::microsoft::DEFAULT_CLIENT_ID;
+pub mod microsoft_identity;
+
+pub mod session_privacy;

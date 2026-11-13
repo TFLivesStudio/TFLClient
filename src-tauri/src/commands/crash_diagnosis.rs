@@ -268,6 +268,7 @@ pub async fn diagnose_crash(instance_name: String) -> Result<CrashDiagnosis, Str
         });
     }
 
+    let text = crate::core::session_privacy::redact(&text);
     let (culprit_ids, culprit_jars) = extract_culprits(&text);
 
     let mods_dir = dir.join("mods");

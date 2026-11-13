@@ -126,9 +126,7 @@ impl InstanceHandle {
             inner.uuid,
             cmd_args.len()
         );
-        for (i, arg) in cmd_args.iter().enumerate() {
-            debug!("  [{i}] {arg}");
-        }
+        // Never log argument values: Minecraft's command line contains its access token.
 
         // ── Spawn ─────────────────────────────────────────────────────────
         let java = config.java_path.to_string_lossy().to_string();
@@ -164,10 +162,23 @@ impl InstanceHandle {
         // ── Pump stdout ───────────────────────────────────────────────────
         let stdout_pipe = child.stdout.take().unwrap();
         let stdout_tx = inner.stdout_tx.clone();
+        let output_secret = config
+            .access_token
+            .as_ref()
+            .filter(|token| token.len() >= 8)
+            .cloned()
+            .map(Arc::new);
+        let stdout_secret = output_secret.clone();
         tokio::spawn(async move {
             let mut lines = BufReader::new(stdout_pipe).lines();
             while let Ok(Some(line)) = lines.next_line().await {
-                if stdout_tx.send(line).is_err() {
+                if stdout_tx
+                    .send(redact_game_output(
+                        line,
+                        stdout_secret.as_deref().map(String::as_str),
+                    ))
+                    .is_err()
+                {
                     break; // no receivers left
                 }
             }
@@ -179,7 +190,13 @@ impl InstanceHandle {
         tokio::spawn(async move {
             let mut lines = BufReader::new(stderr_pipe).lines();
             while let Ok(Some(line)) = lines.next_line().await {
-                if stderr_tx.send(line).is_err() {
+                if stderr_tx
+                    .send(redact_game_output(
+                        line,
+                        output_secret.as_deref().map(String::as_str),
+                    ))
+                    .is_err()
+                {
                     break;
                 }
             }
@@ -329,5 +346,30 @@ impl InstanceHandle {
             stdout: stdout_rx,
             stderr: stderr_rx,
         }
+    }
+}
+
+fn redact_game_output(line: String, token: Option<&str>) -> String {
+    match token {
+        Some(token) if !token.is_empty() => line.replace(token, "[REDACTED]"),
+        _ => line,
+    }
+}
+#[cfg(test)]
+mod session_privacy_tests {
+    use super::redact_game_output;
+    #[test]
+    fn game_output_does_not_broadcast_the_access_token() {
+        assert_eq!(
+            redact_game_output(
+                "access=fixture-secret; fixture-secret".into(),
+                Some("fixture-secret")
+            ),
+            "access=[REDACTED]; [REDACTED]"
+        );
+        assert_eq!(
+            redact_game_output("ordinary log".into(), None),
+            "ordinary log"
+        );
     }
 }
