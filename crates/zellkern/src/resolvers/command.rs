@@ -267,6 +267,13 @@ impl<'a> CommandBuilder<'a> {
                 cmd.push(arg.clone());
             }
         }
+
+        // On macOS, all Minecraft GUI clients (both LWJGL 2 and LWJGL 3 GLFW/SDL3) require
+        // -XstartOnFirstThread so Cocoa/AppKit can initialize display/video on the main thread.
+        if cfg!(target_os = "macos") && !cmd.iter().any(|a| a == "-XstartOnFirstThread") {
+            debug!("Adding mandatory macOS JVM flag: -XstartOnFirstThread");
+            cmd.push("-XstartOnFirstThread".to_string());
+        }
     }
 
     fn add_game_args(
