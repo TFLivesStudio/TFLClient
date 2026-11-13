@@ -104,14 +104,14 @@
 				</button>
 				<h2>{t('createInstance.modpackTitle')}</h2>
 			</div>
-			<p class="subtitle">Elige el origen del modpack para tu nueva instancia.</p>
+			<p class="subtitle">{t('selectionLibrary.chooseSource')}</p>
 
 			<div class="choices">
 				<button type="button" class="choice-card" onclick={onChooseTflSelection}>
 					<span class="choice-icon"><Tfl width={20} height={20} /></span>
 					<span class="choice-text">
 						<span class="choice-title">TFL Selection</span>
-						<span class="choice-desc">Distribución oficial, curada y optimizada por TFLives.</span>
+						<span class="choice-desc">{t('selectionLibrary.libraryDescription')}</span>
 					</span>
 					<ChevronRight size={16} class="choice-arrow" />
 				</button>

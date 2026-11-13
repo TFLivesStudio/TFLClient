@@ -4,6 +4,15 @@
 
 El launcher de **TFLives** para Minecraft, con un núcleo nativo escrito en **Rust** y una interfaz en **Svelte**.
 
+## Nombres del ecosistema
+
+**TFL Client** es el launcher. **TFL Selection** es la biblioteca donde TFLives
+publica sus clientes modificados. **TFLClient** es el cliente que se instala y se
+utiliza dentro de Minecraft; **TFL Core** impulsa sus funciones.
+
+Consulta [los nombres y términos](docs/PRODUCT_NAMES.md) para mantener esta
+distinción en todo el proyecto.
+
 ## Web oficial · [launcher.tflives.com](https://launcher.tflives.com)
 
 La web oficial es el punto de entrada para conocer TFL Client, consultar sus características, elegir una descarga y encontrar ayuda. Este repositorio contiene el código fuente del launcher.

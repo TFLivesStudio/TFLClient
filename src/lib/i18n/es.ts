@@ -2,6 +2,17 @@
 // namespace corresponde más o menos a un componente, para que agregar o
 // tocar textos de una pantalla no obligue a bucear todo el archivo.
 export const es = {
+	selectionLibrary: {
+		title: 'Biblioteca oficial de TFLives',
+		description:
+			'TFL Selection es la biblioteca de clientes modificados de TFLives. TFLClient es el cliente que instalas; TFL Client es el launcher que estás utilizando.',
+		empty: 'Todavía no hay versiones de clientes publicadas en esta biblioteca.',
+		install: 'Instalar {{name}}',
+		installing: 'Instalando {{name}}…',
+		installError: 'Error al instalar TFLClient: {{error}}',
+		chooseSource: 'Elige un cliente de TFL Selection o un modpack de Modrinth.',
+		libraryDescription: 'Biblioteca de clientes modificados de TFLives, como TFLClient.'
+	},
 	common: {
 		cancel: 'Cancelar',
 		back: 'Volver',
@@ -272,8 +283,8 @@ export const es = {
 		chooserSubtitle: '¿Cómo la querés armar?',
 		customTitle: 'Personalizada',
 		customDesc: 'Creá tu propia instancia con los mods que vos elijas.',
-		modpackTitle: 'Modpack',
-		modpackDesc: 'Descargá una instancia ya armada de TFL Selection.',
+		modpackTitle: 'Clientes y modpacks',
+		modpackDesc: 'Instalá un cliente oficial o un modpack en una instancia nueva.',
 		serverTitle: 'Servidor',
 		serverDesc: 'Creá tu propio servidor de Minecraft para jugar con otros.',
 		nameLabel: 'Nombre',
@@ -619,7 +630,7 @@ export const es = {
 		welcomeTitle: 'Bienvenido a TFL Client',
 		updatesTitle: 'Novedades en v{{version}}',
 		tip1: 'Ctrl+K (⌘K en Mac) abre una paleta para saltar entre instancias o acciones sin tocar el mouse.',
-		tip2: '"TFL Selection" trae modpacks curados y los que publique el equipo — un click y quedan listos.',
+		tip2: '"TFL Selection" es la biblioteca de clientes modificados de TFLives. Allí encontrás TFLClient, el cliente que instalás desde este launcher.',
 		tip3: 'Cada instancia tiene su propia pestaña de Mods, Shaders y Modpacks — nada se mezcla entre instancias.',
 		tip4: 'En Ajustes → Estilo podés cambiar acento, superficie, densidad y hasta el fondo animado.',
 		updatedToVersionWithNotes: 'Se actualizó solo a la versión {{version}}:',
@@ -673,7 +684,7 @@ export const es = {
 		vanillaHint:
 			'Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.',
 		selectionHint:
-			'Esta instancia de TFL Selection administra sus mods sola: no se pueden agregar ni sacar a mano. Usá el ícono de escudo junto al nombre para verificar la integridad, y la página de TFL Selection en Explorar para reparar o actualizar.'
+			'Este cliente instalado desde la biblioteca TFL Selection administra sus mods solo: no se pueden agregar ni sacar a mano. Usá el ícono de escudo junto al nombre para verificar la integridad, y la página de TFL Selection en Explorar para reparar o actualizar.'
 	},
 	resourcePacksPanel: {
 		hint: 'Los resource packs funcionan en cualquier instancia, con o sin mods — no necesitás nada extra instalado. Se activan desde el menú de Minecraft (Opciones → Paquetes de recursos).'

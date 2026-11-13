@@ -1,4 +1,4 @@
-//! TFL Selection: distribución oficial firmada (catálogo Ed25519 v2 +
+//! TFL Selection: biblioteca oficial de clientes con distribución firmada (catálogo Ed25519 v2 +
 //! manifiestos inmutables verificados por SHA-256).
 //!
 //! Contrato: <https://github.com/TFLivesStudio/TFLClientSelection> →

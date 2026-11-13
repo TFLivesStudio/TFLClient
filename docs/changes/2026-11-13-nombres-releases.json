@@ -1,0 +1,202 @@
+[
+	{
+		"repo": "TFLClient",
+		"tag": "v0.15.3-beta.7",
+		"id": 444006172,
+		"name": "TFL Client v0.15.3-beta.7",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "277e2c7661643fb2ab7749b4a8a5afb83dcdf726449760db936f221854c92b09"
+	},
+	{
+		"repo": "TFLClient",
+		"tag": "v0.15.3-beta.4",
+		"id": 438495949,
+		"name": "TFL Client v0.15.3-beta.4",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "23d54950d360eedef8285f950007447fd494ec66c6d7d33b669cebbf41f3d0f2"
+	},
+	{
+		"repo": "TFLClient",
+		"tag": "v0.15.3-beta.3",
+		"id": 438297015,
+		"name": "TFL Client v0.15.3-beta.3",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "df7804877610c7a2336b3b9be04885404c122742efb910ca2cca52f0c4f76e51"
+	},
+	{
+		"repo": "TFLClient",
+		"tag": "v0.15.3-beta.1",
+		"id": 437937061,
+		"name": "TFL Client v0.15.3-beta.1",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "57ecf7ffbf4b0a838686539c3363c8334e632fa0dd6dfd078a83b9183b03c80c"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.5.0-visual-preview.1",
+		"id": 437295118,
+		"name": "TFLClient · TFL Core 0.5.0 Visual Preview 1",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "ab10d38ed0a26ea72219f0df99822185eee05cfa9d20682bc5c10ae6156e8df0"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-audit.5-rc.2",
+		"id": 435951630,
+		"name": "TFLClient · TFL Core RC2 — Far Terrain × Lucerna",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "bd0048eb71c95fed083cc5ce183efd07d2ca43c3f86c41c7922df06be119c128"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-audit.4-preview-559fbac0-ornithe189",
+		"id": 429613736,
+		"name": "TFLClient 1.8.9 — Experimental JAR (native checks pending)",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "c3ecd98a341129b74eaa30351ec80d91f8ccdd1fab4eae4eddf1e3c280b20a34"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-audit.4-fabric263",
+		"id": 429601412,
+		"name": "TFLClient 26.3 — Server maps and Diorama camera",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "6d83aa199c72cb5b06bd6e6dd71fce6a2bc5d060dfe5021ead6a99f089f4d445"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-audit.3-ornithe189",
+		"id": 428701414,
+		"name": "TFLClient 1.8.9 — Map rendering and pause layout fix",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "c225ba141dcd5f9910e6449298d34ac5e88813c332adcd84efb1481e743dd5b7"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-audit.3-fabric263",
+		"id": 428698651,
+		"name": "TFLClient 26.3 — Map rendering and pause layout fix",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "c225ba141dcd5f9910e6449298d34ac5e88813c332adcd84efb1481e743dd5b7"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-audit.2-ornithe189",
+		"id": 428591943,
+		"name": "TFLClient 1.8.9 — Map rendering and pause layout fix",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "87190ba5a58163fe46dd1422234df78da2cefa9b70c408dd9888eba60d99a07a"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-audit.2-fabric263",
+		"id": 428591899,
+		"name": "TFLClient 26.3 — Map rendering and pause layout fix",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "87190ba5a58163fe46dd1422234df78da2cefa9b70c408dd9888eba60d99a07a"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-audit.1-ornithe189",
+		"id": 428540455,
+		"name": "TFLClient 1.8.9 — Audit update preview",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "ec4df87dca7a2fcaef3b86f1137d10c1f11caf40dbd37a2c2b311c6d2e1f3eb6"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-audit.1-fabric263",
+		"id": 428540500,
+		"name": "TFLClient 26.3 — Audit update preview",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "ec4df87dca7a2fcaef3b86f1137d10c1f11caf40dbd37a2c2b311c6d2e1f3eb6"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-stabilize.1-ornithe189",
+		"id": 428386609,
+		"name": "TFLClient 1.8.9 — Stabilization preview",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "2457666044292a58db10ed3ca01c60808396f4305b1afd51ea7e3a82c1c0f842"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-stabilize.1-fabric263",
+		"id": 428386631,
+		"name": "TFLClient 26.3 — Stabilization preview",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "2457666044292a58db10ed3ca01c60808396f4305b1afd51ea7e3a82c1c0f842"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-identity.1-ornithe189",
+		"id": 428302641,
+		"name": "TFLClient 1.8.9 — Visual identity preview",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "93c0d2fdd5dff5fd83b3096617d0e4df26728996db63b6daba66842b0526ad67"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-identity.1-fabric263",
+		"id": 428302772,
+		"name": "TFLClient 26.3 — Visual identity preview",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "93c0d2fdd5dff5fd83b3096617d0e4df26728996db63b6daba66842b0526ad67"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-ornithe.2",
+		"id": 423257179,
+		"name": "TFLClient 1.8.9 — Ornithe Gen2 experiment 2",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "d0bfb61a9655b29b575eb438f73ab60c8a0ead66705ca26346653252ede4b909"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-depth.1-ornithe189",
+		"id": 423692187,
+		"name": "TFLClient 1.8.9 — Depth and Polish preview",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "536315e9385449351c45392a5e5f6a4b6ad71a2e4714b68030138c7575a33fe6"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-depth.1-fabric263",
+		"id": 423692180,
+		"name": "TFLClient 26.3 — Depth and Polish preview",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "536315e9385449351c45392a5e5f6a4b6ad71a2e4714b68030138c7575a33fe6"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-ornithe.1",
+		"id": 422980670,
+		"name": "TFLClient 1.8.9 — Ornithe Gen2 experiment 1",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "fc0696a2281a19d5f50e175ecc528b2e0d5f9888114999f28e87afb789bcb98c"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-dev.3",
+		"id": 422387276,
+		"name": "TFLClient 0.4.0-dev.3 · Fabric 26.3 + Forge 1.8.9",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "1482563de15024bce7861a22fb43fd4c3f74f296882841656190ae51f3b1212c"
+	},
+	{
+		"repo": "TFLClientMOD",
+		"tag": "v0.4.0-dev.2",
+		"id": 422138041,
+		"name": "TFLClient 0.4.0-dev.2 · Fabric 26.3 + Forge 1.8.9",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "b88a1c327f424659f18d2989b51381baadb07adf6e3607c1af7c57fe7709fdf7"
+	},
+	{
+		"repo": "TFLClientSelection",
+		"tag": "selection-mc-1.8.9-ornithe-v0.1.0-preview.1",
+		"id": 437847995,
+		"name": "TFLClient 1.8.9 0.1.0-preview.1 - STAGING",
+		"assetsAndPublicationMetadataPreserved": true,
+		"bodySha256": "8035043ababd53f075377192fbdb72f505ad844b8a869f78e761c151c6e1e2d7"
+	}
+]

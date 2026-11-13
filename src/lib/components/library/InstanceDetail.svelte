@@ -381,7 +381,7 @@
 		error = null;
 		integrityIssues = null;
 		try {
-			// Las instancias de TFL Selection no usan el tracking de mods
+			// Los clientes instalados desde TFL Selection no usan el tracking de mods
 			// genérico (`verify_instance_integrity` mira manifiestos que esta
 			// instancia nunca tiene) — tienen su propio lockfile firmado, así
 			// que acá se verifica contra ese en vez de siempre devolver "sin

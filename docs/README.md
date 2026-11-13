@@ -28,3 +28,7 @@ Para conocer el launcher y obtener una descarga, visita la
 
 Los documentos de una beta describen su propia rama y momento de desarrollo.
 Para comprobar una versión publicada, consulta sus notas y el código del tag.
+
+## Nombres y términos
+
+- [Nombres oficiales del ecosistema](PRODUCT_NAMES.md).

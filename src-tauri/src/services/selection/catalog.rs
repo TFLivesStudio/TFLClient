@@ -423,7 +423,7 @@ pub fn visible_targets(catalog: &Catalog, include_dev: bool) -> Vec<TargetView> 
                 display_name: t
                     .display_name
                     .clone()
-                    .unwrap_or_else(|| format!("TFL Selection {}", t.minecraft_version)),
+                    .unwrap_or_else(|| format!("TFLClient {}", t.minecraft_version)),
                 summary: t.summary.clone().unwrap_or_default(),
                 sort_order: t.sort_order.unwrap_or(u32::MAX),
                 channels,
