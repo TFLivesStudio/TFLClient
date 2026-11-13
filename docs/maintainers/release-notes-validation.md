@@ -50,3 +50,22 @@ El generador conserva la alternativa basada en notas in-app para no romper la
 preparación de futuras versiones. Un Markdown presente pero incompleto provoca
 un error. No se reconstruyeron instaladores nativos: los cambios de código nativo
 se limitan a referencias en comentarios y la lógica del launcher permanece intacta.
+
+## Resultado de CI y dependencia pendiente
+
+El [run de GitHub Actions de esta revisión](https://github.com/TFLivesStudio/TFLClient/actions/runs/43478075207)
+confirmó el frontend y las pruebas de navegador del launcher. También pasaron
+`cargo fmt`, `cargo clippy`, `cargo test` y la aceptación nativa MCP.
+
+El paso `cargo audit` falló por `quinn-udp 0.5.15`, con el aviso
+[RUSTSEC-2026-0538](https://rustsec.org/advisories/RUSTSEC-2026-0538): el bucle de
+recepción puede continuar girando tras un datagrama truncado. La solución
+indicada por la auditoría es actualizar a `>=0.5.16, <0.6.0` o `>=0.6.3`.
+
+El `Cargo.lock` anterior y posterior a la reorganización es el mismo objeto Git,
+`3ca848d3f97abf4c6f5486733512323e703343a5`. La dependencia ya estaba presente; no
+la añadió la revisión documental. Su actualización queda pendiente como cambio
+de dependencias y no se atribuye a ninguna de las releases históricas revisadas.
+
+Además de Node, las 24 pruebas unitarias pasaron con Bun 1.4.2. La ejecución del
+generador con ese mismo Bun produjo exactamente el Markdown publicado.
