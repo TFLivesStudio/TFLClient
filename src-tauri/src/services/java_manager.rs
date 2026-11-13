@@ -70,10 +70,16 @@ pub fn status() -> Vec<JavaStatus> {
 /// Devuelve la ruta al binario de Java para la versión mayor pedida,
 /// descargándola primero (con progreso real vía `AppEvent`) si hace falta.
 /// `mc_version` decide la arquitectura del JRE (ver `required_arch_for_mc`
-/// — en Mac Apple Silicon, Minecraft viejo necesita Java x64 vía Rosetta
-/// porque sus natives de LWJGL no tienen build arm64).
+/// — en Mac Apple Silicon, Minecraft viejo vanilla necesita Java x64 vía Rosetta
+/// porque sus natives de LWJGL no tienen build arm64; pero para Java 25 /
+/// Ornithe Gen2, la selección oficial empaqueta LWJGL 3 con natives arm64 nativos,
+/// por lo que usa la arquitectura nativa del host).
 pub async fn ensure_java(major: u8, mc_version: &str) -> Result<PathBuf, String> {
-    let arch = required_arch_for_mc(mc_version);
+    let arch = if major == 25 {
+        aqua::current_arch()
+    } else {
+        required_arch_for_mc(mc_version)
+    };
     let home = jre_home(major, arch);
     let bin = java_bin(&home);
     if bin.exists() {

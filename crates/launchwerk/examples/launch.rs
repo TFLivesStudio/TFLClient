@@ -24,7 +24,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let username = env::var("USERNAME").unwrap_or_else(|_| "Player".to_string());
 
     let shared_dir = PathBuf::from(&base_dir).join("shared");
-    let instance_dir = PathBuf::from(&base_dir).join("instances").join(&version);
+    let instance_dir = env::var("INSTANCE_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from(&base_dir).join("instances").join(&version));
     let version_json = shared_dir
         .join("versions")
         .join(&version)
@@ -45,13 +47,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         manifest.java_major_version()
     );
 
-    let config = LaunchConfig::builder()
+    let mut builder = LaunchConfig::builder()
         .java_path(&java_path)
         .username(&username)
         .ram("512M", "2G")
         .resolution(854, 480)
-        .cracked(true)
-        .build();
+        .cracked(true);
+
+    if let Ok(extra) = env::var("EXTRA_JVM_ARGS") {
+        let args: Vec<String> = extra.split_whitespace().map(String::from).collect();
+        builder = builder.extra_jvm_args(args);
+    }
+
+    let config = builder.build();
 
     let lw = Launchwerk::new(shared_dir);
     let handle = lw.prepare(manifest, config, instance_dir);
