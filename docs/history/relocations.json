@@ -1,0 +1,525 @@
+{
+  "movedOn": "2026-11-13",
+  "files": [
+    {
+      "from": "CHANGELOG.txt",
+      "to": "docs/history/legacy/CHANGELOG.txt",
+      "blob": "689da6908437fdd0934c96f760ac048322bb01a6"
+    },
+    {
+      "from": "CHANGELOG_2026-09-13.txt",
+      "to": "docs/history/legacy/CHANGELOG_2026-09-13.txt",
+      "blob": "fc7f984fc21276ec899b839bed27a45a7f6a110e"
+    },
+    {
+      "from": "CHANGELOG_2026-09-14_Disenio_Comercial.txt",
+      "to": "docs/history/legacy/CHANGELOG_2026-09-14_Disenio_Comercial.txt",
+      "blob": "2a5e2a39eb809964b0487bd47bc90073fe007cf0"
+    },
+    {
+      "from": "CHANGELOG_acentos-radix-particulas.txt",
+      "to": "docs/history/legacy/CHANGELOG_acentos-radix-particulas.txt",
+      "blob": "a7e0b70d87e3b1703a2e429c8d14aacdd5ad71ee"
+    },
+    {
+      "from": "CHANGELOG_auditoria-general-bugs.txt",
+      "to": "docs/history/legacy/CHANGELOG_auditoria-general-bugs.txt",
+      "blob": "44529e99423251a92efb4383c8bec2c2f7be8abb"
+    },
+    {
+      "from": "CHANGELOG_auto-update-badge.txt",
+      "to": "docs/history/legacy/CHANGELOG_auto-update-badge.txt",
+      "blob": "60af2a974fd0fd5e0bd3545de95a6687bc83aeb1"
+    },
+    {
+      "from": "CHANGELOG_avatar-mojang-directo.txt",
+      "to": "docs/history/legacy/CHANGELOG_avatar-mojang-directo.txt",
+      "blob": "2bd51610b6c013db257c21368b0b90bdfd925875"
+    },
+    {
+      "from": "CHANGELOG_bloque1-instancias-modpacks-cache.txt",
+      "to": "docs/history/legacy/CHANGELOG_bloque1-instancias-modpacks-cache.txt",
+      "blob": "04dadecd34e0c89364d02ace98b61a2c02b22669"
+    },
+    {
+      "from": "CHANGELOG_bloque2-mods.txt",
+      "to": "docs/history/legacy/CHANGELOG_bloque2-mods.txt",
+      "blob": "aa16f07418101f0d86be297c9c3e1221960ef7f2"
+    },
+    {
+      "from": "CHANGELOG_bloque3-export-backup-integridad.txt",
+      "to": "docs/history/legacy/CHANGELOG_bloque3-export-backup-integridad.txt",
+      "blob": "ebb3c1f7757b676694da01da397a07022513b562"
+    },
+    {
+      "from": "CHANGELOG_bloque4-diagnostico-offline.txt",
+      "to": "docs/history/legacy/CHANGELOG_bloque4-diagnostico-offline.txt",
+      "blob": "25c98aa155cd54ba96c756f9b241b92f83095e2c"
+    },
+    {
+      "from": "CHANGELOG_bloque5-onboarding-personalizacion.txt",
+      "to": "docs/history/legacy/CHANGELOG_bloque5-onboarding-personalizacion.txt",
+      "blob": "1869e0d3eb34fec44646953b961fd9c7072e0e53"
+    },
+    {
+      "from": "CHANGELOG_bloqueo-subida-imagen-macos.txt",
+      "to": "docs/history/legacy/CHANGELOG_bloqueo-subida-imagen-macos.txt",
+      "blob": "73375503e13f95a560558725b01b090f2029bb07"
+    },
+    {
+      "from": "CHANGELOG_deteccion-conflictos-mods.txt",
+      "to": "docs/history/legacy/CHANGELOG_deteccion-conflictos-mods.txt",
+      "blob": "41b0167d3dccd4f289af943a6ca50f7649e62f13"
+    },
+    {
+      "from": "CHANGELOG_diseno-oled-cards-kbd-microinteracciones.txt",
+      "to": "docs/history/legacy/CHANGELOG_diseno-oled-cards-kbd-microinteracciones.txt",
+      "blob": "bcb4c33443fb29bc28720049f0d7a7ba9fab5c1f"
+    },
+    {
+      "from": "CHANGELOG_feedback-cliente-personalizacion.txt",
+      "to": "docs/history/legacy/CHANGELOG_feedback-cliente-personalizacion.txt",
+      "blob": "97ac7645760113ff346c7972870d245c7ce78a14"
+    },
+    {
+      "from": "CHANGELOG_firma-macos-updater.txt",
+      "to": "docs/history/legacy/CHANGELOG_firma-macos-updater.txt",
+      "blob": "d45520dd6b0c8b078769a30a16590cf6874b83b9"
+    },
+    {
+      "from": "CHANGELOG_fix-cabecera-instancia-achicandose.txt",
+      "to": "docs/history/legacy/CHANGELOG_fix-cabecera-instancia-achicandose.txt",
+      "blob": "2cdfb560bfae7486227dd15dde54f11b1e09c9c1"
+    },
+    {
+      "from": "CHANGELOG_fix-crash-silencioso-y-ram-modpacks.txt",
+      "to": "docs/history/legacy/CHANGELOG_fix-crash-silencioso-y-ram-modpacks.txt",
+      "blob": "68bc6e005b77c0a287280f62081f18d01f056d72"
+    },
+    {
+      "from": "CHANGELOG_fix-dependencias-mods-incompletas.txt",
+      "to": "docs/history/legacy/CHANGELOG_fix-dependencias-mods-incompletas.txt",
+      "blob": "17bc157460a2f7e5dcab1cc8178a44673a399a00"
+    },
+    {
+      "from": "CHANGELOG_fix-iconos-avatar.txt",
+      "to": "docs/history/legacy/CHANGELOG_fix-iconos-avatar.txt",
+      "blob": "f9eccc36363da5dc565471fd14c1c31a7b1e3065"
+    },
+    {
+      "from": "CHANGELOG_fix-overflow-ajustes-apariencia.txt",
+      "to": "docs/history/legacy/CHANGELOG_fix-overflow-ajustes-apariencia.txt",
+      "blob": "be0063c6c1871dacae1b63397f76b33408a6d0cb"
+    },
+    {
+      "from": "CHANGELOG_fixes-cliente.txt",
+      "to": "docs/history/legacy/CHANGELOG_fixes-cliente.txt",
+      "blob": "aa96a51a273a006490da8200ed031deecbd83b98"
+    },
+    {
+      "from": "CHANGELOG_instalador-linux-facil.txt",
+      "to": "docs/history/legacy/CHANGELOG_instalador-linux-facil.txt",
+      "blob": "47c8c19b332a7e8f8a74211ef36a91485eb1b496"
+    },
+    {
+      "from": "CHANGELOG_instalador-personalizado-y-links.txt",
+      "to": "docs/history/legacy/CHANGELOG_instalador-personalizado-y-links.txt",
+      "blob": "7644865cba30e1fb27b5137cd2f129070d451a9c"
+    },
+    {
+      "from": "CHANGELOG_log-window-404-fix.txt",
+      "to": "docs/history/legacy/CHANGELOG_log-window-404-fix.txt",
+      "blob": "e7b52b9c173982d1eb90bf2ee09aa6505663ac5c"
+    },
+    {
+      "from": "CHANGELOG_log-window-single-instance.txt",
+      "to": "docs/history/legacy/CHANGELOG_log-window-single-instance.txt",
+      "blob": "5bb6a046ef0ad22ec94f824f623c932c482783a9"
+    },
+    {
+      "from": "CHANGELOG_logo-fondos-iconos-mascotas.txt",
+      "to": "docs/history/legacy/CHANGELOG_logo-fondos-iconos-mascotas.txt",
+      "blob": "df6eff90d0cafbf471557e5abe22387b77784252"
+    },
+    {
+      "from": "CHANGELOG_logo-oficial.txt",
+      "to": "docs/history/legacy/CHANGELOG_logo-oficial.txt",
+      "blob": "ae4defa289db01473ec097efa99d74759687c95b"
+    },
+    {
+      "from": "CHANGELOG_macos-dialog-crash-java26.txt",
+      "to": "docs/history/legacy/CHANGELOG_macos-dialog-crash-java26.txt",
+      "blob": "a4ea4af40f76bb67f51e6dfc28aca13faae10f85"
+    },
+    {
+      "from": "CHANGELOG_modo-auto-manual-dialogos.txt",
+      "to": "docs/history/legacy/CHANGELOG_modo-auto-manual-dialogos.txt",
+      "blob": "f3ac04ea8d9980d103ea8cda174c38ae80aa42f0"
+    },
+    {
+      "from": "CHANGELOG_mods-descargar-gestionar.txt",
+      "to": "docs/history/legacy/CHANGELOG_mods-descargar-gestionar.txt",
+      "blob": "0f2eefcd96a16de4f2205c68a5e054a2d86f85e3"
+    },
+    {
+      "from": "CHANGELOG_mods-progress-stuck.txt",
+      "to": "docs/history/legacy/CHANGELOG_mods-progress-stuck.txt",
+      "blob": "bbb53e305e16538f935137e9c43edb2d205c5682"
+    },
+    {
+      "from": "CHANGELOG_mp-guard-enforcement.txt",
+      "to": "docs/history/legacy/CHANGELOG_mp-guard-enforcement.txt",
+      "blob": "4e7b246287af99c8a6a218e201ea8bd5f61ddbd5"
+    },
+    {
+      "from": "CHANGELOG_optimizacion-ram.txt",
+      "to": "docs/history/legacy/CHANGELOG_optimizacion-ram.txt",
+      "blob": "e4da483e007195299458e345e603e34bb8c2a701"
+    },
+    {
+      "from": "CHANGELOG_personalizacion-icono-instancia.txt",
+      "to": "docs/history/legacy/CHANGELOG_personalizacion-icono-instancia.txt",
+      "blob": "f7771f9d071542e723be8fc678be58c0d2e31ab3"
+    },
+    {
+      "from": "CHANGELOG_resourcepacks-capturas-arm64.txt",
+      "to": "docs/history/legacy/CHANGELOG_resourcepacks-capturas-arm64.txt",
+      "blob": "ca35098a51b4771911f6a14a22560563b3c2f6ab"
+    },
+    {
+      "from": "CHANGELOG_tfl-selection-categorias.txt",
+      "to": "docs/history/legacy/CHANGELOG_tfl-selection-categorias.txt",
+      "blob": "28757bac0eeaef57282876b7f3cd2321b7d7bd5c"
+    },
+    {
+      "from": "CHANGELOG_tfl-selection-comunidad.txt",
+      "to": "docs/history/legacy/CHANGELOG_tfl-selection-comunidad.txt",
+      "blob": "f0fce421aa542517f3087c2a8297e4bed7c05b61"
+    },
+    {
+      "from": "CHANGELOG_tfl-selection-crear-instancia.txt",
+      "to": "docs/history/legacy/CHANGELOG_tfl-selection-crear-instancia.txt",
+      "blob": "64d0b1cb80c8969469307d2e53c9c8b7746bb5f6"
+    },
+    {
+      "from": "CHANGELOG_tfl-selection-mods-shaders-modpacks.txt",
+      "to": "docs/history/legacy/CHANGELOG_tfl-selection-mods-shaders-modpacks.txt",
+      "blob": "e223d09d79b0dfe76defe4216a29bef29e744c8e"
+    },
+    {
+      "from": "CHANGELOG_titlebar-fix.txt",
+      "to": "docs/history/legacy/CHANGELOG_titlebar-fix.txt",
+      "blob": "cf2d656aa4ee752aad187ff9ac3f933c5ee72a0f"
+    },
+    {
+      "from": "CHANGELOG_updater-activado.txt",
+      "to": "docs/history/legacy/CHANGELOG_updater-activado.txt",
+      "blob": "2bf72ea52104060ac2e9294325a9e2bab22ddd39"
+    },
+    {
+      "from": "CHANGELOG_v0.8.7-v0.8.8.txt",
+      "to": "docs/history/legacy/CHANGELOG_v0.8.7-v0.8.8.txt",
+      "blob": "2940ee8b0f8b09c632c6379149c2130138876d6b"
+    },
+    {
+      "from": "CHANGELOG_vidrio-teñido-superficies.txt",
+      "to": "docs/history/legacy/CHANGELOG_vidrio-teñido-superficies.txt",
+      "blob": "8f09354784f3587330f5b42cac7d001fbf993df8"
+    },
+    {
+      "from": "TFL_Client_Cambios_2026-09-13_Sesion2.txt",
+      "to": "docs/history/legacy/TFL_Client_Cambios_2026-09-13_Sesion2.txt",
+      "blob": "6d1b68ca143e69ef5026c95b282265b85f28f4e2"
+    },
+    {
+      "from": "artifacts/visual-refresh/README.md",
+      "to": "docs/qa/visual-refresh/README.md",
+      "blob": "127eb5f4b92ad608a46175ceef1d7cc22d499039"
+    },
+    {
+      "from": "artifacts/visual-refresh/backups-800x600.png",
+      "to": "docs/qa/visual-refresh/backups-800x600.png",
+      "blob": "0732b0570353060c0e7ce5297d35540a09a1c037"
+    },
+    {
+      "from": "artifacts/visual-refresh/baseline.png",
+      "to": "docs/qa/visual-refresh/baseline.png",
+      "blob": "908e8ff306d54ea55c9eb0ea2632100fb05f4c13"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/browser-production.txt",
+      "to": "docs/qa/visual-refresh/checks/browser-production.txt",
+      "blob": "b3de441d0b8b752fc6c549b1f4293aaec72a3915"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/build.txt",
+      "to": "docs/qa/visual-refresh/checks/build.txt",
+      "blob": "1b3e446d8f687331da99eae2f2c1c5f7719fb358"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/compact-workspaces.txt",
+      "to": "docs/qa/visual-refresh/checks/compact-workspaces.txt",
+      "blob": "cb3bc18651417c24a93cc94401fb8e00a34326f9"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/lint.txt",
+      "to": "docs/qa/visual-refresh/checks/lint.txt",
+      "blob": "15971ac60617db033d5a2a9f9a3a43a4027c0fa5"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/rust-check.txt",
+      "to": "docs/qa/visual-refresh/checks/rust-check.txt",
+      "blob": "9ea2c11e5b0f910492f03226d857b3105b674e73"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/rust-clippy.txt",
+      "to": "docs/qa/visual-refresh/checks/rust-clippy.txt",
+      "blob": "c467220d0a6db63a71f62f7264c47c71bc4edd75"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/rust-tests.txt",
+      "to": "docs/qa/visual-refresh/checks/rust-tests.txt",
+      "blob": "171e4a8a40a5cdf84de140613261a24102615385"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/skin-lifecycle.txt",
+      "to": "docs/qa/visual-refresh/checks/skin-lifecycle.txt",
+      "blob": "d40800a9e9f18580fa5224a94088f573546ad972"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/svelte-check.txt",
+      "to": "docs/qa/visual-refresh/checks/svelte-check.txt",
+      "blob": "34d7ab34aba1b7ce72bf44f39406ac64092ed8be"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/tls-audit.txt",
+      "to": "docs/qa/visual-refresh/checks/tls-audit.txt",
+      "blob": "7b647b06020e83f4168461a01b9db679b6632c22"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/tls-workspace-check.txt",
+      "to": "docs/qa/visual-refresh/checks/tls-workspace-check.txt",
+      "blob": "3e21efe3a138b1b64b469594a8b17fe5749b31d9"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/tls-workspace-tests.txt",
+      "to": "docs/qa/visual-refresh/checks/tls-workspace-tests.txt",
+      "blob": "8b2405debc9b0148379ae369fee45e0edaad0c18"
+    },
+    {
+      "from": "artifacts/visual-refresh/checks/unit.txt",
+      "to": "docs/qa/visual-refresh/checks/unit.txt",
+      "blob": "faf9102905669000b264eed250ead7563f137d8a"
+    },
+    {
+      "from": "artifacts/visual-refresh/command-palette.png",
+      "to": "docs/qa/visual-refresh/command-palette.png",
+      "blob": "0396f28cec3153d4d7b12ffc239ac6da67ab2cfd"
+    },
+    {
+      "from": "artifacts/visual-refresh/create-dialog.png",
+      "to": "docs/qa/visual-refresh/create-dialog.png",
+      "blob": "0e1279814d96396a2a09263c7c684f115073074d"
+    },
+    {
+      "from": "artifacts/visual-refresh/detail-1100x700.png",
+      "to": "docs/qa/visual-refresh/detail-1100x700.png",
+      "blob": "03418077e631599971f3c8773fe4e7e7e801f84c"
+    },
+    {
+      "from": "artifacts/visual-refresh/detail-1366x768.png",
+      "to": "docs/qa/visual-refresh/detail-1366x768.png",
+      "blob": "1bc42deec586238f7f90ffb4ebb069a06bfbe99c"
+    },
+    {
+      "from": "artifacts/visual-refresh/detail-1920x1080.png",
+      "to": "docs/qa/visual-refresh/detail-1920x1080.png",
+      "blob": "2402f20b8c4fe95637ea474eb68b4ac2c85c98b8"
+    },
+    {
+      "from": "artifacts/visual-refresh/detail-800x600.png",
+      "to": "docs/qa/visual-refresh/detail-800x600.png",
+      "blob": "556f7fc7d83db8fd74a64f13f42d65e4e541ef7e"
+    },
+    {
+      "from": "artifacts/visual-refresh/discover.png",
+      "to": "docs/qa/visual-refresh/discover.png",
+      "blob": "5a006091b3f9cdd621c3377a1ce4a9d3aeee2fc5"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-1100x700.png",
+      "to": "docs/qa/visual-refresh/home-1100x700.png",
+      "blob": "0cd60bbe351395fe58c8b4c1166a0de6901134b8"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-1366x768.png",
+      "to": "docs/qa/visual-refresh/home-1366x768.png",
+      "blob": "4e0765b48a007ff7573a370bf24afa753d0fb35d"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-1920x1080.png",
+      "to": "docs/qa/visual-refresh/home-1920x1080.png",
+      "blob": "03518453c0838e8df09c429fe36c6925ff196371"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-800x600.png",
+      "to": "docs/qa/visual-refresh/home-800x600.png",
+      "blob": "2c5db49e5dd4b0def1c6801e502df73bc990f386"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-light-en.png",
+      "to": "docs/qa/visual-refresh/home-light-en.png",
+      "blob": "a7d189a67ed56aeafab542dc9e0af482af046c61"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-modern-balanced.png",
+      "to": "docs/qa/visual-refresh/home-modern-balanced.png",
+      "blob": "f64bc0efe9f563573285bc922bf7ca5c9a3cc2f6"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-modern-experience.png",
+      "to": "docs/qa/visual-refresh/home-modern-experience.png",
+      "blob": "91f13b1a369c3d2dbdb1fe0a4f9643eaaef09cb5"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-modern-lite.png",
+      "to": "docs/qa/visual-refresh/home-modern-lite.png",
+      "blob": "c9f2a6f71a6ef9fe148b54985109b6dc247101ed"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-oled-reduced.png",
+      "to": "docs/qa/visual-refresh/home-oled-reduced.png",
+      "blob": "1cb9a3a048bfd8ca7ac26b1a3237cae5d175cb0c"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-pixel-balanced.png",
+      "to": "docs/qa/visual-refresh/home-pixel-balanced.png",
+      "blob": "7e2db92b6852ee11234ae640e9d2d3b54500f1d3"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-pixel-experience.png",
+      "to": "docs/qa/visual-refresh/home-pixel-experience.png",
+      "blob": "d7be0b9748601ad4361d6a074df0d3a970c108f4"
+    },
+    {
+      "from": "artifacts/visual-refresh/home-pixel-lite.png",
+      "to": "docs/qa/visual-refresh/home-pixel-lite.png",
+      "blob": "b566742509b7f06051df1f1380834a0c3f604b2b"
+    },
+    {
+      "from": "artifacts/visual-refresh/library-grid.png",
+      "to": "docs/qa/visual-refresh/library-grid.png",
+      "blob": "d917f3cac92c9f53a8277876d39a9cf6688fd70c"
+    },
+    {
+      "from": "artifacts/visual-refresh/library.png",
+      "to": "docs/qa/visual-refresh/library.png",
+      "blob": "ee9573d7560597f8eb68f87f02fbea1d813f7b91"
+    },
+    {
+      "from": "artifacts/visual-refresh/mods-800x600.png",
+      "to": "docs/qa/visual-refresh/mods-800x600.png",
+      "blob": "c42bef567a5220c880f48fc0199f6fdd5f27d653"
+    },
+    {
+      "from": "artifacts/visual-refresh/notification-error.png",
+      "to": "docs/qa/visual-refresh/notification-error.png",
+      "blob": "b51f7883328851d1e7a73667279b8a8080aa8db7"
+    },
+    {
+      "from": "artifacts/visual-refresh/performance.json",
+      "to": "docs/qa/visual-refresh/performance.json",
+      "blob": "9f7a971e060bbd10a3eb2c8dc8e801bda6d6737a"
+    },
+    {
+      "from": "artifacts/visual-refresh/server-console-800x600.png",
+      "to": "docs/qa/visual-refresh/server-console-800x600.png",
+      "blob": "1838ba0b4b7a242062c25700c045dd9883edbdda"
+    },
+    {
+      "from": "artifacts/visual-refresh/server-dashboard.png",
+      "to": "docs/qa/visual-refresh/server-dashboard.png",
+      "blob": "0ca2327195ab500910b636b0afbe6c491f9f2680"
+    },
+    {
+      "from": "artifacts/visual-refresh/settings-800x600.png",
+      "to": "docs/qa/visual-refresh/settings-800x600.png",
+      "blob": "59a89160261a655c486dd4fc3c06edd00374b91d"
+    },
+    {
+      "from": "artifacts/visual-refresh/settings-pixel.png",
+      "to": "docs/qa/visual-refresh/settings-pixel.png",
+      "blob": "7b3bca2492c5036e2b9516a1ecd7e6c79b97a44b"
+    },
+    {
+      "from": "artifacts/visual-refresh/settings.png",
+      "to": "docs/qa/visual-refresh/settings.png",
+      "blob": "d70da06354b1be62602b8c8ae06feec65f81c347"
+    },
+    {
+      "from": "artifacts/visual-refresh/skin-lite-static.png",
+      "to": "docs/qa/visual-refresh/skin-lite-static.png",
+      "blob": "9f76e42f62782708d4d351ad20fb8abcc15c9688"
+    },
+    {
+      "from": "artifacts/visual-refresh/skin-studio-lite.png",
+      "to": "docs/qa/visual-refresh/skin-studio-lite.png",
+      "blob": "c8003cd9533ab2f5594db6d9587a66104bcbec51"
+    },
+    {
+      "from": "artifacts/visual-refresh/skin-studio-no-skin.png",
+      "to": "docs/qa/visual-refresh/skin-studio-no-skin.png",
+      "blob": "c61fe8efbb097d4a4236af839e821642aae79771"
+    },
+    {
+      "from": "artifacts/visual-refresh/smoke-results.json",
+      "to": "docs/qa/visual-refresh/smoke-results.json",
+      "blob": "1e1f130fca5b0a5fd42a4f0668b84e90a409fd67"
+    },
+    {
+      "from": "artifacts/visual-refresh/studio-800x600.png",
+      "to": "docs/qa/visual-refresh/studio-800x600.png",
+      "blob": "b72070c09158fa101e00f6f4fae9b10fda9f294a"
+    },
+    {
+      "from": "artifacts/visual-refresh/verification.json",
+      "to": "docs/qa/visual-refresh/verification.json",
+      "blob": "81ca3a71b8472be1c009d3365a37eccb7d03e0df"
+    },
+    {
+      "from": "artifacts/visual-refresh/viewer-performance.json",
+      "to": "docs/qa/visual-refresh/viewer-performance.json",
+      "blob": "eb5907d709ebb1b77c58cef99f86fb65499db3a7"
+    },
+    {
+      "from": "nuevo/tflclient-0.1.0-1.x86_64.rpm",
+      "to": "archives/installers/legacy/tflclient-0.1.0-1.x86_64.rpm",
+      "blob": "d49983c8d5edce821fd61bbcfda5dc27702d5810"
+    },
+    {
+      "from": "nuevo/tflclient.app.tar.gz",
+      "to": "archives/installers/legacy/tflclient.app.tar.gz",
+      "blob": "02f7af8b59e70eb5e5dfe1e2a5db4634f1c70053"
+    },
+    {
+      "from": "nuevo/tflclient_0.1.0_aarch64.dmg",
+      "to": "archives/installers/legacy/tflclient_0.1.0_aarch64.dmg",
+      "blob": "ede21f18152e5035ec56c14189682459ca2303f5"
+    },
+    {
+      "from": "nuevo/tflclient_0.1.0_amd64.AppImage",
+      "to": "archives/installers/legacy/tflclient_0.1.0_amd64.AppImage",
+      "blob": "dce7d120345cd118f3d13e9ac006d3f4cf6b8ca7"
+    },
+    {
+      "from": "nuevo/tflclient_0.1.0_amd64.deb",
+      "to": "archives/installers/legacy/tflclient_0.1.0_amd64.deb",
+      "blob": "03a357e09c410ae13262b7359851f8432b6d9068"
+    },
+    {
+      "from": "nuevo/tflclient_0.1.0_x64-setup.exe",
+      "to": "archives/installers/legacy/tflclient_0.1.0_x64-setup.exe",
+      "blob": "11d81dc724f4c6fa3b07ff2d2929d453f6aad79e"
+    }
+  ]
+}

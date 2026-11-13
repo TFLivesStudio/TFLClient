@@ -130,8 +130,8 @@ pub struct SettingsManager {
     /// que dependa del diálogo nativo de archivos (subir ícono/wallpaper
     /// propio, agregar mods/shaders/resourcepacks por archivo) — el diálogo
     /// nativo es lo que rompe el launcher en macOS con hardened runtime +
-    /// firma ad-hoc (ver CHANGELOG_macos-dialog-crash-java26.txt). "manual"
-    /// las habilita, a sabiendas del riesgo. No afecta Java/loader/mods por
+    /// firma ad-hoc (ver docs/history/legacy/CHANGELOG_macos-dialog-crash-java26.txt).
+    /// "manual" las habilita, a sabiendas del riesgo. No afecta Java/loader/mods por
     /// Modrinth, que siguen siendo 100% automáticos siempre.
     #[serde(default = "default_dialog_mode")]
     pub native_dialog_mode: CompactString,

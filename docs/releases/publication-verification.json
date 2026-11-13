@@ -1,0 +1,689 @@
+{
+	"reviewedOn": "2026-11-13",
+	"repository": "TFLivesStudio/TFLClient",
+	"updatedCount": 85,
+	"verifiedFromFreshApiRead": true,
+	"assetsAndPublicationMetadataUnchanged": true,
+	"releases": [
+		{
+			"tag": "v0.15.3-beta.7",
+			"releaseId": 444006172,
+			"verifiedAt": "2026-11-13T17:52:03.092419+00:00",
+			"bodySha256": "5f8fc555a415fe37b21b37c7737ed98160da370813f92ac43f2aa1990ea1f46d",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.3-beta.6",
+			"releaseId": 440765334,
+			"verifiedAt": "2026-11-13T17:52:05.035631+00:00",
+			"bodySha256": "986890c6b12ebc9a9d99eb7853754a7c6f73fae032ec4048054d80dc7fe9b8bb",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.3-beta.5",
+			"releaseId": 439563287,
+			"verifiedAt": "2026-11-13T17:52:06.904412+00:00",
+			"bodySha256": "c21dd4731a8c1add7c4077897f9d231f093b8a7426c81cea5f74b0e7d3c03a85",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.3-beta.4",
+			"releaseId": 438495949,
+			"verifiedAt": "2026-11-13T17:52:08.599165+00:00",
+			"bodySha256": "f0f03da5043c59e3aae8197fed099e1782b0790a55d4e5df112b17e8e20ae804",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.3-beta.3",
+			"releaseId": 438297015,
+			"verifiedAt": "2026-11-13T17:52:09.896666+00:00",
+			"bodySha256": "24967c46641f41891a577637ebb965a5326f95f38bbc35963c651a85d6b3e21c",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.3-beta.1",
+			"releaseId": 437937061,
+			"verifiedAt": "2026-11-13T17:52:11.596408+00:00",
+			"bodySha256": "02e71ba9592de63485a605deeaf6b91a4634d4713f4c01e90fe211ab8d99021f",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.2",
+			"releaseId": 433706720,
+			"verifiedAt": "2026-11-13T17:52:13.143641+00:00",
+			"bodySha256": "6eefae1621724aeef7bcb7a59e7a9e6c3509f8f173b7d74adad26418d3b18d50",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.2-beta.2",
+			"releaseId": 433082808,
+			"verifiedAt": "2026-11-13T17:52:15.042509+00:00",
+			"bodySha256": "63a194268a48985bb981f8ce5939bb6a294f7f8b3954a3a2d0cf0eaf792b9df0",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.1",
+			"releaseId": 429894732,
+			"verifiedAt": "2026-11-13T17:52:16.236192+00:00",
+			"bodySha256": "58eedd496994447bc2ca6dc8d2a7d9144a54a9e5939323d151d9233b93e52e45",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.1-beta.2",
+			"releaseId": 429880012,
+			"verifiedAt": "2026-11-13T17:52:17.662108+00:00",
+			"bodySha256": "a2c5e76ad19c35cc298f349be8e235d64562a6902538b4c4fc6791c8b0c38bc1",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.0",
+			"releaseId": 429600600,
+			"verifiedAt": "2026-11-13T17:52:19.528660+00:00",
+			"bodySha256": "45bda172a6b581061ebda7461ecb740a81ba9f0994be91208fe9975dab5a4cd7",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.0-beta.2",
+			"releaseId": 429571372,
+			"verifiedAt": "2026-11-13T17:52:20.937426+00:00",
+			"bodySha256": "7c1b3274d57b380dac21250b68b74e02f5aa08fed561676a1c12bf919504250b",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.15.0-beta.1",
+			"releaseId": 429467704,
+			"verifiedAt": "2026-11-13T17:52:22.766476+00:00",
+			"bodySha256": "693d5ac4736104b2b6ed68786eac18b84670f7938c3fa2a39520c791816bda68",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.14.1",
+			"releaseId": 426435871,
+			"verifiedAt": "2026-11-13T17:52:24.571774+00:00",
+			"bodySha256": "1cdebb561d0d65638bfcb285775712d3e8fd1e5a05a6df9071888f78320c58e2",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.14.0-beta.7.1",
+			"releaseId": 421326627,
+			"verifiedAt": "2026-11-13T17:52:26.011495+00:00",
+			"bodySha256": "4948dc763f31923977cb0fc4d06e273c57916df2a79633ec9eb8d88fcf8c2489",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.14.0-beta.6",
+			"releaseId": 420612979,
+			"verifiedAt": "2026-11-13T17:52:27.595684+00:00",
+			"bodySha256": "1330ef5dcf6a0c1de7911e827ec71a62be0ef9ac28d4e001e0853216b636805d",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.14.0-beta.3",
+			"releaseId": 420508134,
+			"verifiedAt": "2026-11-13T17:52:29.113288+00:00",
+			"bodySha256": "51c5a13a500ed77913537016549c5d51f7a2e7546d1219c42a4bec28363e7d62",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.14.0-beta.2",
+			"releaseId": 420243830,
+			"verifiedAt": "2026-11-13T17:52:31.037173+00:00",
+			"bodySha256": "36a0da8616b3e8db5257d56bb2e0189d596d2781d92b7aba19ff7b0a852b8ab1",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.14.0-beta.1",
+			"releaseId": 419820340,
+			"verifiedAt": "2026-11-13T17:52:32.229759+00:00",
+			"bodySha256": "4ad27ee8fed6862bccfafd7a72c5dc2be9ee16d8a97b445daefb6b047b5414f9",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.13.2",
+			"releaseId": 419780843,
+			"verifiedAt": "2026-11-13T17:52:33.938817+00:00",
+			"bodySha256": "dafe61d8578387b24d85d7b524549e62b3fe053a378abd12ad72c5b0cf44f979",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.13.1",
+			"releaseId": 419738792,
+			"verifiedAt": "2026-11-13T17:52:35.630563+00:00",
+			"bodySha256": "b625d22110895dc04fdc6d8d103fbe305c109292915e669feb269d12a265ddaa",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.13.1-beta.4",
+			"releaseId": 419662645,
+			"verifiedAt": "2026-11-13T17:52:37.065066+00:00",
+			"bodySha256": "4614308ee9cc0f89d9e7517602d04332d6b1a8c1399e1c99bda9ca2ed9b9afba",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.13.1-beta.1",
+			"releaseId": 419249999,
+			"verifiedAt": "2026-11-13T17:52:38.760503+00:00",
+			"bodySha256": "4990886896fb449ece2b1f58864dcabd7a1ad965d425974a1bc4ef0a6d17a36f",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.13.0-beta.3",
+			"releaseId": 419457853,
+			"verifiedAt": "2026-11-13T17:52:40.333049+00:00",
+			"bodySha256": "e88b6e0ae64c996567822d45f46359ea491ecb1899954bf4c2a8247f4a783de5",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.13.0-beta.1",
+			"releaseId": 418700757,
+			"verifiedAt": "2026-11-13T17:52:41.809932+00:00",
+			"bodySha256": "6138ef176a170d28a7441902b38639bdb1a4c4b8f68fd1da151b0dbf9ec245dc",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.12.3",
+			"releaseId": 417744329,
+			"verifiedAt": "2026-11-13T17:52:43.517090+00:00",
+			"bodySha256": "02a816cc71e06443ceeeb98ca4b35ba2fdbd5c733eb52a2c430e72fbf8ed8748",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.12.2",
+			"releaseId": 417665634,
+			"verifiedAt": "2026-11-13T17:52:44.995134+00:00",
+			"bodySha256": "8b1ae56b12f723a3ae2177237c911f6d4f5976e779b53b94227013066d856c4e",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.12.2-beta.1",
+			"releaseId": 417642550,
+			"verifiedAt": "2026-11-13T17:52:46.869535+00:00",
+			"bodySha256": "64e4086dc2695cff589dbadb64857fbe2aa7450005b45c074fe2e925cc04cdb2",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.12.1",
+			"releaseId": 416475911,
+			"verifiedAt": "2026-11-13T17:52:48.158594+00:00",
+			"bodySha256": "f538c131dd7e7da31a27ea73e0fba41f447572911cc239a4269aa92a04060fcb",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.12.1-beta.2",
+			"releaseId": 416438936,
+			"verifiedAt": "2026-11-13T17:52:49.777262+00:00",
+			"bodySha256": "ab6303e918fc5170122dc963060ec1363b7c51b9bb3132ac1dffd91c5a3f2003",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.12.1-beta.1",
+			"releaseId": 416102526,
+			"verifiedAt": "2026-11-13T17:52:51.363542+00:00",
+			"bodySha256": "f2270a6f568b37e7a2b4950c4b16e7672ea4b3032027de884d8965a8afb16e99",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.12.0",
+			"releaseId": 412923987,
+			"verifiedAt": "2026-11-13T17:52:53.090158+00:00",
+			"bodySha256": "bc8260baea0260a78876d356c1a2cf6b82db24e1e5aeee32602ca3b42af58f79",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.12.0-beta.1",
+			"releaseId": 412846256,
+			"verifiedAt": "2026-11-13T17:52:54.618326+00:00",
+			"bodySha256": "40bcb984d9d758e9d21f91c74c9c20bee4d84750d12809e7cb54efc0ca3c9dac",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.11.2-beta.1",
+			"releaseId": 408425655,
+			"verifiedAt": "2026-11-13T17:52:56.415754+00:00",
+			"bodySha256": "2d7ec6310bc3a5ccc8c926a0933b77a414ce2b0bb1fa229e1d348bcad655dfe4",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.11.1",
+			"releaseId": 408233133,
+			"verifiedAt": "2026-11-13T17:52:58.044623+00:00",
+			"bodySha256": "74ba8fdfd137929d01a3790f6cbd40ed38919f2164d6efa26d8f730e8b6c2aa1",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.11.1-beta.1",
+			"releaseId": 408206480,
+			"verifiedAt": "2026-11-13T17:52:59.290914+00:00",
+			"bodySha256": "b9dad585ead34e4f981cddab123a6e962e1be0361012088fc048102237148e3c",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.11.0",
+			"releaseId": 406454135,
+			"verifiedAt": "2026-11-13T17:53:01.051898+00:00",
+			"bodySha256": "30b2f78e2348db14ab8b80658daee6af5512a51b36448edbb9dc23d872b09fee",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.11.0-beta.2",
+			"releaseId": 406216477,
+			"verifiedAt": "2026-11-13T17:53:02.799574+00:00",
+			"bodySha256": "d930444278c2e6d38cccf101aa4322df6c730f5baa5ae6144a5370a50e085534",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.11.0-beta.1",
+			"releaseId": 406188180,
+			"verifiedAt": "2026-11-13T17:53:04.596064+00:00",
+			"bodySha256": "56963e4ac54ffeb94067e79cd4f24ed7950fde058798e631b113f796dc00deb7",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.17",
+			"releaseId": 406164818,
+			"verifiedAt": "2026-11-13T17:53:05.772223+00:00",
+			"bodySha256": "c1225ba13148bd5492169ab368c9b3a1518266bcc27a818702fa8cf684c6f218",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.16",
+			"releaseId": 404435354,
+			"verifiedAt": "2026-11-13T17:53:07.515892+00:00",
+			"bodySha256": "559cdf71b0fddae0bd89b171ebb2df6f2b4147d359b66076e2469ad3713f0bfd",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.15",
+			"releaseId": 404424627,
+			"verifiedAt": "2026-11-13T17:53:09.007905+00:00",
+			"bodySha256": "67b1344305b1b36184a67cc4f8fc8c9e86e589ae12a90d5f4007347ff48f09bf",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.14",
+			"releaseId": 402101827,
+			"verifiedAt": "2026-11-13T17:53:10.549999+00:00",
+			"bodySha256": "6516432fbe129300ba8ba606232bdc8e37f703884fb61cecd8f68e29f8fd1278",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.13",
+			"releaseId": 400345709,
+			"verifiedAt": "2026-11-13T17:53:12.240523+00:00",
+			"bodySha256": "9654d50f7007f4e5e931fda11ddcda7793098699d59cd43f621e242d817641a6",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.12",
+			"releaseId": 400309059,
+			"verifiedAt": "2026-11-13T17:53:13.967745+00:00",
+			"bodySha256": "8db99ca498c9b6ae821dca2a5717cd5745e637ecdf0a1ff778d1c81ae8a2dd4b",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.11",
+			"releaseId": 399774029,
+			"verifiedAt": "2026-11-13T17:53:15.709446+00:00",
+			"bodySha256": "c50d93bb1b9895283f6fecbec4427b0d51550c9801a56590a6ee9ebadf6b7741",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.10",
+			"releaseId": 399743648,
+			"verifiedAt": "2026-11-13T17:53:17.056139+00:00",
+			"bodySha256": "51958be4ff23e8ecc5093014a2c8a86b0fbdcdd89d50da4d72da18977c771bb3",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.9",
+			"releaseId": 397847963,
+			"verifiedAt": "2026-11-13T17:53:18.747782+00:00",
+			"bodySha256": "774c03f4458dca68798ac733f692628cc458198b3e03f95cb9d4de518cff0046",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.8",
+			"releaseId": 397809268,
+			"verifiedAt": "2026-11-13T17:53:20.090621+00:00",
+			"bodySha256": "5b537efeecdcddee0498071e9b24c96378c701d1ad6d091e263fdd9d134123ad",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.7",
+			"releaseId": 397309395,
+			"verifiedAt": "2026-11-13T17:53:22.328548+00:00",
+			"bodySha256": "aff5b94ded19534eb778e65d9c4624fd59e270371dadc92b20c2853267064c77",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.6",
+			"releaseId": 397292987,
+			"verifiedAt": "2026-11-13T17:53:23.362598+00:00",
+			"bodySha256": "29f16a71cb3cba7dee99201217b20d96ed6c432b9003f192d1b7195dd4216553",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.5",
+			"releaseId": 397272357,
+			"verifiedAt": "2026-11-13T17:53:24.985677+00:00",
+			"bodySha256": "aca71c0f29c39d4df108bf3d1997d018082ace78f6530b4dd6969c348e6d874a",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.4",
+			"releaseId": 397261021,
+			"verifiedAt": "2026-11-13T17:53:26.795981+00:00",
+			"bodySha256": "5fb27538456157307df69783f05a8c63877e680a4eda7b97c6fec613164f0dcb",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.3",
+			"releaseId": 397227335,
+			"verifiedAt": "2026-11-13T17:53:28.440563+00:00",
+			"bodySha256": "3ffd7fa1b5eb400bd77fbe42c3e8c8f68288e6b75aae49a037036c09fc829658",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.2",
+			"releaseId": 397218986,
+			"verifiedAt": "2026-11-13T17:53:30.206654+00:00",
+			"bodySha256": "fa15491aa069f02eda7d94ca78ef9c6d3d29bc45f41c82f770bea403c12dc3a6",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.1",
+			"releaseId": 396660611,
+			"verifiedAt": "2026-11-13T17:53:31.351484+00:00",
+			"bodySha256": "150550c1e2754115a4c4bc32821ea49a961aa571d945896ca965ff6710eefeca",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.10.0",
+			"releaseId": 396594644,
+			"verifiedAt": "2026-11-13T17:53:33.349116+00:00",
+			"bodySha256": "57d162a0501b9e82e0c44272cc5c00c6f957c7bcb4b461ea96a50c256726ee0c",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.19",
+			"releaseId": 396526753,
+			"verifiedAt": "2026-11-13T17:53:34.733349+00:00",
+			"bodySha256": "01531077de80d65be1f8e552467704bd2e0e37678290ec21230129745fb43963",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.18",
+			"releaseId": 396519520,
+			"verifiedAt": "2026-11-13T17:53:36.269676+00:00",
+			"bodySha256": "d4c5881f8167e57a0a19411e002a1ffa94c0a84eb1877e5db7ca2e6b74beef79",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.17",
+			"releaseId": 395671449,
+			"verifiedAt": "2026-11-13T17:53:38.094504+00:00",
+			"bodySha256": "e4bd0d4cd0fa5ce7b7465c27ada39236bc34f5a0a5f335d9c35a6459a0ceeae9",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.16",
+			"releaseId": 395641972,
+			"verifiedAt": "2026-11-13T17:53:39.459215+00:00",
+			"bodySha256": "2459516c2e26f2fd7cc71f725d3a6a4007336aaac3d81fa22340b0216b84fcb9",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.15",
+			"releaseId": 395612242,
+			"verifiedAt": "2026-11-13T17:53:41.243781+00:00",
+			"bodySha256": "d6f1b2b6229d1c3f7c4ecbf50d4f897e0d918e8af8f01f1c13db76e3978ce375",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.14",
+			"releaseId": 395576865,
+			"verifiedAt": "2026-11-13T17:53:43.000294+00:00",
+			"bodySha256": "1b84432f6eba6e7121bf92612aba91ee71194067e2cf2f06fccacf11e2145ff6",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.13",
+			"releaseId": 394981792,
+			"verifiedAt": "2026-11-13T17:53:44.475294+00:00",
+			"bodySha256": "91539de628fdd2f432140bf26dddc0b28a31840e59195f3b7c44445a386553a0",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.12",
+			"releaseId": 394479236,
+			"verifiedAt": "2026-11-13T17:53:46.058972+00:00",
+			"bodySha256": "32c1593cdf916163035ecdf90e9966416f46679c4f0e883044206c52e3ff076b",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.11",
+			"releaseId": 394320748,
+			"verifiedAt": "2026-11-13T17:53:47.573440+00:00",
+			"bodySha256": "7ba9387e8ea11312a3656301e6ac0f6b8b1eb54b50401666f5d6121794306524",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.10",
+			"releaseId": 394169219,
+			"verifiedAt": "2026-11-13T17:53:49.084801+00:00",
+			"bodySha256": "5359b192ed99b4d52f9a4615cdeb5d37cf5b469d5ec423201a0b34d32466db7a",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.9",
+			"releaseId": 394121383,
+			"verifiedAt": "2026-11-13T17:53:50.864904+00:00",
+			"bodySha256": "5815abeeded148f134c044b6dfef85d7943b5c160126444bd27e6de31959bd0f",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.8",
+			"releaseId": 393626826,
+			"verifiedAt": "2026-11-13T17:53:52.307887+00:00",
+			"bodySha256": "f69a432869408b669b2c8b42e23fd0a1fe79cf04687533122ce55977aae37e81",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.7",
+			"releaseId": 393476832,
+			"verifiedAt": "2026-11-13T17:53:53.904533+00:00",
+			"bodySha256": "3236b787fd8fe56f99c10728615403ca46ccaf67f7613d28ce5ceb8c977d11b4",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.6",
+			"releaseId": 393352588,
+			"verifiedAt": "2026-11-13T17:53:55.500675+00:00",
+			"bodySha256": "cdc07ac11166369c52a7e4942beed4d2675d967ec935efc97ce9b0764bb412e2",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.3",
+			"releaseId": 393306102,
+			"verifiedAt": "2026-11-13T17:53:57.292471+00:00",
+			"bodySha256": "c8983e35fdf6d3930119d5b26c90c38c93380e39d2a950f1db42be88ad8a379f",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.2",
+			"releaseId": 393299951,
+			"verifiedAt": "2026-11-13T17:53:58.800798+00:00",
+			"bodySha256": "b4b893a069948a80d03907058f222136f2f71cb7f5d6392fa7f0cebf37e76b41",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.1",
+			"releaseId": 393280587,
+			"verifiedAt": "2026-11-13T17:54:00.537291+00:00",
+			"bodySha256": "0a002255a1934e1e77a8024b69ab6ee7654ce551613aa15f76d4bcde009f9db9",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.9.0",
+			"releaseId": 392861288,
+			"verifiedAt": "2026-11-13T17:54:02.077939+00:00",
+			"bodySha256": "d892b70548cb08bd4bcc453bc27851b8f12892e8771e48ca59f156049d2d4e91",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.8.9",
+			"releaseId": 392507248,
+			"verifiedAt": "2026-11-13T17:54:03.768408+00:00",
+			"bodySha256": "dfcbe7dfb4fac39dfb733c3c96343874390aae83c920040e935b1c4a5e39ee33",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.8.8",
+			"releaseId": 392457165,
+			"verifiedAt": "2026-11-13T17:54:05.292032+00:00",
+			"bodySha256": "b8d72019f72462ca809317d1cdcc08ebd714abe54f8b39ce4c69fd2c134fbe3f",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.8.7",
+			"releaseId": 392443217,
+			"verifiedAt": "2026-11-13T17:54:06.586413+00:00",
+			"bodySha256": "1afe1605dc0d89ef3094aed21d842852e3a54b749245ab59a042bc9b35ad6e58",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.8.6",
+			"releaseId": 391846391,
+			"verifiedAt": "2026-11-13T17:54:08.415822+00:00",
+			"bodySha256": "2a65872c76bffbc2e5e561a6406a4d472e8ad712b208f9cf270a0a02dcd2cf09",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.8.5",
+			"releaseId": 391812117,
+			"verifiedAt": "2026-11-13T17:54:09.815807+00:00",
+			"bodySha256": "876c56d329d9c4094c4460fb9367b950026370f1154c80e6cee2919abbeb3cee",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.8.4",
+			"releaseId": 391637939,
+			"verifiedAt": "2026-11-13T17:54:11.668648+00:00",
+			"bodySha256": "426407808b72b38901dad1fb0a90b6813c91d4bcf52c3cea3b6e26cc1d71d7e3",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.8.3",
+			"releaseId": 391374850,
+			"verifiedAt": "2026-11-13T17:54:13.213824+00:00",
+			"bodySha256": "f1708f06ca134000a1625fd13c85caea385b004d0086d6c6042f8787b5bc638d",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.8.2",
+			"releaseId": 391268647,
+			"verifiedAt": "2026-11-13T17:54:14.681717+00:00",
+			"bodySha256": "97f5447a9f18eae2f027cb3a3b8c90fae48cb175410b8766214e0ad55a856e23",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.8.1",
+			"releaseId": 391256538,
+			"verifiedAt": "2026-11-13T17:54:16.380319+00:00",
+			"bodySha256": "d9ba7fe4cc4fe7f66fb6e296d571b9d86562755d48958b4d9024ef65a9c756aa",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		},
+		{
+			"tag": "v0.8.0",
+			"releaseId": 390728796,
+			"verifiedAt": "2026-11-13T17:54:18.079136+00:00",
+			"bodySha256": "210e2a4aa88fc0b874a535a35526164a93af8c8202dd32ecba6e29c97fccf195",
+			"assetsUnchanged": true,
+			"publicationMetadataUnchanged": true
+		}
+	]
+}

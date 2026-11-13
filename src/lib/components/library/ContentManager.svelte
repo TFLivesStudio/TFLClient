@@ -435,7 +435,7 @@
 	}
 
 	// El diálogo nativo de archivos crashea el launcher en macOS con la
-	// firma ad-hoc del build (ver CHANGELOG_macos-dialog-crash-java26.txt) —
+	// firma ad-hoc del build (ver docs/history/legacy/CHANGELOG_macos-dialog-crash-java26.txt) —
 	// por eso esta función queda detrás del modo global Automático/Manual
 	// (Ajustes), no de la plataforma.
 	let dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');

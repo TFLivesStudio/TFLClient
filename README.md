@@ -51,3 +51,10 @@ npm run preview
 ```
 
 Estos comandos compilan y previsualizan la interfaz web. Para revisar cómo se generan los instaladores nativos del launcher, consulta el [workflow de compilación](.github/workflows/build.yml).
+
+## Documentación y publicaciones
+
+- [Índice de documentación](docs/README.md).
+- [Notas completas de cada versión](docs/releases/README.md).
+- [Guía para preparar notas de publicación](docs/maintainers/release-notes.md).
+- [Historial técnico conservado](docs/history/README.md).

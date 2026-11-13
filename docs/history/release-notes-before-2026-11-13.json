@@ -1,0 +1,685 @@
+{
+  "capturedOn": "2026-11-13",
+  "releases": [
+    {
+      "id": 444006172,
+      "tag_name": "v0.15.3-beta.7",
+      "name": "TFL Client v0.15.3-beta.7",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Arreglado: TFL Selection 1.8.9 ahora inicia correctamente en macOS (Apple Silicon e Intel) con Java 25 y aceleración nativa sin crashear en la ventana de juego.\n- Mejoras internas de compatibilidad con el entorno gráfico nativo en Mac.",
+      "published_at": "2026-11-13T08:51:07Z",
+      "prerelease": true
+    },
+    {
+      "id": 440765334,
+      "tag_name": "v0.15.3-beta.6",
+      "name": "TFL Client v0.15.3-beta.6",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Nuevo: el inicio de sesión con Microsoft ahora usa la identidad oficial de TFL Client. La primera vez vas a tener que autorizar tu cuenta de nuevo.\n- Probá entrar con tu cuenta que tiene Minecraft Java y avisá si el login llega hasta tu perfil y te deja jugar.",
+      "published_at": "2026-11-10T18:44:41Z",
+      "prerelease": true
+    },
+    {
+      "id": 439563287,
+      "tag_name": "v0.15.3-beta.5",
+      "name": "TFL Client v0.15.3-beta.5",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Mantenimiento interno: actualización de librerías de seguridad, sin cambios visibles para vos.",
+      "published_at": "2026-11-09T19:46:00Z",
+      "prerelease": true
+    },
+    {
+      "id": 438495949,
+      "tag_name": "v0.15.3-beta.4",
+      "name": "TFL Client v0.15.3-beta.4",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Arreglado: TFL Selection 1.8.9 crasheaba al iniciar por una librería de logging (log4j) desactualizada — si ya tenías la instancia instalada, se repara sola la próxima vez que le des Jugar.",
+      "published_at": "2026-11-08T20:17:55Z",
+      "prerelease": true
+    },
+    {
+      "id": 438297015,
+      "tag_name": "v0.15.3-beta.3",
+      "name": "TFL Client v0.15.3-beta.3",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Arreglado: la instancia de TFL Selection no abría al seleccionarla en la barra lateral.\n- Arreglado: el aviso de \"instalando\" de TFL Selection se quedaba pegado en pantalla después de terminar.\n- La pestaña Mods de una instancia de TFL Selection ahora explica que se administra sola, en vez de mostrar \"0 instalados\" sin contexto.",
+      "published_at": "2026-11-08T14:25:14Z",
+      "prerelease": true
+    },
+    {
+      "id": 437937061,
+      "tag_name": "v0.15.3-beta.1",
+      "name": "TFL Client v0.15.3-beta.1",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Nuevo: TFL Selection 1.8.9 ya se instala con un solo click, con catálogo oficial firmado y verificado — arranca con Ornithe Gen2 y Java 25.\n- El botón \"Modpack\" al crear una instancia ahora te deja elegir entre TFL Selection o Modrinth.\n- Arreglado: el logo se veía casi invisible en modo oscuro.\n- Arreglado: el ícono de \"Explorar\" en la barra lateral era igual al de \"Unirse a servidor\".",
+      "published_at": "2026-11-08T00:27:47Z",
+      "prerelease": true
+    },
+    {
+      "id": 433706720,
+      "tag_name": "v0.15.2",
+      "name": "TFL Client v0.15.2",
+      "body": "- Arreglado: el botón de copiar captura de pantalla al portapapeles tiraba error y no copiaba nada.",
+      "published_at": "2026-11-04T08:54:49Z",
+      "prerelease": false
+    },
+    {
+      "id": 433082808,
+      "tag_name": "v0.15.2-beta.2",
+      "name": "TFL Client v0.15.2-beta.2",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Arreglado: el botón de copiar captura de pantalla al portapapeles tiraba error y no copiaba nada.",
+      "published_at": "2026-11-03T18:41:04Z",
+      "prerelease": true
+    },
+    {
+      "id": 429894732,
+      "tag_name": "v0.15.1",
+      "name": "TFL Client v0.15.1",
+      "body": "- Arrastrá un archivo .mrpack y soltalo sobre la ventana para importarlo directo, sin pasar por el selector de archivos.",
+      "published_at": "2026-10-31T11:30:18Z",
+      "prerelease": false
+    },
+    {
+      "id": 429880012,
+      "tag_name": "v0.15.1-beta.2",
+      "name": "TFL Client v0.15.1-beta.2",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Arrastrá un archivo .mrpack y soltalo sobre la ventana para importarlo directo, sin pasar por el selector de archivos.",
+      "published_at": "2026-10-31T10:59:17Z",
+      "prerelease": true
+    },
+    {
+      "id": 429600600,
+      "tag_name": "v0.15.0",
+      "name": "TFL Client v0.15.0",
+      "body": "- Importá un archivo .mrpack suelto (de Modrinth, Prism o CurseForge) desde Biblioteca → Importar instancia: configura sola la versión de Minecraft, el loader y los mods.\n- La detección automática de instancias para importar ahora también encuentra las de la app de Modrinth, además de Prism, MultiMC, PolyMC y CurseForge.",
+      "published_at": "2026-10-30T23:57:21Z",
+      "prerelease": false
+    },
+    {
+      "id": 429571372,
+      "tag_name": "v0.15.0-beta.2",
+      "name": "TFL Client v0.15.0-beta.2",
+      "body": "⚠️ **Versión BETA**: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes → Sistema → Actualizaciones.\n\n- Arreglado: la detección automática de instancias de la app de Modrinth no encontraba ninguna — ahora sí aparecen todas al importar.",
+      "published_at": "2026-10-30T23:07:26Z",
+      "prerelease": true
+    },
+    {
+      "id": 429467704,
+      "tag_name": "v0.15.0-beta.1",
+      "name": "TFL Client v0.15.0-beta.1",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Importá un archivo .mrpack suelto (de Modrinth, Prism o CurseForge) desde Biblioteca → Importar instancia: configura sola la versión de Minecraft, el loader y los mods.\n- La detección automática de instancias para importar ahora también encuentra las de la app de Modrinth, además de Prism, MultiMC, PolyMC y CurseForge.",
+      "published_at": "2026-10-30T20:38:01Z",
+      "prerelease": true
+    },
+    {
+      "id": 426435871,
+      "tag_name": "v0.14.1",
+      "name": "TFL Client v0.14.1",
+      "body": "- Ajustes rediseñado: se organiza por tareas (General, Apariencia, Rendimiento, Sistema...) con buscador que te lleva directo a cada opción, más ayuda y validación de RAM, Java y variables de entorno.\n- Fondos y escenas: 19 fondos de pantalla nuevos (en alta resolución) y 7 paisajes cinemáticos animados. El fondo que elegís es siempre el fondo de todo el launcher; las escenas en vídeo aparecen en el cuadro grande de Home y en las tarjetas de la Biblioteca en vista cuadrícula. Podés asignar una escena distinta a cada instancia.\n- Diseña tu consola de rendimiento arrastrando sus tarjetas: varios moldes, gráficas por métrica y colores a elección.\n- Conectá asistentes compatibles por MCP local desde Integraciones: aprobás cada sesión y limitás sus permisos a mano.\n- 36 íconos de instancia nuevos, y la lista de instancias en la barra lateral ahora muestra el ícono real en vez de solo las iniciales.\n- Arreglado: el botón Detener de la ventana de log no respondía mientras el juego corría; búsquedas en Ajustes podían dejar visible una pestaña fuera de los resultados; la marca \"TFL Selection\" en Explorar mostraba un ícono genérico en vez del logo real.",
+      "published_at": "2026-10-28T08:52:53Z",
+      "prerelease": false
+    },
+    {
+      "id": 421326627,
+      "tag_name": "v0.14.0-beta.7.1",
+      "name": "TFL Client v0.14.0-beta.7.1",
+      "body": "⚠️ **Versión BETA**: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes → Sistema → Actualizaciones.\n\n- Nuevo centro de Actividades en la barra lateral: sigue las instalaciones de mods, shaders, resource packs y plugins aunque cambies de pantalla.\n- Consulta descargas con bytes reales, resultados y detalles de cada operación. El historial conserva las últimas 100 tareas y distingue las interrumpidas tras cerrar el launcher.\n- Las instalaciones autorizadas desde MCP aparecen en el mismo centro, respetando tus permisos. Modern y Pixel conservan su estilo y funcionan también en Lite.\n- La barra flotante y el personaje siguen el mismo estado real de instalación: no quedan esperando después de un fallo.",
+      "published_at": "2026-10-23T00:19:59Z",
+      "prerelease": true
+    },
+    {
+      "id": 420612979,
+      "tag_name": "v0.14.0-beta.6",
+      "name": "TFL Client v0.14.0-beta.6",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Rediseño: el fondo de pantalla que elegís en Ajustes ahora es siempre el fondo de todo el launcher. Las escenas (vídeo/atmósfera) pasan al cuadro grande de Home y a las tarjetas de la Biblioteca en vista cuadrícula.\n- Quitamos 17 de los fondos de pantalla agregados en la beta anterior — estaban en baja resolución y se veían borrosos a pantalla completa. Los demás quedan.",
+      "published_at": "2026-10-22T11:01:03Z",
+      "prerelease": true
+    },
+    {
+      "id": 420508134,
+      "tag_name": "v0.14.0-beta.3",
+      "name": "TFL Client v0.14.0-beta.3",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Arte nuevo para las 7 escenas cinemáticas de Ajustes → Apariencia → Fondos y escenas, con 2 escenas nuevas (Cherry Night y Emerald Grotto).\n- 36 fondos de pantalla nuevos en Ajustes → Apariencia → Fondo de pantalla.",
+      "published_at": "2026-10-22T09:06:49Z",
+      "prerelease": true
+    },
+    {
+      "id": 420243830,
+      "tag_name": "v0.14.0-beta.2",
+      "name": "TFL Client v0.14.0-beta.2",
+      "body": "⚠️ **Versión BETA**: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes → Sistema → Actualizaciones.\n\n- Conecta asistentes compatibles mediante MCP local: aprueba cada sesión, limita sus permisos y confirma las acciones críticas desde Integraciones.\n- Cinco paisajes cinematográficos nuevos, miniaturas fieles y vídeos a 720p, manteniendo Lite estático y los fondos personales.\n- Los cambios de escenas, apariencia y consola se sincronizan con el launcher; las instalaciones de contenido comparten bloqueos y validación de descargas.",
+      "published_at": "2026-10-22T02:23:03Z",
+      "prerelease": true
+    },
+    {
+      "id": 419820340,
+      "tag_name": "v0.14.0-beta.1",
+      "name": "TFL Client v0.14.0-beta.1",
+      "body": "⚠️ **Versión BETA**: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes → Sistema → Actualizaciones.\n\n- Ajustes se organiza por tareas y su buscador te lleva directamente a cada opción, con ayuda y validación de RAM, Java y variables de entorno.\n- Fondos y escenas: siete paisajes originales, vídeos locales con vista previa y una imagen estática en Lite. Puedes asignar una escena a cada instancia.\n- Diseña tu consola arrastrando sus tarjetas reales: cinco moldes, gráficas por métrica, colores y Aplicar/Cancelar/Deshacer, sin tocar el muestreo de CPU y RAM.\n- 36 iconos vectoriales nuevos, campos de búsqueda más limpios en Pixel y doble clic para instalar mods, shaders, resource packs y plugins.",
+      "published_at": "2026-10-21T16:57:58Z",
+      "prerelease": true
+    },
+    {
+      "id": 419780843,
+      "tag_name": "v0.13.2",
+      "name": "TFL Client v0.13.2",
+      "body": "- Arreglado: el botón Detener de la ventana de log no hacía nada mientras el juego estaba realmente corriendo — quedaba trabado esperando a sí mismo. Ahora corta el proceso correctamente.\n- Arreglado: buscar en Ajustes podía dejar visible el contenido de una pestaña que ya no aparecía en los resultados.\n- Arreglado: la marca decorativa de la tarjeta \"TFL Selection\" en Explorar mostraba un ícono placeholder en vez del logo real de TFL.",
+      "published_at": "2026-10-21T16:18:00Z",
+      "prerelease": false
+    },
+    {
+      "id": 419738792,
+      "tag_name": "v0.13.1",
+      "name": "TFL Client v0.13.1",
+      "body": "- Nuevo explorador de contenido en Mods/Shaders/Resource Packs/Plugins/Modpacks → Descargar: catálogo real de Modrinth con paginación de verdad, orden (descargados/seguidos/recientes/actualizados), exploración sin escribir texto, ficha completa de cada proyecto (descripción, categorías, versiones, galería, links oficiales) y una vista amplia a pantalla completa sin abrir ventanas nuevas.\n- Rediseño visual completo: estilos Modern y Pixel con materiales y fondos personalizables, nueva Biblioteca con lista/cuadrícula y favoritos, Home renovada con tu última instancia como protagonista, y detalle de instancia con navegación técnica lateral.\n- Ajustes reorganizados por tarea y con búsqueda: General, Apariencia, Minecraft y Java, Cuentas, Consola y Actualizaciones.\n- Consola de juego y servidor con gráficas históricas reales de CPU, RAM y disco (elegí entre líneas o circular), niveles de log diferenciados, colores y orden personalizables, sincronizadas entre ventanas.\n- Estudio de personaje con cuentas, skins y capas; en Lite la skin es estática por defecto con opción de activar 3D a mano.\n- Arreglado: en macOS no se podía elegir un ícono/wallpaper personalizado ni agregar mods/shaders/packs desde archivo — el diálogo nativo se quedaba colgado.\n- Arreglado: la paginación del explorador de contenido podía quedarse trabada en la página 1.",
+      "published_at": "2026-10-21T15:36:31Z",
+      "prerelease": false
+    },
+    {
+      "id": 419662645,
+      "tag_name": "v0.13.1-beta.4",
+      "name": "TFL Client v0.13.1-beta.4",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Arreglado: en macOS no se podía elegir un ícono/wallpaper personalizado ni agregar mods/shaders/packs desde archivo — el diálogo nativo se quedaba colgado y nunca abría.\n- Arreglado: la pestaña activa en el menú lateral del detalle de instancia (Mods, Shaders, Mundos y backups, etc.) se veía con el borde recortado contra el panel.\n- Nuevo: elegí entre gráfica de líneas o circular para CPU/RAM/disco en la consola (configuración de la consola).",
+      "published_at": "2026-10-21T14:31:57Z",
+      "prerelease": true
+    },
+    {
+      "id": 419249999,
+      "tag_name": "v0.13.1-beta.1",
+      "name": "TFL Client v0.13.1-beta.1",
+      "body": "- BETA 2 — Visual Refresh y Content Discovery ahora conviven: el catálogo paginado, las fichas completas y la vista amplia de la beta 0.13.0 con los estilos Modern y Pixel.\n- Ajustes reorganizados por tarea, con búsqueda: General, Apariencia, Minecraft y Java, Cuentas, Consola y Actualizaciones.\n- Consola de juego y servidor con gráficas históricas reales de CPU, RAM y disco. 100 % de CPU equivale a un núcleo; los procesos multihilo pueden superar ese valor.\n- Personalizá la consola desde Ajustes o su propio botón: colores, texto, gráficas visibles, orden arrastrable, ubicación y ventana de tiempo.\n- Pixel suma botones con relieve e inventarios más minecrafti. Sidebar compacta uniforme, controles al pie y más espacio para el nombre y la cara de tu skin.\n\n**Actualizar desde el launcher**\n\nEn las versiones anteriores: Ajustes → Sistema → Actualizaciones → activar Versiones beta y buscar actualizaciones. En 0.13.1, Actualizaciones tiene su propia página dentro de Ajustes. La nueva versión se muestra como **0.13.1 (beta)**.\n\n**Instaladores**\n\n- [Windows · Setup.exe](https://github.com/TFLivesStudio/TFLClient/releases/download/v0.13.1-beta.1/TFLClient-Windows-Setup.exe)\n- [macOS · DMG](https://github.com/TFLivesStudio/TFLClient/releases/download/v0.13.1-beta.1/TFLClient-macOS.dmg)\n- Linux: [AppImage](https://github.com/TFLivesStudio/TFLClient/releases/download/v0.13.1-beta.1/TFLClient-Linux.AppImage), [DEB](https://github.com/TFLivesStudio/TFLClient/releases/download/v0.13.1-beta.1/TFLClient-Linux.deb), [RPM](https://github.com/TFLivesStudio/TFLClient/releases/download/v0.13.1-beta.1/TFLClient-Linux.rpm).\n",
+      "published_at": "2026-10-21T07:03:47Z",
+      "prerelease": true
+    },
+    {
+      "id": 419457853,
+      "tag_name": "v0.13.0-beta.3",
+      "name": "TFL Client v0.13.0-beta.3",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Arreglado: la paginación del nuevo explorador de contenido (beta anterior) se quedaba trabada en la página 1 y \"Siguiente\" no hacía nada.",
+      "published_at": "2026-10-21T11:07:27Z",
+      "prerelease": true
+    },
+    {
+      "id": 418700757,
+      "tag_name": "v0.13.0-beta.1",
+      "name": "TFL Client v0.13.0-beta.1",
+      "body": "- Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Rediseño grande de Mods/Shaders/Resource Packs/Plugins/Modpacks → Descargar: ahora es un explorador real del catálogo de Modrinth, no un buscador de 10 resultados. Paginación de verdad (podés avanzar página por página), selector de orden (más descargados/seguidos/recientes/actualizados), y ahora también podés explorar sin escribir nada en la búsqueda.\n- Nuevo botón \"Explorar en vista amplia\" que abre una pantalla grande dentro del launcher (sin ventana nueva) para explorar con más espacio, con filtros y categorías más cómodos.\n- Nuevo: ficha completa de cada mod/shader/pack — descripción completa, categorías, versiones, galería de imágenes y links oficiales, sin salir del launcher para instalar.\n- Modpacks ahora también deja explorar sin escribir texto, y avisa antes de instalar uno si la instancia ya tiene otro modpack instalado (puede pisar configuración compartida).",
+      "published_at": "2026-10-20T17:56:26Z",
+      "prerelease": true
+    },
+    {
+      "id": 417744329,
+      "tag_name": "v0.12.3",
+      "name": "TFL Client v0.12.3",
+      "body": "- Arreglado: el código para iniciar sesión con Microsoft no se podía copiar ni pegar con el click derecho. Ahora funciona normal (seguís teniendo también el botón de copiar al lado del código).",
+      "published_at": "2026-10-19T20:55:58Z",
+      "prerelease": false
+    },
+    {
+      "id": 417665634,
+      "tag_name": "v0.12.2",
+      "name": "TFL Client v0.12.2",
+      "body": "- Arreglado: en Mac con chip Apple Silicon (M1/M2/M3/M4/M5), instancias vanilla viejas (anteriores a la 1.19) cerraban solas apenas abrían el juego. El launcher pedía Java para ese chip, pero esas versiones de Minecraft no tienen esa variante lista — ahora el launcher detecta el caso y usa la versión de Java correcta.",
+      "published_at": "2026-10-19T19:30:42Z",
+      "prerelease": false
+    },
+    {
+      "id": 417642550,
+      "tag_name": "v0.12.2-beta.1",
+      "name": "TFL Client v0.12.2-beta.1",
+      "body": "- Esta es una versión BETA. Si algo anda mal, avisanos; podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Arreglado: en Mac con chip Apple Silicon (M1/M2/M3/M4/M5), instancias vanilla viejas (anteriores a la 1.19) cerraban solas apenas abrían el juego. El launcher pedía Java para ese chip, pero esas versiones de Minecraft no tienen esa variante lista — ahora el launcher detecta el caso y usa la versión de Java correcta.",
+      "published_at": "2026-10-19T19:05:45Z",
+      "prerelease": true
+    },
+    {
+      "id": 416475911,
+      "tag_name": "v0.12.1",
+      "name": "TFL Client v0.12.1",
+      "body": "- La ventana de log de una instancia corriendo ahora muestra CPU, RAM y disco como gráficos en tiempo real (en vez de un número suelto) en una barra nueva abajo. El tercer gráfico es disco de lectura/escritura — no hay forma confiable de medir GPU o internet por proceso en las 3 plataformas, así que fue la opción técnica, no la de gusto.\n- Los menús (clic derecho sobre una instancia) ahora abren y cierran con una animación suave y se pueden recorrer con las flechas del teclado — antes aparecían de golpe y solo se cerraban con Escape.\n- Arreglado: el gráfico de CPU podía mostrar más de 100% (250%, 143%, etc.) en procesadores de varios núcleos. Ahora siempre queda entre 0 y 100%.\n- Arreglo de seguridad por dentro: se actualizó la librería de compresión ZIP que usa el launcher por vulnerabilidades reportadas (una crítica) — no afecta el uso normal, solo hacía falta la actualización.",
+      "published_at": "2026-10-18T13:47:18Z",
+      "prerelease": false
+    },
+    {
+      "id": 416438936,
+      "tag_name": "v0.12.1-beta.2",
+      "name": "TFL Client v0.12.1-beta.2",
+      "body": "⚠️ **Versión BETA**: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes → Sistema → Actualizaciones.\n\n- Arreglado: el gráfico de CPU en la ventana de log podía mostrar más de 100% (250%, 143%, etc.) en procesadores de varios núcleos. Ahora siempre queda entre 0 y 100%.",
+      "published_at": "2026-10-18T12:31:32Z",
+      "prerelease": true
+    },
+    {
+      "id": 416102526,
+      "tag_name": "v0.12.1-beta.1",
+      "name": "TFL Client v0.12.1-beta.1",
+      "body": "- Esta es una versión BETA. Si algo anda mal, avisanos; podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- La ventana de log de una instancia corriendo ahora muestra CPU, RAM y disco como gráficos en tiempo real (en vez de un número suelto) en una barra nueva abajo. El tercer gráfico es disco de lectura/escritura — no hay forma confiable de medir GPU o internet por proceso en las 3 plataformas, así que fue la opción técnica, no la de gusto.\n- Los menús (clic derecho sobre una instancia) ahora abren y cierran con una animación suave y se pueden recorrer con las flechas del teclado — antes aparecían de golpe y solo se cerraban con Escape.",
+      "published_at": "2026-10-17T22:17:25Z",
+      "prerelease": true
+    },
+    {
+      "id": 412923987,
+      "tag_name": "v0.12.0",
+      "name": "TFL Client v0.12.0",
+      "body": "- Rediseño visual más grande hasta ahora: la beta se validó sin problemas y ya es la versión normal.\n- Home rehecha de nuevo: ahora tu personaje y el botón JUGAR comparten un mismo banner grande en vez de estar separados en cards sueltas — se ve de un vistazo qué instancia vas a abrir y con quién.\n- La sidebar se adapta sola al tamaño de la ventana: en una ventana chica se compacta a solo íconos para no comerte espacio, sin pisar si vos ya la habías dejado compacta a mano.\n- Los perfiles de calidad (Ajustes → Rendimiento) ahora se notan de verdad: Lite saca todo movimiento decorativo y deja el personaje quieto; Experience suma animaciones de personaje, transiciones y más efectos.\n- Nuevo: podés pedirle al launcher que reduzca animaciones sin tener que bajar todo tu perfil a Lite (Ajustes → Rendimiento → \"Reducir animaciones\").",
+      "published_at": "2026-10-14T16:12:52Z",
+      "prerelease": false
+    },
+    {
+      "id": 412846256,
+      "tag_name": "v0.12.0-beta.1",
+      "name": "TFL Client v0.12.0-beta.1",
+      "body": "- Esta es una versión BETA con el rediseño visual más grande hasta ahora — justo por eso es la primera en salir como beta: si algo se ve raro en tu pantalla, contanos qué y dónde. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.\n- Home rehecha de nuevo: ahora tu personaje y el botón JUGAR comparten un mismo banner grande en vez de estar separados en cards sueltas — se ve de un vistazo qué instancia vas a abrir y con quién.\n- La sidebar se adapta sola al tamaño de la ventana: en una ventana chica se compacta a solo íconos para no comerte espacio, sin pisar si vos ya la habías dejado compacta a mano.\n- Los perfiles de calidad (Ajustes → Rendimiento) ahora se notan de verdad: Lite saca todo movimiento decorativo y deja el personaje quieto; Experience suma animaciones de personaje, transiciones y más efectos — antes Balanced y Experience se veían casi idénticos.\n- Nuevo: podés pedirle al launcher que reduzca animaciones sin tener que bajar todo tu perfil a Lite (Ajustes → Rendimiento → \"Reducir animaciones\").\n- Por dentro: toda la interfaz pasa a usar un mismo sistema de diseño (tamaños, colores, espaciados) en vez de que cada pantalla tuviera el suyo — más fácil de mantener parejo de acá en adelante.",
+      "published_at": "2026-10-14T14:57:47Z",
+      "prerelease": true
+    },
+    {
+      "id": 408425655,
+      "tag_name": "v0.11.2-beta.1",
+      "name": "TFL Client v0.11.2-beta.1",
+      "body": "Versión BETA: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes.",
+      "published_at": "2026-10-09T23:35:43Z",
+      "prerelease": true
+    },
+    {
+      "id": 408233133,
+      "tag_name": "v0.11.1",
+      "name": "TFL Client v0.11.1",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-10-09T18:46:44Z",
+      "prerelease": false
+    },
+    {
+      "id": 408206480,
+      "tag_name": "v0.11.1-beta.1",
+      "name": "TFL Client v0.11.1-beta.1",
+      "body": "Versión BETA: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes.",
+      "published_at": "2026-10-09T18:15:20Z",
+      "prerelease": true
+    },
+    {
+      "id": 406454135,
+      "tag_name": "v0.11.0",
+      "name": "TFL Client v0.11.0",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-10-08T05:34:32Z",
+      "prerelease": false
+    },
+    {
+      "id": 406216477,
+      "tag_name": "v0.11.0-beta.2",
+      "name": "TFL Client v0.11.0-beta.2",
+      "body": "Versión BETA: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes.",
+      "published_at": "2026-10-07T22:27:35Z",
+      "prerelease": true
+    },
+    {
+      "id": 406188180,
+      "tag_name": "v0.11.0-beta.1",
+      "name": "TFL Client v0.11.0-beta.1",
+      "body": "Versión BETA: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes.",
+      "published_at": "2026-10-07T21:43:34Z",
+      "prerelease": true
+    },
+    {
+      "id": 406164818,
+      "tag_name": "v0.10.17",
+      "name": "TFL Client v0.10.17",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-10-07T21:07:25Z",
+      "prerelease": false
+    },
+    {
+      "id": 404435354,
+      "tag_name": "v0.10.16",
+      "name": "TFL Client v0.10.16",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-10-06T07:31:21Z",
+      "prerelease": false
+    },
+    {
+      "id": 404424627,
+      "tag_name": "v0.10.15",
+      "name": "TFL Client v0.10.15",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-10-06T07:18:04Z",
+      "prerelease": false
+    },
+    {
+      "id": 402101827,
+      "tag_name": "v0.10.14",
+      "name": "TFL Client v0.10.14",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-10-02T19:35:36Z",
+      "prerelease": false
+    },
+    {
+      "id": 400345709,
+      "tag_name": "v0.10.13",
+      "name": "TFL Client v0.10.13",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-30T18:54:54Z",
+      "prerelease": false
+    },
+    {
+      "id": 400309059,
+      "tag_name": "v0.10.12",
+      "name": "TFL Client v0.10.12",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-30T18:05:19Z",
+      "prerelease": false
+    },
+    {
+      "id": 399774029,
+      "tag_name": "v0.10.11",
+      "name": "TFL Client v0.10.11",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-30T06:29:58Z",
+      "prerelease": false
+    },
+    {
+      "id": 399743648,
+      "tag_name": "v0.10.10",
+      "name": "TFL Client v0.10.10",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-30T05:30:49Z",
+      "prerelease": false
+    },
+    {
+      "id": 397847963,
+      "tag_name": "v0.10.9",
+      "name": "TFL Client v0.10.9",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-27T23:01:51Z",
+      "prerelease": false
+    },
+    {
+      "id": 397809268,
+      "tag_name": "v0.10.8",
+      "name": "TFL Client v0.10.8",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-27T20:57:26Z",
+      "prerelease": false
+    },
+    {
+      "id": 397309395,
+      "tag_name": "v0.10.7",
+      "name": "TFL Client v0.10.7",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-26T16:26:55Z",
+      "prerelease": false
+    },
+    {
+      "id": 397292987,
+      "tag_name": "v0.10.6",
+      "name": "TFL Client v0.10.6",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-26T15:42:47Z",
+      "prerelease": false
+    },
+    {
+      "id": 397272357,
+      "tag_name": "v0.10.5",
+      "name": "TFL Client v0.10.5",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-26T14:51:01Z",
+      "prerelease": false
+    },
+    {
+      "id": 397261021,
+      "tag_name": "v0.10.4",
+      "name": "TFL Client v0.10.4",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-26T14:16:39Z",
+      "prerelease": false
+    },
+    {
+      "id": 397227335,
+      "tag_name": "v0.10.3",
+      "name": "TFL Client v0.10.3",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-26T12:26:43Z",
+      "prerelease": false
+    },
+    {
+      "id": 397218986,
+      "tag_name": "v0.10.2",
+      "name": "TFL Client v0.10.2",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-26T11:58:19Z",
+      "prerelease": false
+    },
+    {
+      "id": 396660611,
+      "tag_name": "v0.10.1",
+      "name": "TFL Client v0.10.1",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-25T14:06:21Z",
+      "prerelease": false
+    },
+    {
+      "id": 396594644,
+      "tag_name": "v0.10.0",
+      "name": "TFL Client v0.10.0",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-25T12:42:01Z",
+      "prerelease": false
+    },
+    {
+      "id": 396526753,
+      "tag_name": "v0.9.19",
+      "name": "TFL Client v0.9.19",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-25T10:53:13Z",
+      "prerelease": false
+    },
+    {
+      "id": 396519520,
+      "tag_name": "v0.9.18",
+      "name": "TFL Client v0.9.18",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-25T10:41:01Z",
+      "prerelease": false
+    },
+    {
+      "id": 395671449,
+      "tag_name": "v0.9.17",
+      "name": "TFL Client v0.9.17",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-24T12:38:21Z",
+      "prerelease": false
+    },
+    {
+      "id": 395641972,
+      "tag_name": "v0.9.16",
+      "name": "TFL Client v0.9.16",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-24T12:07:33Z",
+      "prerelease": false
+    },
+    {
+      "id": 395612242,
+      "tag_name": "v0.9.15",
+      "name": "TFL Client v0.9.15",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-24T11:38:41Z",
+      "prerelease": false
+    },
+    {
+      "id": 395576865,
+      "tag_name": "v0.9.14",
+      "name": "TFL Client v0.9.14",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-24T10:46:52Z",
+      "prerelease": false
+    },
+    {
+      "id": 394981792,
+      "tag_name": "v0.9.13",
+      "name": "TFL Client v0.9.13",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-23T19:17:45Z",
+      "prerelease": false
+    },
+    {
+      "id": 394479236,
+      "tag_name": "v0.9.12",
+      "name": "TFL Client v0.9.12",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-23T09:08:17Z",
+      "prerelease": false
+    },
+    {
+      "id": 394320748,
+      "tag_name": "v0.9.11",
+      "name": "TFL Client v0.9.11",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-23T05:30:10Z",
+      "prerelease": false
+    },
+    {
+      "id": 394169219,
+      "tag_name": "v0.9.10",
+      "name": "TFL Client v0.9.10",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-22T22:37:54Z",
+      "prerelease": false
+    },
+    {
+      "id": 394121383,
+      "tag_name": "v0.9.9",
+      "name": "TFL Client v0.9.9",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-22T21:07:52Z",
+      "prerelease": false
+    },
+    {
+      "id": 393626826,
+      "tag_name": "v0.9.8",
+      "name": "TFL Client v0.9.8",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-22T10:13:06Z",
+      "prerelease": false
+    },
+    {
+      "id": 393476832,
+      "tag_name": "v0.9.7",
+      "name": "TFL Client v0.9.7",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-22T05:36:03Z",
+      "prerelease": false
+    },
+    {
+      "id": 393352588,
+      "tag_name": "v0.9.6",
+      "name": "TFL Client v0.9.6",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-21T23:10:49Z",
+      "prerelease": false
+    },
+    {
+      "id": 393306102,
+      "tag_name": "v0.9.3",
+      "name": "TFL Client v0.9.3",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-21T21:21:04Z",
+      "prerelease": false
+    },
+    {
+      "id": 393299951,
+      "tag_name": "v0.9.2",
+      "name": "TFL Client v0.9.2",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-21T21:08:52Z",
+      "prerelease": false
+    },
+    {
+      "id": 393280587,
+      "tag_name": "v0.9.1",
+      "name": "TFL Client v0.9.1",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-21T20:35:18Z",
+      "prerelease": false
+    },
+    {
+      "id": 392861288,
+      "tag_name": "v0.9.0",
+      "name": "TFL Client v0.9.0",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-21T10:18:07Z",
+      "prerelease": false
+    },
+    {
+      "id": 392507248,
+      "tag_name": "v0.8.9",
+      "name": "TFL Client v0.8.9",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-20T17:08:24Z",
+      "prerelease": false
+    },
+    {
+      "id": 392457165,
+      "tag_name": "v0.8.8",
+      "name": "TFL Client v0.8.8",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-20T14:22:36Z",
+      "prerelease": false
+    },
+    {
+      "id": 392443217,
+      "tag_name": "v0.8.7",
+      "name": "TFL Client v0.8.7",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-20T13:36:40Z",
+      "prerelease": false
+    },
+    {
+      "id": 391846391,
+      "tag_name": "v0.8.6",
+      "name": "TFL Client v0.8.6",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-18T23:47:58Z",
+      "prerelease": false
+    },
+    {
+      "id": 391812117,
+      "tag_name": "v0.8.5",
+      "name": "TFL Client v0.8.5",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-18T22:06:49Z",
+      "prerelease": false
+    },
+    {
+      "id": 391637939,
+      "tag_name": "v0.8.4",
+      "name": "TFL Client v0.8.4",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-18T16:55:31Z",
+      "prerelease": false
+    },
+    {
+      "id": 391374850,
+      "tag_name": "v0.8.3",
+      "name": "TFL Client v0.8.3",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-18T10:05:50Z",
+      "prerelease": false
+    },
+    {
+      "id": 391268647,
+      "tag_name": "v0.8.2",
+      "name": "TFL Client v0.8.2",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-18T06:52:15Z",
+      "prerelease": false
+    },
+    {
+      "id": 391256538,
+      "tag_name": "v0.8.1",
+      "name": "TFL Client v0.8.1",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-18T06:23:56Z",
+      "prerelease": false
+    },
+    {
+      "id": 390728796,
+      "tag_name": "v0.8.0",
+      "name": "TFL Client v0.8.0",
+      "body": "Ver el changelog del repo para el detalle de esta versión.",
+      "published_at": "2026-09-17T13:11:46Z",
+      "prerelease": false
+    }
+  ]
+}

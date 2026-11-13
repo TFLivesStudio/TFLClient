@@ -1,56 +1,70 @@
 #!/usr/bin/env bun
-// Arma el cuerpo del GitHub Release a partir de src/lib/releaseNotes.ts.
-//
-// Esas notas ya existen: se escriben a mano para JUGADORES en cada versión
-// (ver el comentario de ese archivo), y hasta ahora el Release de GitHub
-// nunca las usaba — build.yml ponía un texto fijo genérico ("Ver el
-// changelog del repo para el detalle de esta versión."). Este script lee
-// la entrada real de la versión y la vuelca como el cuerpo del Release.
-//
-// release-version.mjs --check --tag ya exige que la entrada exista antes de
-// llegar a este paso del workflow, así que un fallo acá solo debería pasar
-// si algo saltó ese check.
-//
-// Uso:
-//   bun run scripts/release-notes-body.mjs vX.Y.Z[-pre]
-
-import { existsSync } from 'node:fs';
+// El Markdown revisado se publica sin transformaciones en GitHub y web.
+// Las notas breves in-app se conservan como alternativa para el flujo existente.
+// Guía: docs/maintainers/release-notes.md.
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-function fail(msg) {
-	console.error(`\nERROR: ${msg}\n`);
-	process.exit(1);
+const TAG = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/;
+
+export function validateReleaseNotes(body, tag) {
+	if (!TAG.test(tag)) throw new Error(`Tag inválido: "${tag}".`);
+	if (!body.trim() || body.length > 100_000) {
+		throw new Error(`${tag}: las notas están vacías o superan el tamaño permitido.`);
+	}
+	const opening = body.trim().split(/\r?\n\s*\r?\n/, 1)[0];
+	if (
+		/^[#>*-]|^\s*</.test(opening) ||
+		!/^## (Novedades|Mejoras|Correcciones|Mantenimiento)$/m.test(body)
+	) {
+		throw new Error(`${tag}: empieza por un resumen y añade una sección de cambios.`);
+	}
+	if (/Ver el changelog del repo|\[completar\]/i.test(body) || /\b(?:TODO|TBD)\b/.test(body)) {
+		throw new Error(`${tag}: las notas contienen un marcador pendiente.`);
+	}
+	return body.endsWith('\n') ? body : `${body}\n`;
 }
 
-const tag = process.argv[2];
-if (!tag) fail('Uso: release-notes-body.mjs vX.Y.Z[-pre]');
-const m = /^v(.+)$/.exec(tag);
-if (!m) fail(`Tag inválido: "${tag}" (esperaba vX.Y.Z[-pre]).`);
-const version = m[1];
+export async function releaseNotesBody(
+	tag,
+	root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+) {
+	if (!TAG.test(tag)) throw new Error(`Tag inválido: "${tag}" (esperaba vX.Y.Z[-pre]).`);
+	const markdown = join(root, 'docs/releases', `${tag}.md`);
+	if (existsSync(markdown)) return validateReleaseNotes(readFileSync(markdown, 'utf8'), tag);
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const notesPath = join(root, 'src/lib/releaseNotes.ts');
-if (!existsSync(notesPath)) fail('Falta src/lib/releaseNotes.ts.');
-
-const { RELEASE_NOTES } = await import(notesPath);
-const entries = RELEASE_NOTES[version];
-if (!entries || entries.length === 0) {
-	fail(
-		`No hay notas para "${version}" en src/lib/releaseNotes.ts ` +
-			`(release-version.mjs --check --tag debería haber bloqueado esto antes de llegar acá).`
-	);
-}
-
-const isPrerelease = version.includes('-');
-const hasBetaLine = entries[0].toUpperCase().includes('BETA');
-const lines = [];
-if (isPrerelease && !hasBetaLine) {
-	lines.push(
-		'⚠️ **Versión BETA**: puede contener errores. Solo la reciben quienes activaron las versiones beta en Ajustes → Sistema → Actualizaciones.',
+	const notesPath = join(root, 'src/lib/releaseNotes.ts');
+	if (!existsSync(notesPath)) throw new Error('Falta src/lib/releaseNotes.ts.');
+	const { RELEASE_NOTES } = await import(pathToFileURL(notesPath).href);
+	const entries = RELEASE_NOTES[tag.slice(1)];
+	if (!Array.isArray(entries) || entries.length === 0) {
+		throw new Error(`No hay notas para "${tag}" en docs/releases ni src/lib/releaseNotes.ts.`);
+	}
+	const changes = entries.filter((entry) => !/^Esta es una versión BETA/i.test(entry));
+	if (!changes.length) throw new Error(`${tag}: falta describir los cambios.`);
+	const beta = tag.includes('-');
+	const body = [
+		changes[0],
+		'',
+		`**Canal:** ${beta ? 'Beta / prueba' : 'Estable'}`,
+		'',
+		...(beta ? ['> Versión de prueba: puede contener errores.', ''] : []),
+		'## Mejoras',
+		'',
+		...changes.map((entry) => `- ${entry}`),
+		'',
+		'[Web oficial](https://launcher.tflives.com) · [Ayuda](https://launcher.tflives.com/ayuda) · [Discord](https://discord.gg/tflives)',
 		''
-	);
+	].join('\n');
+	return validateReleaseNotes(body, tag);
 }
-for (const entry of entries) lines.push(`- ${entry}`);
 
-process.stdout.write(`${lines.join('\n')}\n`);
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+	try {
+		process.stdout.write(await releaseNotesBody(process.argv[2] ?? ''));
+	} catch (error) {
+		console.error(`ERROR: ${error.message}`);
+		process.exitCode = 1;
+	}
+}

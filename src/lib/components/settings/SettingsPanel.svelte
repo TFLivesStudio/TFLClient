@@ -157,7 +157,7 @@
 
 	// Subir imagen propia usa el diálogo nativo de archivos, que crashea el
 	// launcher entero en macOS con la firma ad-hoc del build (ver
-	// CHANGELOG_macos-dialog-crash-java26.txt) — por eso queda detrás del
+	// docs/history/legacy/CHANGELOG_macos-dialog-crash-java26.txt) — por eso queda detrás del
 	// modo global "Automático/Manual" definido más abajo, no de la
 	// plataforma.
 	let dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');

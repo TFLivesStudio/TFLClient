@@ -14,6 +14,11 @@ bun.lockb
 # Generated visual evidence
 /artifacts/
 
+# Historial y pruebas originales: conservar sus bytes, no reformatear.
+/docs/history/
+/docs/qa/
+/archives/
+
 # Copias byte-exactas de catálogo/manifiesto reales de TFL Selection,
 # firmados Ed25519 — reformatear rompería la firma contra el .sig emparejado.
 src-tauri/src/services/selection/testdata/*.json
