@@ -1,4 +1,4 @@
-//! "TFL Selection" — modpacks listados para que el usuario los instale en
+//! "TFL Selection" — biblioteca de clientes modificados listados para que el usuario los instale en
 //! cualquier instancia compatible con un solo click. Una sola fuente:
 //! repos públicos de la org de TFLives en GitHub con el topic
 //! `tfl-modpack`, descubiertos en vivo cada vez que se abre el panel. De

@@ -2,6 +2,17 @@
 // namespace corresponde más o menos a un componente, para que agregar o
 // tocar textos de una pantalla no obligue a bucear todo el archivo.
 export const es = {
+	selectionLibrary: {
+		title: 'Biblioteca oficial de TFLives',
+		description:
+			'TFL Selection es la biblioteca de clientes modificados de TFLives. TFLClient es el cliente que instalas; TFL Client es el launcher que estás utilizando.',
+		empty: 'Todavía no hay versiones de clientes publicadas en esta biblioteca.',
+		install: 'Instalar {{name}}',
+		installing: 'Instalando {{name}}…',
+		installError: 'Error al instalar TFLClient: {{error}}',
+		chooseSource: 'Elige un cliente de TFL Selection o un modpack de Modrinth.',
+		libraryDescription: 'Biblioteca de clientes modificados de TFLives, como TFLClient.'
+	},
 	common: {
 		cancel: 'Cancelar',
 		back: 'Volver',
