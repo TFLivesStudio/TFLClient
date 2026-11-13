@@ -43,7 +43,7 @@
 			case 'java':
 				return `Java ${id}`;
 			case 'selection':
-				return 'TFL Selection';
+				return 'TFLClient';
 			default:
 				return task;
 		}

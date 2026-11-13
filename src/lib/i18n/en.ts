@@ -5,6 +5,17 @@ import type { Dictionary } from './es';
 // acá falta, el error de tipos avisa antes de que quede un string suelto
 // sin traducir.
 export const en: Dictionary = {
+	selectionLibrary: {
+		title: 'Official TFLives library',
+		description:
+			'TFL Selection is the library of TFLives modified clients. TFLClient is the client you install; TFL Client is the launcher you are using.',
+		empty: 'No client versions have been published in this library yet.',
+		install: 'Install {{name}}',
+		installing: 'Installing {{name}}…',
+		installError: 'Failed to install TFLClient: {{error}}',
+		chooseSource: 'Choose a client from TFL Selection or a modpack from Modrinth.',
+		libraryDescription: 'Library of TFLives modified clients, such as TFLClient.'
+	},
 	common: {
 		cancel: 'Cancel',
 		back: 'Back',
@@ -273,8 +284,8 @@ export const en: Dictionary = {
 		chooserSubtitle: 'How do you want to build it?',
 		customTitle: 'Custom',
 		customDesc: 'Create your own instance with the mods you choose.',
-		modpackTitle: 'Modpack',
-		modpackDesc: 'Download an instance already built from TFL Selection.',
+		modpackTitle: 'Clients and modpacks',
+		modpackDesc: 'Install an official client or a modpack in a new instance.',
 		serverTitle: 'Server',
 		serverDesc: 'Create your own Minecraft server to play with others.',
 		nameLabel: 'Name',
@@ -619,7 +630,7 @@ export const en: Dictionary = {
 		welcomeTitle: 'Welcome to TFL Client',
 		updatesTitle: "What's new in v{{version}}",
 		tip1: 'Ctrl+K (⌘K on Mac) opens a palette to jump between instances or actions without touching the mouse.',
-		tip2: '"TFL Selection" brings curated modpacks and whatever the team publishes — one click and they\'re ready.',
+		tip2: '"TFL Selection" is the TFLives modified client library. Find TFLClient there and install it through this launcher.',
 		tip3: 'Each instance has its own Mods, Shaders and Modpacks tab — nothing mixes between instances.',
 		tip4: 'In Settings → Style you can change accent, surface, density, and even the animated background.',
 		updatedToVersionWithNotes: 'It auto-updated to version {{version}}:',
@@ -673,7 +684,7 @@ export const en: Dictionary = {
 		vanillaHint:
 			"Vanilla doesn't support mods — pick Fabric, Forge, NeoForge or Quilt when creating the instance.",
 		selectionHint:
-			"This TFL Selection instance manages its own mods: they can't be added or removed by hand. Use the shield icon next to the name to verify integrity, and the TFL Selection page under Explore to repair or update."
+			"This client installed from the TFL Selection library manages its own mods: they can't be added or removed by hand. Use the shield icon next to the name to verify integrity, and the TFL Selection page under Explore to repair or update."
 	},
 	resourcePacksPanel: {
 		hint: "Resource packs work on any instance, with or without mods — you don't need anything extra installed. Enable them from Minecraft's menu (Options → Resource Packs)."

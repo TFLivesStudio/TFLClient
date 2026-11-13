@@ -222,7 +222,7 @@ fn ensure_not_selection(instance_name: &str) -> Result<(), String> {
         .get_instance_dir()
         .join(instance_name);
     if crate::services::selection::installer::is_selection_instance(&dir) {
-        return Err("Las instancias de TFL Selection están administradas y protegidas. No se pueden modificar sus mods manualmente.".into());
+        return Err("Los clientes instalados desde la biblioteca TFL Selection están administrados y protegidos. No se pueden modificar sus mods manualmente.".into());
     }
     Ok(())
 }

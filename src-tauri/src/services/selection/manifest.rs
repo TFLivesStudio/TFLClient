@@ -1,4 +1,4 @@
-//! Manifiesto v2 de una release de TFL Selection: parseo estricto y
+//! Manifiesto v2 de una release de cliente en la biblioteca TFL Selection: parseo estricto y
 //! validación de contenido ANTES de tocar el disco o la red.
 //!
 //! Nada de lo que viene en el manifiesto se usa como ruta o URL sin pasar

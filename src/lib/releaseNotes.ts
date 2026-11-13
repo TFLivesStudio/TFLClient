@@ -7,7 +7,7 @@
 export const RELEASE_NOTES: Record<string, string[]> = {
 	'0.15.3-beta.7': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
-		'Arreglado: TFL Selection 1.8.9 ahora inicia correctamente en macOS (Apple Silicon e Intel) con Java 25 y aceleración nativa sin crashear en la ventana de juego.',
+		'Arreglado: TFLClient 1.8.9 ahora inicia correctamente en macOS (Apple Silicon e Intel) con Java 25 y aceleración nativa sin crashear en la ventana de juego.',
 		'Mejoras internas de compatibilidad con el entorno gráfico nativo en Mac.'
 	],
 	'0.15.3-beta.6': [
@@ -21,24 +21,24 @@ export const RELEASE_NOTES: Record<string, string[]> = {
 	],
 	'0.15.3-beta.4': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
-		'Arreglado: TFL Selection 1.8.9 crasheaba al iniciar por una librería de logging (log4j) desactualizada — si ya tenías la instancia instalada, se repara sola la próxima vez que le des Jugar.'
+		'Arreglado: TFLClient 1.8.9 crasheaba al iniciar por una librería de logging (log4j) desactualizada — si ya tenías la instancia instalada, se repara sola la próxima vez que le des Jugar.'
 	],
 	'0.15.3-beta.3': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
-		'Arreglado: la instancia de TFL Selection no abría al seleccionarla en la barra lateral.',
-		'Arreglado: el aviso de "instalando" de TFL Selection se quedaba pegado en pantalla después de terminar.',
-		'La pestaña Mods de una instancia de TFL Selection ahora explica que se administra sola, en vez de mostrar "0 instalados" sin contexto.'
+		'Arreglado: la instancia de TFLClient no abría al seleccionarla en la barra lateral.',
+		'Arreglado: el aviso de "instalando" de TFLClient se quedaba pegado en pantalla después de terminar.',
+		'La pestaña Mods de una instancia de TFLClient ahora explica que se administra sola, en vez de mostrar "0 instalados" sin contexto.'
 	],
 	'0.15.3-beta.2': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
-		'Arreglado: la instancia de TFL Selection no abría al seleccionarla en la barra lateral.',
-		'Arreglado: el aviso de "instalando" de TFL Selection se quedaba pegado en pantalla después de terminar.',
-		'La pestaña Mods de una instancia de TFL Selection ahora explica que se administra sola, en vez de mostrar "0 instalados" sin contexto.'
+		'Arreglado: la instancia de TFLClient no abría al seleccionarla en la barra lateral.',
+		'Arreglado: el aviso de "instalando" de TFLClient se quedaba pegado en pantalla después de terminar.',
+		'La pestaña Mods de una instancia de TFLClient ahora explica que se administra sola, en vez de mostrar "0 instalados" sin contexto.'
 	],
 	'0.15.3-beta.1': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
-		'Nuevo: TFL Selection 1.8.9 ya se instala con un solo click, con catálogo oficial firmado y verificado — arranca con Ornithe Gen2 y Java 25.',
-		'El botón "Modpack" al crear una instancia ahora te deja elegir entre TFL Selection o Modrinth.',
+		'Nuevo: TFLClient 1.8.9 ya se instala con un solo click, con catálogo oficial firmado y verificado — arranca con Ornithe Gen2 y Java 25.',
+		'El botón "Modpack" al crear una instancia permite elegir entre la biblioteca TFL Selection y Modrinth.',
 		'Arreglado: el logo se veía casi invisible en modo oscuro.',
 		'Arreglado: el ícono de "Explorar" en la barra lateral era igual al de "Unirse a servidor".'
 	],
