@@ -5,6 +5,17 @@ import type { Dictionary } from './es';
 // acá falta, el error de tipos avisa antes de que quede un string suelto
 // sin traducir.
 export const en: Dictionary = {
+	selectionLibrary: {
+		title: 'Official TFLives library',
+		description:
+			'TFL Selection is the library of TFLives modified clients. TFLClient is the client you install; TFL Client is the launcher you are using.',
+		empty: 'No client versions have been published in this library yet.',
+		install: 'Install {{name}}',
+		installing: 'Installing {{name}}…',
+		installError: 'Failed to install TFLClient: {{error}}',
+		chooseSource: 'Choose a client from TFL Selection or a modpack from Modrinth.',
+		libraryDescription: 'Library of TFLives modified clients, such as TFLClient.'
+	},
 	common: {
 		cancel: 'Cancel',
 		back: 'Back',

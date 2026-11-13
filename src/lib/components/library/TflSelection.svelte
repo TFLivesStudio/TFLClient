@@ -198,6 +198,7 @@
 			<div class="title-row">
 				<Tfl width="18" height="18" />
 				<h2>TFL Selection</h2>
+<p class="subtitle">{t("selectionLibrary.description")}</p>
 			</div>
 			<button type="button" class="close-btn" onclick={onClose} aria-label={t('settings.close')}>
 				<X size={16} />

@@ -58,3 +58,8 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+
+## Nombres del ecosistema
+
+**TFL Client** es el launcher; **TFL Selection**, la biblioteca; **TFLClient**,
+el cliente modificado de Minecraft. Consulta [la referencia de nombres](docs/PRODUCT_NAMES.md).
