@@ -5,6 +5,11 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.3-beta.7': [
+		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
+		'Arreglado: TFL Selection 1.8.9 ahora inicia correctamente en macOS (Apple Silicon e Intel) con Java 25 y aceleración nativa sin crashear en la ventana de juego.',
+		'Mejoras internas de compatibilidad con el entorno gráfico nativo en Mac.'
+	],
 	'0.15.3-beta.6': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Nuevo: el inicio de sesión con Microsoft ahora usa la identidad oficial de TFL Client. La primera vez vas a tener que autorizar tu cuenta de nuevo.',
