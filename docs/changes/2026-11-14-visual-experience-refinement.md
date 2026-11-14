@@ -107,6 +107,35 @@ device render certification was performed for this refinement.
 
 ## Publication
 
-Target: v0.15.4-beta.2, through the official workflow after final CI.
-Publication verification is recorded after the workflow completes; historical
-releases and v0.15.2 stable must remain unchanged.
+Published [v0.15.4-beta.2](https://github.com/TFLivesStudio/TFLClient/releases/tag/v0.15.4-beta.2)
+at 2026-11-14T12:57:03Z, release ID 445296970, prerelease=true/draft=false.
+[Official build 43595919726](https://github.com/TFLivesStudio/TFLClient/actions/runs/43595919726)
+passed all six jobs, including Windows, macOS and Linux packaging.
+
+The annotated tag points to the fully checked commit a8157b93d7774b26ef8e0db1318f76519ea9bf1d.
+Its tree ea3de70937cdc097c63eec140a9debfa46831aca exactly matches the
+squash merge bd8c63952ba38de27c7e8d5261398e02b313b28b on main. Final
+[CI](https://github.com/TFLivesStudio/TFLClient/actions/runs/43594635030)
+and [Windows/macOS auth checks](https://github.com/TFLivesStudio/TFLClient/actions/runs/43594634959)
+passed before tagging. Subsequent documentation records publication evidence;
+the published source and tag remain immutable.
+
+Downloaded updater payloads for macOS arm64, Windows x64 and Linux x64
+(AppImage, deb, rpm) matched GitHub SHA-256 digests and sizes. Node crypto
+verified Ed25519 signatures over BLAKE2b-512 digests with the pinned updater
+public key, the signed trusted comments, detached/latest.json consistency,
+and rejection of altered data/comments. All five fixed installer aliases
+were downloadable and matched their canonical asset digests. These are
+updater signatures, not a claim of Apple notarization or Windows Authenticode.
+The verification follows the primary
+[rust-minisign format](https://github.com/jedisct1/rust-minisign/blob/master/src/lib.rs).
+
+Release notes and updater notes matched the reviewed Markdown. The release
+contains 17 assets. Stable v0.15.2 (ID 433706720), beta 1 (ID 445065636), their
+notes, publication dates, asset identities/digests and existing tags were
+verified unchanged. No signed Selection distribution was published.
+
+After cache revalidation, the official [news index](https://launcher.tflives.com/novedades)
+and [beta article](https://launcher.tflives.com/novedades/v0.15.4-beta.2)
+returned HTTP 200 and contained the new beta and notes. No website deployment
+or code change was needed.
