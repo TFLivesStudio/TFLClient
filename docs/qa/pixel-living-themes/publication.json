@@ -49,6 +49,13 @@
   },
   "stable_unchanged": true,
   "notes_match": true,
+  "website": {
+    "verified_at": "2026-11-14T06:28:36Z",
+    "history_status": 200,
+    "history_contains_tag": true,
+    "article_status": 200,
+    "article_contains_notes": true
+  },
   "asset_head_status": {
     "TFLClient-Windows-Setup.exe": 200,
     "TFLClient-macOS.dmg": 200,

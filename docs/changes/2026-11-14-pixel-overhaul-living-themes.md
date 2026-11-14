@@ -165,3 +165,7 @@ para obtener una herramienta de extracción; el motivo devuelto fue
 La evidencia verificable de publicación está en
 [publication.json](../qa/pixel-living-themes/publication.json). Este cierre
 documental se guarda después del tag, sin cambiar los binarios publicados.
+
+Tras revalidarse la caché, el historial de la web oficial incluye la nueva beta
+y su artículo contiene las notas de Living Themes; ambos responden HTTP 200.
+Comprobado el 2026-11-14 a las 06:28:36 UTC, sin despliegue adicional de la web.
