@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { navigate, navigation } from '$lib/visual/navigation.svelte';
 	import { vr } from '$lib/i18n/refresh';
+	import { tr } from '$lib/i18n/experience';
+	import {
+		instanceDisplayName,
+		instanceEdition,
+		isSelectionInstance,
+		selectionFallbackIcon
+	} from '$lib/selection-identity';
 	import { invoke } from '@tauri-apps/api/core';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import Mascot from '$lib/components/ui/Mascot.svelte';
@@ -30,8 +37,8 @@
 		Compass,
 		Shirt,
 		Home,
-		PanelLeftClose,
-		PanelLeftOpen
+		ChevronLeft,
+		ChevronRight
 	} from 'lucide-svelte';
 
 	let {
@@ -67,7 +74,7 @@
 	// único lugar que la escribe.
 	const manualCollapsed = $derived(appState.settings?.sidebar_collapsed === true);
 	function toggleCollapsed() {
-		if (!appState.settings) return;
+		if (!appState.settings || forcedCompact) return;
 		const next = !manualCollapsed;
 		appState.settings.sidebar_collapsed = next;
 		updateSettings({ ...appState.settings, sidebar_collapsed: next }).catch(() => {
@@ -83,6 +90,7 @@
 	// poder deshabilitar el toggle manual cuando no tendría efecto visible
 	// (ver comentario largo en viewport.svelte.ts) — así nunca se termina
 	// grabando sin querer una preferencia que el usuario no pidió.
+	const sidebarId = $props.id();
 	const collapsed = $derived(isSidebarEffectiveCollapsed());
 	const forcedCompact = $derived(isSidebarForcedCompact());
 
@@ -157,119 +165,101 @@
 	});
 </script>
 
-<aside
-	class="sidebar"
+<div
+	class="sidebar-shell"
 	class:collapsed
-	style="width: {collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH}px"
+	style:width={(collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH) + 'px'}
 >
-	<div class="sidebar-top">
-		<!-- Arriba y no al pie: el banner de actualización lista
-			 (UpdateBadge.svelte) es "position: fixed; bottom" y tapa esa franja
-			 del sidebar cuando hay una actualización — abajo quedaba inútil. -->
-		<IconButton
-			label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
-			variant="ghost"
-			size="compact"
-			disabled={forcedCompact}
-			onclick={toggleCollapsed}
-		>
-			{#if collapsed}
-				<PanelLeftOpen size={16} />
-			{:else}
-				<PanelLeftClose size={16} />
-			{/if}
-		</IconButton>
-	</div>
-
-	{#if collapsed}
-		<Tooltip content={vr('home')} position="right">
-			<button
-				type="button"
-				class="home-btn"
-				class:active={selected === null && navigation.section === 'home'}
-				onclick={goHome}
-				aria-label={vr('home')}
-			>
-				<Home size={16} />
-			</button>
-		</Tooltip>
-	{:else}
-		<button
-			type="button"
-			class="home-btn"
-			class:active={selected === null && navigation.section === 'home'}
-			onclick={goHome}
-			aria-label={vr('home')}
-		>
-			<Home size={16} />
-			<span>{vr('home')}</span>
-		</button>
-	{/if}
-
-	{#each ['library', 'discover'] as section (section)}
-		<button
-			type="button"
-			class="home-btn"
-			class:active={selected === null && navigation.section === section}
-			onclick={() => navigate(section as 'library' | 'discover')}
-			aria-label={vr(section as 'library' | 'discover')}
-			title={collapsed ? vr(section as 'library' | 'discover') : undefined}
-		>
-			{#if section === 'library'}<Boxes size={18} />{:else}<Compass size={18} />{/if}
-			{#if !collapsed}<span>{vr(section as 'library' | 'discover')}</span>{/if}
-		</button>
-	{/each}
-
-	{#if !network.online && !collapsed}
-		<div class="offline-badge">
-			<WifiOff size={12} />
-			<span>{t('sidebar.offline')}</span>
-		</div>
-	{/if}
-
-	<div class="instances">
-		<div class="section-label">
-			{#if !collapsed}<span>{t('sidebar.yourInstances')}</span>{/if}
-			<div class="section-label-actions">
-				<IconButton
-					label={t('sidebar.joinServer')}
-					variant="secondary"
-					size="compact"
-					onclick={onJoinServer}
+	<aside
+		id={sidebarId}
+		class="sidebar"
+		class:collapsed
+		aria-label={tr('Navegación principal', 'Main navigation')}
+	>
+		<nav class="primary-nav" aria-label={tr('Espacios de trabajo', 'Workspaces')}>
+			{#each ['home', 'library', 'discover'] as section (section)}
+				<Tooltip
+					content={vr(section as 'home' | 'library' | 'discover')}
+					position="right"
+					disabled={!collapsed}
 				>
-					<Globe size={16} strokeWidth={2.25} />
-				</IconButton>
-				<IconButton
-					label={t('sidebar.createInstance')}
-					variant="secondary"
-					size="compact"
-					onclick={onCreate}
-				>
-					<Plus size={16} strokeWidth={2.25} />
-				</IconButton>
-			</div>
-		</div>
-
-		{#if instances.length > 0 && !collapsed}
-			<div class="search-box" data-search-control>
-				<Search size={13} />
-				<input
-					type="text"
-					aria-label={t('sidebar.search')}
-					placeholder={t('sidebar.search')}
-					bind:value={query}
-				/>
-				<kbd class="shortcut-hint">{shortcutLabel}</kbd>
+					<button
+						type="button"
+						class="home-btn"
+						class:active={selected === null && navigation.section === section}
+						aria-current={selected === null && navigation.section === section ? 'page' : undefined}
+						onclick={() =>
+							section === 'home' ? goHome() : navigate(section as 'library' | 'discover')}
+						aria-label={vr(section as 'home' | 'library' | 'discover')}
+					>
+						{#if section === 'home'}<Home size={18} />{:else if section === 'library'}<Boxes
+								size={18}
+							/>{:else}<Compass size={18} />{/if}
+						{#if !collapsed}<span>{vr(section as 'home' | 'library' | 'discover')}</span>{/if}
+					</button>
+				</Tooltip>
+			{/each}
+		</nav>
+		{#if !network.online && !collapsed}
+			<div class="offline-badge">
+				<WifiOff size={12} />
+				<span>{t('sidebar.offline')}</span>
 			</div>
 		{/if}
 
-		<div class="instance-list">
-			{#if instances.length === 0}
-				<div class="empty">
-					<Boxes size={28} />
-					{#if !collapsed}<p>{t('sidebar.noInstancesYet')}</p>{/if}
-					{#if collapsed}
-						<Tooltip content={t('sidebar.createFirst')} position="right">
+		<div class="instances">
+			<div class="section-label">
+				{#if !collapsed}<span>{t('sidebar.yourInstances')}</span>{/if}
+				<div class="section-label-actions">
+					<IconButton
+						label={t('sidebar.joinServer')}
+						variant="secondary"
+						size="compact"
+						onclick={onJoinServer}
+					>
+						<Globe size={16} strokeWidth={2.25} />
+					</IconButton>
+					<IconButton
+						label={t('sidebar.createInstance')}
+						variant="secondary"
+						size="compact"
+						onclick={onCreate}
+					>
+						<Plus size={16} strokeWidth={2.25} />
+					</IconButton>
+				</div>
+			</div>
+
+			{#if instances.length > 0 && !collapsed}
+				<div class="search-box" data-search-control>
+					<Search size={13} />
+					<input
+						type="text"
+						aria-label={t('sidebar.search')}
+						placeholder={t('sidebar.search')}
+						bind:value={query}
+					/>
+					<kbd class="shortcut-hint">{shortcutLabel}</kbd>
+				</div>
+			{/if}
+
+			<div class="instance-list">
+				{#if instances.length === 0}
+					<div class="empty">
+						<Boxes size={28} />
+						{#if !collapsed}<p>{t('sidebar.noInstancesYet')}</p>{/if}
+						{#if collapsed}
+							<Tooltip content={t('sidebar.createFirst')} position="right">
+								<button
+									type="button"
+									class="empty-create"
+									onclick={onCreate}
+									aria-label={t('sidebar.createFirst')}
+								>
+									<Plus size={13} strokeWidth={2.5} />
+								</button>
+							</Tooltip>
+						{:else}
 							<button
 								type="button"
 								class="empty-create"
@@ -277,538 +267,460 @@
 								aria-label={t('sidebar.createFirst')}
 							>
 								<Plus size={13} strokeWidth={2.5} />
+								{t('sidebar.createFirst')}
 							</button>
-						</Tooltip>
-					{:else}
-						<button
-							type="button"
-							class="empty-create"
-							onclick={onCreate}
-							aria-label={t('sidebar.createFirst')}
+						{/if}
+					</div>
+				{:else if filtered.length === 0}
+					{#if !collapsed}<p class="empty-search">{t('sidebar.noResultsFor', { query })}</p>{/if}
+				{:else}
+					{#each filtered as instance (instance.uuid)}
+						<Tooltip
+							content={`${instanceDisplayName(instance)} · ${instanceEdition(instance)}`}
+							position="right"
+							disabled={!collapsed}
 						>
-							<Plus size={13} strokeWidth={2.5} />
-							{t('sidebar.createFirst')}
-						</button>
-					{/if}
-				</div>
-			{:else if filtered.length === 0}
-				{#if !collapsed}<p class="empty-search">{t('sidebar.noResultsFor', { query })}</p>{/if}
-			{:else}
-				{#each filtered as instance (instance.uuid)}
-					<Tooltip content={instance.name} position="right" disabled={!collapsed}>
-						<button
-							type="button"
-							class="instance-item"
-							class:active={selected?.uuid === instance.uuid}
-							style="--loader-color: {LOADER_COLOR[instance.loader]}"
-							aria-label={instance.name}
-							onclick={() => onSelect(instance)}
-							oncontextmenu={(e) => {
-								e.preventDefault();
-								onInstanceContextMenu(instance, e.clientX, e.clientY);
-							}}
-							onmousedown={(e) => {
-								// El evento "contextmenu" del click derecho no dispara de
-								// forma confiable en esta webview (se probó en vivo: ni
-								// siquiera aparece el menú nativo del sistema, algo se lo
-								// come antes de llegar al JS). "mousedown" con botón
-								// derecho es más bajo nivel y sí llega siempre — queda
-								// como camino principal, oncontextmenu como refuerzo si
-								// en algún entorno sí dispara.
-								if (e.button === 2) {
+							<button
+								type="button"
+								class="instance-item"
+								class:active={selected?.uuid === instance.uuid}
+								style="--loader-color: {isSelectionInstance(instance)
+									? 'var(--accent)'
+									: (LOADER_COLOR[instance.loader] ?? 'var(--text-secondary)')}"
+								aria-label={instanceDisplayName(instance)}
+								onclick={() => onSelect(instance)}
+								oncontextmenu={(e) => {
 									e.preventDefault();
 									onInstanceContextMenu(instance, e.clientX, e.clientY);
-								}
-							}}
-						>
-							<span class="instance-avatar">
-								{#if iconUrls[instance.uuid]}
-									<img src={iconUrls[instance.uuid]} alt="" />
-								{:else}
-									{instance.name.charAt(0).toUpperCase()}
-								{/if}
-							</span>
-							{#if !collapsed}
-								<span class="instance-text">
-									<span class="instance-name">{instance.name}</span>
-									<span class="instance-version">{instance.mc_version} · {instance.loader}</span>
+								}}
+								onmousedown={(e) => {
+									// El evento "contextmenu" del click derecho no dispara de
+									// forma confiable en esta webview (se probó en vivo: ni
+									// siquiera aparece el menú nativo del sistema, algo se lo
+									// come antes de llegar al JS). "mousedown" con botón
+									// derecho es más bajo nivel y sí llega siempre — queda
+									// como camino principal, oncontextmenu como refuerzo si
+									// en algún entorno sí dispara.
+									if (e.button === 2) {
+										e.preventDefault();
+										onInstanceContextMenu(instance, e.clientX, e.clientY);
+									}
+								}}
+							>
+								<span class="instance-avatar">
+									{#if iconUrls[instance.uuid] || selectionFallbackIcon(instance.selection)}
+										<img
+											src={iconUrls[instance.uuid] ??
+												selectionFallbackIcon(instance.selection) ??
+												undefined}
+											alt=""
+										/>
+									{:else}
+										{instanceDisplayName(instance).charAt(0).toUpperCase()}
+									{/if}
 								</span>
-							{/if}
-						</button>
-					</Tooltip>
-				{/each}
-			{/if}
+								{#if !collapsed}
+									<span class="instance-text">
+										<span class="instance-name">{instanceDisplayName(instance)}</span>
+										<span class="instance-version"
+											>{instance.mc_version} · {instanceEdition(instance)}</span
+										>
+									</span>
+								{/if}
+							</button>
+						</Tooltip>
+					{/each}
+				{/if}
+			</div>
 		</div>
-	</div>
 
-	{#if user}
-		<div class="user-chip">
-			<button
-				type="button"
-				class="user-profile"
-				title={user.username}
-				aria-label={`${user.username} · ${t('settings.tabs.accounts')}`}
-				onclick={user.user_type === 'Cracked' ? onOpenSettings : onOpenSkinManager}
-			>
-				<span class="user-head">
-					{#if user.user_type === 'Cracked'}
-						<!-- Cuentas offline no tienen skin real — mascota simple en
+		{#if user}
+			<div class="user-chip">
+				<button
+					type="button"
+					class="user-profile"
+					title={user.user_type === 'Cracked' ? user.username : t('skinManager.title')}
+					aria-label={user.user_type === 'Cracked'
+						? `${user.username} · ${t('settings.tabs.accounts')}`
+						: collapsed
+							? t('skinManager.title')
+							: `${user.username} · ${t('skinManager.title')}`}
+					onclick={user.user_type === 'Cracked' ? onOpenSettings : onOpenSkinManager}
+				>
+					<span class="user-head">
+						{#if user.user_type === 'Cracked'}
+							<!-- Cuentas offline no tienen skin real — mascota simple en
 						 vez del Steve genérico que devolvería Crafatar por
 						 defecto. Elegida al azar (determinística por UUID) al
 						 crear la cuenta, cambiable desde Ajustes. -->
-						<Mascot id={getMascotFor(user.uuid)} size={32} />
-					{:else}
-						<img class="face-fallback" src="/images/player-face.svg" alt="" />
-						{#if skinUrl}
-							<span class="skin-head">
-								<span class="skin-layer base" style="background-image: url({skinUrl})"></span>
-								<span class="skin-layer overlay" style="background-image: url({skinUrl})"></span>
-							</span>
+							<Mascot id={getMascotFor(user.uuid)} size={32} />
+						{:else}
+							<img class="face-fallback" src="/images/player-face.svg" alt="" />
+							{#if skinUrl}
+								<span class="skin-head">
+									<span class="skin-layer base" style="background-image: url({skinUrl})"></span>
+									<span class="skin-layer overlay" style="background-image: url({skinUrl})"></span>
+								</span>
+							{/if}
 						{/if}
-					{/if}
-				</span>
-				{#if !collapsed}
-					<span class="user-info">
-						<span class="user-name">{user.username}</span>
-						<span class="user-type"
-							>{user.user_type === 'Cracked'
-								? t('sidebar.offlineAccountType')
-								: user.user_type}</span
-						>
 					</span>
-				{/if}
-			</button>
-			<div class="user-actions">
-				{#if user.user_type !== 'Cracked'}
+					{#if !collapsed}
+						<span class="user-info">
+							<span class="user-name">{user.username}</span>
+							<span class="user-type"
+								>{user.user_type === 'Cracked'
+									? t('sidebar.offlineAccountType')
+									: user.user_type}</span
+							>
+						</span>
+					{/if}
+				</button>
+				<div class="user-actions">
+					{#if user.user_type !== 'Cracked' && !collapsed}
+						<IconButton
+							label={t('skinManager.title')}
+							variant="ghost"
+							size="compact"
+							onclick={onOpenSkinManager}
+						>
+							<Shirt size={16} />
+						</IconButton>
+					{/if}
 					<IconButton
-						label={t('skinManager.title')}
+						label={t('sidebar.openSettings')}
 						variant="ghost"
 						size="compact"
-						onclick={onOpenSkinManager}
+						onclick={onOpenSettings}
 					>
-						<Shirt size={16} />
+						<Settings size={16} />
 					</IconButton>
-				{/if}
-				<IconButton
-					label={t('sidebar.openSettings')}
-					variant="ghost"
-					size="compact"
-					onclick={onOpenSettings}
-				>
-					<Settings size={16} />
-				</IconButton>
-				<IconButton label={t('sidebar.logout')} variant="ghost" size="compact" onclick={onLogout}>
-					<LogOut size={16} />
-				</IconButton>
+					<IconButton label={t('sidebar.logout')} variant="ghost" size="compact" onclick={onLogout}>
+						<LogOut size={16} />
+					</IconButton>
+				</div>
 			</div>
-		</div>
-	{/if}
-</aside>
+		{/if}
+	</aside>
+	<Tooltip
+		content={forcedCompact
+			? tr(
+					'Amplía la ventana para expandir la barra lateral',
+					'Widen the window to expand the sidebar'
+				)
+			: collapsed
+				? t('sidebar.expand')
+				: t('sidebar.collapse')}
+		position="right"
+	>
+		<button
+			type="button"
+			class="sidebar-edge-toggle"
+			aria-controls={sidebarId}
+			aria-expanded={!collapsed}
+			aria-disabled={forcedCompact}
+			aria-label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
+			onclick={toggleCollapsed}
+		>
+			{#if collapsed}<ChevronRight size={14} />{:else}<ChevronLeft size={14} />{/if}
+		</button>
+	</Tooltip>
+</div>
 
 <style>
-	.user-profile {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		width: 100%;
-		min-width: 0;
-		background: transparent;
-		border: 0;
-		color: var(--text-primary);
-		padding: 0;
-		cursor: pointer;
-		text-align: left;
-	}
-	.face-fallback {
-		position: absolute;
-		width: 32px;
-		height: 32px;
-		image-rendering: pixelated;
-	}
-
-	.sidebar {
+	/* One coordinate owner for expanded/compact rails; scrolling stays inside. */
+	.sidebar-shell {
 		position: relative;
-		z-index: var(--z-content);
-		/* El ancho real lo pone el style="width: ...px" inline del <aside>
-		   (SIDEBAR_COLLAPSED_WIDTH/SIDEBAR_EXPANDED_WIDTH, viewport.svelte.ts)
-		   en vez de una regla CSS fija acá — TitleBar.svelte importa las
-		   MISMAS constantes para su bloque de marca, así los dos nunca pueden
-		   desalinearse al cambiar de modo (Entrega B, sección 6.2). No le
-		   agregues un `width` acá de nuevo. */
+		z-index: calc(var(--z-content) + 1);
 		flex-shrink: 0;
-		overflow-x: hidden;
-		background: var(--surface-workspace);
-		border-right: 1px solid var(--border);
-		display: flex;
-		flex-direction: column;
-		padding: 14px 12px;
-		gap: 12px;
+		height: 100%;
+		min-height: 0;
 		transition: width var(--duration-panel) var(--easing-standard);
 	}
-
-	/* Modo compacto: solo íconos — tanto por preferencia manual
-	   (appState.settings.sidebar_collapsed) como forzado por falta de
-	   espacio en la ventana (ver `collapsed`/`forcedCompact` arriba). */
-	.sidebar.collapsed {
-		padding-left: 10px;
-		padding-right: 10px;
-		padding-bottom: 12px;
-		align-items: center;
+	.sidebar {
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		padding: 16px 12px 12px;
+		overflow: hidden;
+		border-right: 1px solid var(--border);
+		background: var(--surface-workspace);
 	}
-
-	/* El wrapper de <Tooltip> (Entrega A) es `display:inline-flex;
-	   flex-direction:row` por defecto — como flex item de un contenedor
-	   columna (.sidebar/.instance-list) se ESTIRA en ancho (align-items:
-	   stretch, el default), pero su propio hijo (el botón trigger) NO se
-	   estira solo porque el wrapper es row: el eje principal de un row no
-	   estira, solo el cruzado. Sin esto el botón envuelto queda del ancho de
-	   su contenido en vez de llenar la fila como antes de agregar el
-	   Tooltip. Afecta solo a los triggers que envolvemos con Tooltip en modo
-	   compacto (home, TFL Selection, instancias, "crear primera instancia");
-	   la burbuja del tooltip (si está abierta) es "position: absolute" así
-	   que no la toca este flex. */
+	.primary-nav {
+		display: grid;
+		gap: 4px;
+		flex-shrink: 0;
+	}
 	.sidebar :global(.tfl-tooltip-wrap) {
 		display: flex;
 		width: 100%;
+		min-width: 0;
 	}
-	.sidebar :global(.tfl-tooltip-wrap > *) {
+	.sidebar :global(.tfl-tooltip-wrap > button) {
 		flex: 1;
 		min-width: 0;
 	}
-
 	.home-btn {
+		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: 12px;
 		width: 100%;
-		min-height: var(--control-size-normal);
-		padding: 8px 10px;
+		min-height: 40px;
+		padding: 8px 12px;
+		background: transparent;
+		border: 1px solid transparent;
 		border-radius: var(--border-radius-sm);
-		border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-		background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
-		color: var(--accent);
-		font-size: var(--text-small);
-		line-height: var(--line-height-small);
-		font-weight: 700;
-		cursor: pointer;
-		transition:
-			background var(--duration-micro) var(--easing-standard),
-			border-color var(--duration-micro) var(--easing-standard);
-	}
-
-	.home-btn {
-		border-color: var(--border);
-		background: var(--surface-card);
 		color: var(--text-secondary);
+		font: inherit;
+		font-size: var(--text-small);
+		line-height: 1.5;
+		text-align: left;
+		cursor: pointer;
 	}
-
-	.home-btn.active {
-		border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-		background: color-mix(in srgb, var(--accent) 14%, var(--surface-card));
-		color: var(--accent);
-	}
-
 	.home-btn:hover {
-		background: color-mix(in srgb, var(--accent) 20%, var(--surface-card));
-		border-color: var(--accent);
+		background: var(--surface-interactive);
+		color: var(--text-primary);
 	}
-
-	.sidebar.collapsed .home-btn {
-		justify-content: center;
-		padding: 8px;
+	.home-btn.active {
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		color: var(--text-primary);
+		border-color: color-mix(in srgb, var(--accent) 28%, transparent);
 	}
-
+	.home-btn.active::before {
+		content: '';
+		position: absolute;
+		left: -1px;
+		top: 12px;
+		bottom: 12px;
+		width: 2px;
+		background: var(--accent);
+	}
+	.home-btn :global(svg) {
+		flex-shrink: 0;
+	}
 	.offline-badge {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 6px 10px;
-		border-radius: var(--border-radius-sm);
-		border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--border));
-		background: color-mix(in srgb, #f59e0b 12%, var(--bg-card));
-		color: #f59e0b;
-		font-size: 0.68rem;
-		line-height: 1.3;
+		gap: 8px;
+		padding: 8px;
+		font-size: 12px;
+		color: var(--color-warning);
+		border: 1px solid var(--border);
 	}
-
-	.offline-badge :global(svg) {
-		flex-shrink: 0;
-	}
-
 	.instances {
+		min-height: 0;
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		min-height: 0;
 		gap: 8px;
 	}
-
 	.section-label {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		font-size: 0.68rem;
-		font-weight: 700;
-		letter-spacing: 0.5px;
-		text-transform: uppercase;
+		gap: 8px;
+		flex-shrink: 0;
 		color: var(--text-muted);
+		font-size: 11px;
+		line-height: 1.5;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
 	}
-
-	.sidebar.collapsed .section-label {
-		justify-content: center;
-	}
-
 	.section-label-actions {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 4px;
 	}
-
-	/* Los IconButton de Entrega A son --control-size-compact (32px) — dos uno
-	   al lado del otro no entran en el ancho interior del riel colapsado
-	   (SIDEBAR_COLLAPSED_WIDTH 76px menos padding). Se apilan en vez de
-	   quedar lado a lado, para no desbordar horizontalmente (sección 4 del
-	   encargo: "nada de overflow horizontal en ningún tamaño"). */
-	.sidebar.collapsed .section-label-actions {
-		flex-direction: column;
+	.section-label-actions :global(.tfl-icon-btn) {
+		width: 32px;
+		height: 32px;
+		min-height: 32px;
 	}
-
 	.search-box {
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		height: var(--control-size-compact);
-		padding: 0 10px;
-		border-radius: var(--border-radius-sm);
-		border: 1px solid var(--border);
-		background: var(--bg-input);
-		color: var(--text-muted);
-	}
-
-	.search-box input {
-		flex: 1;
-		background: transparent;
-		border: none;
-		outline: none;
-		font-size: var(--text-small);
-		color: var(--text-primary);
-	}
-
-	.shortcut-hint {
-		font-size: 0.62rem;
-		font-weight: 700;
-		color: var(--text-muted);
-		background: var(--bg-card);
-		border: 1px solid var(--border);
-		border-radius: 4px;
-		padding: 2px 5px;
-		flex-shrink: 0;
-	}
-
-	.instance-list {
-		flex: 1;
-		overflow-y: auto;
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		/* Mejor hipótesis para la "barra que parpadea arriba de cuentas" al
-		   pasar el cursor rápido por varias instancias, sin poder confirmar
-		   con una captura: la scrollbar nativa de esta lista (justo arriba
-		   de .user-chip) aparece/desaparece en el hover del contenedor en
-		   algunos navegadores/SO. Se oculta visualmente, el scroll sigue
-		   andando igual — mismo patrón que .tabs en InstanceDetail.svelte. */
-		scrollbar-width: none;
-	}
-
-	.instance-list::-webkit-scrollbar {
-		display: none;
-	}
-
-	.empty {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		text-align: center;
 		gap: 8px;
-		color: var(--text-muted);
-		padding: 28px 8px;
-	}
-
-	.empty p {
-		font-size: 0.75rem;
-	}
-
-	.empty-create {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 6px;
-		margin-top: 4px;
-		min-height: var(--control-size-compact);
-		padding: 6px 12px;
-		border-radius: var(--border-radius-sm);
+		min-height: 36px;
+		padding: 4px 8px;
 		border: 1px solid var(--border);
+		border-radius: var(--border-radius-sm);
 		background: var(--bg-input);
 		color: var(--text-secondary);
-		font-size: var(--text-caption);
-		line-height: var(--line-height-caption);
-		font-weight: 600;
-		cursor: pointer;
+		flex-shrink: 0;
 	}
-
-	.empty-search {
-		font-size: 0.75rem;
-		color: var(--text-muted);
-		padding: 8px 2px;
+	.search-box input {
+		flex: 1;
+		width: 0;
+		min-width: 0;
+		border: 0;
+		outline: 0;
+		background: transparent;
+		color: var(--text-primary);
+		font-size: 12px;
+		line-height: 1.5;
 	}
-
+	.search-box:focus-within {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	.shortcut-hint {
+		display: none;
+	}
+	.instance-list {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 0;
+		gap: 4px;
+		overflow-y: auto;
+		overflow-x: hidden;
+		scrollbar-width: thin;
+		scrollbar-color: var(--border) transparent;
+		padding: 4px 0;
+	}
 	.instance-item {
 		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 8px 10px 8px 12px;
-		border-radius: var(--border-radius);
+		gap: 12px;
+		width: 100%;
+		min-height: 56px;
+		flex-shrink: 0;
+		padding: 8px;
 		border: 1px solid transparent;
-		background: var(--surface-card);
+		border-radius: var(--border-radius-sm);
+		background: transparent;
 		color: var(--text-primary);
-		cursor: pointer;
 		text-align: left;
-		/* La barrita de color (::before, ver abajo) es un rectángulo recto
-		   asomando desde el borde izquierdo — sin esto sobresale de las
-		   esquinas redondeadas de la card, se ve "cortada" en vez de
-		   completa. */
-		overflow: hidden;
-		transition:
-			background var(--duration-micro) var(--easing-standard),
-			border-color var(--duration-micro) var(--easing-standard),
-			transform var(--duration-micro) var(--easing-standard);
+		cursor: pointer;
 	}
-
-	.instance-item::before {
+	.instance-item:hover {
+		background: var(--surface-interactive);
+	}
+	.instance-item.active {
+		border-color: color-mix(in srgb, var(--loader-color) 44%, var(--border));
+		background: var(--surface-interactive);
+	}
+	.instance-item.active::after {
 		content: '';
 		position: absolute;
-		left: 0;
-		top: 8px;
-		bottom: 8px;
-		width: 3px;
-		border-radius: 3px;
+		inset: 12px auto 12px 0;
+		width: 2px;
 		background: var(--loader-color);
-		opacity: 0;
-		transition: opacity var(--duration-micro) var(--easing-standard);
 	}
-
-	.instance-item:hover {
-		border-color: var(--border);
-		/* Antes tenía "transform: translateX(1px)" acá — combinado con el
-		   ícono recortado en esquinas redondeadas (overflow: hidden más
-		   arriba), algunos motores (Chromium/WebView2) repintan mal el
-		   compositing al mover el elemento: la imagen "pierde" un pedazo y
-		   se ve el fondo oscuro de atrás en su lugar. Era solo un detalle
-		   cosmético, no vale la pena el riesgo. */
-	}
-
-	.instance-item.active {
-		background: var(--surface-interactive);
-		border-color: color-mix(in srgb, var(--loader-color) 40%, var(--border));
-	}
-
-	.instance-item.active::before {
-		opacity: 1;
-	}
-
-	.sidebar.collapsed .instance-item {
-		justify-content: center;
-		padding: 8px;
-	}
-
 	.instance-avatar {
-		flex-shrink: 0;
+		display: grid;
+		place-items: center;
 		width: 32px;
 		height: 32px;
-		border-radius: var(--border-radius-sm);
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		flex-shrink: 0;
 		overflow: hidden;
-		font-size: 0.8rem;
-		font-weight: 800;
+		border-radius: var(--border-radius-sm);
+		font-size: 14px;
+		font-weight: 700;
 		color: var(--loader-color);
-		background: color-mix(in srgb, var(--loader-color) 18%, transparent);
+		background: color-mix(in srgb, var(--loader-color) 12%, transparent);
 	}
-
 	.instance-avatar img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
 	}
-
 	.instance-text {
-		display: flex;
-		flex-direction: column;
-		gap: 1px;
+		display: grid;
+		gap: 4px;
 		min-width: 0;
 	}
-
 	.instance-name {
-		font-size: var(--text-small);
-		line-height: var(--line-height-small);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 13px;
+		line-height: 1.5;
 		font-weight: 600;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 	}
-
 	.instance-version {
-		font-size: var(--text-caption);
-		line-height: var(--line-height-caption);
-		color: var(--text-muted);
-		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		white-space: nowrap;
+		color: var(--text-muted);
+		font-size: 11px;
+		line-height: 1.5;
 	}
-
-	.user-chip {
-		margin-top: auto;
-		flex-shrink: 0;
+	.empty {
 		display: flex;
 		flex-direction: column;
-		align-items: stretch;
-		gap: 10px;
-		padding: 8px 10px;
-		border-radius: var(--border-radius);
-		border: 1px solid var(--border);
-		background: var(--surface-card);
+		align-items: center;
+		gap: 12px;
+		padding: 16px 0;
+		color: var(--text-secondary);
+		font-size: 12px;
+		text-align: center;
 	}
-
-	.user-head {
-		position: relative;
-		flex-shrink: 0;
-		width: 32px;
-		height: 32px;
-		border-radius: var(--border-radius-sm);
-		overflow: hidden;
-		background: var(--bg-input);
+	.empty-create {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: var(--text-muted);
+		gap: 8px;
+		min-height: 36px;
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius-sm);
+		padding: 8px;
+		background: var(--surface-interactive);
+		color: var(--text-primary);
 	}
-
-	.user-head :global(.user-head-fallback) {
-		position: absolute;
+	.empty-search {
+		font-size: 12px;
+		color: var(--text-secondary);
+		overflow-wrap: anywhere;
 	}
-
+	.user-chip {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		margin-top: auto;
+		flex-shrink: 0;
+		padding: 12px 8px 0;
+		border: 0;
+		border-top: 1px solid var(--border);
+		background: transparent;
+	}
+	.user-profile {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		width: 100%;
+		min-width: 0;
+		min-height: 36px;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		color: var(--text-primary);
+		text-align: left;
+		cursor: pointer;
+	}
+	.user-head {
+		position: relative;
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		flex-shrink: 0;
+		overflow: hidden;
+		border-radius: var(--border-radius-sm);
+	}
+	.face-fallback,
 	.skin-head {
 		position: absolute;
 		inset: 0;
-		display: block;
 		width: 32px;
 		height: 32px;
+		image-rendering: pixelated;
 	}
-
-	/* Recorte de la textura de skin real (64x64) a la cara, escalada 4x
-	   (256/64) — base primero, capa "hat" overlay encima. Sin canvas. */
 	.skin-layer {
 		position: absolute;
 		inset: 0;
@@ -816,198 +728,197 @@
 		background-size: 256px auto;
 		image-rendering: pixelated;
 	}
-
 	.skin-layer.base {
 		background-position: -32px -32px;
 	}
-
 	.skin-layer.overlay {
 		background-position: -160px -32px;
 	}
-
 	.user-info {
-		display: flex;
-		flex-direction: column;
+		display: grid;
+		gap: 0;
 		min-width: 0;
 		flex: 1;
 	}
-
 	.user-name {
 		font-size: 13px;
 		line-height: 1.5;
-		font-weight: 700;
-		white-space: normal;
-		overflow-wrap: anywhere;
-		text-align: left;
-	}
-
-	.user-type {
-		font-size: 0.62rem;
-		color: var(--text-muted);
-		white-space: nowrap;
+		font-weight: 600;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
-
-	.user-actions {
-		display: flex;
-		align-items: center;
-		gap: 2px;
-	}
-
-	.sidebar.collapsed .user-chip {
-		flex-direction: column;
-		padding: 8px 4px;
-		gap: 8px;
-	}
-
-	.sidebar.collapsed .user-actions {
-		flex-wrap: wrap;
-		justify-content: center;
-	}
-
-	.sidebar-top {
-		display: flex;
-		justify-content: flex-end;
-	}
-
-	.sidebar.collapsed .sidebar-top {
-		justify-content: center;
-	}
-
-	.sidebar {
-		padding-top: 14px;
-		background: var(--surface-workspace);
-		gap: 6px;
-	}
-	.home-btn {
-		border-color: transparent;
-		background: transparent;
-		min-height: 42px;
-		font-weight: 500;
-		padding: 10px 14px;
-		gap: 12px;
-	}
-	.home-btn.active {
-		border-color: transparent;
-		background: color-mix(in srgb, var(--accent) 12%, transparent);
-		position: relative;
-	}
-	.home-btn.active:before {
-		content: '';
-		position: absolute;
-		left: -12px;
-		width: 3px;
-		height: 18px;
-		border-radius: 4px;
-		background: var(--accent);
-	}
-	.home-btn:hover {
-		border-color: transparent;
-		background: var(--surface-interactive);
-	}
-	.section-label {
-		margin-top: 20px;
+	.user-type {
 		font-size: 11px;
-		letter-spacing: 0.1em;
-	}
-	.instance-item {
-		min-height: 58px;
-		border-radius: var(--border-radius-sm);
-	}
-	.search-box {
-		border-color: var(--border);
-	}
-	.shortcut-hint {
-		display: none;
-	}
-	.instance-name {
-		font-size: 13px;
-	}
-
-	.sidebar {
-		min-height: 0;
-		height: 100%;
-		box-sizing: border-box;
+		line-height: 1.5;
+		color: var(--text-secondary);
 	}
 	.user-actions {
-		justify-content: space-evenly;
-		border-top: 1px solid var(--border);
-		padding-top: 6px;
+		display: flex;
+		gap: 8px;
+		justify-content: space-around;
 	}
 	.user-actions :global(.tfl-icon-btn) {
-		width: 40px;
+		width: 36px;
 		height: 36px;
+		min-height: 36px;
 	}
+	/* Compact is a deliberately spaced rail, not expanded rows with hidden text. */
 	.sidebar.collapsed {
-		padding: 10px 14px;
-		gap: 6px;
+		align-items: center;
+		padding: 12px;
+		gap: 12px;
 	}
-	.sidebar.collapsed .sidebar-top,
-	.sidebar.collapsed .instances,
-	.sidebar.collapsed .section-label,
-	.sidebar.collapsed .instance-list {
-		width: 44px;
+	.collapsed .primary-nav,
+	.collapsed .instances,
+	.collapsed .user-chip {
+		width: 48px;
 	}
-	.sidebar.collapsed .section-label {
-		margin-top: 6px;
-	}
-	.sidebar.collapsed .section-label-actions {
-		flex-direction: column;
-		gap: 6px;
-	}
-	.sidebar.collapsed .instance-list {
-		gap: 6px;
-	}
-	.sidebar.collapsed .home-btn,
-	.sidebar.collapsed .instance-item,
-	.sidebar.collapsed .empty-create,
-	.sidebar.collapsed :global(.tfl-icon-btn) {
+	.collapsed .home-btn {
 		width: 44px;
 		height: 44px;
 		min-height: 44px;
-		max-height: 44px;
 		padding: 0;
-		display: flex;
-		align-items: center;
 		justify-content: center;
-		border-radius: var(--border-radius-sm);
-		box-sizing: border-box;
-		flex-shrink: 0;
 	}
-	.sidebar.collapsed :global(.tfl-tooltip-wrap) {
+	.collapsed .primary-nav {
+		justify-items: center;
+	}
+	.collapsed .primary-nav :global(.tfl-tooltip-wrap) {
+		width: 44px;
+	}
+	.collapsed .instances {
+		border-top: 1px solid var(--border);
+		padding-top: 8px;
+	}
+	.collapsed .section-label {
+		justify-content: center;
+	}
+	.collapsed .section-label-actions {
+		flex-direction: column;
+		gap: 4px;
+	}
+	.collapsed .section-label-actions :global(.tfl-icon-btn) {
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
+	}
+	.collapsed .instance-list {
+		align-items: center;
+		gap: 4px;
+		padding-inline: 2px;
+	}
+	.collapsed .instance-item {
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
+		padding: 4px;
+		justify-content: center;
+	}
+	.collapsed .instance-list :global(.tfl-tooltip-wrap) {
 		width: 44px;
 		flex-shrink: 0;
 	}
-	.sidebar.collapsed .instance-avatar {
+	.collapsed .instance-avatar {
 		width: 28px;
 		height: 28px;
 	}
-	.sidebar.collapsed .user-chip {
-		padding: 0;
-		gap: 6px;
+	.collapsed .user-chip {
+		padding: 8px 0 0;
 		align-items: center;
-		background: transparent;
-		border: 0;
-		width: 44px;
+		gap: 4px;
 	}
-	.sidebar.collapsed .user-profile {
+	.collapsed .user-profile {
 		width: 44px;
 		height: 44px;
+		min-height: 44px;
 		justify-content: center;
-		border: 1px solid var(--border);
-		background: var(--surface-card);
-		border-radius: var(--border-radius-sm);
 	}
-	.sidebar.collapsed .user-actions {
+	.collapsed .user-actions {
 		flex-direction: column;
-		flex-wrap: nowrap;
-		gap: 6px;
-		width: 44px;
-		border: 0;
-		padding: 0;
+		gap: 4px;
 	}
-	.sidebar.collapsed .empty > :global(svg) {
+	.collapsed .user-actions :global(.tfl-icon-btn) {
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
+	}
+	.collapsed .empty {
+		padding: 8px 0;
+	}
+	.collapsed .empty > :global(svg) {
 		display: none;
+	}
+	/* The sibling edge tab deliberately escapes only the exterior wrapper. */
+	.sidebar-shell > :global(.tfl-tooltip-wrap) {
+		position: absolute;
+		right: -16px;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 32px;
+		height: 40px;
+		z-index: 1;
+	}
+	.sidebar-edge-toggle {
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 40px;
+		padding: 0;
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		color: var(--text-secondary);
+		background: var(--surface-workspace);
+		box-shadow: 1px 0 3px #0002;
+		cursor: pointer;
+		transition:
+			color var(--duration-micro),
+			background-color var(--duration-micro);
+	}
+	.sidebar-edge-toggle:hover {
+		color: var(--text-primary);
+		background: var(--surface-interactive);
+	}
+	.sidebar-edge-toggle:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 3px;
+	}
+	.sidebar-edge-toggle[aria-disabled='true'] {
+		color: var(--text-muted);
+		cursor: default;
+	}
+	:global(html[data-visual='pixel']) .home-btn {
+		border: 1px solid transparent;
+		box-shadow: none;
+		text-shadow: none;
+		background: transparent;
+	}
+	:global(html[data-visual='pixel']) .home-btn:hover {
+		border-color: var(--pixel-rim-light);
+		background: var(--pixel-stone);
+		box-shadow:
+			inset 0 1px var(--pixel-rim-light),
+			inset 0 -1px var(--pixel-rim-dark);
+	}
+	:global(html[data-visual='pixel']) .home-btn.active {
+		border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+		background: color-mix(in srgb, var(--accent) 14%, var(--pixel-slot));
+		box-shadow: inset 0 1px #0003;
+	}
+	:global(html[data-visual='pixel']) .home-btn:active {
+		box-shadow:
+			inset 1px 2px #0005,
+			inset -1px -1px var(--pixel-rim-light);
+	}
+	:global(html[data-visual='pixel']) .user-chip {
+		border: 0;
+		border-top: 1px solid var(--border);
+		box-shadow: none;
+	}
+	:global(html[data-visual='pixel']) .sidebar-edge-toggle {
+		border-radius: 0;
+		box-shadow:
+			inset 1px 1px var(--pixel-rim-light),
+			inset -1px -1px var(--pixel-rim-dark);
 	}
 </style>

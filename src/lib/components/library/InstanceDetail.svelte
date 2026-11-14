@@ -1,8 +1,16 @@
 <script lang="ts">
+	import {
+		isSelectionInstance,
+		instanceDisplayName,
+		instanceEdition,
+		selectionFallbackIcon
+	} from '$lib/selection-identity';
+	import ManagedClientPanel from './ManagedClientPanel.svelte';
+	import { resolveBanner } from '$lib/visual/banners';
 	import InstanceAppearance from '$lib/components/refresh/InstanceAppearance.svelte';
 	import ServerDashboard from '$lib/components/refresh/ServerDashboard.svelte';
 	import { instanceVisual } from '$lib/visual/preferences.svelte';
-	import { artworkUrl } from '$lib/visual/policy';
+
 	import { navigate } from '$lib/visual/navigation.svelte';
 	import { vr } from '$lib/i18n/refresh';
 
@@ -107,6 +115,11 @@
 	// `handlePlay`/`multiInstanceWarningKind` más abajo.
 	const otherRunning = $derived(gameSession.running.filter((r) => r.name !== instance.name));
 	const isServer = $derived(!!instance.server_type);
+	const managed = $derived(isSelectionInstance(instance));
+	const shaderCompatible = $derived(!managed || instance.selection?.shader_support === true);
+	const banner = $derived(
+		resolveBanner(instance.mc_version, instanceVisual(instance.uuid).artwork)
+	);
 	const serverRunning = $derived(serverSessions.running.has(instance.name));
 	let error = $state<string | null>(null);
 	const validTabs: TabKey[] = [
@@ -125,6 +138,13 @@
 	let tab = $state<TabKey>(
 		(validTabs as string[]).includes(initialTab ?? '') ? (initialTab as TabKey) : 'details'
 	);
+	$effect(() => {
+		if (
+			(managed && ['mods', 'modpacks', 'plugins', 'files'].includes(tab)) ||
+			(tab === 'shaders' && !shaderCompatible)
+		)
+			tab = 'details';
+	});
 	let showDeleteConfirm = $state(false);
 	let editingName = $state(false);
 	let nameDraft = $derived(instance.name);
@@ -386,9 +406,9 @@
 			// instancia nunca tiene) — tienen su propio lockfile firmado, así
 			// que acá se verifica contra ese en vez de siempre devolver "sin
 			// problemas" aunque falte algo.
-			if (instance.loader === 'ornithe-gen2') {
+			if (managed) {
 				const report = await verifySelectionIntegrity(instance.name);
-				integrityIssues = [...report.missing, ...report.corrupted];
+				integrityIssues = report.is_valid ? [] : ['Client repair required'];
 			} else {
 				integrityIssues = await verifyInstanceIntegrity(instance.name);
 			}
@@ -400,7 +420,7 @@
 	}
 
 	async function loadModCount() {
-		if (instance.loader === 'vanilla') return;
+		if (instance.loader === 'vanilla' || managed) return;
 		try {
 			modCount = (await getInstanceMods(instance.name)).length;
 		} catch {
@@ -447,27 +467,31 @@
 	>
 	<div
 		class="hero"
-		class:with-art={!!artworkUrl(instanceVisual(instance.uuid).artwork)}
-		style={artworkUrl(instanceVisual(instance.uuid).artwork)
-			? `--instance-art:url("${artworkUrl(instanceVisual(instance.uuid).artwork)}")`
-			: undefined}
+		class:with-art={!!banner.url}
+		style={`--instance-art:url("${banner.url}");--instance-art-position:${banner.position}`}
 	>
 		<button
 			type="button"
 			class="hero-icon"
 			data-instance-artwork={instance.uuid}
 			style="--loader-color: {loaderMeta.color}"
-			onclick={() => (showIconPicker = true)}
+			onclick={() => {
+				if (!managed) showIconPicker = true;
+			}}
 			aria-label={t('instanceDetail.changeIcon')}
 		>
-			{#if iconUrl}
-				<img src={iconUrl} alt="" class="hero-icon-img" />
+			{#if iconUrl || selectionFallbackIcon(instance.selection)}
+				<img
+					src={iconUrl ?? selectionFallbackIcon(instance.selection)!}
+					alt=""
+					class="hero-icon-img"
+				/>
 			{:else}
 				{instance.name.charAt(0).toUpperCase()}
 			{/if}
-			<span class="hero-icon-edit">
-				<ImagePlus size={14} />
-			</span>
+			{#if !managed}<span class="hero-icon-edit">
+					<ImagePlus size={14} />
+				</span>{/if}
 		</button>
 
 		<div class="hero-info">
@@ -509,7 +533,7 @@
 				</div>
 			{:else}
 				<div class="name-row">
-					<h2>{instance.name}</h2>
+					<h2>{instanceDisplayName(instance)}</h2>
 					<button
 						data-pixel-control
 						type="button"
@@ -519,28 +543,28 @@
 					>
 						<Pencil size={13} />
 					</button>
-					<button
-						data-pixel-control
-						type="button"
-						class="icon-btn"
-						disabled={duplicating}
-						onclick={handleDuplicate}
-						aria-label={t('instanceDetail.duplicate')}
-						title={t('instanceDetail.duplicateTitle')}
-					>
-						{#if duplicating}<Loader2 size={13} class="spin" />{:else}<Copy size={13} />{/if}
-					</button>
-					<button
-						data-pixel-control
-						type="button"
-						class="icon-btn"
-						disabled={exporting}
-						onclick={handleExport}
-						aria-label={t('instanceDetail.exportMrpack')}
-						title={t('instanceDetail.exportMrpack')}
-					>
-						{#if exporting}<Loader2 size={13} class="spin" />{:else}<FileOutput size={13} />{/if}
-					</button>
+					{#if !managed}<button
+							data-pixel-control
+							type="button"
+							class="icon-btn"
+							disabled={duplicating}
+							onclick={handleDuplicate}
+							aria-label={t('instanceDetail.duplicate')}
+							title={t('instanceDetail.duplicateTitle')}
+						>
+							{#if duplicating}<Loader2 size={13} class="spin" />{:else}<Copy size={13} />{/if}
+						</button>
+						<button
+							data-pixel-control
+							type="button"
+							class="icon-btn"
+							disabled={exporting}
+							onclick={handleExport}
+							aria-label={t('instanceDetail.exportMrpack')}
+							title={t('instanceDetail.exportMrpack')}
+						>
+							{#if exporting}<Loader2 size={13} class="spin" />{:else}<FileOutput size={13} />{/if}
+						</button>{/if}
 					<button
 						data-pixel-control
 						type="button"
@@ -582,10 +606,10 @@
 
 			<div class="stat-chips">
 				<span class="loader-badge" style="--loader-color: {loaderMeta.color}"
-					>{loaderMeta.label}</span
+					>{instanceEdition(instance)}</span
 				>
 				<span class="stat-chip"><Package size={12} /> {instance.mc_version}</span>
-				{#if instance.loader !== 'vanilla'}
+				{#if instance.loader !== 'vanilla' && !managed}
 					<span class="stat-chip"><Blocks size={12} /> {instance.loader_version}</span>
 				{/if}
 				<span class="stat-chip"><Clock size={12} /> {lastPlayedLabel}</span>
@@ -655,7 +679,7 @@
 				</div>
 				<ChevronRight size={14} class="quick-arrow" />
 			</button>
-		{:else}
+		{:else if !managed}
 			<button type="button" class="quick-card" onclick={() => (tab = 'mods')}>
 				<div class="quick-icon"><Puzzle size={16} /></div>
 				<div class="quick-text">
@@ -744,22 +768,22 @@
 					{t('serverInstance.tabConsole')}
 				</button>
 			{:else}
-				<button
-					type="button"
-					class="tab-btn"
-					class:active={tab === 'mods'}
-					onclick={() => (tab = 'mods')}
-				>
-					{t('instanceDetail.tabs.mods')}
-				</button>
-				<button
-					type="button"
-					class="tab-btn"
-					class:active={tab === 'shaders'}
-					onclick={() => (tab = 'shaders')}
-				>
-					{t('instanceDetail.tabs.shaders')}
-				</button>
+				{#if !managed}<button
+						type="button"
+						class="tab-btn"
+						class:active={tab === 'mods'}
+						onclick={() => (tab = 'mods')}
+					>
+						{t('instanceDetail.tabs.mods')}
+					</button>{/if}
+				{#if shaderCompatible}<button
+						type="button"
+						class="tab-btn"
+						class:active={tab === 'shaders'}
+						onclick={() => (tab = 'shaders')}
+					>
+						{t('instanceDetail.tabs.shaders')}
+					</button>{/if}
 				<button
 					type="button"
 					class="tab-btn"
@@ -768,14 +792,14 @@
 				>
 					{t('instanceDetail.tabs.resourcePacks')}
 				</button>
-				<button
-					type="button"
-					class="tab-btn"
-					class:active={tab === 'modpacks'}
-					onclick={() => (tab = 'modpacks')}
-				>
-					{t('instanceDetail.tabs.modpacks')}
-				</button>
+				{#if !managed}<button
+						type="button"
+						class="tab-btn"
+						class:active={tab === 'modpacks'}
+						onclick={() => (tab = 'modpacks')}
+					>
+						{t('instanceDetail.tabs.modpacks')}
+					</button>{/if}
 				<button
 					type="button"
 					class="tab-btn"
@@ -785,6 +809,12 @@
 					{t('instanceDetail.tabs.screenshots')}
 				</button>
 			{/if}
+			{#if managed}<button
+					type="button"
+					class="tab-btn"
+					class:active={tab === 'worlds'}
+					onclick={() => (tab = 'worlds')}>{t('serverInstance.tabWorlds')}</button
+				>{/if}
 			{#if !isServer}<button
 					type="button"
 					class="tab-btn"
@@ -795,6 +825,11 @@
 
 		<div class="tab-content">
 			{#if tab === 'details'}
+				{#if managed}<ManagedClientPanel
+						{instance}
+						running={gameSession.running.some((r) => r.name === instance.name)}
+						onUpdated={onChanged}
+					/>{/if}
 				{#if isServer}
 					<ServerDashboard
 						{instance}
@@ -933,13 +968,13 @@
 				<InstanceAppearance id={instance.uuid} />
 			{:else if tab === 'backups'}
 				<WorldBackups {instance} />
-			{:else if tab === 'mods'}
+			{:else if tab === 'mods' && !managed}
 				<ModsPanel {instance} />
-			{:else if tab === 'shaders'}
+			{:else if tab === 'shaders' && shaderCompatible}
 				<ShadersPanel {instance} />
 			{:else if tab === 'resourcepacks'}
 				<ResourcePacksPanel {instance} />
-			{:else if tab === 'modpacks'}
+			{:else if tab === 'modpacks' && !managed}
 				<ModpacksPanel {instance} />
 			{:else if tab === 'screenshots'}
 				<ScreenshotsPanel {instance} />
@@ -1473,7 +1508,7 @@
 	.hero.with-art {
 		background-image: linear-gradient(90deg, #091019e8, #091019a0), var(--instance-art);
 		background-size: cover;
-		background-position: center;
+		background-position: var(--instance-art-position, center);
 		color: white;
 	}
 	.hero.with-art :global(h2),

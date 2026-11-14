@@ -246,7 +246,7 @@ export const SETTINGS = [
 	{
 		id: 'scene-instance',
 		page: 'scenes',
-		label: ['Escenas por instancia', 'Scenes per instance'],
+		label: ['Escenas anteriores', 'Previous scenes'],
 		keywords: 'instancia individual override escena fondo instance',
 		current: 'scenes.instances',
 		default: 'inherit global',

@@ -5,6 +5,12 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.4-beta.2': [
+		'Beta de prueba: Living Themes acompaña toda la aplicación y 25 artworks identifican las versiones de Minecraft en Inicio, Biblioteca y detalle.',
+		'Pixel refina sus relieves y la barra lateral se pliega desde el centro de su borde, tanto en Modern como en Pixel.',
+		'TFL Selection muestra la versión instalada, actualizaciones y reparación del cliente oficial, con tus mundos y opciones personales.',
+		'El personaje permanece de frente, saluda y admite giro manual; la capa disponible responde con movimiento amortiguado. Puedes recuperar escenas anteriores en Ajustes → Fondos y escenas.'
+	],
 	'0.15.4-beta.1': [
 		'Beta de prueba: Pixel renueva sus controles, búsquedas y foco de teclado, manteniendo las fuentes Readable y Classic.',
 		'Midnight Forest, Dithered Sunset y Aurora Valley añaden paisajes pixel art con profundidad, clima y animación.',

@@ -1,4 +1,9 @@
 <script lang="ts">
+	import {
+		instanceEdition,
+		instanceDisplayName,
+		selectionFallbackIcon
+	} from '$lib/selection-identity';
 	import { IconButton } from '$lib/components/ui';
 	import { t } from '$lib/i18n/index.svelte';
 	import { ChevronLeft, ChevronRight } from 'lucide-svelte';
@@ -51,15 +56,18 @@
 		{#each instances as instance (instance.uuid)}
 			<button type="button" class="other-card" onclick={() => onSelect(instance)}>
 				<span class="other-icon">
-					{#if iconUrls[instance.uuid]}
-						<img src={iconUrls[instance.uuid]} alt="" />
+					{#if iconUrls[instance.uuid] || selectionFallbackIcon(instance.selection)}
+						<img
+							src={iconUrls[instance.uuid] ?? selectionFallbackIcon(instance.selection)!}
+							alt=""
+						/>
 					{:else}
 						{instance.name.charAt(0).toUpperCase()}
 					{/if}
 				</span>
 				<span class="other-text">
-					<span class="other-name">{instance.name}</span>
-					<span class="other-meta">{instance.mc_version} · {instance.loader}</span>
+					<span class="other-name">{instanceDisplayName(instance)}</span>
+					<span class="other-meta">{instance.mc_version} · {instanceEdition(instance)}</span>
 				</span>
 			</button>
 		{/each}

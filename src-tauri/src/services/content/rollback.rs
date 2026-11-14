@@ -108,6 +108,7 @@ pub async fn rollback_info(instance_name: &str) -> Result<Option<ModRollbackInfo
 /// jars viejos a `mods/`. Devuelve cuántos mods volvieron a su versión anterior.
 pub async fn rollback_update(instance_name: &str) -> Result<u32, String> {
     let _mutation = super::mutation_lock(instance_name).await;
+    super::ensure_mutable(instance_name, super::types::ContentKind::Mod).await?;
     let instance = instance_manager::get_instance(instance_name).await?;
     let instance_dir = instance.dir();
     restore_rollback(&rollback_dir(&instance_dir), &instance_dir.join("mods")).await
@@ -137,6 +138,7 @@ async fn restore_rollback(rb_dir: &Path, mods_dir: &Path) -> Result<u32, String>
 
 pub async fn discard_rollback(instance_name: &str) -> Result<(), String> {
     let _mutation = super::mutation_lock(instance_name).await;
+    super::ensure_mutable(instance_name, super::types::ContentKind::Mod).await?;
     let instance = instance_manager::get_instance(instance_name).await?;
     let _ = tokio::fs::remove_dir_all(rollback_dir(&instance.dir())).await;
     Ok(())

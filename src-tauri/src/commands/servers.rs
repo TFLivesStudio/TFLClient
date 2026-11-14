@@ -205,8 +205,15 @@ async fn dir_size(path: &std::path::Path) -> u64 {
 #[command]
 pub async fn list_server_worlds(instance_name: String) -> Result<Vec<WorldInfo>, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
-    let dir = instance.dir();
+    let dir = if instance.server_type.is_some() {
+        instance.dir()
+    } else {
+        instance.dir().join("saves")
+    };
     let mut worlds = Vec::new();
+    if !dir.exists() {
+        return Ok(worlds);
+    }
     let mut entries = tokio::fs::read_dir(&dir).await.map_err(|e| e.to_string())?;
     while let Ok(Some(entry)) = entries.next_entry().await {
         let path = entry.path();
@@ -222,7 +229,12 @@ pub async fn list_server_worlds(instance_name: String) -> Result<Vec<WorldInfo>,
 #[command]
 pub async fn delete_server_world(instance_name: String, world_name: String) -> Result<(), String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
-    let path = safe_join(&instance.dir(), &world_name)?;
+    let dir = if instance.server_type.is_some() {
+        instance.dir()
+    } else {
+        instance.dir().join("saves")
+    };
+    let path = safe_join(&dir, &world_name)?;
     if !path.join("level.dat").exists() {
         return Err("Esa carpeta no es un mundo válido".into());
     }
@@ -293,6 +305,7 @@ pub async fn write_instance_text_file(
     content: String,
 ) -> Result<(), String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
+    crate::services::selection::installer::ensure_personal_path(&instance.dir(), &subpath)?;
     let path = safe_join(&instance.dir(), &subpath)?;
     tokio::fs::write(&path, content)
         .await
@@ -302,6 +315,7 @@ pub async fn write_instance_text_file(
 #[command]
 pub async fn delete_instance_path(instance_name: String, subpath: String) -> Result<(), String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
+    crate::services::selection::installer::ensure_personal_path(&instance.dir(), &subpath)?;
     let path = safe_join(&instance.dir(), &subpath)?;
     let meta = tokio::fs::metadata(&path)
         .await
@@ -320,6 +334,7 @@ pub async fn delete_instance_path(instance_name: String, subpath: String) -> Res
 #[command]
 pub async fn create_instance_dir(instance_name: String, subpath: String) -> Result<(), String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
+    crate::services::selection::installer::ensure_personal_path(&instance.dir(), &subpath)?;
     let path = safe_join(&instance.dir(), &subpath)?;
     tokio::fs::create_dir_all(&path)
         .await

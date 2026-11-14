@@ -508,6 +508,11 @@ pub async fn set_instance_icon_from_preset(
 pub async fn get_instance_icon_path(name: String) -> Option<String> {
     let instance = instance_manager::get_instance(&name).await.ok()?;
     let dir = instance.dir();
+    if crate::services::selection::installer::is_selection_instance(&dir) {
+        return crate::services::selection::installer::official_icon(&dir)
+            .await
+            .map(|p| p.to_string_lossy().to_string());
+    }
     for ext in MANAGED_ICON_EXTENSIONS {
         let p = dir.join(format!("icon.{ext}"));
         if p.exists() {

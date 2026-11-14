@@ -2,6 +2,6 @@
 export function clientDisplayName(name: string | undefined, minecraftVersion: string): string {
 	const value = name?.trim();
 	return value
-		? value.replace(/^TFL Selection(?=\s|$)/i, 'TFLClient')
-		: `TFLClient ${minecraftVersion}`;
+		? value.replace(/^(?:TFL Selection|TFLClient)(?=\s|$)/i, 'TFL Client')
+		: `TFL Client ${minecraftVersion}`;
 }

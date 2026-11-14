@@ -42,3 +42,7 @@ Los archivos de evidencia y documentos históricos originales conservan el nombr
 usado cuando se crearon; no definen la terminología vigente. Las notas públicas
 revisadas sí utilizan los nombres actuales sin atribuir funciones nuevas a una
 versión anterior.
+
+## Nombres de las instancias oficiales instaladas
+
+Por instrucción del propietario, desde v0.15.4-beta.2 las instancias oficiales se presentan como **TFL Client 1.8.9** o **TFL Client 26.3**. Esta excepción de presentación no renombra rutas, IDs, targets ni manifiestos firmados. TFL Selection sigue siendo la biblioteca. Las instancias personales conservan su nombre.

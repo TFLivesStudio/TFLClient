@@ -93,7 +93,7 @@ async function search(page, selector, label, pixel) {
 	assert.ok(metrics.fits, `${label}: text fits within the control`);
 	assert.ok(metrics.name?.trim(), `${label}: explicit accessible name`);
 	if (pixel) {
-		assert.equal(metrics.frame, '2px', `${label}: one outer frame`);
+		assert.equal(metrics.frame, '1px', `${label}: one thin outer frame`);
 		assert.equal(metrics.border, '0px', `${label}: no inner frame`);
 		assert.equal(metrics.shadow, 'none', `${label}: no inner bevel`);
 		assert.equal(metrics.backgroundAlpha, 0, `${label}: transparent inner field`);

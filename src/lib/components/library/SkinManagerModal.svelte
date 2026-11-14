@@ -35,8 +35,8 @@
 	// no depende de ningún servicio externo más que la URL de la textura.
 	// El ciclo de vida del canvas/viewer (crear, cargar textura, dispose) ya
 	// no vive acá — está centralizado en `SkinViewer3D` (Entrega C, sección
-	// 1 del encargo), que WelcomeState.svelte también usa, con el mismo
-	// autoRotateSpeed/zoom que este modal ya tenía (0.8/0.85).
+	// 1 del encargo), que WelcomeState.svelte también usa. Conserva el zoom
+	// del modal (0.85); la orientación sólo cambia por interacción explícita.
 	let skinLoadError = $state(false);
 
 	// Subir skin usa el diálogo nativo de archivos, mismo riesgo conocido que
@@ -163,7 +163,6 @@
 						<SkinViewer3D
 							width={280}
 							height={360}
-							autoRotateSpeed={0.8}
 							zoom={0.85}
 							skinUrl={activeSkin?.url ?? null}
 							capeUrl={activeCape?.url ?? null}

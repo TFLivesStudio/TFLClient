@@ -53,6 +53,25 @@ pub fn service() -> ContentService<ModrinthProvider> {
     ContentService::new(ModrinthProvider)
 }
 
+/// Shared by UI and MCP mutations: official curation is installation provenance, not a loader.
+pub(crate) async fn ensure_mutable(instance: &str, kind: types::ContentKind) -> Result<(), String> {
+    if matches!(kind, types::ContentKind::Mod | types::ContentKind::Shader) {
+        let instance = crate::services::instance_manager::get_instance(instance).await?;
+        if crate::services::selection::installer::is_selection_instance(&instance.dir()) {
+            if kind == types::ContentKind::Mod {
+                return Err("TFL Selection administra este cliente. Usa verificar, reparar o actualizar el cliente completo.".into());
+            }
+            if !instance
+                .selection
+                .is_some_and(|identity| identity.shader_support)
+            {
+                return Err("Este cliente no declara compatibilidad con shaders.".into());
+            }
+        }
+    }
+    Ok(())
+}
+
 // Shared by Tauri and MCP; no UI-level guard can replace this lock.
 pub(crate) async fn mutation_lock(instance: &str) -> tokio::sync::OwnedMutexGuard<()> {
     static LOCKS: std::sync::LazyLock<

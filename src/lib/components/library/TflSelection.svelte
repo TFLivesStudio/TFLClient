@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { modalFocus } from '$lib/visual/modalFocus';
+	import { instanceDisplayName, releaseLabel } from '$lib/selection-identity';
+	import { tr } from '$lib/i18n/experience';
 	import { clientDisplayName } from '$lib/selection-names';
 	import { onMount } from 'svelte';
 	import type { InstanceData } from '$lib/types/types';
@@ -27,9 +29,6 @@
 		ShieldCheck,
 		Wrench,
 		AlertTriangle,
-		ChevronDown,
-		ChevronUp,
-		Package,
 		ShieldAlert
 	} from 'lucide-svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
@@ -50,12 +49,13 @@
 	// `support.state === 'launcher-update-required'` en lugar de omitirse
 	// en silencio.
 	let targets = $state<SelectionTarget[]>([]);
+	let selectedTargetId = $state('');
 	let loading = $state(true);
 	let catalogError = $state<string | null>(null);
 
 	let installing = $state(false);
 	let installError = $state<string | null>(null);
-	let customInstanceName = $state('TFLClient 1.8.9');
+	let customInstanceName = $state('');
 
 	let checkingUpdate = $state(false);
 	let updateInfo = $state<SelectionUpdateInfo | null>(null);
@@ -67,13 +67,13 @@
 	let repairing = $state(false);
 	let repairSuccess = $state(false);
 
-	let showComponents = $state(false);
-
-	const activeTarget = $derived<SelectionTarget | undefined>(targets[0]);
+	const activeTarget = $derived<SelectionTarget | undefined>(
+		targets.find((t) => t.targetId === selectedTargetId) ?? targets[0]
+	);
 	const activeClientName = $derived(
 		activeTarget
 			? clientDisplayName(activeTarget.displayName, activeTarget.minecraftVersion)
-			: 'TFLClient'
+			: 'TFL Client'
 	);
 
 	// `channels` ya viene ordenado stable > beta > dev desde el backend.
@@ -85,15 +85,13 @@
 		if (defaultChannel) selectedChannel = defaultChannel;
 	});
 
-	// Buscar si ya existe una instancia de esta selección instalada
-	const installedInstance = $derived.by(() => {
-		return instances.find(
+	const installedInstance = $derived(
+		instances.find(
 			(i) =>
-				i.loader === 'ornithe-gen2' ||
-				i.name.toLowerCase().includes('tfl selection') ||
-				(i.launch_version_id && i.launch_version_id.includes('ornithe-gen2'))
-		);
-	});
+				i.selection?.target_id === activeTarget?.targetId &&
+				i.selection?.channel === selectedChannel
+		)
+	);
 
 	const isRunning = $derived.by(() => {
 		if (!installedInstance) return false;
@@ -126,13 +124,13 @@
 		installing = true;
 		installError = null;
 		try {
-			const name = customInstanceName.trim() || activeClientName;
+			const name = installedInstance?.name ?? (customInstanceName.trim() || activeClientName);
 			const created = await installSelectionTarget(name, activeTarget.targetId, selectedChannel);
 			onInstanceCreated?.(created);
 			addNotice({
 				kind: 'success',
 				title: 'finished',
-				message: `Instancia ${name} instalada correctamente con Ornithe Gen2.`
+				message: tr('Cliente instalado. Ya puedes jugar.', 'Client installed. You can play now.')
 			});
 		} catch (e) {
 			installError = String(e);
@@ -223,32 +221,6 @@
 			repairing = false;
 		}
 	}
-
-	const OFFICIAL_MODS = [
-		{ name: 'Argentum', version: '1.0.2', desc: 'Reemplazo moderno y optimizado de OptiFine' },
-		{
-			name: 'Argentum Extras',
-			version: '1.0.2',
-			desc: 'Soporte adicional de características gráficas'
-		},
-		{ name: 'Cera', version: '1.0.2', desc: 'Optimizaciones de renderizado y estabilidad' },
-		{ name: 'Sarcio', version: '1.1.1', desc: 'Compatibilidad de parches de entidades e interfaz' },
-		{
-			name: 'Ornithe Standard Libraries',
-			version: '0.22.2',
-			desc: 'Librerías base de Ornithe Gen2'
-		},
-		{ name: 'Amplio', version: '0.1.1', desc: 'Zoom suave con aceleración cinemática' },
-		{ name: 'Legacy LWJGL3', version: '1.4.10', desc: 'Motor gráfico LWJGL 3 moderno para 1.8.9' },
-		{ name: 'Lucerna', version: '0.1.5-tfl.2', desc: 'Iluminación dinámica suave y eficiente' },
-		{ name: 'Pulse', version: '1.0.0', desc: 'Rendimiento y reducción de micro-stuttering' },
-		{
-			name: 'SoundFix',
-			version: '1.1.0',
-			desc: 'Correcciones y estabilidad del subsistema de audio'
-		},
-		{ name: 'TFL Core', version: '0.5.0-visual-preview.1', desc: 'Núcleo oficial de TFL Client' }
-	];
 </script>
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && onClose()} />
@@ -319,6 +291,13 @@
 				<p>{t('selectionLibrary.empty')}</p>
 			</div>
 		{:else}
+			{#if targets.length > 1}<label class="form-row"
+					>{tr('Cliente', 'Client')}<select bind:value={selectedTargetId} disabled={installing}
+						>{#each targets as target (target.targetId)}<option value={target.targetId}
+								>{clientDisplayName(target.displayName, target.minecraftVersion)}</option
+							>{/each}</select
+					></label
+				>{/if}
 			{@const ch = activeTarget.channels}
 			{@const activePointer = ch.find((c) => c.channel === selectedChannel) ?? ch[0]}
 			<div class="target-card">
@@ -326,20 +305,22 @@
 				<div class="target-header">
 					<div class="target-identity">
 						<div class="target-icon">
-							<Package size={24} />
+							<img src="/images/tfl.svg" width="36" height="36" alt="" />
 						</div>
 						<div>
 							<div class="target-title-row">
 								<h3 class="target-title">{activeClientName}</h3>
 								{#if activePointer}
 									<span class="badge badge-channel">
-										{selectedChannel.toUpperCase()} • v{activePointer.release}
+										{releaseLabel(activePointer.release, selectedChannel)}
 									</span>
 								{/if}
 							</div>
 							<p class="target-summary">
-								{activeTarget.summary ||
-									'Instalación optimizada de Minecraft 1.8.9 con Ornithe Gen2 y 11 mods administrados.'}
+								{tr(
+									'Un cliente mantenido por TFLives, con actualizaciones y reparaci\u00f3n integradas.',
+									'A client maintained by TFLives, with integrated updates and repair.'
+								)}
 							</p>
 						</div>
 					</div>
@@ -351,14 +332,7 @@
 						<span class="spec-label">Minecraft</span>
 						<span class="spec-value">{activeTarget.minecraftVersion}</span>
 					</div>
-					<div class="spec-pill">
-						<span class="spec-label">Loader</span>
-						<span class="spec-value">Ornithe Gen2 (Fabric 0.20.1)</span>
-					</div>
-					<div class="spec-pill">
-						<span class="spec-label">Runtime</span>
-						<span class="spec-value">Java 25 (Azul Zulu)</span>
-					</div>
+
 					<div class="spec-pill">
 						<span class="spec-label">Seguridad</span>
 						<span class="spec-value">Ed25519 + SHA-256</span>
@@ -369,10 +343,21 @@
 				<div class="target-main-action">
 					{#if installedInstance}
 						<div class="installed-panel">
+							<p>
+								{installedInstance.selection
+									? releaseLabel(
+											installedInstance.selection.release,
+											installedInstance.selection.channel
+										)
+									: ''}
+							</p>
+							<code>{installedInstance.selection?.release}</code>
 							<div class="installed-header">
 								<div class="status-indicator">
 									<span class="status-dot"></span>
-									<span>Instalada como <strong>{installedInstance.name}</strong></span>
+									<span
+										>Instalada como <strong>{instanceDisplayName(installedInstance)}</strong></span
+									>
 								</div>
 								{#if isRunning}
 									<span class="badge badge-running">En ejecución</span>
@@ -410,7 +395,7 @@
 									class="secondary-btn"
 									disabled={verifying}
 									onclick={handleVerify}
-									title="Verificar integridad de los 11 mods oficiales"
+									title="Verificar integridad del cliente oficial"
 								>
 									<ShieldCheck size={14} class={verifying ? 'spin' : ''} />
 									<span>Verificar</span>
@@ -458,21 +443,20 @@
 									{#if integrityReport.is_valid}
 										<Check size={15} />
 										<span
-											>Integridad perfecta: los 11 mods coinciden con los hashes SHA-256 oficiales.</span
+											>{tr(
+												'Los archivos del cliente coinciden con la versi\u00f3n oficial.',
+												'Client files match the official release.'
+											)}</span
 										>
 									{:else}
 										<ShieldAlert size={15} />
 										<div>
-											<strong>Se detectaron discrepancias en la instancia:</strong>
-											{#if integrityReport.missing.length > 0}
-												<p>Faltantes: {integrityReport.missing.join(', ')}</p>
-											{/if}
-											{#if integrityReport.corrupted.length > 0}
-												<p>Corruptos: {integrityReport.corrupted.join(', ')}</p>
-											{/if}
-											{#if integrityReport.foreign_mods.length > 0}
-												<p>Archivos no autorizados: {integrityReport.foreign_mods.join(', ')}</p>
-											{/if}
+											<strong
+												>{tr(
+													'El cliente necesita reparaci\u00f3n. Tus archivos personales se conservan.',
+													'The client needs repair. Your personal files are preserved.'
+												)}</strong
+											>
 										</div>
 										<button data-pixel-control type="button" class="btn-sm" onclick={handleRepair}>
 											Reparar ahora
@@ -533,10 +517,9 @@
 							{#if activeDownloadTask}
 								<div class="progress-box">
 									<div class="progress-header">
-										<span class="progress-stage">{activeDownloadTask.stage}</span>
-										<span class="progress-counts">
-											{activeDownloadTask.itemCurrent} / {activeDownloadTask.itemTotal} archivos
-										</span>
+										<span class="progress-stage"
+											>{tr('Instalando cliente', 'Installing client')}</span
+										>
 									</div>
 									<div class="progress-bar-bg">
 										<div
@@ -554,7 +537,7 @@
 									</div>
 									<div class="progress-footer">
 										<span class="current-file">
-											{activeDownloadTask.currentItem || 'Procesando descarga...'}
+											{tr('Preparando el cliente oficial', 'Preparing official client')}
 										</span>
 										<span class="bytes-info">
 											{(activeDownloadTask.bytesCurrent / 1048576).toFixed(1)} / {(
@@ -580,46 +563,6 @@
 									<span>{t('selectionLibrary.install', { name: activeClientName })}</span>
 								{/if}
 							</button>
-						</div>
-					{/if}
-				</div>
-
-				<!-- Sección colapsable: 11 mods y seguridad -->
-				<div class="components-section">
-					<button
-						data-pixel-control
-						type="button"
-						class="toggle-components-btn"
-						onclick={() => (showComponents = !showComponents)}
-					>
-						<span>Componentes incluidos (11 mods oficiales) y seguridad</span>
-						{#if showComponents}
-							<ChevronUp size={16} />
-						{:else}
-							<ChevronDown size={16} />
-						{/if}
-					</button>
-
-					{#if showComponents}
-						<div class="components-content anim-fade-in">
-							<p class="protection-notice">
-								🛡️ <strong>Instancia administrada y protegida:</strong> Los 11 mods oficiales están verificados
-								por hashes SHA-256 e integrados con Ornithe Gen2 + Java 25. Para asegurar estabilidad
-								competitiva y prevenir incompatibilidades, no se pueden modificar mods individuales en
-								esta instancia. Tus mundos y configuraciones personales siempre están preservados.
-							</p>
-
-							<div class="mods-list">
-								{#each OFFICIAL_MODS as mod (mod.name)}
-									<div class="mod-item">
-										<div class="mod-meta">
-											<span class="mod-name">{mod.name}</span>
-											<span class="mod-version">v{mod.version}</span>
-										</div>
-										<p class="mod-desc">{mod.desc}</p>
-									</div>
-								{/each}
-							</div>
 						</div>
 					{/if}
 				</div>
@@ -985,10 +928,6 @@
 	.notice-box div {
 		flex: 1;
 	}
-	.notice-box p {
-		margin: 2px 0 0 0;
-		font-size: 0.74rem;
-	}
 
 	.notice-success {
 		background: color-mix(in srgb, #4caf50 12%, transparent);
@@ -1075,7 +1014,6 @@
 		color: var(--text-primary);
 	}
 
-	.progress-counts,
 	.bytes-info {
 		color: var(--text-muted);
 	}
@@ -1106,91 +1044,6 @@
 		width: 100%;
 		padding: 12px;
 		font-size: 0.88rem;
-	}
-
-	.components-section {
-		display: flex;
-		flex-direction: column;
-		border-top: 1px solid var(--border);
-		padding-top: 12px;
-	}
-
-	.toggle-components-btn {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 8px 0;
-		border: none;
-		background: transparent;
-		color: var(--text-secondary);
-		font-size: 0.78rem;
-		font-weight: 600;
-		cursor: pointer;
-	}
-	.toggle-components-btn:hover {
-		color: var(--text-primary);
-	}
-
-	.components-content {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-		margin-top: 10px;
-	}
-
-	.protection-notice {
-		margin: 0;
-		padding: 10px 12px;
-		border-radius: var(--border-radius-sm);
-		background: color-mix(in srgb, var(--accent) 8%, transparent);
-		border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-		font-size: 0.74rem;
-		line-height: 1.45;
-		color: var(--text-secondary);
-	}
-
-	.mods-list {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-		gap: 8px;
-		max-height: 200px;
-		overflow-y: auto;
-		padding-right: 4px;
-	}
-
-	.mod-item {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		padding: 8px 10px;
-		border-radius: var(--border-radius-sm);
-		background: var(--bg-card);
-		border: 1px solid var(--border);
-	}
-
-	.mod-meta {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.mod-name {
-		font-size: 0.76rem;
-		font-weight: 700;
-		color: var(--text-primary);
-	}
-
-	.mod-version {
-		font-size: 0.68rem;
-		color: var(--accent);
-		font-weight: 600;
-	}
-
-	.mod-desc {
-		margin: 0;
-		font-size: 0.7rem;
-		color: var(--text-muted);
-		line-height: 1.35;
 	}
 
 	:global(.spin) {

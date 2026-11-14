@@ -42,7 +42,17 @@ export interface Settings {
 export type Loader = 'vanilla' | 'fabric' | 'forge' | 'neoforge' | 'quilt' | 'ornithe-gen2';
 export type ServerType = 'vanilla' | 'paper' | 'purpur';
 
+export interface SelectionIdentity {
+	target_id: string;
+	channel: string;
+	release: string;
+	manifest_sha256: string;
+	installed_at: string;
+	shader_support?: boolean;
+}
+
 export interface InstanceData {
+	selection?: SelectionIdentity | null;
 	uuid: string;
 	name: string;
 	mc_version: string;
