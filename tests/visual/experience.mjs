@@ -404,21 +404,14 @@ try {
 	await mediaPage.waitForFunction(() =>
 		window.__fixtureCommands.some((c) => c.cmd === 'remove_scene_media')
 	);
-	await mediaPage.locator('[data-setting="scene-instance"] select').selectOption('horizons');
 	await mediaPage.getByRole('button', { name: /Emerald Grotto/ }).click();
 	await mediaPage.locator('.pending-scene').getByRole('button', { name: 'Aplicar escena' }).click();
 	assert.equal(
-		await mediaPage.evaluate(
-			() => JSON.parse(localStorage.getItem('tfl-scenes-v1')).instances.horizons.preset
-		),
+		await mediaPage.evaluate(() => JSON.parse(localStorage.getItem('tfl-scenes-v1')).global.preset),
 		'cave'
 	);
 	await mediaPage.keyboard.press('Escape');
-	// Las escenas ya no se ven en toda la app (antes cubrían el fondo
-	// completo) — ahora viven en el hero de Home (la instancia más
-	// reciente) y en la miniatura de cada tarjeta de la Biblioteca en
-	// vista cuadrícula, que es lo único que no depende de cuál instancia
-	// sea "la más reciente" en este fixture.
+	// Ambient scene belongs to the shell; library artwork remains version-specific.
 	await mediaPage
 		.locator('.sidebar')
 		.getByRole('button', { name: 'Biblioteca', exact: true })
@@ -428,12 +421,13 @@ try {
 	await horizontesCard.waitFor();
 	assert.ok(
 		(await horizontesCard.evaluate((el) => getComputedStyle(el).backgroundImage)).includes(
-			'cave-thumb.webp'
+			'minecraft-1.21.1-art.webp'
 		)
 	);
-	await shot(mediaPage, 'instance-scene-override');
+	assert.equal(await mediaPage.locator('[data-scene-placement="window"]').count(), 1);
+	await shot(mediaPage, 'global-scene-independent-banner');
 	await mediaPage.close();
-	checks.push('local-video-import-preview-in-use-delete-instance-override');
+	checks.push('local-video-import-preview-in-use-delete-global-scene');
 	const missing = await open({
 		quality: 'Experience',
 		scene: { preset: 'forest', mediaId: 'scene-012345abcdef', motion: 'full' }

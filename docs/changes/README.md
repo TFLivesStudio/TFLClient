@@ -19,3 +19,5 @@ por separado en `docs/releases/<tag>.md` y `src/lib/releaseNotes.ts`, siguiendo 
 Los informes originales trasladados de la raíz siguen en
 [docs/history/legacy](../history/legacy/). No hace falta modificarlos ni moverlos
 otra vez al documentar un cambio nuevo.
+
+- [2026-11-14 — Visual experience refinement](2026-11-14-visual-experience-refinement.md).

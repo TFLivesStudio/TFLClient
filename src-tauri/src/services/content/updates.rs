@@ -78,6 +78,7 @@ impl<P: ContentProvider> ContentService<P> {
     /// aborta el resto del lote. Devuelve cuántos se actualizaron de verdad.
     pub async fn update_all(&self, instance_name: &str) -> Result<u32, String> {
         let _mutation = super::mutation_lock(instance_name).await;
+        super::ensure_mutable(instance_name, super::types::ContentKind::Mod).await?;
         let updates = self.check_updates(instance_name).await?;
         if updates.is_empty() {
             return Ok(0);

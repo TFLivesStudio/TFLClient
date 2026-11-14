@@ -189,9 +189,9 @@ html[data-visual='pixel'] {
 	--border-radius: 2px;
 	--border-radius-sm: 0px;
 	--border-radius-lg: 3px;
-	--shadow-sm: 3px 3px 0 #0005;
-	--shadow-md: 5px 5px 0 #0005;
-	--shadow-lg: 8px 8px 0 #0007;
+	--shadow-sm: 1px 2px 0 #0003;
+	--shadow-md: 2px 3px 0 #0003;
+	--shadow-lg: 3px 4px 0 #0005;
 	--font-brand: 'Monocraft', monospace;
 	--vr-grid: color-mix(in srgb, var(--accent) 5%, transparent);
 	--easing-standard: steps(6, end);
@@ -358,7 +358,7 @@ html[data-visual='pixel'][data-pixel-type='classic'] {
 	--font-family: 'Monocraft', monospace;
 }
 html[data-visual='pixel'] :is(.vr-library-row, .vr-editorial, .style-option, .hero) {
-	border-top: 2px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+	border-top: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
 }
 html:not([data-quality='experience']) .ambient-bg,
 html[data-no-infinite-fx] .ambient-bg {
@@ -388,15 +388,23 @@ html[data-material='matte'] [role='dialog'] {
 /* Pixel component contract: stone surfaces, inset slots and accent actions.
    Static CSS textures stay cheap in Lite and respect custom themes/materials. */
 html[data-visual='pixel'] {
-	--pixel-rim-light: color-mix(in srgb, var(--text-primary) 24%, transparent);
+	--pixel-rim-light: color-mix(in srgb, white 18%, transparent);
 	--pixel-rim-dark: color-mix(in srgb, var(--text-primary) 30%, var(--surface-canvas));
 	--pixel-focus: var(--accent);
 	--pixel-action: var(--accent);
 	--pixel-action-text: var(--accent-text);
 	--pixel-action-hover: var(--accent-hover);
-	--pixel-outline: 2px;
+	--pixel-outline: 1px;
+	--pixel-space-1: 4px;
+	--pixel-space-2: 8px;
+	--pixel-space-3: 12px;
+	--pixel-space-4: 16px;
+	--pixel-space-6: 24px;
+	--control-size-compact: 32px;
+	--control-size-normal: 40px;
+	--control-size-prominent: 48px;
 	--pixel-control-height: 36px;
-	--pixel-stone: color-mix(in srgb, var(--surface-interactive) 87%, #8b8b8b);
+	--pixel-stone: color-mix(in srgb, var(--surface-interactive) 94%, #8b8b8b);
 	--pixel-slot: color-mix(in srgb, var(--surface-workspace) 88%, #000);
 }
 html[data-visual='pixel']
@@ -420,12 +428,12 @@ html[data-visual='pixel']
 		.sort-select
 	) {
 	background-color: var(--pixel-stone);
-	border: 2px solid var(--pixel-rim-dark);
+	border: 1px solid var(--pixel-rim-dark);
 	box-shadow:
-		inset 2px 2px 0 var(--pixel-rim-light),
-		inset -2px -3px 0 var(--pixel-rim-dark),
-		0 2px 0 #0005;
-	text-shadow: 1px 1px 0 #0004;
+		inset 1px 1px 0 var(--pixel-rim-light),
+		inset -1px -2px 0 var(--pixel-rim-dark),
+		0 1px 0 #0004;
+	text-shadow: none;
 	border-radius: 0;
 }
 html[data-visual='pixel']
@@ -446,8 +454,7 @@ html[data-visual='pixel']
 		.console-view button,
 		.console-settings button
 	):hover:not(:disabled) {
-	outline: 1px solid color-mix(in srgb, var(--accent) 75%, white);
-	outline-offset: 0;
+	border-color: color-mix(in srgb, var(--accent) 60%, var(--pixel-rim-dark));
 	background-color: color-mix(in srgb, var(--pixel-stone) 88%, var(--accent));
 }
 html[data-visual='pixel']
@@ -465,7 +472,7 @@ html[data-visual='pixel']
 		.home-btn
 	):active:not(:disabled) {
 	box-shadow:
-		inset 2px 3px 0 #0006,
+		inset 1px 2px 0 #0006,
 		inset -1px -1px 0 var(--pixel-rim-light);
 }
 html[data-visual='pixel']
@@ -495,11 +502,11 @@ html[data-visual='pixel']
 	) {
 	background: var(--pixel-action);
 	color: var(--pixel-action-text);
-	border: 2px solid color-mix(in srgb, var(--pixel-action) 60%, var(--surface-canvas));
+	border: 1px solid color-mix(in srgb, var(--pixel-action) 60%, var(--surface-canvas));
 	box-shadow:
-		inset 2px 2px 0 #ffffff38,
-		inset -2px -3px 0 #0005,
-		0 3px 0 #0006;
+		inset 1px 1px 0 #ffffff38,
+		inset -1px -2px 0 #0005,
+		0 1px 0 #0005;
 	text-shadow: none;
 }
 html[data-visual='pixel']
@@ -526,10 +533,10 @@ html[data-visual='pixel']
 		.content-row
 	) {
 	background-color: var(--pixel-slot);
-	border: 2px solid #0005;
+	border: 1px solid #0005;
 	box-shadow:
-		inset 2px 2px 0 #0005,
-		inset -2px -2px 0 var(--pixel-rim-light);
+		inset 1px 1px 0 #0004,
+		inset -1px -1px 0 var(--pixel-rim-light);
 }
 html[data-visual='pixel']
 	:is(
@@ -539,14 +546,13 @@ html[data-visual='pixel']
 		select,
 		textarea
 	) {
-	border: 2px solid var(--pixel-rim-dark);
+	border: 1px solid var(--pixel-rim-dark);
 	background-color: var(--pixel-slot);
 	box-shadow:
-		inset 2px 2px 0 #0004,
+		inset 1px 1px 0 #0003,
 		inset -1px -1px 0 var(--pixel-rim-light);
 }
-html[data-visual='pixel']
-	:is(.sidebar, .vr-library-row, .vr-editorial, .settings-refresh, .config-dialog) {
+html[data-visual='pixel'] :is(.sidebar) {
 	background-image: repeating-linear-gradient(
 		0deg,
 		#00000004 0px,
@@ -556,20 +562,20 @@ html[data-visual='pixel']
 	);
 }
 html[data-visual='pixel'] :is([role='dialog'], .user-chip) {
-	border: 3px solid color-mix(in srgb, var(--surface-elevated) 65%, #9c9c9c);
+	border: 1px solid color-mix(in srgb, var(--surface-elevated) 65%, #9c9c9c);
 	box-shadow:
-		inset 2px 2px 0 var(--pixel-rim-light),
-		inset -2px -2px 0 #0008,
-		5px 5px 0 #0006;
+		inset 1px 1px 0 var(--pixel-rim-light),
+		inset -1px -1px 0 #0005,
+		3px 4px 0 #0004;
 }
 html[data-visual='pixel'] .tfl-tooltip-bubble {
 	background: var(--surface-elevated);
 	color: var(--text-primary);
-	border: 2px solid color-mix(in srgb, var(--accent) 60%, var(--border));
-	box-shadow: 2px 2px 0 #0009;
+	border: 1px solid color-mix(in srgb, var(--accent) 60%, var(--border));
+	box-shadow: 1px 2px 0 #0005;
 }
 html[data-visual='pixel'] :is(.hero-badge, .vr-eyebrow, .active-tag) {
-	text-shadow: 1px 1px 0 #0004;
+	text-shadow: none;
 }
 html[data-visual='pixel'] :is(.user-head, .skin-head, .instance-avatar img) {
 	image-rendering: pixelated;
@@ -597,7 +603,7 @@ html[data-visual='pixel'] [data-search-control] {
 	background: var(--pixel-slot);
 	color: var(--text-secondary);
 	box-shadow:
-		inset 2px 2px #0003,
+		inset 1px 1px #0003,
 		inset -1px -1px var(--pixel-rim-light);
 	border-radius: 0;
 }
@@ -659,8 +665,8 @@ html[data-visual='pixel'] :is(.instance-mark, .preview-block):has(img) {
 html[data-visual='pixel'] :is(.scene-tile, .theme-card, .style-option, .quality-card, .mold) {
 	border-radius: 0;
 	box-shadow:
-		inset 2px 2px var(--pixel-rim-light),
-		inset -2px -2px #0005;
+		inset 0 1px var(--pixel-rim-light),
+		inset 0 -1px #0004;
 }
 html[data-visual='pixel'] :is(.scene-tile, .theme-card, .style-option, .quality-card, .mold):hover {
 	background-color: color-mix(in srgb, var(--accent) 8%, var(--surface-card));
@@ -669,8 +675,8 @@ html[data-visual='pixel']
 	:is(.scene-tile, .theme-card, .style-option, .quality-card)[aria-pressed='true'] {
 	border-color: var(--accent);
 	box-shadow:
-		inset 2px 2px #ffffff22,
-		inset -2px -2px #0008,
+		inset 0 1px #ffffff22,
+		inset 0 -1px #0005,
 		0 0 0 1px var(--accent);
 }
 
@@ -804,4 +810,29 @@ html[data-visual='pixel'] .tfl-btn.ghost:hover:not(:disabled) {
 	html[data-visual='pixel'][data-pixel-type='classic'] .panel-tabs .ptab > svg {
 		display: none;
 	}
+}
+
+/* Pixel 2.0: a four-pixel rhythm and shallow arcade relief. */
+html[data-visual='pixel'] :is(.vr-control, .tfl-btn, [data-pixel-control]:not(.icon-btn)) {
+	gap: var(--pixel-space-2);
+}
+html[data-visual='pixel'] .vr-control {
+	padding: var(--pixel-space-2) var(--pixel-space-3);
+}
+html[data-visual='pixel'] :is(.tfl-btn.compact, .tfl-icon-btn.compact, .mini-btn) {
+	min-height: 32px;
+}
+html[data-visual='pixel'] .vr-toolbar {
+	gap: var(--pixel-space-2);
+	margin-block: var(--pixel-space-6);
+}
+html[data-visual='pixel'] .tfl-tooltip-bubble {
+	padding: var(--pixel-space-2) var(--pixel-space-3);
+}
+html[data-visual='pixel'] :is(.scene-tile, .theme-card, .style-option, .quality-card) {
+	box-shadow: inset 0 1px var(--pixel-rim-light);
+}
+html[data-visual='pixel'][data-theme='light'] {
+	--pixel-rim-light: #fff9;
+	--pixel-rim-dark: #0003;
 }

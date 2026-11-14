@@ -9,23 +9,24 @@ import {
 	sceneCapabilities
 } from '../../src/lib/scenes/model.ts';
 
-test('v1 scenes migrate additively without changing saved backgrounds, videos or instance overrides', () => {
+test('v1 scenes migrate to global-background v2 without losing saved media or archived instance choices', () => {
 	const old = {
 		version: 1,
 		global: { preset: 'pixel', mediaId: 'builtin-aurora', motion: 'off', poster: 'mc-4' },
 		instances: { minecraft: { preset: 'forest', fps: 15, gamePolicy: 'pause' } }
 	};
 	const migrated = parseScenes(old);
-	assert.equal(migrated.version, 1);
+	assert.equal(migrated.version, 2);
 	assert.equal(migrated.global.preset, 'pixel');
 	assert.equal(migrated.global.mediaId, 'builtin-aurora');
 	assert.equal(migrated.global.poster, 'mc-4');
 	assert.equal(migrated.global.motion, 'off');
-	assert.equal(migrated.global.scope, 'hero');
+	assert.equal(migrated.global.scope, 'window');
 	assert.equal(migrated.global.dithering, true);
 	assert.equal(migrated.instances.minecraft.preset, 'forest');
 	assert.equal(migrated.instances.minecraft.fps, 15);
 	assert.equal(migrated.instances.minecraft.gamePolicy, 'pause');
+	assert.equal(migrated.instances.minecraft.scope, 'window');
 	assert.deepEqual(parseScenes(JSON.parse(JSON.stringify(migrated))), migrated);
 });
 
@@ -45,7 +46,8 @@ test('new landscape settings round trip and reject URLs, malformed scope and non
 	}
 	assert.equal(parseScene({ parallax: -4 }).parallax, 0);
 	assert.equal(parseScene({ parallax: 500 }).parallax, 1);
-	assert.equal(parseScene({ scope: 'file:///private' }).scope, 'hero');
+	assert.equal(parseScene({ scope: 'file:///private' }).scope, 'window');
+	assert.equal(parseScene({ scope: 'hero' }).scope, 'window');
 	assert.equal(parseScene({ preset: 'https://example.com/theme' }).preset, 'legacy');
 });
 

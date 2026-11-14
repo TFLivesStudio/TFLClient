@@ -87,6 +87,7 @@ pub async fn install_modpack(
     mc_version: String,
     loader: String,
 ) -> Result<InstalledModpack, String> {
+    content::ensure_mutable(&instance_name, content::types::ContentKind::Mod).await?;
     let version = content::service()
         .latest_version(&project_id, &mc_version, Some(&loader))
         .await?
@@ -166,6 +167,7 @@ async fn install_from_url_internal(
     source_id: &str,
     mrpack_url: &str,
 ) -> Result<(InstalledModpack, Vec<String>), String> {
+    content::ensure_mutable(&instance_name, content::types::ContentKind::Mod).await?;
     let instance = instance_manager::get_instance(instance_name).await?;
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
     let temp_dir = shared_dir
@@ -305,6 +307,7 @@ async fn remove_modpack_files(
     version_id: &str,
     keep: &std::collections::HashSet<String>,
 ) -> Result<(), String> {
+    content::ensure_mutable(&instance_name, content::types::ContentKind::Mod).await?;
     valid_version_id(version_id)?;
     let instance = instance_manager::get_instance(instance_name).await?;
     let instance_dir = instance.dir();

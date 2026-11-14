@@ -5,16 +5,15 @@
 	import { t } from '$lib/i18n/index.svelte';
 	import { vr } from '$lib/i18n/refresh';
 	import { instanceVisual } from '$lib/visual/preferences.svelte';
-	import { artworkUrl } from '$lib/visual/policy';
+	import { resolveBanner } from '$lib/visual/banners';
+	import { instanceDisplayName, instanceEdition } from '$lib/selection-identity';
 	import { effects } from '$lib/visual/runtime.svelte';
 	import { parallax } from '$lib/visual/motion';
 	import { selectInstance } from '$lib/state/instanceState.svelte';
-	import LivingScene from '$lib/scenes/LivingScene.svelte';
 	import type { InstanceData, MojangProfile } from '$lib/types/types';
 	let {
 		featured,
 		iconUrl,
-		bannerBg,
 		lastPlayedLabel,
 		playTimeLabel,
 		isRunning,
@@ -28,7 +27,6 @@
 	}: {
 		featured: InstanceData;
 		iconUrl: string | null;
-		bannerBg: string | null;
 		lastPlayedLabel: string | null;
 		playTimeLabel: string | null;
 		isRunning: boolean;
@@ -41,7 +39,7 @@
 		onOpenSkinManager: () => void;
 	} = $props();
 	const artwork = $derived(instanceVisual(featured.uuid).artwork);
-	const image = $derived(artwork === 'none' ? null : (artworkUrl(artwork) ?? bannerBg));
+	const banner = $derived(resolveBanner(featured.mc_version, artwork));
 </script>
 
 <section
@@ -49,10 +47,11 @@
 	class:launching
 	class:running={isRunning}
 	use:parallax={effects.current.parallax}
-	style={image ? `--hero-image:url("${image}")` : artwork === 'none' ? '--hero-image:none' : ''}
+	data-banner-source={banner.source}
+	data-banner-id={banner.id}
+	style={`--hero-image:${banner.url ? `url("${banner.url}")` : 'none'};--banner-position:${banner.position}`}
 >
 	<div class="hero-art" aria-hidden="true"></div>
-	<div class="hero-scene" aria-hidden="true"><LivingScene instance={featured} /></div>
 	<div class="hero-light" aria-hidden="true"></div>
 	<div class="hero-identity">
 		<span class="vr-eyebrow"><span class="hero-dot"></span>{vr('continue')}</span>
@@ -61,9 +60,9 @@
 				>MINECRAFT <span class="edition-divider">/</span> {featured.mc_version}</span
 			>
 		</div>
-		<h1 class="hero-name">{featured.name}</h1>
+		<h1 class="hero-name">{instanceDisplayName(featured)}</h1>
 		<div class="hero-meta">
-			<Badge>{featured.loader}</Badge>{#if isRunning}<Badge variant="success"
+			<Badge>{instanceEdition(featured)}</Badge>{#if isRunning}<Badge variant="success"
 					>{t('home.runningBadge')}</Badge
 				>{/if}<span><Clock size={14} />{lastPlayedLabel ?? t('home.neverPlayed')}</span
 			>{#if playTimeLabel}<span>{playTimeLabel}</span>{/if}
@@ -76,7 +75,8 @@
 			><button
 				class="hero-detail"
 				onclick={() => selectInstance(featured)}
-				aria-label={`${vr('open')} ${featured.name}`}><ArrowUpRight size={21} /></button
+				aria-label={`${vr('open')} ${instanceDisplayName(featured)}`}
+				><ArrowUpRight size={21} /></button
 			>
 		</div>
 		{#if launching}<p class="launch-caption" role="status">{vr('launch')}</p>{/if}
@@ -86,7 +86,7 @@
 		<div class="character-stage" aria-hidden="true"></div>
 		<CharacterPanel {isPremium} {accountUuid} {profile} {onOpenSkinManager} {launching} />
 	</div>
-	<span class="hero-coordinate" aria-hidden="true">TFL / {featured.loader.toUpperCase()}</span>
+	<span class="hero-coordinate" aria-hidden="true">TFL / {instanceEdition(featured)}</span>
 </section>
 
 <style>
@@ -95,8 +95,8 @@
 		display: flex;
 		align-items: center;
 		isolation: isolate;
-		min-height: 370px;
-		padding: 40px 44px;
+		min-height: 320px;
+		padding: 32px 36px;
 		border: 1px solid var(--border);
 		border-radius: var(--border-radius-lg);
 		overflow: hidden;
@@ -112,19 +112,7 @@
 		z-index: -3;
 		background: var(--hero-image);
 		background-size: cover;
-		background-position: center 42%;
-		transform: translate3d(var(--pointer-x), var(--pointer-y), 0);
-		transition: transform 180ms ease-out;
-	}
-	/* Encima de .hero-art (reemplaza la imagen fija por la escena viva
-	   —vídeo/atmósfera— cuando hay una configurada; si no, .hero-art se ve
-	   sin tapar). Mismo inset que .hero-art para que el parallax coincida. */
-	.hero-scene {
-		position: absolute;
-		inset: -12px;
-		z-index: -3;
-		overflow: hidden;
-		border-radius: inherit;
+		background-position: var(--banner-position, center 42%);
 		transform: translate3d(var(--pointer-x), var(--pointer-y), 0);
 		transition: transform 180ms ease-out;
 	}

@@ -21,10 +21,59 @@
 	} = $props();
 
 	let open = $state(false);
+	let trigger = $state<HTMLSpanElement>();
+	const id = $props.id();
+	/** Portalled only while open: scrolling panes keep their clipping boundaries. */
+	function positionBubble(node: HTMLSpanElement) {
+		document.body.appendChild(node);
+		const control = trigger?.querySelector('button, a, input, [tabindex]');
+		const previousDescription = control?.getAttribute('aria-describedby');
+		const description = [previousDescription, id].filter(Boolean).join(' ');
+		control?.setAttribute('aria-describedby', description);
+		const place = () => {
+			if (!trigger) return;
+			const r = trigger.getBoundingClientRect(),
+				b = node.getBoundingClientRect();
+			let x = r.left + (r.width - b.width) / 2,
+				y = r.top - b.height - 8;
+			if (position === 'bottom') y = r.bottom + 8;
+			if (position === 'left' || position === 'right') {
+				x = position === 'left' ? r.left - b.width - 8 : r.right + 8;
+				y = r.top + (r.height - b.height) / 2;
+			}
+			node.style.left = Math.max(8, Math.min(x, innerWidth - b.width - 8)) + 'px';
+			node.style.top = Math.max(8, Math.min(y, innerHeight - b.height - 8)) + 'px';
+			node.style.visibility = 'visible';
+		};
+		const escape = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') open = false;
+		};
+		const observer = new ResizeObserver(place);
+		if (trigger) observer.observe(trigger);
+		observer.observe(node);
+		window.addEventListener('resize', place);
+		window.addEventListener('scroll', place, true);
+		window.addEventListener('keydown', escape);
+		place();
+		return {
+			destroy() {
+				observer.disconnect();
+				window.removeEventListener('resize', place);
+				window.removeEventListener('scroll', place, true);
+				window.removeEventListener('keydown', escape);
+				if (control?.getAttribute('aria-describedby') === description) {
+					if (previousDescription) control.setAttribute('aria-describedby', previousDescription);
+					else control.removeAttribute('aria-describedby');
+				}
+				node.remove();
+			}
+		};
+	}
 </script>
 
 <span
 	class="tfl-tooltip-wrap"
+	bind:this={trigger}
 	role="group"
 	onmouseenter={() => !disabled && (open = true)}
 	onmouseleave={() => (open = false)}
@@ -33,7 +82,7 @@
 >
 	{@render children()}
 	{#if open && !disabled}
-		<span class="tfl-tooltip-bubble pos-{position}" role="tooltip">
+		<span {id} class="tfl-tooltip-bubble" role="tooltip" use:positionBubble>
 			{#if typeof content === 'string'}
 				{content}
 			{:else}
@@ -50,10 +99,12 @@
 	}
 
 	.tfl-tooltip-bubble {
-		position: absolute;
+		position: fixed;
+		visibility: hidden;
 		z-index: var(--z-tooltip);
 		width: max-content;
-		max-width: 260px;
+		max-width: min(260px, calc(100vw - 16px));
+		overflow-wrap: anywhere;
 		padding: 8px 10px;
 		border-radius: var(--border-radius-sm);
 		border: 1px solid var(--border);
@@ -66,27 +117,6 @@
 		text-align: left;
 		pointer-events: none;
 		animation: tfl-tooltip-in var(--duration-micro) var(--easing-decelerate);
-	}
-
-	.tfl-tooltip-bubble.pos-top {
-		bottom: calc(100% + 8px);
-		left: 50%;
-		transform: translateX(-50%);
-	}
-	.tfl-tooltip-bubble.pos-bottom {
-		top: calc(100% + 8px);
-		left: 50%;
-		transform: translateX(-50%);
-	}
-	.tfl-tooltip-bubble.pos-left {
-		right: calc(100% + 8px);
-		top: 50%;
-		transform: translateY(-50%);
-	}
-	.tfl-tooltip-bubble.pos-right {
-		left: calc(100% + 8px);
-		top: 50%;
-		transform: translateY(-50%);
 	}
 
 	@keyframes tfl-tooltip-in {

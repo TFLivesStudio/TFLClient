@@ -1,35 +1,36 @@
 <script lang="ts">
 	import { subscribeFrame } from '$lib/scenes/frameClock';
+	import { untrack } from 'svelte';
+	import { CharacterController } from '$lib/visual/character';
 	import { scenes } from '$lib/scenes/preferences.svelte';
 	import { reaction } from '$lib/scenes/reactions.svelte';
 	import type { SkinViewer } from 'skinview3d';
 	import { effects, runtime } from '$lib/visual/runtime.svelte';
 	import { vr } from '$lib/i18n/refresh';
-	import { Box, UserRound } from 'lucide-svelte';
+	import { Box, UserRound, Hand, RotateCcw } from 'lucide-svelte';
+	import { tr } from '$lib/i18n/experience';
 	let {
 		skinUrl = null,
 		capeUrl = null,
 		width,
 		height,
-		autoRotate = true,
-		autoRotateSpeed = 0.7,
 		zoom = 0.9,
 		onSkinError,
 		onCapeError,
 		priority = 'studio',
-		launching = false
+		launching = false,
+		working = false
 	}: {
 		skinUrl?: string | null;
 		capeUrl?: string | null;
 		width: number;
 		height: number;
-		autoRotate?: boolean;
-		autoRotateSpeed?: number;
 		zoom?: number;
 		onSkinError?: (error: unknown) => void;
 		onCapeError?: (error: unknown) => void;
 		priority?: 'hero' | 'studio';
 		launching?: boolean;
+		working?: boolean;
 	} = $props();
 	let canvas = $state<HTMLCanvasElement>(),
 		container = $state<HTMLDivElement>(),
@@ -37,6 +38,11 @@
 	let manual = $state(false),
 		intersecting = $state(true),
 		failed = $state(false);
+	const character = new CharacterController();
+	let dragPointer: number | null = null,
+		dragX = 0,
+		dragStartX = 0,
+		dragged = false;
 	const enabled = $derived(!!skinUrl && !failed && (effects.current.viewer || manual));
 	const visible = $derived(
 		intersecting &&
@@ -47,6 +53,7 @@
 	$effect(() => {
 		void skinUrl;
 		failed = false;
+		character.resetView();
 	});
 	$effect(() => {
 		if (!container) return;
@@ -61,6 +68,7 @@
 	});
 	$effect(() => {
 		if (!canvas || !enabled || !visible) return;
+		void skinUrl;
 		const node = canvas,
 			w = width,
 			h = height;
@@ -84,6 +92,9 @@
 					created.zoom = zoom;
 					created.controls.enableZoom = false;
 					created.controls.enablePan = false;
+					created.controls.enabled = false;
+					created.autoRotate = false;
+					created.playerWrapper.rotation.y = character.yaw;
 					viewer = created;
 				} catch (error) {
 					failed = true;
@@ -143,73 +154,127 @@
 		if (!current) return;
 		const animate = visible && effects.current.animateViewer;
 		current.renderPaused = true;
-		current.autoRotate = animate && autoRotate;
-		current.autoRotateSpeed = autoRotateSpeed;
+		current.autoRotate = false;
 		current.pixelRatio = Math.min(window.devicePixelRatio || 1, effects.current.dpr);
 		current.zoom = zoom;
-		const cinematic = effects.current.cinematic,
-			launch =
-				(priority !== 'hero' || scenes.global.reactive) &&
-				(launching || reaction.kind === 'launch'),
-			result = priority !== 'hero' || scenes.global.reactive ? reaction.kind : 'idle',
-			fps = Math.min(scenes.global.fps, cinematic ? 60 : 24);
-		let stop = () => {};
-		let stale = false;
-		import('skinview3d').then(
-			({ IdleAnimation, WalkingAnimation, WaveAnimation, HitAnimation }) => {
-				if (stale || viewer !== current) return;
-				current.animation =
-					animate && cinematic
-						? launch
-							? new WalkingAnimation()
-							: result === 'success'
-								? new WaveAnimation()
-								: result === 'error'
-									? new HitAnimation()
-									: new IdleAnimation()
-						: null;
-				if (!animate) current.render();
-				else
-					stop = subscribeFrame((delta) => {
-						current.animation?.update(current.playerObject, delta);
-						if (autoRotate) current.playerWrapper.rotation.y += delta * autoRotateSpeed;
-						current.controls.update();
-						current.render();
-					}, fps);
-			}
-		);
-		return () => {
-			stale = true;
-			stop();
-		};
+		const full = effects.current.cinematic,
+			fps = Math.min(scenes.global.fps, full ? 60 : 24);
+		current.animation = null;
+		untrack(() => {
+			character.step(0, false, false, false);
+			applyPose(current);
+			current.render();
+		});
+		return animate
+			? subscribeFrame((delta) => {
+					character.step(delta, true, current.playerObject.cape.visible, full);
+					applyPose(current);
+					current.render();
+				}, fps)
+			: undefined;
 	});
-	function look(e: PointerEvent) {
-		if (priority === 'hero' && effects.current.cinematic && viewer) {
-			const rect =
-				e.currentTarget instanceof HTMLElement ? e.currentTarget.getBoundingClientRect() : null;
-			if (rect) {
-				viewer.playerObject.skin.head.rotation.y = Math.max(
-					-0.35,
-					Math.min(0.35, (e.clientX - rect.left) / rect.width - 0.5)
-				);
-				viewer.playerObject.skin.head.rotation.x = Math.max(
-					-0.18,
-					Math.min(0.18, (e.clientY - rect.top) / rect.height - 0.5)
-				);
-			}
+	$effect(() => {
+		const kind = priority !== 'hero' || scenes.global.reactive ? reaction.kind : 'idle';
+		void reaction.sequence;
+		character.setEvent(launching || kind === 'launch' ? 'launch' : working ? 'prepare' : kind);
+	});
+	function applyPose(current: SkinViewer) {
+		const p = character.pose,
+			player = current.playerObject,
+			skin = player.skin;
+		skin.head.rotation.set(p.headX, p.headY, 0);
+		skin.body.rotation.set(p.bodyX, p.bodyY, p.bodyZ);
+		skin.leftArm.rotation.set(p.leftArmX, 0, p.leftArmZ);
+		skin.rightArm.rotation.set(p.rightArmX, 0, p.rightArmZ);
+		skin.leftLeg.rotation.x = p.leftLegX;
+		skin.rightLeg.rotation.x = p.rightLegX;
+		player.position.y = p.lift;
+		current.playerWrapper.rotation.y = character.yaw;
+		if (player.cape.visible) {
+			player.cape.rotation.x = character.cape?.pitch.value ?? 0.19;
+			player.cape.rotation.z = character.cape?.roll.value ?? 0;
 		}
+	}
+	function look(e: PointerEvent) {
+		if (dragPointer === e.pointerId) {
+			character.yaw += (e.clientX - dragX) * 0.012;
+			dragX = e.clientX;
+			dragged ||= Math.abs(e.clientX - dragStartX) > 4;
+		} else if (effects.current.animateViewer && e.currentTarget instanceof HTMLElement) {
+			const rect = e.currentTarget.getBoundingClientRect();
+			character.look(
+				(e.clientX - rect.left) / rect.width - 0.5,
+				(e.clientY - rect.top) / rect.height - 0.5
+			);
+		}
+		if (dragPointer === e.pointerId) draw();
+	}
+	function pointerDown(e: PointerEvent) {
+		if (e.button !== 0) return;
+		dragPointer = e.pointerId;
+		dragX = dragStartX = e.clientX;
+		dragged = false;
+		character.dragging = true;
+		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+	}
+	function pointerUp(e: PointerEvent) {
+		if (dragPointer !== e.pointerId) return;
+		dragPointer = null;
+		character.dragging = false;
+	}
+	function greet() {
+		if (effects.current.animateViewer) character.greet();
+	}
+	function resetView() {
+		character.resetView();
 		draw();
 	}
+	function key(e: KeyboardEvent) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			greet();
+		} else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+			e.preventDefault();
+			character.yaw += e.key === 'ArrowLeft' ? -0.2 : 0.2;
+			draw();
+		} else if (e.key === 'Home') {
+			e.preventDefault();
+			resetView();
+		}
+	}
 	function draw() {
-		if (viewer?.renderPaused && !effects.current.animateViewer) viewer.render();
+		if (viewer?.renderPaused && !effects.current.animateViewer) {
+			applyPose(viewer);
+			viewer.render();
+		}
 	}
 </script>
 
 <div class="skin-view" bind:this={container} style:width={`${width}px`}>
 	{#if enabled}<canvas
 			bind:this={canvas}
-			aria-label={vr('studio')}
+			role="button"
+			tabindex="0"
+			aria-label={tr(
+				'Personaje 3D: Enter para saludar, flechas para girar, Inicio para vista frontal',
+				'3D character: Enter to wave, arrows to turn, Home for front view'
+			)}
 			onpointermove={look}
+			onpointerdown={pointerDown}
+			onpointerup={pointerUp}
+			onpointercancel={pointerUp}
+			onclick={(event) => {
+				if (event.detail === 0 || !dragged) greet();
+			}}
+			onlostpointercapture={() => {
+				dragPointer = null;
+				character.dragging = false;
+			}}
+			onpointerenter={() => {
+				if (effects.current.animateViewer) character.hover();
+			}}
+			onpointerleave={() => character.look(0, 0)}
+			onkeydown={key}
 			style:height={`${height}px`}
 		></canvas>
 	{:else}<div
@@ -230,6 +295,24 @@
 			><Box size={14} />{manual ? vr('disable3d') : vr('enable3d')}</button
 		>{/if}
 	{#if failed}<p class="vr-muted">{vr('noSkin')}</p>{/if}
+	{#if enabled && viewer}<div class="character-actions">
+			<button
+				type="button"
+				class="vr-control"
+				onclick={greet}
+				disabled={!effects.current.animateViewer}
+				title={tr('Saludar', 'Wave')}
+				aria-label={tr('Saludar', 'Wave')}><Hand size={14} /></button
+			>
+			<span>{tr('Arrastra para girar', 'Drag to turn')}</span>
+			<button
+				type="button"
+				class="vr-control"
+				onclick={resetView}
+				title={tr('Vista frontal', 'Front view')}
+				aria-label={tr('Vista frontal', 'Front view')}><RotateCcw size={14} /></button
+			>
+		</div>{/if}
 </div>
 
 <style>
@@ -243,6 +326,31 @@
 		max-width: 100%;
 		object-fit: contain;
 		cursor: grab;
+		touch-action: none;
+	}
+	.skin-view canvas:active {
+		cursor: grabbing;
+	}
+	.skin-view canvas:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: -3px;
+	}
+	.character-actions {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		width: 100%;
+	}
+	.character-actions span {
+		font-size: 10px;
+		color: var(--text-muted);
+		text-align: center;
+	}
+	.character-actions button {
+		min-width: 28px;
+		min-height: 28px;
+		padding: 4px;
 	}
 	.static-view {
 		display: grid;

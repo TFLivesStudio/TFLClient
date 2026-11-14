@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { selectionFallbackIcon } from '$lib/selection-identity';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { getInstanceIconPath } from '$lib/api';
 	import { iconVersions } from '$lib/state/instanceState.svelte';
@@ -10,12 +11,14 @@
 		const name = instance.name,
 			version = iconVersions[name] ?? 0;
 		let active = true;
+		const fallback = selectionFallbackIcon(instance.selection);
+		url = fallback;
 		getInstanceIconPath(name)
 			.then((path) => {
-				if (active) url = path ? `${convertFileSrc(path)}?v=${version}` : null;
+				if (active) url = path ? `${convertFileSrc(path)}?v=${version}` : fallback;
 			})
 			.catch(() => {
-				if (active) url = null;
+				if (active) url = fallback;
 			});
 		return () => {
 			active = false;

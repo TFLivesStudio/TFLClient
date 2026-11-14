@@ -62,7 +62,6 @@ try {
 		await settings(page);
 		const stored = await page.evaluate(() => localStorage.getItem('tfl-scenes-v1'));
 		await page.getByRole('button', { name: /Dithered Sunset/ }).click();
-		await page.getByLabel('Mostrar escenario en').selectOption('hero');
 		assert.equal(
 			await page.evaluate(() => localStorage.getItem('tfl-scenes-v1')),
 			stored,
@@ -72,18 +71,27 @@ try {
 			.locator('.pending-scene')
 			.getByRole('button', { name: 'Cancelar', exact: true })
 			.click();
-		assert.equal(await page.getByLabel('Mostrar escenario en').inputValue(), 'window');
+		assert.equal(
+			await page.getByLabel('Mostrar escenario en').count(),
+			0,
+			'ambience is always global'
+		);
 		await page.getByRole('button', { name: /Aurora Valley/ }).click();
-		await page.getByLabel('Mostrar escenario en').selectOption('hero');
 		await page
 			.locator('.pending-scene')
 			.getByRole('button', { name: 'Aplicar escena', exact: true })
 			.click();
 		await page.keyboard.press('Escape');
-		await placement(page, 'hero');
-		assert.equal(await page.locator('.hero [data-landscape="aurora-valley"]').count(), 1);
+		await placement(page, 'window');
+		assert.equal(await page.locator('.hero [data-landscape]').count(), 0);
+		assert.equal(
+			await page
+				.locator('[data-scene-placement="window"] [data-landscape="aurora-valley"]')
+				.count(),
+			1
+		);
 		await page.screenshot({ path: `${output}/${style}-hero.png` });
-		checks.push(`${style}: window, preview cancel, apply, single Hero renderer`);
+		checks.push(`${style}: global background, preview cancel, apply, separate editorial Hero`);
 		await page.context().close();
 	}
 	const instance = await open({
@@ -92,16 +100,27 @@ try {
 	await placement(instance, 'window');
 	assert.equal(
 		await instance
-			.locator('[data-scene-placement="window"] [data-landscape="dithered-sunset"]')
+			.locator('[data-scene-placement="window"] [data-landscape="midnight-forest"]')
 			.count(),
 		1
 	);
+	await settings(instance);
+	await instance.getByLabel('Recuperar ambientación anterior').selectOption('horizons');
+	await instance.getByRole('button', { name: 'Cargar ambientación', exact: true }).click();
+	await instance
+		.locator('.pending-scene')
+		.getByRole('button', { name: 'Aplicar escena', exact: true })
+		.click();
+	await instance.keyboard.press('Escape');
+	await instance
+		.locator('[data-scene-placement="window"] [data-landscape="dithered-sunset"]')
+		.waitFor();
 	assert.equal(
 		await instance.locator('[data-scene-placement] canvas').count(),
 		0,
-		'static instance override creates no canvas'
+		'restored archived static scene remains static'
 	);
-	checks.push('featured instance placement override, static fallback without canvas');
+	checks.push('instance archive is retained and explicitly restored as a global static background');
 	await instance.context().close();
 	const lite = await open({ scope: 'window', quality: 'Lite' });
 	await placement(lite, 'window');

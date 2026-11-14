@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { instanceEdition, instanceDisplayName } from '$lib/selection-identity';
 	import {
 		Search,
 		Plus,
@@ -27,16 +28,13 @@
 	import { i18nState } from '$lib/i18n/index.svelte';
 	import InstanceMark from './InstanceMark.svelte';
 	import LaunchControl from './LaunchControl.svelte';
-	import { scenes } from '$lib/scenes/preferences.svelte';
-	import { cinematicPoster } from '$lib/scenes/cinematic';
+	import { resolveBanner } from '$lib/visual/banners';
+
 	import type { InstanceData } from '$lib/types/types';
-	// Miniatura de escena para la tarjeta en vista cuadrícula — mismo origen
-	// que el fondo del hero de Home (ver InstanceHero.svelte), con el
-	// archivo -thumb liviano en vez del poster completo.
 	function sceneThumb(instance: InstanceData) {
-		const config = scenes.instances[instance.uuid] ?? scenes.global;
-		return cinematicPoster(config.preset, true);
+		return resolveBanner(instance.mc_version, instanceVisual(instance.uuid).artwork).thumbnail;
 	}
+
 	let query = $state(''),
 		filter = $state('all'),
 		groupName = $state(''),
@@ -46,7 +44,7 @@
 			.filter((i) => {
 				const meta = instanceVisual(i.uuid);
 				return (
-					`${i.name} ${i.mc_version} ${i.loader}`
+					`${instanceDisplayName(i)} ${i.mc_version} ${instanceEdition(i)}`
 						.toLowerCase()
 						.includes(query.toLowerCase().trim()) &&
 					(filter === 'all' ||
@@ -151,14 +149,15 @@
 			{@const thumb = sceneThumb(instance)}
 			<article
 				class="vr-library-row"
+				data-banner-source={resolveBanner(instance.mc_version, meta.artwork).source}
 				class:running={running(instance)}
 				style={thumb ? `--scene-thumb:url("${thumb}")` : ''}
 			>
 				<button class="instance-open" onclick={() => selectInstance(instance)}
 					><InstanceMark {instance} /><span class="instance-copy"
-						><strong>{instance.name}</strong><span
+						><strong>{instanceDisplayName(instance)}</strong><span
 							>{instance.mc_version}
-							<span class="loader">{instance.server_type ?? instance.loader}</span></span
+							<span class="loader">{instanceEdition(instance)}</span></span
 						></span
 					></button
 				>
@@ -176,7 +175,7 @@
 					>
 				</div>
 				<select
-					aria-label={`${vr('group')}: ${instance.name}`}
+					aria-label={`${vr('group')}: ${instanceDisplayName(instance)}`}
 					value={meta.group}
 					onchange={(e) => setInstanceVisual(instance.uuid, { group: e.currentTarget.value })}
 					><option value="">{vr('ungrouped')}</option>{#each visual.groups as group (group)}<option
@@ -186,7 +185,7 @@
 				<div class="row-actions">
 					<button
 						class="favorite"
-						aria-label={`${vr('favorite')}: ${instance.name}`}
+						aria-label={`${vr('favorite')}: ${instanceDisplayName(instance)}`}
 						aria-pressed={meta.favorite}
 						onclick={() => setInstanceVisual(instance.uuid, { favorite: !meta.favorite })}
 						><Star size={17} fill={meta.favorite ? 'currentColor' : 'none'} /></button
@@ -198,7 +197,7 @@
 						>{:else}<LaunchControl {instance} />{/if}
 					<button
 						class="favorite"
-						aria-label={`${vr('more')}: ${instance.name}`}
+						aria-label={`${vr('more')}: ${instanceDisplayName(instance)}`}
 						onclick={(e) => {
 							e.stopPropagation();
 							const r = e.currentTarget.getBoundingClientRect();

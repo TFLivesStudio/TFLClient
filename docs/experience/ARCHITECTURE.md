@@ -69,3 +69,7 @@ El perfil oficial `release` permanece idéntico. El perfil opt-in `review` usa o
 ## Revisión pendiente por plataforma
 
 La evidencia automática es Chromium con IPC simulado, pruebas Rust de archivos reales/ACL/telemetría y observaciones CDP. No equivale a probar inicio de sesión Microsoft, Minecraft con una cuenta real, códecs de cada OS, notarización, GPU física, autonomía energética ni todos los controladores. Tampoco se afirma haber hecho un estudio con usuarios: las tareas de descubrimiento se verifican mediante búsquedas y destinos reales. Esas comprobaciones manuales se enumeran en [TESTING.md](TESTING.md).
+
+## Refinamiento de v0.15.4-beta.2
+
+El shell conserva una única ambientación global; los Heroes y las tarjetas resuelven artwork editorial independiente. La migración conserva preferencias y escenas archivadas. Véase [el contrato de fondos y banners](BACKGROUNDS_AND_BANNERS.md), [sidebar](SIDEBAR.md) y [personaje](CHARACTER.md). Las descripciones anteriores de escenas por instancia corresponden a versiones previas.

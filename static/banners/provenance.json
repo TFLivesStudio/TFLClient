@@ -1,0 +1,208 @@
+{
+  "source": "Owner-provided minecraft-key-art-25-imagenes-COMPLETO.zip",
+  "archive_sha256": "c1b086ce06ff159ea5b91fe676c7c0852fa8d2b458e7c2cc5b0faf7b8cb83827",
+  "rights": "Owner supplied and approved for this task. Minecraft artwork remains the property of its respective rights holders; no independent redistribution license is asserted.",
+  "family_rule": "Highest explicitly supplied patch per family is the declared fallback; exact versions always win.",
+  "files": [
+    {
+      "name": "minecraft-1.8.9-art.jpg",
+      "extension": "jpg",
+      "width": 1170,
+      "height": 500,
+      "size": 171288,
+      "sha256": "02f87dd4c637c8e2ab3f8d1a3bf2203c839b3ba32f222041f8fbcd65de7452b0"
+    },
+    {
+      "name": "minecraft-1.9.4-art.png",
+      "extension": "png",
+      "width": 1619,
+      "height": 971,
+      "size": 2035504,
+      "sha256": "96658e830798412de57f8ebbb304fe1e2a7290f1fd1a5575889eff07eeffe017"
+    },
+    {
+      "name": "minecraft-1.10.2-art.png",
+      "extension": "png",
+      "width": 1619,
+      "height": 971,
+      "size": 2514229,
+      "sha256": "3a764807b6cc83ff5ecace55f3e193a91a24b3938419160758e42e4973b16946"
+    },
+    {
+      "name": "minecraft-1.11.2-art.png",
+      "extension": "png",
+      "width": 1619,
+      "height": 971,
+      "size": 2346026,
+      "sha256": "2bcf7520ff8ecb578fb6407a557be51135746ae78df3d69780f57f022aa20133"
+    },
+    {
+      "name": "minecraft-1.12.2-art.jpg",
+      "extension": "jpg",
+      "width": 1170,
+      "height": 500,
+      "size": 187846,
+      "sha256": "9b7dc254c04db22b3fe8d40f08ed7cd59af985bde727124ef2ed969a4be06005"
+    },
+    {
+      "name": "minecraft-1.13.2-art.jpg",
+      "extension": "jpg",
+      "width": 1280,
+      "height": 768,
+      "size": 182398,
+      "sha256": "7905bddc7caaf21c447f9df1b54aeb03b991cf7417c2d17261b18808ff87c0d9"
+    },
+    {
+      "name": "minecraft-1.14.4-art.jpg",
+      "extension": "jpg",
+      "width": 1280,
+      "height": 768,
+      "size": 248675,
+      "sha256": "e7bc6f1aabea29ef9cee30aede0a95f3e1b827813e75aa597c9f345fd38a119d"
+    },
+    {
+      "name": "minecraft-1.15.2-art.jpg",
+      "extension": "jpg",
+      "width": 1280,
+      "height": 768,
+      "size": 209949,
+      "sha256": "2b4cbe7a03586e9e08860c12eff80d37524b5da000bc66415818df8ddfce63c3"
+    },
+    {
+      "name": "minecraft-1.16.5-art.jpg",
+      "extension": "jpg",
+      "width": 1280,
+      "height": 768,
+      "size": 256896,
+      "sha256": "4acabe59ef290f5592b5febb402473a8b60e58cacdefbd25a5d3bf65219f0e9c"
+    },
+    {
+      "name": "minecraft-1.17.1-art.jpg",
+      "extension": "jpg",
+      "width": 1170,
+      "height": 500,
+      "size": 171505,
+      "sha256": "f81e2dc805e0d0c574fb355f39bcb8a18b94ff397aa5d5917c0691e4db94521a"
+    },
+    {
+      "name": "minecraft-1.18.2-art.jpg",
+      "extension": "jpg",
+      "width": 1280,
+      "height": 768,
+      "size": 242867,
+      "sha256": "056324dfbe49992802004be447d21bb82d3264d2c200eb7cb5f2ce9e1019cd81"
+    },
+    {
+      "name": "minecraft-1.19.4-art.jpg",
+      "extension": "jpg",
+      "width": 1280,
+      "height": 768,
+      "size": 237044,
+      "sha256": "0f3056ad8da531d9aa868c1f1c7f7a71492fc9401def5a1896b369c64d887b92"
+    },
+    {
+      "name": "minecraft-1.20.1-art.jpg",
+      "extension": "jpg",
+      "width": 1280,
+      "height": 768,
+      "size": 210317,
+      "sha256": "d6532e97449492fd80313ffa2e5b5d826dee74774d26cd10ae521ee4e2f7c7fc"
+    },
+    {
+      "name": "minecraft-1.20.4-art.jpg",
+      "extension": "jpg",
+      "width": 1000,
+      "height": 563,
+      "size": 115236,
+      "sha256": "98105fa6f8dc4a64ca6469f9638e5a31f7d9e7b7f25ea67d3abff49cfeea25e6"
+    },
+    {
+      "name": "minecraft-1.20.6-art.jpg",
+      "extension": "jpg",
+      "width": 1000,
+      "height": 563,
+      "size": 105373,
+      "sha256": "6192cf160ffcc64da1bbb0f5f014deb92121e089e8e21d93ea698300be3814ec"
+    },
+    {
+      "name": "minecraft-1.21.1-art.jpg",
+      "extension": "jpg",
+      "width": 1280,
+      "height": 768,
+      "size": 293034,
+      "sha256": "700c7963d13db91a077cfbbcb6ed45f92163313fe1ba1491b0559e1552889410"
+    },
+    {
+      "name": "minecraft-1.21.3-art.jpg",
+      "extension": "jpg",
+      "width": 1000,
+      "height": 563,
+      "size": 56523,
+      "sha256": "c74206ad39f3a2273e267159ea8406247da06ba5ab66612acd37a4d311bf7605"
+    },
+    {
+      "name": "minecraft-1.21.4-art.jpg",
+      "extension": "jpg",
+      "width": 1000,
+      "height": 563,
+      "size": 72105,
+      "sha256": "6eb20c6eb1e311214af0625a5dae1d8eb0a271f5d03b679ae5f9c817e22133b4"
+    },
+    {
+      "name": "minecraft-1.21.5-art.jpg",
+      "extension": "jpg",
+      "width": 1000,
+      "height": 563,
+      "size": 136888,
+      "sha256": "99bbd8154a7978d4c795d9df03902401e220350d4db619306c765565e28cc478"
+    },
+    {
+      "name": "minecraft-1.21.6-art.jpg",
+      "extension": "jpg",
+      "width": 1000,
+      "height": 563,
+      "size": 135979,
+      "sha256": "945f45b0547fb44d3f36b2f745915c9c07ddc5e28399a0d15deb30ee5b414ad4"
+    },
+    {
+      "name": "minecraft-1.21.9-art.jpg",
+      "extension": "jpg",
+      "width": 1000,
+      "height": 563,
+      "size": 164376,
+      "sha256": "d8529046878404acbd93cc572c5995e5a8baf3986cc4a16e980a94f3b4e9a0da"
+    },
+    {
+      "name": "minecraft-1.21.11-art.jpg",
+      "extension": "jpg",
+      "width": 1000,
+      "height": 563,
+      "size": 159447,
+      "sha256": "8c49a0f3ed375430a78d69e1ea9bd3728362d5e4353e6834f9dcf942321779b5"
+    },
+    {
+      "name": "minecraft-26.1-art.jpg",
+      "extension": "jpg",
+      "width": 1000,
+      "height": 563,
+      "size": 235497,
+      "sha256": "f36633b612757bd1abe8750f85f99dfcb0dd19c8a6f23018801f87b326bf512b"
+    },
+    {
+      "name": "minecraft-26.2-art.jpg",
+      "extension": "jpg",
+      "width": 1000,
+      "height": 563,
+      "size": 245198,
+      "sha256": "898d9895d92b0b76fb323458ce224059bba7f69ffbb36bb13bba09360466972f"
+    },
+    {
+      "name": "minecraft-26.3-art.jpg",
+      "extension": "jpg",
+      "width": 1170,
+      "height": 500,
+      "size": 119520,
+      "sha256": "0a74d7b7c4d79bf1a961dbff12e4a2fe7ea33d977bdf62607809ad3c4aa8f2b6"
+    }
+  ]
+}

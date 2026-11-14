@@ -63,6 +63,17 @@ impl LoaderKind {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SelectionIdentity {
+    pub target_id: String,
+    pub channel: String,
+    pub release: String,
+    pub manifest_sha256: String,
+    pub installed_at: String,
+    #[serde(default)]
+    pub shader_support: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstanceData {
     pub uuid: String,
     pub name: String,
@@ -105,6 +116,9 @@ pub struct InstanceData {
     /// mostrar en Detalles (ej. "Paper build 133"), no afecta el launch.
     #[serde(default)]
     pub server_build: Option<String>,
+    /// Installation provenance, hydrated from the Selection lock, never inferred from a loader.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<SelectionIdentity>,
 }
 
 impl InstanceData {
@@ -123,7 +137,7 @@ impl InstanceData {
     }
 }
 
-fn valid_instance_name(name: &str) -> Result<(), String> {
+pub(crate) fn valid_instance_name(name: &str) -> Result<(), String> {
     let trimmed = name.trim();
     if trimmed.is_empty() {
         return Err("El nombre de la instancia no puede estar vacío".into());
@@ -189,6 +203,7 @@ pub async fn create_instance_full(
         server_type,
         server_jar,
         server_build,
+        selection: None,
     };
     if data.dir().exists() {
         return Err("Ya existe una instancia con ese nombre".into());
@@ -206,8 +221,11 @@ pub async fn list_instances() -> Vec<InstanceData> {
     while let Ok(Some(entry)) = entries.next_entry().await {
         let manifest = entry.path().join("instance.tfl.json");
         if let Ok(raw) = tokio::fs::read_to_string(&manifest).await
-            && let Ok(data) = serde_json::from_str::<InstanceData>(&raw)
+            && let Ok(mut data) = serde_json::from_str::<InstanceData>(&raw)
         {
+            data.selection =
+                crate::services::selection::installer::identity_from_lock(&entry.path())
+                    .or(data.selection);
             out.push(data);
         }
     }
@@ -223,7 +241,10 @@ pub async fn get_instance(name: &str) -> Result<InstanceData, String> {
     let raw = tokio::fs::read_to_string(&manifest)
         .await
         .map_err(|_| "Instancia no encontrada".to_string())?;
-    serde_json::from_str(&raw).map_err(|e| e.to_string())
+    let mut data: InstanceData = serde_json::from_str(&raw).map_err(|e| e.to_string())?;
+    data.selection =
+        crate::services::selection::installer::identity_from_lock(&data.dir()).or(data.selection);
+    Ok(data)
 }
 
 pub async fn delete_instance(name: &str) -> Result<(), String> {

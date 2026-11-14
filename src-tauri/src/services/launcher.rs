@@ -344,7 +344,9 @@ async fn launch_inner(
     // Java se resuelve una vez acá: lo necesitan tanto el lanzamiento final
     // como (para Forge/NeoForge) el propio instalador del loader.
     // Para TFLClient 1.8.9 de la biblioteca TFL Selection (Ornithe Gen2), Java 25 es mandatorio.
-    let java_major = if data.loader == LoaderKind::OrnitheGen2 {
+    let java_major = if crate::services::selection::installer::is_selection_instance(&data.dir()) {
+        crate::services::selection::installer::required_java(&data.dir()).await?
+    } else if data.loader == LoaderKind::OrnitheGen2 {
         25
     } else {
         aqua::infer_java_version(&data.mc_version)
@@ -359,7 +361,8 @@ async fn launch_inner(
     info!("Java {java_major}: {}", java_path.display());
 
     let perf_prepare = crate::core::perf::span("launch.prepare_minecraft");
-    if data.loader == LoaderKind::OrnitheGen2 {
+    if crate::services::selection::installer::is_selection_instance(&data.dir()) {
+        let _guard = crate::services::content::mutation_lock(instance_name).await;
         crate::services::selection::installer::prepare_for_launch(&data).await?;
     }
     ensure_downloaded(&data, Some(java_path.clone())).await?;

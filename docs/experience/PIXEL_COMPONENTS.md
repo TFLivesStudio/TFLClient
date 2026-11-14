@@ -14,8 +14,13 @@ Las reglas compartidas viven en `src/styles/refresh.css`.
 | `--pixel-action`, `--pixel-action-hover` | Acento configurado para acciones primarias                      |
 | `--pixel-action-text`                    | Primer plano del acento, con la política de contraste existente |
 | `--pixel-focus`                          | Anillo de teclado separado del bisel                            |
-| `--pixel-outline`                        | Grosor del marco compuesto, 2 px                                |
+| `--pixel-outline`                        | Grosor del marco compuesto, 1 px                                |
 | `--pixel-control-height`                 | Altura mínima de interacción, 36 px                             |
+
+Pixel 2.0 conserva un contorno exterior de 1 px y un relieve de uno o dos píxeles
+interiores. El peso visual procede del bisel y de la jerarquía, sin aumentar
+los marcos de tarjetas y diálogos. La escala de espaciado es 4/8/12/16/24 px;
+los controles compactos, normales y prominentes mantienen variantes propias.
 
 Los botones conservan un solo relieve. Hover modifica la superficie, pressed
 invierte el bisel y el foco conserva un contorno de 2 px separado del borde.
