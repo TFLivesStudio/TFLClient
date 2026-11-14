@@ -119,7 +119,7 @@ Abrir Ajustes promedió 48.3/59.3/59.3 ms antes y 47.3/60.0/61.0 después.
 El detalle promedió 66.3/122.3/120.7 ms antes y 61.0/138.3/126.7 después:
 la muestra Balanced incluye una observación de 171 ms. Son muestras pequeñas,
 sin garantía estadística ni equivalencia a rendimiento nativo.
-Las escenas nuevas consumieron aproximadamente 40–73 ms de tareas Chromium
+Las escenas nuevas consumieron aproximadamente 38–78 ms de tareas Chromium
 por segundo en la observación registrada, con ocho superficies 2D por Forest
 y Sunset y nueve por Aurora (incluidas cachés); Lite no crea contextos. Los
 costes de inicio/caché y dibujo medio pueden medirse optativamente con la
