@@ -140,3 +140,28 @@ No se certificaron una cuenta Microsoft real, partidas, lectores de pantalla,
 GPU física, autonomía ni todas las combinaciones de controladores y códecs.
 Las pruebas nativas de OAuth en CI usan fixtures sin cuenta real ni bóveda del
 sistema. No se desactiva ninguna compuerta para sustituir estas limitaciones.
+
+## Publicación comprobada
+
+Publicada **v0.15.4-beta.1** el **2026-11-14T06:15:02Z**, release ID
+`445065636`, desde el commit `c5a4df7cb768f5efe9115a876572f1e30d4b43c8`.
+[Release](https://github.com/TFLivesStudio/TFLClient/releases/tag/v0.15.4-beta.1) ·
+[workflow oficial completo](https://github.com/TFLivesStudio/TFLClient/actions/runs/43563869332).
+Los seis jobs de calidad/construcción terminaron con éxito. El tag es anotado;
+la release es prerelease y no es draft. Se comprobaron 17 assets, firmas, ocho
+entradas firmadas de `latest.json` y versión 0.15.4-beta.1. Los instaladores
+Windows x64, macOS arm64 y Linux x64 y el manifest responden HTTP 200. Las notas
+publicadas coinciden exactamente con el generador. La estable v0.15.2 conserva
+su ID y los IDs/hashes de todos sus assets.
+
+La CI nativa de autenticación y ACL del commit final terminó correctamente en
+Windows y macOS (run 43563273460). La CI de Linux y la matriz visual pasaron
+(run 43563273458), y el workflow oficial volvió a ejecutar sus compuertas.
+No se afirma certificación GUI nativa: falta MSVC en el host local y la revisión
+automática bloqueó el comando de extracción administrativa de MSI preparado
+para obtener una herramienta de extracción; el motivo devuelto fue
+`blocked by policy`. No se instaló esa herramienta ni se alteraron datos de usuario.
+
+La evidencia verificable de publicación está en
+[publication.json](../qa/pixel-living-themes/publication.json). Este cierre
+documental se guarda después del tag, sin cambiar los binarios publicados.

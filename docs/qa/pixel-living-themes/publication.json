@@ -1,0 +1,167 @@
+{
+  "tag": "v0.15.4-beta.1",
+  "commit": "c5a4df7cb768f5efe9115a876572f1e30d4b43c8",
+  "published_at": "2026-11-14T06:15:02Z",
+  "prerelease": true,
+  "draft": false,
+  "workflow": {
+    "id": 43563869332,
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 132353305220,
+        "name": "Calidad / Rust (fmt + clippy + tests + audit)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 132353305457,
+        "name": "Calidad / Frontend (check + lint)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 132353305514,
+        "name": "Calidad / Beta UI (Chromium)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 132354386665,
+        "name": "build (macos-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 132354386714,
+        "name": "build (windows-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 132354386729,
+        "name": "build (ubuntu-22.04)",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "stable_unchanged": true,
+  "notes_match": true,
+  "asset_head_status": {
+    "TFLClient-Windows-Setup.exe": 200,
+    "TFLClient-macOS.dmg": 200,
+    "TFLClient-Linux.AppImage": 200,
+    "latest.json": 200
+  },
+  "manifest": {
+    "version": "0.15.4-beta.1",
+    "platform_entries": 8,
+    "all_have_signature": true
+  },
+  "assets": [
+    {
+      "name": "latest.json",
+      "size": 7810,
+      "digest": "sha256:0fc06ff0d607eddfd95ad656d0cb68e7a7f84739e3718999cbbe28477360d1e4",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/latest.json"
+    },
+    {
+      "name": "tflclient-0.15.4-beta.1-1.x86_64.rpm",
+      "size": 23994944,
+      "digest": "sha256:9e157bd4e4a517b19f0a28973d8d055997399efdd95228abb4a3dfb59e3fb08d",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/tflclient-0.15.4-beta.1-1.x86_64.rpm"
+    },
+    {
+      "name": "tflclient-0.15.4-beta.1-1.x86_64.rpm.sig",
+      "size": 428,
+      "digest": "sha256:64339f1d8064deff438077a3e47949e90f1c4413d4388faf6b8befb68d2f3958",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/tflclient-0.15.4-beta.1-1.x86_64.rpm.sig"
+    },
+    {
+      "name": "TFLClient-Linux.AppImage",
+      "size": 101280248,
+      "digest": "sha256:fe60b3d7a1531dba38a4896b857d61f26b7ccb74e1a1022940162d932343741c",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/TFLClient-Linux.AppImage"
+    },
+    {
+      "name": "TFLClient-Linux.deb",
+      "size": 23984038,
+      "digest": "sha256:80c8d9f6cd4dc1815de58ba64c72d4b90bef5b33d7a6439d69a51641de32477e",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/TFLClient-Linux.deb"
+    },
+    {
+      "name": "TFLClient-Linux.rpm",
+      "size": 23994944,
+      "digest": "sha256:9e157bd4e4a517b19f0a28973d8d055997399efdd95228abb4a3dfb59e3fb08d",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/TFLClient-Linux.rpm"
+    },
+    {
+      "name": "TFLClient-macOS.dmg",
+      "size": 21680040,
+      "digest": "sha256:d509bb69754a41b0de85b675cd178895489cd2479922e10a70b0bc4135913005",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/TFLClient-macOS.dmg"
+    },
+    {
+      "name": "TFLClient-Windows-Setup.exe",
+      "size": 18795813,
+      "digest": "sha256:95995a302750e38d9f0731fdecec11764b90fd662ab2be223c1e32681ac83c81",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/TFLClient-Windows-Setup.exe"
+    },
+    {
+      "name": "tflclient_0.15.4-beta.1_aarch64.dmg",
+      "size": 21680040,
+      "digest": "sha256:d509bb69754a41b0de85b675cd178895489cd2479922e10a70b0bc4135913005",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/tflclient_0.15.4-beta.1_aarch64.dmg"
+    },
+    {
+      "name": "tflclient_0.15.4-beta.1_amd64.AppImage",
+      "size": 101280248,
+      "digest": "sha256:fe60b3d7a1531dba38a4896b857d61f26b7ccb74e1a1022940162d932343741c",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/tflclient_0.15.4-beta.1_amd64.AppImage"
+    },
+    {
+      "name": "tflclient_0.15.4-beta.1_amd64.AppImage.sig",
+      "size": 432,
+      "digest": "sha256:e166602d8d7cf301598e498fca8e8bb3113abb7e29f013c8e39c8d391f762437",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/tflclient_0.15.4-beta.1_amd64.AppImage.sig"
+    },
+    {
+      "name": "tflclient_0.15.4-beta.1_amd64.deb",
+      "size": 23984038,
+      "digest": "sha256:80c8d9f6cd4dc1815de58ba64c72d4b90bef5b33d7a6439d69a51641de32477e",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/tflclient_0.15.4-beta.1_amd64.deb"
+    },
+    {
+      "name": "tflclient_0.15.4-beta.1_amd64.deb.sig",
+      "size": 424,
+      "digest": "sha256:afede9fcab5e30865be67e56a98d5f6ae4927230405dfa32cbb323588d036d30",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/tflclient_0.15.4-beta.1_amd64.deb.sig"
+    },
+    {
+      "name": "tflclient_0.15.4-beta.1_x64-setup.exe",
+      "size": 18795813,
+      "digest": "sha256:95995a302750e38d9f0731fdecec11764b90fd662ab2be223c1e32681ac83c81",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/tflclient_0.15.4-beta.1_x64-setup.exe"
+    },
+    {
+      "name": "tflclient_0.15.4-beta.1_x64-setup.exe.sig",
+      "size": 432,
+      "digest": "sha256:ef2c9a96582337f131e75ebc2450fa4455b11ba9e5c2ca1d134c0720c6432dc6",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/tflclient_0.15.4-beta.1_x64-setup.exe.sig"
+    },
+    {
+      "name": "tflclient_aarch64.app.tar.gz",
+      "size": 21774802,
+      "digest": "sha256:0893b44fca795772cad19d914cc038b03709c7ac3d19418e14da335831786343",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/tflclient_aarch64.app.tar.gz"
+    },
+    {
+      "name": "tflclient_aarch64.app.tar.gz.sig",
+      "size": 408,
+      "digest": "sha256:d8c6164ee8804bd5dfa14f0223829f935638fe2399572d832684a6ecf4ccafcc",
+      "url": "https://github.com/TFLivesStudio/TFLClient/releases/download/v0.15.4-beta.1/tflclient_aarch64.app.tar.gz.sig"
+    }
+  ]
+}
