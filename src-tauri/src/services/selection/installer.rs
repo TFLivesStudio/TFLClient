@@ -757,8 +757,8 @@ async fn install_target_inner(
         launch_version_id: launch_id,
         last_played: previous.as_ref().map_or(0, |i| i.last_played),
         play_time_secs: previous.as_ref().map_or(0, |i| i.play_time_secs),
-        min_memory: previous.as_ref().and_then(|i| i.min_memory).or(Some(2048)),
-        max_memory: previous.as_ref().and_then(|i| i.max_memory).or(Some(4096)),
+        min_memory: previous.as_ref().map_or(Some(2048), |i| i.min_memory),
+        max_memory: previous.as_ref().map_or(Some(4096), |i| i.max_memory),
         server_type: None,
         server_jar: None,
         server_build: None,
@@ -776,12 +776,39 @@ async fn install_target_inner(
 
 /// Repara la instancia reinstalando los archivos oficiales faltantes o corruptos.
 pub async fn repair_selection(instance_name: &str) -> Result<(), String> {
+    crate::services::instance_manager::valid_instance_name(instance_name)?;
+    let _guard = crate::services::content::mutation_lock(instance_name).await;
+    if crate::services::launcher::running_instances()
+        .iter()
+        .any(|(name, _)| name == instance_name)
+    {
+        return Err("Cierra Minecraft antes de reparar este cliente.".into());
+    }
     let instance_dir = PathManager::get().get_instance_dir().join(instance_name);
-    let lock = read_lockfile(&instance_dir)?;
-    let channel = Channel::parse(&lock.channel).unwrap_or(Channel::Beta);
-    install_target(instance_name, &lock.target_id, channel)
-        .await
-        .map(|_| ())
+    // Repair the installed immutable release; channel advancement is an explicit update.
+    let manifest = pinned_manifest(&instance_dir).await?;
+    let mut managed = Vec::new();
+    for file in manifest.files_for(manifest::current_platform(), manifest::current_arch()) {
+        if !file.is_managed() {
+            continue; // Seeded options and personal content are never overwritten by repair.
+        }
+        let source = ensure_cached_file(&manifest, file, &GithubTransport).await?;
+        let destination = managed_path(&instance_dir, &file.path)?;
+        if let Some(parent) = destination.parent() {
+            tokio::fs::create_dir_all(parent)
+                .await
+                .map_err(|e| e.to_string())?;
+        }
+        tokio::fs::copy(&source, &destination)
+            .await
+            .map_err(|e| e.to_string())?;
+        managed.push(file.path.clone());
+    }
+    quarantine_foreign_mods(&instance_dir, &managed)?;
+    if !verify_integrity(&instance_dir).await?.is_valid {
+        return Err("No se pudo verificar el cliente reparado.".into());
+    }
+    Ok(())
 }
 
 /// Comprueba si existe una actualización disponible en el catálogo para esta instancia.
