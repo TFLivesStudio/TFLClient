@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { selectionFallbackIcon } from '$lib/selection-identity';
 	import { react } from '$lib/scenes/reactions.svelte';
 	import { openSettingsAt } from '$lib/state/uiState.svelte';
 	import { tr } from '$lib/i18n/experience';
@@ -25,7 +26,6 @@
 		getMojangProfile,
 		getInstanceIconPath,
 		updateSettings,
-		getInstanceScreenshots,
 		getFavoriteServers,
 		getRecentActivity,
 		getSystemStatus
@@ -105,31 +105,14 @@
 			iconLoaded[inst.uuid] = key;
 			getInstanceIconPath(inst.name)
 				.then((path) => {
-					iconUrls[inst.uuid] = path ? `${convertFileSrc(path)}?v=${version}` : null;
+					iconUrls[inst.uuid] = path
+						? `${convertFileSrc(path)}?v=${version}`
+						: selectionFallbackIcon(inst.selection);
 				})
 				.catch(() => {
-					iconUrls[inst.uuid] = null;
+					iconUrls[inst.uuid] = selectionFallbackIcon(inst.selection);
 				});
 		}
-	});
-
-	// Fondo del hero: la captura más reciente de la instancia destacada (si
-	// tiene alguna) — nada de arte inventado. Sin capturas, InstanceHero
-	// cae en su degradado de marca (ver CSS ahí).
-	let bannerBg = $state<string | null>(null);
-	$effect(() => {
-		bannerBg = null;
-		if (!featured) return;
-		const name = featured.name;
-		getInstanceScreenshots(name)
-			.then((shots) => {
-				if (featured?.name !== name || shots.length === 0) return;
-				const latest = shots.reduce((a, b) => (b.modified_ms > a.modified_ms ? b : a));
-				bannerBg = convertFileSrc(latest.path);
-			})
-			.catch(() => {
-				bannerBg = null;
-			});
 	});
 
 	// Servidores favoritos — no hay forma de saber a qué servidor se unió
@@ -304,7 +287,6 @@
 			<InstanceHero
 				{featured}
 				iconUrl={iconUrls[featured.uuid] ?? null}
-				{bannerBg}
 				{lastPlayedLabel}
 				{playTimeLabel}
 				isRunning={featuredIsRunning}

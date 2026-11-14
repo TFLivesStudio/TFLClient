@@ -1,3 +1,4 @@
+import { BANNERS, approvedBanner } from './banners.ts';
 export type VisualStyle = 'modern' | 'pixel';
 export type Material = 'matte' | 'soft-glass' | 'glass';
 export type Quality = 'lite' | 'balanced' | 'experience';
@@ -71,7 +72,8 @@ export const ARTWORKS = [
 	'mc-10',
 	'mc-11',
 	'mc-12',
-	'mc-13'
+	'mc-13',
+	...BANNERS.map((banner) => banner.id)
 ] as const;
 const record = (v: unknown): Record<string, unknown> =>
 	v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
@@ -122,7 +124,9 @@ export function parsePreferences(raw: unknown): VisualPreferences {
 	};
 }
 export function artworkUrl(id: string): string | null {
-	return /^mc-(?:[1-9]|1[0-3])$/.test(id) ? `/wallpapers/mc-wallpaper-${id.slice(3)}.jpg` : null;
+	return /^mc-(?:[1-9]|1[0-3])$/.test(id)
+		? `/wallpapers/mc-wallpaper-${id.slice(3)}.jpg`
+		: (approvedBanner(id)?.url ?? null);
 }
 
 /** Choose the stronger WCAG contrast for text on a user-selected accent. */

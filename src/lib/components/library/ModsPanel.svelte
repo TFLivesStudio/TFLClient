@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isSelectionInstance } from '$lib/selection-identity';
 	import type { InstanceData } from '$lib/types/types';
 	import ContentManager from './ContentManager.svelte';
 	import { t } from '$lib/i18n/index.svelte';
@@ -11,7 +12,7 @@
 		<p class="hint">
 			{t('modsPanel.vanillaHint')}
 		</p>
-	{:else if instance.loader === 'ornithe-gen2'}
+	{:else if isSelectionInstance(instance)}
 		<p class="hint">
 			{t('modsPanel.selectionHint')}
 		</p>

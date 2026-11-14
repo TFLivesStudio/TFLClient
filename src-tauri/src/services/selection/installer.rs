@@ -16,6 +16,9 @@ use crate::services::java_manager;
 
 pub const LOCKFILE_NAME: &str = "selection.lock.json";
 const CONCURRENT_DOWNLOADS: usize = 4;
+#[cfg(test)]
+#[path = "installer_tests.rs"]
+mod presentation_tests;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SelectionLockfile {
@@ -52,12 +55,246 @@ pub fn selection_cache_dir() -> PathBuf {
 
 pub fn is_selection_instance(dir: &Path) -> bool {
     dir.join(LOCKFILE_NAME).exists()
+        || std::fs::read(dir.join("instance.tfl.json"))
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+            .is_some_and(|data| {
+                data.get("selection")
+                    .is_some_and(serde_json::Value::is_object)
+            })
+}
+
+/// Public presentation metadata from local installation provenance. This is not an authenticity
+/// certificate: verify_integrity still checks the pinned signed manifest and file hashes.
+pub fn identity_from_lock(
+    dir: &Path,
+) -> Option<crate::services::instance_manager::SelectionIdentity> {
+    let lock = read_lockfile(dir).ok()?;
+    if lock.schema_version != 1
+        || lock.pack_id != catalog::PACK_ID
+        || !catalog::valid_target_id(&lock.target_id)
+        || !catalog::valid_release(&lock.release)
+        || Channel::parse(&lock.channel).is_none()
+        || !catalog::is_sha256_hex(&lock.manifest_sha256)
+    {
+        return None;
+    }
+    Some(crate::services::instance_manager::SelectionIdentity {
+        shader_support: legacy_shader_support(&lock)
+            || std::fs::read(dir.join("instance.tfl.json"))
+                .ok()
+                .and_then(|raw| serde_json::from_slice::<serde_json::Value>(&raw).ok())
+                .is_some_and(|v| {
+                    v["selection"]["manifest_sha256"].as_str()
+                        == Some(lock.manifest_sha256.as_str())
+                        && v["selection"]["shader_support"].as_bool() == Some(true)
+                }),
+        target_id: lock.target_id,
+        channel: lock.channel,
+        release: lock.release,
+        manifest_sha256: lock.manifest_sha256,
+        installed_at: lock.installed_at,
+    })
+}
+
+fn legacy_shader_support(lock: &SelectionLockfile) -> bool {
+    // This exact signed legacy release contains the documented Lucerna shader engine.
+    lock.manifest_sha256 == super::util::sha256_hex(include_bytes!("testdata/manifest-1.8.9.json"))
+}
+
+pub async fn required_java(dir: &Path) -> Result<u8, String> {
+    u8::try_from(pinned_manifest(dir).await?.minecraft.java_major)
+        .map_err(|_| "Unsupported Selection Java version".into())
 }
 
 pub fn read_lockfile(dir: &Path) -> Result<SelectionLockfile, String> {
     let p = dir.join(LOCKFILE_NAME);
+    if std::fs::metadata(&p).map_err(|e| e.to_string())?.len() > 2 * 1024 * 1024 {
+        return Err("Selection lockfile exceeds size limit".into());
+    }
     let bytes = std::fs::read(&p).map_err(|e| format!("No se pudo leer {}: {e}", p.display()))?;
     serde_json::from_slice(&bytes).map_err(|e| format!("Lockfile corrupto en {}: {e}", p.display()))
+}
+
+/// Immutable manifest metadata is reverified on every use, including offline cache hits.
+async fn pinned_manifest(dir: &Path) -> Result<Manifest, String> {
+    let lock = read_lockfile(dir)?;
+    if identity_from_lock(dir).is_none() {
+        return Err("Invalid Selection installation identity".into());
+    }
+    let raw_instance = std::fs::read(dir.join("instance.tfl.json")).map_err(|e| e.to_string())?;
+    let instance: InstanceData =
+        serde_json::from_slice(&raw_instance).map_err(|e| e.to_string())?;
+    let target = catalog::Target {
+        target_id: lock.target_id.clone(),
+        minecraft_version: instance.mc_version,
+        loader: instance.loader.as_str().into(),
+        channels: Default::default(),
+        display_name: None,
+        summary: None,
+        sort_order: None,
+    };
+    let pointer = catalog::ChannelPointer {
+        release: lock.release.clone(),
+        tag: catalog::expected_tag(&lock.target_id, &lock.release),
+        manifest_sha256: lock.manifest_sha256.clone(),
+    };
+    let expected = Expected {
+        target: &target,
+        pointer: &pointer,
+    };
+    let cache = selection_cache_dir();
+    let file = cache.join(format!("manifest-{}.json", lock.manifest_sha256));
+    let signature = cache.join(format!("manifest-{}.sig", lock.manifest_sha256));
+    if std::fs::metadata(&file).is_ok_and(|m| m.len() <= manifest::MAX_MANIFEST_BYTES as u64)
+        && std::fs::metadata(&signature).is_ok_and(|m| m.len() <= 1024)
+        && let (Ok(raw), Ok(sig)) = (std::fs::read(&file), std::fs::read(&signature))
+    {
+        if let Ok(m) = manifest::load_manifest(
+            &raw,
+            &sig,
+            &expected,
+            env!("CARGO_PKG_VERSION"),
+            TRUSTED_KEYS,
+        ) {
+            return Ok(m);
+        }
+    }
+    // Current legacy installations predate metadata caching. Preserve their offline launch
+    // with the exact published signed bytes; never substitute a different hash or release.
+    if let Ok(m) = manifest::load_manifest(
+        include_bytes!("testdata/manifest-1.8.9.json"),
+        include_bytes!("testdata/manifest-1.8.9.json.sig"),
+        &expected,
+        env!("CARGO_PKG_VERSION"),
+        TRUSTED_KEYS,
+    ) {
+        return Ok(m);
+    }
+    let transport = GithubTransport;
+    let raw = transport
+        .get(
+            &manifest::manifest_url(catalog::DISTRIBUTION_REPOSITORY, &pointer.tag),
+            manifest::MAX_MANIFEST_BYTES,
+            None,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    let sig = transport
+        .get(
+            &manifest::manifest_sig_url(catalog::DISTRIBUTION_REPOSITORY, &pointer.tag),
+            1024,
+            None,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    let m = manifest::load_manifest(
+        &raw.body,
+        &sig.body,
+        &expected,
+        env!("CARGO_PKG_VERSION"),
+        TRUSTED_KEYS,
+    )
+    .map_err(|e| e.to_string())?;
+    atomic_write(&file, &raw.body).map_err(|e| e.to_string())?;
+    atomic_write(&signature, &sig.body).map_err(|e| e.to_string())?;
+    Ok(m)
+}
+
+fn managed_path(dir: &Path, relative: &str) -> Result<PathBuf, String> {
+    if !manifest::safe_relative_path(relative) {
+        return Err("Invalid managed path".into());
+    }
+    let mut path = dir.to_path_buf();
+    for part in relative.split('/') {
+        path.push(part);
+        if std::fs::symlink_metadata(&path).is_ok_and(|m| m.file_type().is_symlink()) {
+            return Err("Selection managed paths cannot contain symlinks".into());
+        }
+    }
+    Ok(path)
+}
+
+/// Icons can only come from signed immutable releases, never arbitrary instance paths/URLs.
+pub async fn official_icon(dir: &Path) -> Option<PathBuf> {
+    let manifest = pinned_manifest(dir).await.ok()?;
+    let icon = manifest.icon_asset.as_ref()?;
+    let file = selection_cache_dir().join(&icon.asset_name);
+    if let Ok((hash, bytes)) = sha256_file(&file) {
+        if hash == icon.sha256 && bytes == icon.bytes {
+            return present_icon(&file, dir);
+        }
+    }
+    let tag = manifest.distribution.as_ref()?.tag.as_str();
+    let url = format!(
+        "https://github.com/{}/releases/download/{}/{}",
+        catalog::DISTRIBUTION_REPOSITORY,
+        tag,
+        icon.asset_name
+    );
+    let bytes = GithubTransport
+        .get(&url, icon.bytes as usize, None)
+        .await
+        .ok()?
+        .body;
+    if bytes.len() as u64 != icon.bytes
+        || super::util::sha256_hex(&bytes) != icon.sha256
+        || !valid_icon_png(&bytes)
+    {
+        return None;
+    }
+    atomic_write(&file, &bytes).ok()?;
+    present_icon(&file, dir)
+}
+
+fn present_icon(cache: &Path, dir: &Path) -> Option<PathBuf> {
+    let bytes = std::fs::read(cache).ok()?;
+    if bytes.len() > 1024 * 1024 || !valid_icon_png(&bytes) {
+        return None;
+    }
+    // Reuse the existing instance icon asset scope; do not broaden Tauri file permissions.
+    let target = dir.join("icon.png");
+    if std::fs::read(&target).ok().as_deref() != Some(bytes.as_slice()) {
+        atomic_write(&target, &bytes).ok()?;
+    }
+    Some(target)
+}
+
+pub fn ensure_personal_path(dir: &Path, relative: &str) -> Result<(), String> {
+    if !is_selection_instance(dir) {
+        return Ok(());
+    }
+    if !manifest::safe_relative_path(relative) {
+        return Err("Invalid Selection personal path".into());
+    }
+    let first = relative
+        .split(['/', '\\'])
+        .next()
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    if [
+        "mods",
+        "selection.lock.json",
+        "instance.tfl.json",
+        ".tfl_modpacks",
+    ]
+    .contains(&first.as_str())
+        || first.is_empty()
+    {
+        return Err(
+            "TFL Selection administra estos archivos. Usa reparar o actualizar el cliente.".into(),
+        );
+    }
+    Ok(())
+}
+
+fn valid_icon_png(bytes: &[u8]) -> bool {
+    if bytes.len() < 24 || &bytes[..8] != b"\x89PNG\r\n\x1a\n" || &bytes[12..16] != b"IHDR" {
+        return false;
+    }
+    let width = u32::from_be_bytes(bytes[16..20].try_into().unwrap());
+    let height = u32::from_be_bytes(bytes[20..24].try_into().unwrap());
+    (1..=512).contains(&width) && (1..=512).contains(&height)
 }
 
 pub fn write_lockfile(dir: &Path, lock: &SelectionLockfile) -> Result<(), String> {
@@ -139,12 +376,12 @@ pub fn quarantine_foreign_mods(
     instance_dir: &Path,
     managed_rel_paths: &[String],
 ) -> Result<Vec<String>, String> {
-    let mods_dir = instance_dir.join("mods");
+    let mods_dir = managed_path(instance_dir, "mods")?;
     if !mods_dir.exists() {
         return Ok(Vec::new());
     }
 
-    let quarantine_dir = instance_dir.join("quarantine");
+    let quarantine_dir = managed_path(instance_dir, "quarantine")?;
     let mut quarantined = Vec::new();
 
     let allowed_filenames: std::collections::HashSet<String> = managed_rel_paths
@@ -158,23 +395,27 @@ pub fn quarantine_foreign_mods(
         .collect();
 
     let read_dir = std::fs::read_dir(&mods_dir).map_err(|e| e.to_string())?;
-    for entry in read_dir.flatten() {
+    for entry in read_dir {
+        let entry = entry.map_err(|e| e.to_string())?;
         let path = entry.path();
+        if entry.file_type().map_err(|e| e.to_string())?.is_symlink() {
+            return Err("Selection mods cannot contain symlinks".into());
+        }
         if path.is_file()
             && let Some(ext) = path.extension().and_then(|e| e.to_str())
             && (ext.eq_ignore_ascii_case("jar") || ext.eq_ignore_ascii_case("disabled"))
         {
             let file_name = entry.file_name().to_string_lossy().to_string();
             if !allowed_filenames.contains(&file_name.to_ascii_lowercase()) {
-                let _ = std::fs::create_dir_all(&quarantine_dir);
-                let dest = quarantine_dir.join(&file_name);
-                if let Ok(()) = std::fs::rename(&path, &dest) {
-                    warn!(
-                        "Mod externo detectado en instancia TFLClient: {}. Movido a quarantine/ para proteger la integridad.",
-                        file_name
-                    );
-                    quarantined.push(file_name);
-                }
+                std::fs::create_dir_all(&quarantine_dir).map_err(|e| e.to_string())?;
+                // Preserve any previously quarantined copy instead of replacing it.
+                let dest = quarantine_dir.join(format!("{}-{file_name}", uuid::Uuid::new_v4()));
+                std::fs::rename(&path, &dest).map_err(|e| e.to_string())?;
+                warn!(
+                    "Mod externo detectado en instancia TFLClient: {}. Movido a quarantine/ para proteger la integridad.",
+                    file_name
+                );
+                quarantined.push(file_name);
             }
         }
     }
@@ -183,15 +424,21 @@ pub fn quarantine_foreign_mods(
 }
 
 /// Verifica la integridad de los archivos administrados y reporta discrepancias.
-pub fn verify_integrity(instance_dir: &Path) -> Result<IntegrityReport, String> {
-    let lock = read_lockfile(instance_dir)?;
+pub async fn verify_integrity(instance_dir: &Path) -> Result<IntegrityReport, String> {
+    let manifest = pinned_manifest(instance_dir).await?;
     let mut missing = Vec::new();
-    let corrupted = Vec::new();
+    let mut corrupted = Vec::new();
 
-    for rel_path in &lock.managed_files {
-        let full_path = instance_dir.join(rel_path);
-        if !full_path.exists() {
-            missing.push(rel_path.clone());
+    for file in manifest
+        .files_for(manifest::current_platform(), manifest::current_arch())
+        .filter(|f| f.is_managed())
+    {
+        let full_path = managed_path(instance_dir, &file.path)?;
+        match sha256_file(&full_path) {
+            Ok((hash, bytes)) if hash == file.sha256 && bytes == file.bytes => {}
+            Ok(_) => corrupted.push(file.path.clone()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => missing.push(file.path.clone()),
+            Err(e) => return Err(e.to_string()),
         }
     }
 
@@ -217,26 +464,28 @@ pub fn verify_integrity(instance_dir: &Path) -> Result<IntegrityReport, String> 
 /// Prepara la instancia antes de lanzar el juego:
 /// 1. Cuarentena de mods foráneos.
 /// 2. Verificación de integridad.
-/// 3. Garantiza Java 25.
+/// 3. Garantiza el Java declarado por el manifiesto firmado.
 pub async fn prepare_for_launch(instance_data: &InstanceData) -> Result<(), String> {
     let dir = instance_data.dir();
-    let lock = read_lockfile(&dir)?;
+    let manifest = pinned_manifest(&dir).await?;
+    let managed: Vec<String> = manifest
+        .files_for(manifest::current_platform(), manifest::current_arch())
+        .filter(|f| f.is_managed())
+        .map(|f| f.path.clone())
+        .collect();
 
     // Cuarentena de cualquier archivo agregado manualmente
-    let _ = quarantine_foreign_mods(&dir, &lock.managed_files);
+    quarantine_foreign_mods(&dir, &managed)?;
 
     // Verificación estricta de que todos los mods oficiales existen
-    for rel_path in &lock.managed_files {
-        let full = dir.join(rel_path);
-        if !full.exists() {
-            return Err(format!(
-                "Archivo oficial faltante: {rel_path}. Realiza una reparación en TFL Selection antes de iniciar."
-            ));
-        }
+    if !verify_integrity(&dir).await?.is_valid {
+        return Err("El cliente necesita reparación en TFL Selection antes de iniciar.".into());
     }
 
-    // Java 25 garantizado
-    let _ = java_manager::ensure_java(25, &instance_data.mc_version).await?;
+    // Java declarado por el cliente oficial
+    let major = u8::try_from(manifest.minecraft.java_major)
+        .map_err(|_| "Unsupported Selection Java version")?;
+    let _ = java_manager::ensure_java(major, &instance_data.mc_version).await?;
 
     Ok(())
 }
@@ -254,6 +503,18 @@ pub async fn install_target(
     channel: Channel,
 ) -> Result<InstanceData, String> {
     let task = format!("selection:{target_id}");
+    let _guard = crate::services::content::mutation_lock(instance_name).await;
+    if crate::services::launcher::running_instances()
+        .iter()
+        .any(|(name, _)| name == instance_name)
+    {
+        let error = "Cierra Minecraft antes de actualizar o reparar este cliente.".to_string();
+        emit(AppEvent::DownloadFailed {
+            task,
+            error: error.clone(),
+        });
+        return Err(error);
+    }
     let result = install_target_inner(instance_name, target_id, channel).await;
     match &result {
         Ok(_) => emit(AppEvent::DownloadFinished { task }),
@@ -270,6 +531,16 @@ async fn install_target_inner(
     target_id: &str,
     channel: Channel,
 ) -> Result<InstanceData, String> {
+    crate::services::instance_manager::valid_instance_name(instance_name)?;
+    let existing_dir = PathManager::get().get_instance_dir().join(instance_name);
+    if existing_dir.exists() && !is_selection_instance(&existing_dir) {
+        return Err("Elige otro nombre: esa instancia contiene una instalación personal.".into());
+    }
+    if let Some(identity) = identity_from_lock(&existing_dir) {
+        if identity.target_id != target_id {
+            return Err("Esa instancia pertenece a otro cliente de TFL Selection.".into());
+        }
+    }
     let transport = GithubTransport;
     let store = CatalogStore::new(
         PathManager::get()
@@ -370,7 +641,7 @@ async fn install_target_inner(
                 item_total: total_items,
                 bytes_current: cur_bytes,
                 bytes_total: total_bytes,
-                current_item: Some(file_clone.path.clone()),
+                current_item: None,
             });
 
             res.map(|path| (file_clone, path))
@@ -391,7 +662,7 @@ async fn install_target_inner(
     let mut seeded_list = Vec::new();
 
     for (f, blob_path) in staged_files {
-        let dest = instance_dir.join(&f.path);
+        let dest = managed_path(&instance_dir, &f.path)?;
         if let Some(parent) = dest.parent() {
             tokio::fs::create_dir_all(parent)
                 .await
@@ -414,7 +685,7 @@ async fn install_target_inner(
     }
 
     // Cuarentena de archivos extraños
-    let _ = quarantine_foreign_mods(&instance_dir, &managed_list);
+    quarantine_foreign_mods(&instance_dir, &managed_list)?;
 
     // Escribir lockfile
     let lock = SelectionLockfile {
@@ -433,6 +704,16 @@ async fn install_target_inner(
         seeded_files: seeded_list,
     };
     write_lockfile(&instance_dir, &lock)?;
+    atomic_write(
+        &selection_cache_dir().join(format!("manifest-{}.json", lock.manifest_sha256)),
+        &m_bytes.body,
+    )
+    .map_err(|e| e.to_string())?;
+    atomic_write(
+        &selection_cache_dir().join(format!("manifest-{}.sig", lock.manifest_sha256)),
+        &m_sig_bytes.body,
+    )
+    .map_err(|e| e.to_string())?;
 
     // Guardar / Actualizar instancia
     let loader_ver = manifest
@@ -440,25 +721,48 @@ async fn install_target_inner(
         .loader_version
         .as_deref()
         .unwrap_or("0.20.1");
-    let launch_id = format!(
-        "fabric-loader-{}-{}-ornithe-gen2",
-        loader_ver, manifest.minecraft.version
-    );
+    let loader =
+        LoaderKind::parse(&manifest.minecraft.loader).ok_or("Unsupported Selection loader")?;
+    let launch_id = match loader {
+        LoaderKind::OrnitheGen2 => format!(
+            "fabric-loader-{}-{}-ornithe-gen2",
+            loader_ver, manifest.minecraft.version
+        ),
+        LoaderKind::Fabric => format!(
+            "fabric-loader-{}-{}",
+            loader_ver, manifest.minecraft.version
+        ),
+        _ => return Err("Unsupported Selection bootstrap".into()),
+    };
+    let previous = crate::services::instance_manager::get_instance(instance_name)
+        .await
+        .ok();
 
+    let mut identity = identity_from_lock(&instance_dir);
+    if let Some(identity) = identity.as_mut() {
+        identity.shader_support = manifest
+            .capabilities
+            .as_ref()
+            .map_or_else(|| legacy_shader_support(&lock), |c| c.shaders);
+    }
     let instance = InstanceData {
-        uuid: uuid::Uuid::new_v4().to_string(),
+        uuid: previous
+            .as_ref()
+            .map(|i| i.uuid.clone())
+            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
         name: instance_name.to_string(),
         mc_version: manifest.minecraft.version.clone(),
-        loader: LoaderKind::OrnitheGen2,
+        loader,
         loader_version: Some(loader_ver.to_string()),
         launch_version_id: launch_id,
-        last_played: 0,
-        play_time_secs: 0,
-        min_memory: Some(2048),
-        max_memory: Some(4096),
+        last_played: previous.as_ref().map_or(0, |i| i.last_played),
+        play_time_secs: previous.as_ref().map_or(0, |i| i.play_time_secs),
+        min_memory: previous.as_ref().map_or(Some(2048), |i| i.min_memory),
+        max_memory: previous.as_ref().map_or(Some(4096), |i| i.max_memory),
         server_type: None,
         server_jar: None,
         server_build: None,
+        selection: identity,
     };
 
     instance.save().await.map_err(|e| e.to_string())?;
@@ -472,12 +776,39 @@ async fn install_target_inner(
 
 /// Repara la instancia reinstalando los archivos oficiales faltantes o corruptos.
 pub async fn repair_selection(instance_name: &str) -> Result<(), String> {
+    crate::services::instance_manager::valid_instance_name(instance_name)?;
+    let _guard = crate::services::content::mutation_lock(instance_name).await;
+    if crate::services::launcher::running_instances()
+        .iter()
+        .any(|(name, _)| name == instance_name)
+    {
+        return Err("Cierra Minecraft antes de reparar este cliente.".into());
+    }
     let instance_dir = PathManager::get().get_instance_dir().join(instance_name);
-    let lock = read_lockfile(&instance_dir)?;
-    let channel = Channel::parse(&lock.channel).unwrap_or(Channel::Beta);
-    install_target(instance_name, &lock.target_id, channel)
-        .await
-        .map(|_| ())
+    // Repair the installed immutable release; channel advancement is an explicit update.
+    let manifest = pinned_manifest(&instance_dir).await?;
+    let mut managed = Vec::new();
+    for file in manifest.files_for(manifest::current_platform(), manifest::current_arch()) {
+        if !file.is_managed() {
+            continue; // Seeded options and personal content are never overwritten by repair.
+        }
+        let source = ensure_cached_file(&manifest, file, &GithubTransport).await?;
+        let destination = managed_path(&instance_dir, &file.path)?;
+        if let Some(parent) = destination.parent() {
+            tokio::fs::create_dir_all(parent)
+                .await
+                .map_err(|e| e.to_string())?;
+        }
+        tokio::fs::copy(&source, &destination)
+            .await
+            .map_err(|e| e.to_string())?;
+        managed.push(file.path.clone());
+    }
+    quarantine_foreign_mods(&instance_dir, &managed)?;
+    if !verify_integrity(&instance_dir).await?.is_valid {
+        return Err("No se pudo verificar el cliente reparado.".into());
+    }
+    Ok(())
 }
 
 /// Comprueba si existe una actualización disponible en el catálogo para esta instancia.

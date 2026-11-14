@@ -1,7 +1,7 @@
 // Browser-only IPC fixture. Never imported by production code.
 export function installFixture({
 	quality = 'Balanced',
-	appVersion = '0.15.4-beta.1',
+	appVersion = '0.15.4-beta.2',
 	empty = false,
 	language = 'es',
 	theme = 'dark',
@@ -11,7 +11,8 @@ export function installFixture({
 	collapsed = false,
 	logWindow = false,
 	telemetry = false,
-	iconPresets = []
+	iconPresets = [],
+	selectionFixtures = false
 } = {}) {
 	if (logWindow) window.__TFL_LOG_INSTANCE__ = 'Horizontes';
 	let samples = 0;
@@ -48,9 +49,36 @@ export function installFixture({
 				// 'ornithe-gen2' en las vistas visuales (ver LOADER_META en
 				// InstanceDetail.svelte/Sidebar.svelte: sin esta entrada acá
 				// nunca se hubiera notado que faltaba la del loader ahí).
-				instance('TFLClient 1.8.9', 'tfl-selection', 'ornithe-gen2'),
+				{
+					...instance('TFL Client 1.8.9', 'tfl-selection', 'ornithe-gen2'),
+					mc_version: '1.8.9',
+					selection: {
+						target_id: 'mc-1.8.9-ornithe',
+						release: '0.1.0-preview.1',
+						channel: 'beta',
+						manifest_sha256: 'f0806d39879c5f625634d27530f2577bcc2e15cfc10d639d5ba202d031a6e155',
+						installed_at: '1729000000',
+						shader_support: true
+					}
+				},
 				instance('TFL Friends', 'server', 'vanilla', 'paper')
 			];
+	if (selectionFixtures && !empty)
+		instances.push(
+			{
+				...instance('TFL Client 26.3', 'selection-fabric', 'fabric'),
+				mc_version: '26.3',
+				selection: {
+					target_id: 'mc-26.3-fabric',
+					release: '0.0.0-test.1',
+					channel: 'beta',
+					manifest_sha256: 'a'.repeat(64),
+					installed_at: '1729000000',
+					shader_support: false
+				}
+			},
+			instance('Personal Ornithe', 'normal-ornithe', 'ornithe-gen2')
+		);
 	let settings = {
 		user: [user],
 		active_user_idx: 0,
@@ -265,6 +293,30 @@ export function installFixture({
 						: [],
 					capes: []
 				};
+			if (cmd === 'get_selection_catalog')
+				return [
+					{
+						targetId: 'mc-1.8.9-ornithe',
+						displayName: 'TFL Selection 1.8.9',
+						summary: 'Synthetic catalog fixture',
+						minecraftVersion: '1.8.9',
+						loader: 'ornithe-gen2',
+						sortOrder: 1,
+						channels: [
+							{
+								channel: 'beta',
+								release: '0.1.0-preview.1',
+								tag: 'selection-mc-1.8.9-ornithe-v0.1.0-preview.1',
+								manifestSha256: 'f0806d39879c5f625634d27530f2577bcc2e15cfc10d639d5ba202d031a6e155'
+							}
+						],
+						support: { state: 'supported' }
+					}
+				];
+			if (cmd === 'check_selection_update') return null;
+			if (cmd === 'verify_selection_integrity')
+				return { is_valid: true, missing: [], corrupted: [], foreign_mods: [] };
+			if (cmd === 'repair_selection_instance') return null;
 			if (cmd === 'get_java_status')
 				return [8, 17, 21, 25].map((major) => ({ major, installed: major === 21, path: null }));
 			if (cmd === 'get_server_connection_info')

@@ -207,6 +207,10 @@ jobs:
           node tests/visual/pixel-controls.mjs
           node tests/visual/living-settings.mjs
           node tests/visual/landscapes.mjs
+          node tests/visual/background-banners.mjs
+          node tests/visual/sidebar-refinement.mjs
+          node tests/visual/character-interaction.mjs
+          node tests/visual/selection-experience.mjs
       - name: Upload visual review evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

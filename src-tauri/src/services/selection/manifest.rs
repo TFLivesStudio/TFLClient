@@ -96,7 +96,16 @@ pub struct Manifest {
     pub minecraft: MinecraftSpec,
     pub distribution: Option<Distribution>,
     pub notices_asset: Option<AssetRef>,
+    /// Optional content-addressed PNG published by the same signed release.
+    pub icon_asset: Option<AssetRef>,
+    pub capabilities: Option<ClientCapabilities>,
     pub files: Vec<ManifestFile>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ClientCapabilities {
+    pub shaders: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -292,6 +301,15 @@ pub fn load_manifest(
             "el manifiesto usa un esquema que este launcher no entiende".into(),
         ));
     }
+    // The signed minimum is checked before unknown extension fields are deserialized.
+    if let Some(minimum) = value.get("minimumLauncherVersion").and_then(|v| v.as_str())
+        && catalog::valid_release(minimum)
+        && !launcher_meets(minimum, launcher_version)
+    {
+        return Err(ManifestError::LauncherUpdateRequired(format!(
+            "requiere TFL Client {minimum} o superior"
+        )));
+    }
     let manifest: Manifest =
         serde_json::from_value(value).map_err(|e| ManifestError::Malformed(e.to_string()))?;
     validate_manifest(&manifest, expected, launcher_version)?;
@@ -386,6 +404,14 @@ pub fn validate_manifest(
     match &m.notices_asset {
         Some(n) if valid_asset_ref(n) => {}
         _ => return bad("falta noticesAsset válido".into()),
+    }
+    if let Some(icon) = &m.icon_asset {
+        if !valid_asset_ref(icon)
+            || icon.bytes > 1024 * 1024
+            || icon.asset_name != format!("icon-{}.png", icon.sha256)
+        {
+            return bad("iconAsset inválido: requiere PNG content-addressed de hasta 1 MiB".into());
+        }
     }
 
     if m.files.is_empty() || m.files.len() > 5000 {

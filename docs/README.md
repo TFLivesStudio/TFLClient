@@ -14,6 +14,10 @@ Para conocer el launcher y obtener una descarga, visita la
 
 ## Interfaz y rendimiento
 
+- [Refinamiento de la experiencia, beta 2](changes/2026-11-14-visual-experience-refinement.md).
+- [Banners y fondo global](experience/BACKGROUNDS_AND_BANNERS.md).
+- [Sidebar](experience/SIDEBAR.md) y [personaje](experience/CHARACTER.md).
+
 - [Reorganización de ajustes y escenas](experience/ARCHITECTURE.md).
 - [Validación del rediseño visual](visual-refresh/VALIDATION.md).
 - [Rendimiento](RENDIMIENTO.md).

@@ -4,6 +4,7 @@ import type { ContextMenuItem } from '$lib/components/ui/ContextMenu.svelte';
 import { t } from '$lib/i18n/index.svelte';
 import { openInstanceTab } from '$lib/state/instanceState.svelte';
 import type { InstanceData } from '$lib/types/types';
+import { isSelectionInstance } from '$lib/selection-identity';
 
 // Menú contextual (click derecho en una instancia de la barra lateral) —
 // pedido del cliente: accesos rápidos sin tener que abrir la instancia y
@@ -18,24 +19,26 @@ export function buildInstanceContextMenuItems(instance: InstanceData): ContextMe
 		}
 	];
 	if (!instance.server_type) {
-		items.push({
-			id: 'mods',
-			label: t('instanceDetail.tabs.mods'),
-			icon: Blocks,
-			run: () => openInstanceTab(instance, 'mods')
-		});
+		if (!isSelectionInstance(instance))
+			items.push({
+				id: 'mods',
+				label: t('instanceDetail.tabs.mods'),
+				icon: Blocks,
+				run: () => openInstanceTab(instance, 'mods')
+			});
 		items.push({
 			id: 'shortcut',
 			label: t('instanceDetail.createShortcut'),
 			icon: Rocket,
 			run: () => createInstanceShortcut(instance.name)
 		});
-		items.push({
-			id: 'export',
-			label: t('instanceDetail.exportMrpack'),
-			icon: FileOutput,
-			run: () => exportInstanceAsMrpack(instance.name)
-		});
+		if (!isSelectionInstance(instance))
+			items.push({
+				id: 'export',
+				label: t('instanceDetail.exportMrpack'),
+				icon: FileOutput,
+				run: () => exportInstanceAsMrpack(instance.name)
+			});
 	}
 	items.push({
 		id: 'folder',

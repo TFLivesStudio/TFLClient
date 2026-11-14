@@ -56,6 +56,7 @@ impl<P: ContentProvider> ContentService<P> {
     /// la build más nueva (y, a igual versión, con el jar real en vez del
     /// `-sources.jar`) y borra el resto. Devuelve cuántos archivos sacó.
     pub async fn remove_duplicates(&self, instance_name: &str) -> Result<u32, String> {
+        super::ensure_mutable(instance_name, ContentKind::Mod).await?;
         let instance = instance_manager::get_instance(instance_name).await?;
         let kind = ContentKind::Mod;
         let files = self

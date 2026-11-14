@@ -7,11 +7,24 @@ import {
 	type ScenePreferences
 } from './model';
 export const SCENES_KEY = 'tfl-scenes-v1';
+export const SCENES_V1_BACKUP_KEY = 'tfl-scenes-v1-before-global-backgrounds';
 export const scenes = $state<ScenePreferences>(structuredClone(DEFAULT_SCENES));
 export const sceneStatus = $state({ error: false });
 export function restoreScenes() {
 	try {
-		Object.assign(scenes, parseScenes(JSON.parse(localStorage.getItem(SCENES_KEY) ?? '{}')));
+		const raw = localStorage.getItem(SCENES_KEY);
+		const parsed = JSON.parse(raw ?? '{}');
+		Object.assign(scenes, parseScenes(parsed));
+		if (raw && (parsed?.version === 1 || parsed?.version === undefined)) {
+			// Never delete the previous representation; authority writes remain revision checked.
+			try {
+				if (!localStorage.getItem(SCENES_V1_BACKUP_KEY))
+					localStorage.setItem(SCENES_V1_BACKUP_KEY, raw);
+				localStorage.setItem(SCENES_KEY, JSON.stringify($state.snapshot(scenes)));
+			} catch {
+				sceneStatus.error = true;
+			}
+		}
 	} catch {
 		Object.assign(scenes, structuredClone(DEFAULT_SCENES));
 	}

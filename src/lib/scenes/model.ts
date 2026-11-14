@@ -14,7 +14,7 @@ export const SCENE_IDS = [
 export type SceneId = (typeof SCENE_IDS)[number];
 export interface SceneConfig {
 	preset: SceneId;
-	/** Additive v1 fields: old saved scenes retain their Hero placement. */
+	/** Compatibility field: v2 always renders ambience in the application shell. */
 	scope: 'hero' | 'window';
 	parallax: number;
 	dithering: boolean;
@@ -32,13 +32,13 @@ export interface SceneConfig {
 	shader: boolean;
 }
 export interface ScenePreferences {
-	version: 1;
+	version: 2;
 	global: SceneConfig;
 	instances: Record<string, SceneConfig>;
 }
 export const DEFAULT_SCENE: SceneConfig = {
 	preset: 'legacy',
-	scope: 'hero',
+	scope: 'window',
 	parallax: 0.5,
 	dithering: true,
 	mediaId: null,
@@ -55,7 +55,7 @@ export const DEFAULT_SCENE: SceneConfig = {
 	shader: false
 };
 export const DEFAULT_SCENES: ScenePreferences = {
-	version: 1,
+	version: 2,
 	global: DEFAULT_SCENE,
 	instances: {}
 };
@@ -64,7 +64,8 @@ const object = (v: unknown): Record<string, unknown> =>
 export function parseScene(raw: unknown): SceneConfig {
 	const s = object(raw),
 		d = structuredClone(DEFAULT_SCENE);
-	if (s.scope === 'hero' || s.scope === 'window') d.scope = s.scope;
+	// Hero is now editorial artwork. Preserve the scene itself while moving its destination.
+	d.scope = 'window';
 	if (typeof s.parallax === 'number' && Number.isFinite(s.parallax))
 		d.parallax = Math.max(0, Math.min(1, s.parallax));
 	if (typeof s.dithering === 'boolean') d.dithering = s.dithering;
@@ -100,10 +101,11 @@ export function parseScene(raw: unknown): SceneConfig {
 export function parseScenes(raw: unknown): ScenePreferences {
 	const s = object(raw),
 		instances: Record<string, SceneConfig> = {};
-	if (s.version !== undefined && s.version !== 1) return structuredClone(DEFAULT_SCENES);
+	if (s.version !== undefined && s.version !== 1 && s.version !== 2)
+		return structuredClone(DEFAULT_SCENES);
 	for (const [id, value] of Object.entries(object(s.instances)).slice(0, 2000))
 		if (!['__proto__', 'constructor', 'prototype'].includes(id)) instances[id] = parseScene(value);
-	return { version: 1, global: parseScene(s.global), instances };
+	return { version: 2, global: parseScene(s.global), instances };
 }
 export interface ScenePolicyInput {
 	quality: 'lite' | 'balanced' | 'experience';

@@ -158,6 +158,7 @@ impl<P: ContentProvider> ContentService<P> {
     /// launcher compatible con el formato (incluido este) puede instalarlo.
     /// Devuelve la ruta del archivo generado.
     pub async fn export_mrpack(&self, instance_name: &str) -> Result<String, String> {
+        super::ensure_mutable(instance_name, super::types::ContentKind::Mod).await?;
         let instance = instance_manager::get_instance(instance_name).await?;
         let instance_dir = instance.dir();
         let mods_dir = instance_dir.join("mods");

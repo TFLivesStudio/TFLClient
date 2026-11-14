@@ -26,14 +26,16 @@
 	</div>
 	<p class="vr-muted">{vr('artworkHint')}</p>
 	<button type="button" class="vr-control" onclick={() => openSettingsAt('scene-instance')}
-		>{tr('Fondos y escenas por instancia', 'Backgrounds & scenes per instance')}</button
+		>{tr('Fondos globales y escenas guardadas', 'Global backgrounds & saved scenes')}</button
 	>
 	<div class="artwork-options">
 		{#each ARTWORKS as artwork (artwork)}<button
 				aria-pressed={meta.artwork === artwork}
 				aria-label={artwork === 'auto' || artwork === 'none'
 					? vr(artwork)
-					: `${vr('artwork')} ${artwork.slice(3)}`}
+					: artwork.startsWith('banner-')
+						? `Minecraft ${artwork.slice(7)}`
+						: `${vr('artwork')} ${artwork.slice(3)}`}
 				onclick={() => setInstanceVisual(id, { artwork })}
 				>{#if artworkUrl(artwork)}<img
 						src={artworkUrl(artwork) ?? ''}

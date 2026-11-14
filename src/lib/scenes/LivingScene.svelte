@@ -2,24 +2,16 @@
 	import { scenes } from './preferences.svelte';
 	import { appearance } from '$lib/state/appearanceState.svelte';
 	import { runtime } from '$lib/visual/runtime.svelte';
-	import { appState } from '$lib/state/state.svelte';
 	import { gameSession } from '$lib/state/gameSession.svelte';
 	import { reaction } from './reactions.svelte';
 	import { effects } from '$lib/visual/runtime.svelte';
 	import SceneStage from './SceneStage.svelte';
-	import type { InstanceData } from '$lib/types/types';
-	let {
-		instance = null,
-		placement = 'hero'
-	}: { instance?: InstanceData | null; placement?: 'hero' | 'window' } = $props();
-	const target = $derived(instance ?? appState.selectedInstance);
-	const config = $derived((target && scenes.instances[target.uuid]) || scenes.global);
+	const config = $derived(scenes.global);
 </script>
 
-{#if config.preset !== 'legacy' && config.scope === placement}<div
+{#if config.preset !== 'legacy'}<div
 		class="living-scene"
-		class:window-scene={placement === 'window'}
-		data-scene-placement={placement}
+		data-scene-placement="window"
 		aria-hidden="true"
 	>
 		<SceneStage
@@ -44,20 +36,19 @@
 		overflow: hidden;
 		z-index: 0;
 	}
-	.window-scene .veil {
-		background: color-mix(in srgb, var(--surface-canvas) 64%, transparent);
-		opacity: 1;
-	}
 	.veil {
 		position: absolute;
 		inset: 0;
 		background:
-			linear-gradient(90deg, var(--surface-canvas) 0%, transparent 62%),
-			linear-gradient(0deg, var(--surface-canvas), transparent 80%);
-		opacity: 0.64;
+			linear-gradient(
+				90deg,
+				color-mix(in srgb, var(--bg-main) 62%, transparent),
+				color-mix(in srgb, var(--bg-main) 25%, transparent) 70%
+			),
+			linear-gradient(0deg, color-mix(in srgb, var(--bg-main) 68%, transparent), transparent 80%);
 	}
 	:global([data-theme='light']) .veil {
-		opacity: 0.84;
+		background: color-mix(in srgb, var(--bg-main) 62%, transparent);
 	}
 	.reaction-light {
 		position: absolute;

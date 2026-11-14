@@ -65,9 +65,9 @@
 		<SkinViewer3D
 			priority="hero"
 			{launching}
+			working={downloading}
 			width={220}
 			height={320}
-			autoRotateSpeed={0.6}
 			zoom={0.9}
 			skinUrl={activeSkin?.url ?? null}
 			capeUrl={activeCape?.url ?? null}

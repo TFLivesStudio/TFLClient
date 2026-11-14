@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { instanceDisplayName } from '$lib/selection-identity';
 	import { modalFocus } from '$lib/visual/modalFocus';
 	import { navigate } from '$lib/visual/navigation.svelte';
 	import { vr } from '$lib/i18n/refresh';
@@ -128,7 +129,7 @@
 	const items = $derived.by(() => {
 		const instanceItems: PaletteItem[] = instances.map((inst) => ({
 			id: `instance:${inst.uuid}`,
-			label: inst.name,
+			label: instanceDisplayName(inst),
 			hint: `${inst.mc_version} · ${inst.loader}`,
 			icon: Boxes,
 			run: () => {

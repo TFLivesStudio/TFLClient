@@ -9,14 +9,14 @@
 	import { openSettingsAt } from '$lib/state/uiState.svelte';
 	import { runtime } from '$lib/visual/runtime.svelte';
 	import { SCENES, DEFAULT_SCENE, type SceneConfig } from '$lib/scenes/model';
-	import { scenes, saveScene, inheritScene, sceneStatus } from '$lib/scenes/preferences.svelte';
+	import { scenes, saveScene, sceneStatus } from '$lib/scenes/preferences.svelte';
 	import SceneStage from '$lib/scenes/SceneStage.svelte';
 	import SettingGroup from './SettingGroup.svelte';
 	import { tr } from '$lib/i18n/experience';
 	import { i18nState } from '$lib/i18n/index.svelte';
 	import { Play, Pause, Upload, Trash2, Check, RotateCcw } from 'lucide-svelte';
 	let { children }: { children: Snippet } = $props();
-	let scope = $state('global');
+	let previousScene = $state('');
 	let draft = $state<SceneConfig>(structuredClone(DEFAULT_SCENE)),
 		playing = $state(false),
 		error = $state(''),
@@ -26,17 +26,12 @@
 	let media = $state<Media[]>([]);
 	const locale = $derived(i18nState.locale === 'en' ? 1 : 0);
 	$effect(() => {
-		const current = scope === 'global' ? scenes.global : (scenes.instances[scope] ?? scenes.global);
+		const current = scenes.global;
 		draft = structuredClone($state.snapshot(current));
 		playing = false;
 		saved = false;
 	});
-	const dirty = $derived(
-		JSON.stringify(draft) !==
-			JSON.stringify(
-				scope === 'global' ? scenes.global : (scenes.instances[scope] ?? scenes.global)
-			)
-	);
+	const dirty = $derived(JSON.stringify(draft) !== JSON.stringify(scenes.global));
 	async function load() {
 		try {
 			media = await invoke<Media[]>('list_scene_media');
@@ -79,16 +74,12 @@
 		}
 	}
 	function apply() {
-		saveScene($state.snapshot(draft), scope === 'global' ? null : scope);
+		saveScene($state.snapshot(draft));
 		playing = false;
 		saved = !sceneStatus.error;
 	}
 	function cancel() {
-		draft = structuredClone(
-			$state.snapshot(
-				scope === 'global' ? scenes.global : (scenes.instances[scope] ?? scenes.global)
-			)
-		);
+		draft = structuredClone($state.snapshot(scenes.global));
 		playing = false;
 	}
 </script>
@@ -300,13 +291,12 @@
 				><option value="full">{tr('Completo', 'Full')}</option></select
 			></label
 		>
-		<label class="field">
-			{tr('Mostrar escenario en', 'Scene placement')}
-			<select bind:value={draft.scope}>
-				<option value="hero">{tr('Hero de Inicio', 'Home Hero')}</option>
-				<option value="window">{tr('Ventana completa', 'Whole window')}</option>
-			</select>
-		</label>
+		<p class="hint">
+			{tr(
+				'El escenario acompaña toda la aplicación. Los banners identifican la versión de cada instancia.',
+				'The background follows you throughout the app. Banners identify each instance’s version.'
+			)}
+		</p>
 		<label class="field">
 			{tr('Intensidad de parallax', 'Parallax intensity')}
 			<span class="range-control">
@@ -359,31 +349,30 @@
 	<SettingGroup
 		id="scene-instance"
 		hint={tr(
-			'Las instancias heredan el fondo global hasta que guardas una escena propia. Elegir un destino descarta la vista previa sin aplicar.',
-			'Instances inherit the global background until you save their own scene. Changing target discards unapplied previews.'
+			'Tus escenas anteriores se conservan. Carga una para usarla como fondo de todo el launcher; no se guarda hasta Aplicar.',
+			'Your previous scenes are preserved. Load one as the whole launcher background; changes are saved only when you Apply.'
 		)}
-		><label class="field"
-			>{tr('Aplicar a', 'Apply to')}<select bind:value={scope}
-				><option value="global">{tr('Todo el launcher', 'Whole launcher')}</option
-				>{#each appState.instances as instance (instance.uuid)}<option value={instance.uuid}
-						>{instance.name}</option
-					>{/each}</select
-			></label
-		>{#if scope !== 'global'}<p class="hint">
-				{scenes.instances[scope]
-					? tr('Esta instancia tiene una escena propia.', 'This instance has its own scene.')
-					: tr(
-							'Esta instancia hereda la escena global.',
-							'This instance inherits the global scene.'
-						)}
-			</p>
-			<button
-				type="button"
-				class="vr-control"
-				disabled={!scenes.instances[scope]}
-				onclick={() => inheritScene(scope)}>{tr('Usar escena global', 'Use global scene')}</button
-			>{/if}</SettingGroup
 	>
+		<label class="field"
+			>{tr('Recuperar ambientación anterior', 'Restore previous ambience')}
+			<select bind:value={previousScene}
+				><option value="">{tr('Elegir una escena guardada', 'Choose a saved scene')}</option>
+				{#each Object.keys(scenes.instances) as id (id)}<option value={id}
+						>{appState.instances.find((i) => i.uuid === id)?.name ?? id}</option
+					>{/each}
+			</select>
+		</label>
+		<button
+			type="button"
+			class="vr-control"
+			disabled={!previousScene || !scenes.instances[previousScene]}
+			onclick={() => {
+				draft = structuredClone($state.snapshot(scenes.instances[previousScene]));
+				playing = false;
+				saved = false;
+			}}>{tr('Cargar ambientación', 'Load ambience')}</button
+		>
+	</SettingGroup>
 	{#if dirty}<div class="pending-scene">
 			<span>{tr('Vista previa sin aplicar', 'Unapplied preview')}</span><button
 				class="vr-control"

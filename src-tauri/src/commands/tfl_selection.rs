@@ -233,10 +233,8 @@ pub async fn install_selection_target(
 
 #[command]
 pub async fn verify_selection_integrity(instance_name: String) -> Result<IntegrityReport, String> {
-    let dir = crate::core::PathManager::get()
-        .get_instance_dir()
-        .join(&instance_name);
-    installer::verify_integrity(&dir)
+    let instance = crate::services::instance_manager::get_instance(&instance_name).await?;
+    installer::verify_integrity(&instance.dir()).await
 }
 
 #[command]
