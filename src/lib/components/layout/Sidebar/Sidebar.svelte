@@ -771,9 +771,9 @@
 		width: 48px;
 	}
 	.collapsed .home-btn {
-		width: 40px;
-		height: 40px;
-		min-height: 40px;
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
 		padding: 0;
 		justify-content: center;
 	}
@@ -781,7 +781,7 @@
 		justify-items: center;
 	}
 	.collapsed .primary-nav :global(.tfl-tooltip-wrap) {
-		width: 40px;
+		width: 44px;
 	}
 	.collapsed .instances {
 		border-top: 1px solid var(--border);
@@ -795,9 +795,9 @@
 		gap: 4px;
 	}
 	.collapsed .section-label-actions :global(.tfl-icon-btn) {
-		width: 36px;
-		height: 32px;
-		min-height: 32px;
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
 	}
 	.collapsed .instance-list {
 		align-items: center;
@@ -805,14 +805,14 @@
 		padding-inline: 2px;
 	}
 	.collapsed .instance-item {
-		width: 40px;
-		height: 40px;
-		min-height: 40px;
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
 		padding: 4px;
 		justify-content: center;
 	}
 	.collapsed .instance-list :global(.tfl-tooltip-wrap) {
-		width: 40px;
+		width: 44px;
 		flex-shrink: 0;
 	}
 	.collapsed .instance-avatar {
@@ -820,18 +820,24 @@
 		height: 28px;
 	}
 	.collapsed .user-chip {
-		padding: 8px 4px 0;
+		padding: 8px 0 0;
 		align-items: center;
 		gap: 4px;
 	}
 	.collapsed .user-profile {
-		width: 40px;
-		min-height: 40px;
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
 		justify-content: center;
 	}
 	.collapsed .user-actions {
 		flex-direction: column;
 		gap: 4px;
+	}
+	.collapsed .user-actions :global(.tfl-icon-btn) {
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
 	}
 	.collapsed .empty {
 		padding: 8px 0;

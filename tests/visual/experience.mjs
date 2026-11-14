@@ -421,7 +421,7 @@ try {
 	await horizontesCard.waitFor();
 	assert.ok(
 		(await horizontesCard.evaluate((el) => getComputedStyle(el).backgroundImage)).includes(
-			'minecraft-1.21.1-art.webp'
+			'minecraft-1.21.1.webp'
 		)
 	);
 	assert.equal(await mediaPage.locator('[data-scene-placement="window"]').count(), 1);

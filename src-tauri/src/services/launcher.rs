@@ -362,7 +362,7 @@ async fn launch_inner(
 
     let perf_prepare = crate::core::perf::span("launch.prepare_minecraft");
     if crate::services::selection::installer::is_selection_instance(&data.dir()) {
-        let _guard = crate::services::content::mutation_lock(instance_name).await;
+        let _guard = crate::services::content::mutation_lock(&instance_name).await;
         crate::services::selection::installer::prepare_for_launch(&data).await?;
     }
     ensure_downloaded(&data, Some(java_path.clone())).await?;

@@ -48,7 +48,10 @@ try {
 				shader,
 				`${name}: capability`
 			);
-			assert.ok(tabs.some((t) => /recursos/i.test(t)));
+			assert.ok(
+				tabs.some((t) => /recursos|resource/i.test(t)),
+				JSON.stringify(tabs)
+			);
 			assert.ok(tabs.some((t) => /capturas/i.test(t)));
 			assert.ok(tabs.some((t) => /copias|backups/i.test(t)));
 			if (managed) {

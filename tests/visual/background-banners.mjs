@@ -23,7 +23,10 @@ async function open({
 } = {}) {
 	const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 	page.on('pageerror', (e) => errors.push(e.message));
-	await page.addInitScript(installFixture, { quality });
+	await page.addInitScript(installFixture, {
+		quality,
+		appVersion: url === process.env.BASELINE_URL ? '0.15.4-beta.1' : '0.15.4-beta.2'
+	});
 	const legacy = {
 		version: schema,
 		global: { preset: 'midnight-forest', scope: 'hero', motion: 'full', fps: 24, adaptTime: false },
