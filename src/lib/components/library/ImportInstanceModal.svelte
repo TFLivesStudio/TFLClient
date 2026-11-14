@@ -47,7 +47,7 @@
 	let mrpackError = $state<string | null>(null);
 
 	// El diálogo nativo de archivos crashea el launcher en macOS con la
-	// firma ad-hoc del build (ver CHANGELOG_macos-dialog-crash-java26.txt) —
+	// firma ad-hoc del build (ver docs/history/legacy/CHANGELOG_macos-dialog-crash-java26.txt) —
 	// mismo gate que `pick_content_files` en ContentManager/InstanceIconPicker.
 	let dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');
 

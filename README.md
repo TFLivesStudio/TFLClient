@@ -1,5 +1,30 @@
 # TFL Client
 
+[![TFL Client — sitio web oficial](https://launcher.tflives.com/images/social/tfl-client-es.png)](https://launcher.tflives.com)
+
+El launcher de **TFLives** para Minecraft, con un núcleo nativo escrito en **Rust** y una interfaz en **Svelte**.
+
+## Nombres del ecosistema
+
+**TFL Client** es el launcher. **TFL Selection** es la biblioteca donde TFLives
+publica sus clientes modificados. **TFLClient** es el cliente que se instala y se
+utiliza dentro de Minecraft; **TFL Core** impulsa sus funciones.
+
+Consulta [los nombres y términos](docs/PRODUCT_NAMES.md) para mantener esta
+distinción en todo el proyecto.
+
+## Web oficial · [launcher.tflives.com](https://launcher.tflives.com)
+
+La web oficial es el punto de entrada para conocer TFL Client, consultar sus características, elegir una descarga y encontrar ayuda. Este repositorio contiene el código fuente del launcher.
+
+**[Visitar la web oficial](https://launcher.tflives.com)** · [Descargas](https://launcher.tflives.com/descargas) · [Características](https://launcher.tflives.com/caracteristicas) · [TFL Selection](https://launcher.tflives.com/selection)
+
+[Novedades](https://launcher.tflives.com/novedades) · [Ayuda](https://launcher.tflives.com/ayuda) · [Discord](https://discord.gg/tflives) · [Website in English](https://launcher.tflives.com/en)
+
+---
+
+## Descargas directas y Linux
+
 **[⬇ Descargar para Windows](https://github.com/TFLivesStudio/TFLClient/releases/latest/download/TFLClient-Windows-Setup.exe)** &nbsp;·&nbsp; **[⬇ Descargar para macOS](https://github.com/TFLivesStudio/TFLClient/releases/latest/download/TFLClient-macOS.dmg)** &nbsp;·&nbsp; **[⬇ Descargar para Linux](https://github.com/TFLivesStudio/TFLClient/releases/latest/download/TFLClient-Linux.AppImage)**
 
 Estos links siempre apuntan a la última versión publicada.
@@ -12,49 +37,34 @@ curl -fsSL https://raw.githubusercontent.com/TFLivesStudio/TFLClient/main/instal
 
 Si tu sistema es una instalación mínima (sin `curl`), instalalo primero: `sudo apt install -y curl` (o `sudo dnf install -y curl` en Fedora).
 
----
-
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
-
 ## Limitaciones conocidas
 
 - **Visor 3D de Skin y capa en macOS:** en investigación — el panel de Skin y capa (Ajustes de cuenta → ícono junto a Ajustes) no renderiza correctamente en macOS por ahora (el mismo panel anda bien en Windows y Linux). Subir/restaurar skin y elegir capa siguen funcionando igual en las 3 plataformas — es solo la vista previa 3D la que falla en Mac.
 
-## Creating a project
+## Desarrollo de la interfaz
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+El frontend utiliza SvelteKit y Vite. Instala las dependencias y arranca el servidor de desarrollo:
 
 ```sh
-# recreate this project
-bun x sv@0.17.0 create --template minimal --types ts --add sveltekit-adapter="adapter:static" prettier eslint --install bun .
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+npm install
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+Para abrirlo directamente en el navegador, utiliza `npm run dev -- --open`.
 
-To create a production version of your app:
+## Compilación de la interfaz
 
 ```sh
 npm run build
+npm run preview
 ```
 
-You can preview the production build with `npm run preview`.
+Estos comandos compilan y previsualizan la interfaz web. Para revisar cómo se generan los instaladores nativos del launcher, consulta el [workflow de compilación](.github/workflows/build.yml).
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## Documentación y publicaciones
+
+- **[Guía paso a paso: publicar versiones y guardar changelogs](docs/maintainers/publishing.md).**
+- [Índice de documentación](docs/README.md).
+- [Notas completas de cada versión](docs/releases/README.md).
+- [Guía para preparar notas de publicación](docs/maintainers/release-notes.md).
+- [Historial técnico conservado](docs/history/README.md).

@@ -17,7 +17,7 @@ These are **browser measurements**, not native startup, TTI, process RSS, GPU me
 
 The refresh's offline Home uses roughly 0.8 MiB less JS heap in this probe. Lite shows the lowest idle main-thread task cost. Startup is mixed. Detail navigation regresses by 26–80 ms in these samples, with Experience's median increasing from 74 to 154 ms. The new detail renders additional artwork controls and the shared transitions; this probe does not isolate the cause. These sub-200-ms observations do not justify claiming that navigation improved. Validate and profile on native WebKit and representative hardware before acceptance.
 
-Raw samples: [performance.json](../../artifacts/visual-refresh/performance.json). Reproduce with `tests/visual/performance.mjs`. The fixture has an offline mascot, so this table does **not** measure skin rendering. The separate synthetic-skin software-renderer probe is below.
+Raw samples: [performance.json](../qa/visual-refresh/performance.json). Reproduce with `tests/visual/performance.mjs`. The fixture has an offline mascot, so this table does **not** measure skin rendering. The separate synthetic-skin software-renderer probe is below.
 
 ## Synthetic-skin viewer probe after density correction
 
@@ -34,7 +34,7 @@ Production refresh revision `b9a9968`, same Chromium and 1280×720 at device sca
 
 The old Lite initializes a WebGL context and runs animation callbacks; the refresh Lite creates none and remains static. After capping render density, the refresh's Balanced/Experience main-thread cost is close to the baseline in this single software-renderer sample. A preceding exploratory run before the correction showed 774 ms (Balanced) and 1036 ms (Experience) of task work versus 582 ms and 567 ms after the correction; those exploratory samples were not controlled repeated benchmarks, so no percentage speedup is claimed. The raw final probe records the actual elapsed interval.
 
-Callbacks are instrumented requestAnimationFrame callbacks across the page, **not rendered frames or FPS**. JS heap is not GPU memory. For a no-WebGL/static/manual/disposal regression, use `tests/visual/lifecycle.mjs`; for these observations use `tests/visual/viewer-performance.mjs`. Raw final results: [viewer-performance.json](../../artifacts/visual-refresh/viewer-performance.json).
+Callbacks are instrumented requestAnimationFrame callbacks across the page, **not rendered frames or FPS**. JS heap is not GPU memory. For a no-WebGL/static/manual/disposal regression, use `tests/visual/lifecycle.mjs`; for these observations use `tests/visual/viewer-performance.mjs`. Raw final results: [viewer-performance.json](../qa/visual-refresh/viewer-performance.json).
 
 ## Certification limits
 

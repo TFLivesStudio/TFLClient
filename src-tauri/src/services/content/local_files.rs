@@ -2,8 +2,9 @@
 //!
 //! Usa el mismo diálogo nativo que `pick_image_file` (instance.rs) — por eso
 //! el frontend solo ofrece esto cuando `settings.native_dialog_mode ===
-//! 'manual'` (ver NativeDialogModePrompt.svelte y CHANGELOG_macos-dialog-
-//! crash-java26.txt para el porqué). Acá no hay bloqueo del lado Rust: el
+//! 'manual'` (ver NativeDialogModePrompt.svelte y
+//! docs/history/legacy/CHANGELOG_macos-dialog-crash-java26.txt para el porqué).
+//! Acá no hay bloqueo del lado Rust: el
 //! gate es una decisión de UX que vive en el frontend/Ajustes.
 
 use super::filesystem::is_unsafe_filename;

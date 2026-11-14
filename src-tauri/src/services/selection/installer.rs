@@ -170,7 +170,7 @@ pub fn quarantine_foreign_mods(
                 let dest = quarantine_dir.join(&file_name);
                 if let Ok(()) = std::fs::rename(&path, &dest) {
                     warn!(
-                        "Mod externo detectado en instancia TFL Selection: {}. Movido a quarantine/ para proteger la integridad.",
+                        "Mod externo detectado en instancia TFLClient: {}. Movido a quarantine/ para proteger la integridad.",
                         file_name
                     );
                     quarantined.push(file_name);
@@ -241,7 +241,7 @@ pub async fn prepare_for_launch(instance_data: &InstanceData) -> Result<(), Stri
     Ok(())
 }
 
-/// Instalación completa y atómica de una versión de TFL Selection. Envuelve
+/// Instalación completa y atómica de una versión de TFLClient de la biblioteca TFL Selection. Envuelve
 /// `install_target_inner` para garantizar que el task de progreso
 /// `selection:{target_id}` siempre cierra con `DownloadFinished` o
 /// `DownloadFailed` — `install_target_inner` emite `DownloadProgress` pero
@@ -464,7 +464,7 @@ async fn install_target_inner(
     instance.save().await.map_err(|e| e.to_string())?;
 
     info!(
-        "TFL Selection {} instalada exitosamente como \"{}\"",
+        "TFLClient {} instalado exitosamente como \"{}\"",
         manifest.release, instance_name
     );
     Ok(instance)

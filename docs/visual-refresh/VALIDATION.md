@@ -56,7 +56,7 @@ For comparative timing, serve **production builds** of base `930c905` at port 41
 - Browser regression covers six style/profile combinations, 800×600, 1100×700, 1280×720, 1366×768 at DPR 2 and 1920×1080, Light/English and OLED/reduced motion, navigation, list/grid, favorites persistence, context menu, dialog keyboard containment/Escape, error notifications and studio fallback.
 - Compact workspace regression also covers backups, mods, console, settings and studio at 800×600, and adding/removing collections without removing instances.
 - Lifecycle regression confirms that Lite does not request skinview3d or create a WebGL context, optional manual activation works, covered Home disposes/recreates its renderer, and returning to static removes the canvas.
-- `artifacts/visual-refresh/` contains labeled screenshots and raw results. Baseline is the original production frontend under the same fixture, not a design mockup.
+- `docs/qa/visual-refresh/` contains labeled screenshots and raw results. Baseline is the original production frontend under the same fixture, not a design mockup.
 - Svelte's six pre-existing warnings remain: initial-value capture in ContextMenu/InstanceDetail and focusable code elements in onboarding/settings. No added warning suppressions.
 - Rust clippy's pre-existing warnings remain; CI itself does not use `-D warnings`.
 

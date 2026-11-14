@@ -48,7 +48,7 @@ export function installFixture({
 				// 'ornithe-gen2' en las vistas visuales (ver LOADER_META en
 				// InstanceDetail.svelte/Sidebar.svelte: sin esta entrada acá
 				// nunca se hubiera notado que faltaba la del loader ahí).
-				instance('TFL Selection 1.8.9', 'tfl-selection', 'ornithe-gen2'),
+				instance('TFLClient 1.8.9', 'tfl-selection', 'ornithe-gen2'),
 				instance('TFL Friends', 'server', 'vanilla', 'paper')
 			];
 	let settings = {

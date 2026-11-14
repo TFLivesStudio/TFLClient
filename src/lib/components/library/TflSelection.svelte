@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { modalFocus } from '$lib/visual/modalFocus';
+	import { clientDisplayName } from '$lib/selection-names';
 	import { onMount } from 'svelte';
 	import type { InstanceData } from '$lib/types/types';
 	import {
@@ -54,7 +55,7 @@
 
 	let installing = $state(false);
 	let installError = $state<string | null>(null);
-	let customInstanceName = $state('TFL Selection 1.8.9');
+	let customInstanceName = $state('TFLClient 1.8.9');
 
 	let checkingUpdate = $state(false);
 	let updateInfo = $state<SelectionUpdateInfo | null>(null);
@@ -69,6 +70,11 @@
 	let showComponents = $state(false);
 
 	const activeTarget = $derived<SelectionTarget | undefined>(targets[0]);
+	const activeClientName = $derived(
+		activeTarget
+			? clientDisplayName(activeTarget.displayName, activeTarget.minecraftVersion)
+			: 'TFLClient'
+	);
 
 	// `channels` ya viene ordenado stable > beta > dev desde el backend.
 	const defaultChannel = $derived(activeTarget?.channels[0]?.channel ?? 'beta');
@@ -120,7 +126,7 @@
 		installing = true;
 		installError = null;
 		try {
-			const name = customInstanceName.trim() || 'TFL Selection 1.8.9';
+			const name = customInstanceName.trim() || activeClientName;
 			const created = await installSelectionTarget(name, activeTarget.targetId, selectedChannel);
 			onInstanceCreated?.(created);
 			addNotice({
@@ -133,7 +139,7 @@
 			addNotice({
 				kind: 'error',
 				title: 'failed',
-				message: `Error al instalar TFL Selection: ${String(e)}`
+				message: t('selectionLibrary.installError', { error: String(e) })
 			});
 		} finally {
 			installing = false;
@@ -280,10 +286,9 @@
 				<Tfl width="32" height="32" />
 			</div>
 			<div class="hero-text">
-				<span class="eyebrow">Distribución Oficial • 1.8.9 Ornithe</span>
+				<span class="eyebrow">{t('selectionLibrary.title')}</span>
 				<p class="subtitle">
-					Versión curada, optimizada y firmada criptográficamente por TFLives. Lista para jugar con
-					un solo click.
+					{t('selectionLibrary.description')}
 				</p>
 			</div>
 		</div>
@@ -306,7 +311,7 @@
 			</div>
 		{:else if !activeTarget}
 			<div class="empty-state">
-				<p>No hay versiones publicadas de TFL Selection en este momento.</p>
+				<p>{t('selectionLibrary.empty')}</p>
 			</div>
 		{:else}
 			{@const ch = activeTarget.channels}
@@ -320,7 +325,7 @@
 						</div>
 						<div>
 							<div class="target-title-row">
-								<h3 class="target-title">{activeTarget.displayName || 'TFL Selection 1.8.9'}</h3>
+								<h3 class="target-title">{activeClientName}</h3>
 								{#if activePointer}
 									<span class="badge badge-channel">
 										{selectedChannel.toUpperCase()} • v{activePointer.release}
@@ -483,7 +488,7 @@
 									id="instance-name-input"
 									type="text"
 									bind:value={customInstanceName}
-									placeholder="TFL Selection 1.8.9"
+									placeholder={activeClientName}
 									disabled={installing}
 								/>
 							</div>
@@ -557,10 +562,10 @@
 							>
 								{#if installing}
 									<Loader2 size={16} class="spin" />
-									<span>Instalando TFL Selection...</span>
+									<span>{t('selectionLibrary.installing', { name: activeClientName })}</span>
 								{:else}
 									<Download size={16} />
-									<span>Instalar TFL Selection 1.8.9</span>
+									<span>{t('selectionLibrary.install', { name: activeClientName })}</span>
 								{/if}
 							</button>
 						</div>
