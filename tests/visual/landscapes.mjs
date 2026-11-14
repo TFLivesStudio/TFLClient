@@ -28,10 +28,27 @@ async function open(preset, quality = 'Balanced', extra = {}) {
 				})
 			);
 			window.__landscapeContextCount = 0;
+			window.__landscapeSurfaces = new Set();
+			window.__pendingFrames = new Set();
+			const request = window.requestAnimationFrame.bind(window);
+			const cancel = window.cancelAnimationFrame.bind(window);
+			window.requestAnimationFrame = (callback) => {
+				const id = request((time) => {
+					window.__pendingFrames.delete(id);
+					callback(time);
+				});
+				window.__pendingFrames.add(id);
+				return id;
+			};
+			window.cancelAnimationFrame = (id) => {
+				window.__pendingFrames.delete(id);
+				cancel(id);
+			};
 			const getContext = HTMLCanvasElement.prototype.getContext;
 			HTMLCanvasElement.prototype.getContext = function (type, ...args) {
 				if (type === '2d') {
 					window.__landscapeContextCount++;
+					window.__landscapeSurfaces.add(this);
 					if (noCanvas) return null;
 				}
 				return getContext.call(this, type, ...args);
@@ -47,6 +64,17 @@ async function open(preset, quality = 'Balanced', extra = {}) {
 		)
 	);
 	return page;
+}
+async function selectScene(page, config) {
+	await page.evaluate((config) => {
+		const value = JSON.stringify({
+			version: 1,
+			global: { motion: 'full', fps: 24, adaptTime: false, ...config },
+			instances: {}
+		});
+		localStorage.setItem('tfl-scenes-v1', value);
+		window.dispatchEvent(new StorageEvent('storage', { key: 'tfl-scenes-v1', newValue: value }));
+	}, config);
 }
 try {
 	for (const preset of ['midnight-forest', 'dithered-sunset', 'aurora-valley']) {
@@ -129,6 +157,66 @@ try {
 		if (extra.reduced) assert.equal(await page.evaluate(() => window.__landscapeContextCount), 0);
 		await page.close();
 	}
+	const lifecycle = await open('midnight-forest', 'Experience');
+	for (let cycle = 0; cycle < 12; cycle++) {
+		await selectScene(lifecycle, { preset: cycle % 2 ? 'aurora-valley' : 'midnight-forest' });
+		await lifecycle.waitForFunction(() =>
+			document.querySelector('.pixel-landscape[data-animated="true"] canvas')
+		);
+		const active = await lifecycle.evaluate(
+			() => [...window.__landscapeSurfaces].filter((n) => n.width > 0 && n.height > 0).length
+		);
+		assert.equal(active, cycle % 2 ? 9 : 8, 'only mounted scene owns live cached surfaces');
+		await selectScene(lifecycle, { preset: 'legacy' });
+		await lifecycle.waitForFunction(() => !document.querySelector('.pixel-landscape'));
+		await lifecycle.waitForTimeout(60);
+		assert.equal(
+			await lifecycle.evaluate(
+				() => [...window.__landscapeSurfaces].filter((n) => n.width > 0 && n.height > 0).length
+			),
+			0,
+			'unmount releases all cached canvas backing stores'
+		);
+		assert.equal(
+			await lifecycle.evaluate(() => window.__pendingFrames.size),
+			0,
+			'last scene unmount leaves no queued animation frame'
+		);
+	}
+	await selectScene(lifecycle, { preset: 'midnight-forest', mediaId: 'builtin-aurora' });
+	await lifecycle.waitForFunction(() => {
+		const v = document.querySelector('.living-scene video');
+		return v && !v.paused && v.readyState >= 2 && v.currentTime > 0;
+	});
+	assert.equal(
+		await lifecycle.locator('.pixel-landscape canvas').count(),
+		0,
+		'playing video does not run a second procedural renderer'
+	);
+	assert.equal(
+		await lifecycle.evaluate(
+			() => [...window.__landscapeSurfaces].filter((n) => n.width > 0 && n.height > 0).length
+		),
+		0,
+		'video releases procedural backing stores'
+	);
+	await lifecycle
+		.locator('.living-scene video')
+		.evaluate((n) => n.dispatchEvent(new Event('error')));
+	await lifecycle.waitForFunction(() =>
+		document.querySelector('.pixel-landscape[data-animated="true"] canvas')
+	);
+	assert.equal(await lifecycle.locator('.living-scene video').count(), 0);
+	const beforeFallback = await lifecycle
+		.locator('.pixel-landscape canvas')
+		.evaluate((n) => n.toDataURL());
+	await lifecycle.waitForTimeout(700);
+	assert.notEqual(
+		await lifecycle.locator('.pixel-landscape canvas').evaluate((n) => n.toDataURL()),
+		beforeFallback,
+		'media failure resumes real landscape animation'
+	);
+	await lifecycle.close();
 	assert.deepEqual(errors, []);
 	await writeFile(
 		`${output}/results.json`,
@@ -144,7 +232,7 @@ try {
 		)
 	);
 	console.log(
-		'PASS Living landscapes: 3 scenes × 3 quality tiers, animation, DPR, cache reuse, context restoration, static/no-Canvas fallback'
+		'PASS Living landscapes: 3 scenes × 3 quality tiers, animation, DPR, cache reuse, context restoration, static/no-Canvas fallback, 12 mount/dispose cycles with zero queued RAF, real video and media-error recovery'
 	);
 } finally {
 	await browser.close();

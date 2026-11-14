@@ -1,5 +1,21 @@
 # Medir el rendimiento de TFL Client
 
+## Living Themes
+
+Con la instrumentación activada, `ui.landscape.cache.<preset>` mide la creación
+de cachés y `ui.landscape.frame.<preset>` registra el coste medio de dibujo al
+desmontar la escena. No hay IPC por fotograma: se acumula localmente y se emite
+una muestra al limpiar. Con la instrumentación apagada no se toman tiempos.
+Estos costes son del WebView; no representan CPU total ni FPS de Minecraft.
+
+Para comparar el frontend de producción y su base integrada con el mismo
+fixture, usa `tests/visual/performance.mjs` y `scenes-performance.mjs` con
+`BASELINE_URL`, `VISUAL_URL`, `BASELINE_VERSION` y `PLAYWRIGHT_MODULE`.
+`landscapes.mjs` comprueba cachés, pérdida/restauración de contexto, vídeo sin
+Canvas redundante, doce ciclos de montaje y cero RAF al desmontar. Sus
+observaciones CDP de heap y tiempo de tareas son de Chromium con IPC simulado;
+no equivalen a memoria de proceso ni a medidas nativas de Windows/macOS/Linux.
+
 TFL Client apunta a ser un launcher liviano. Para no depender de "siento que
 ahora abre más lento", hay instrumentación interna. **No hay telemetría**: nada
 sale de la máquina; las mediciones van al log del proceso y a un buffer en

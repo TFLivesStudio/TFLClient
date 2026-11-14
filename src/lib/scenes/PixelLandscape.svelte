@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { perfEnabled, perfRecord } from '$lib/perf';
 	import { subscribeFrame } from './frameClock';
 	import { isLandscape, landscapePoster } from './landscape';
 	import { createLandscapeRenderer } from './landscapeRenderer';
@@ -57,16 +58,25 @@
 		failed = false;
 		let renderer: ReturnType<typeof createLandscapeRenderer> = null;
 		let stop = () => {};
+		let frameMs = 0,
+			frameCount = 0;
 		const start = () => {
 			stop();
 			renderer?.dispose();
+			const started = perfEnabled ? performance.now() : 0;
 			renderer = createLandscapeRenderer(node, id, dither);
+			if (perfEnabled) perfRecord(`landscape.cache.${id}`, performance.now() - started);
 			failed = !renderer;
 			if (!renderer) return;
 			renderer.draw(time, x, y, depth, config, phase);
 			stop = subscribeFrame((delta) => {
 				time += delta;
+				const started = perfEnabled ? performance.now() : 0;
 				renderer?.draw(time, x, y, depth, config, phase);
+				if (perfEnabled) {
+					frameMs += performance.now() - started;
+					frameCount++;
+				}
 			}, rate);
 		};
 		untrack(start);
@@ -79,6 +89,7 @@
 		node.addEventListener('contextrestored', start);
 		return () => {
 			stop();
+			if (perfEnabled && frameCount) perfRecord(`landscape.frame.${id}`, frameMs / frameCount);
 			node.removeEventListener('contextlost', lost);
 			node.removeEventListener('contextrestored', start);
 			renderer?.dispose();

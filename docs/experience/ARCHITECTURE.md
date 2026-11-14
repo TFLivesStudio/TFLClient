@@ -1,5 +1,11 @@
 # Experience & Settings Rework
 
+La actualización Pixel/Living Themes de noviembre de 2026 amplía esta base sin
+reemplazar los presets ni vídeos existentes. El contrato actualizado de controles
+está en [PIXEL_COMPONENTS.md](PIXEL_COMPONENTS.md); los escenarios procedurales,
+la migración aditiva v1 y su validación se documentan en el
+[informe de integración](../changes/2026-11-14-pixel-overhaul-living-themes.md).
+
 Base inicial: `v0.13.1-beta.4`. Se integró `origin/main` hasta `bf049c3`, incluyendo la publicación de `0.13.1` y la corrección de Detener que prepara `0.13.2`. Versión preparada: **0.14.0-beta.1**. Rama independiente `feat/experience-settings-rework`; sin tag ni release.
 
 ## Ajustes por tarea

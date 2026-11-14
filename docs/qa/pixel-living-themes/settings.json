@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "pixel: window, preview cancel, apply, single Hero renderer",
+    "modern: window, preview cancel, apply, single Hero renderer",
+    "featured instance placement override, static fallback without canvas",
+    "Lite window background has no canvas or video"
+  ],
+  "errors": []
+}

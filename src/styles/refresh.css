@@ -791,3 +791,17 @@ html[data-visual='pixel'] .tfl-btn.ghost:hover:not(:disabled) {
 	background: var(--pixel-stone);
 	border-color: var(--pixel-rim-dark);
 }
+
+/* At the minimum window size, give Classic labels the space used by decorative
+   icons. Keep whole words and readable type instead of splitting translations. */
+@media (max-width: 960px) {
+	html[data-visual='pixel'][data-pixel-type='classic'] .panel-tabs .ptab {
+		padding-inline: 6px;
+		gap: 0;
+		overflow-wrap: normal;
+		word-break: normal;
+	}
+	html[data-visual='pixel'][data-pixel-type='classic'] .panel-tabs .ptab > svg {
+		display: none;
+	}
+}

@@ -1,0 +1,204 @@
+{
+  "fixture": true,
+  "browser": "159.0.8154.6",
+  "samples": [
+    {
+      "revision": "baseline",
+      "quality": "Lite",
+      "run": 0,
+      "readyMs": 266,
+      "heapMiB": 4.74,
+      "idleTaskMs": 0.47,
+      "nodes": 2048,
+      "settingsMs": 44,
+      "detailMs": 66
+    },
+    {
+      "revision": "baseline",
+      "quality": "Lite",
+      "run": 1,
+      "readyMs": 185,
+      "heapMiB": 4.75,
+      "idleTaskMs": 0.44,
+      "nodes": 2048,
+      "settingsMs": 51,
+      "detailMs": 70
+    },
+    {
+      "revision": "baseline",
+      "quality": "Lite",
+      "run": 2,
+      "readyMs": 188,
+      "heapMiB": 4.75,
+      "idleTaskMs": 0.44,
+      "nodes": 2048,
+      "settingsMs": 50,
+      "detailMs": 63
+    },
+    {
+      "revision": "baseline",
+      "quality": "Balanced",
+      "run": 0,
+      "readyMs": 186,
+      "heapMiB": 4.76,
+      "idleTaskMs": 1.09,
+      "nodes": 2048,
+      "settingsMs": 59,
+      "detailMs": 115
+    },
+    {
+      "revision": "baseline",
+      "quality": "Balanced",
+      "run": 1,
+      "readyMs": 187,
+      "heapMiB": 4.73,
+      "idleTaskMs": 0.99,
+      "nodes": 2048,
+      "settingsMs": 59,
+      "detailMs": 122
+    },
+    {
+      "revision": "baseline",
+      "quality": "Balanced",
+      "run": 2,
+      "readyMs": 183,
+      "heapMiB": 4.74,
+      "idleTaskMs": 0.89,
+      "nodes": 2048,
+      "settingsMs": 60,
+      "detailMs": 130
+    },
+    {
+      "revision": "baseline",
+      "quality": "Experience",
+      "run": 0,
+      "readyMs": 189,
+      "heapMiB": 4.76,
+      "idleTaskMs": 1.04,
+      "nodes": 2048,
+      "settingsMs": 55,
+      "detailMs": 112
+    },
+    {
+      "revision": "baseline",
+      "quality": "Experience",
+      "run": 1,
+      "readyMs": 184,
+      "heapMiB": 4.77,
+      "idleTaskMs": 1.36,
+      "nodes": 2048,
+      "settingsMs": 61,
+      "detailMs": 123
+    },
+    {
+      "revision": "baseline",
+      "quality": "Experience",
+      "run": 2,
+      "readyMs": 179,
+      "heapMiB": 4.79,
+      "idleTaskMs": 1.23,
+      "nodes": 2048,
+      "settingsMs": 62,
+      "detailMs": 127
+    },
+    {
+      "revision": "refresh",
+      "quality": "Lite",
+      "run": 0,
+      "readyMs": 181,
+      "heapMiB": 4.79,
+      "idleTaskMs": 0.5,
+      "nodes": 2057,
+      "settingsMs": 40,
+      "detailMs": 61
+    },
+    {
+      "revision": "refresh",
+      "quality": "Lite",
+      "run": 1,
+      "readyMs": 220,
+      "heapMiB": 4.76,
+      "idleTaskMs": 0.55,
+      "nodes": 2057,
+      "settingsMs": 50,
+      "detailMs": 60
+    },
+    {
+      "revision": "refresh",
+      "quality": "Lite",
+      "run": 2,
+      "readyMs": 195,
+      "heapMiB": 4.73,
+      "idleTaskMs": 0.57,
+      "nodes": 2057,
+      "settingsMs": 52,
+      "detailMs": 62
+    },
+    {
+      "revision": "refresh",
+      "quality": "Balanced",
+      "run": 0,
+      "readyMs": 186,
+      "heapMiB": 4.77,
+      "idleTaskMs": 0.99,
+      "nodes": 2057,
+      "settingsMs": 64,
+      "detailMs": 122
+    },
+    {
+      "revision": "refresh",
+      "quality": "Balanced",
+      "run": 1,
+      "readyMs": 185,
+      "heapMiB": 4.75,
+      "idleTaskMs": 1.01,
+      "nodes": 2057,
+      "settingsMs": 60,
+      "detailMs": 171
+    },
+    {
+      "revision": "refresh",
+      "quality": "Balanced",
+      "run": 2,
+      "readyMs": 187,
+      "heapMiB": 4.76,
+      "idleTaskMs": 1.13,
+      "nodes": 2057,
+      "settingsMs": 56,
+      "detailMs": 122
+    },
+    {
+      "revision": "refresh",
+      "quality": "Experience",
+      "run": 0,
+      "readyMs": 187,
+      "heapMiB": 4.76,
+      "idleTaskMs": 1.46,
+      "nodes": 2057,
+      "settingsMs": 66,
+      "detailMs": 127
+    },
+    {
+      "revision": "refresh",
+      "quality": "Experience",
+      "run": 1,
+      "readyMs": 190,
+      "heapMiB": 4.75,
+      "idleTaskMs": 0.98,
+      "nodes": 2057,
+      "settingsMs": 50,
+      "detailMs": 133
+    },
+    {
+      "revision": "refresh",
+      "quality": "Experience",
+      "run": 2,
+      "readyMs": 192,
+      "heapMiB": 4.75,
+      "idleTaskMs": 1.07,
+      "nodes": 2057,
+      "settingsMs": 67,
+      "detailMs": 120
+    }
+  ]
+}

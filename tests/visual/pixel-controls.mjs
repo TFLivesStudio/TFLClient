@@ -56,11 +56,17 @@ async function search(page, selector, label, pixel) {
 			text = getComputedStyle(input);
 		const r = node.getBoundingClientRect(),
 			i = input.getBoundingClientRect();
+		const canvas = document.createElement('canvas');
+		canvas.width = canvas.height = 1;
+		const context = canvas.getContext('2d');
+		context.fillStyle = text.backgroundColor;
+		context.fillRect(0, 0, 1, 1);
 		return {
 			frame: frame.borderWidth,
 			border: text.borderWidth,
 			shadow: text.boxShadow,
 			background: text.backgroundColor,
+			backgroundAlpha: context.getImageData(0, 0, 1, 1).data[3],
 			focus: frame.outlineStyle,
 			focusWidth: frame.outlineWidth,
 			color: text.color,
@@ -90,7 +96,7 @@ async function search(page, selector, label, pixel) {
 		assert.equal(metrics.frame, '2px', `${label}: one outer frame`);
 		assert.equal(metrics.border, '0px', `${label}: no inner frame`);
 		assert.equal(metrics.shadow, 'none', `${label}: no inner bevel`);
-		assert.equal(metrics.background, 'rgba(0, 0, 0, 0)', `${label}: transparent inner field`);
+		assert.equal(metrics.backgroundAlpha, 0, `${label}: transparent inner field`);
 		assert.equal(metrics.focus, 'solid', `${label}: visible focus`);
 		assert.equal(metrics.focusWidth, '2px', `${label}: focus width`);
 	}
@@ -129,7 +135,9 @@ try {
 			await shot(p, `${style}-${font}-appearance`);
 			await p.keyboard.press('Escape');
 			await p.locator('.instance-open').filter({ hasText: 'Horizontes' }).click();
-			await p.getByRole('button', { name: 'Cambiar ícono de la instancia', exact: true }).click();
+			await p
+				.getByRole('button', { name: 'Cambiar \u00edcono de la instancia', exact: true })
+				.click();
 			await search(p, '.icon-search', `${style}-${font}-icons`, style === 'pixel');
 			await shot(p, `${style}-${font}-icons`);
 			await p.keyboard.press('Escape');
@@ -153,7 +161,7 @@ try {
 					accent: theme === 'light' ? '#5432b6' : '#9de9c6'
 				});
 				const primary = await p
-					.locator('.play-btn,.vr-control.primary')
+					.locator('.play-btn,.vr-control.primary,.tfl-btn.primary')
 					.first()
 					.evaluate((button) => {
 						const root = getComputedStyle(document.documentElement),
@@ -192,6 +200,26 @@ try {
 					await p.setViewportSize({ width, height });
 					await search(p, '.settings-search', `${font}-${theme}-${quality}-${width}`, true);
 					assert.ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+					if (width === 800 && font === 'classic') {
+						for (const name of ['Integraciones', 'Actualizaciones']) {
+							const label = p.locator('.panel-tabs .ptab').filter({ hasText: name });
+							const fit = await label.evaluate((button) => {
+								const walker = document.createTreeWalker(button, NodeFilter.SHOW_TEXT);
+								let text;
+								while ((text = walker.nextNode()))
+									if (text.textContent.trim()) {
+										const range = document.createRange();
+										range.selectNodeContents(text);
+										return (
+											range.getClientRects().length === 1 &&
+											button.scrollWidth <= button.clientWidth
+										);
+									}
+								return false;
+							});
+							assert.ok(fit, `${name}: whole translated label fits Classic navigation at 800px`);
+						}
+					}
 					if (width === 800 || width === 1280)
 						await shot(p, `${font}-${theme}-${quality}-${width}`);
 				}

@@ -76,4 +76,67 @@ El host Windows no dispone de los prerrequisitos MSVC de Tauri; los checks Rust
 y los instaladores se verifican en el pipeline oficial. El rendimiento de
 Chromium se registra separado de CPU/RAM nativas.
 
-Publicación y resultados finales: pendientes de completar antes de etiquetar.
+## Resultados del candidato 0.15.4-beta.1
+
+- `bun install --frozen-lockfile`: correcto con Bun 1.4.2 y Node 24.
+- Svelte: cero errores, cinco warnings previos. Lint completo correcto;
+  comprobación adicional de los archivos finales sin errores.
+- Build de producción: código de salida 0. Unitarias Node: 31/31.
+- `cargo fmt --all -- --check`: correcto. La prueba Rust local no pudo enlazar
+  por falta de `link.exe`; CI Linux sí pasó clippy, tests, MCP y audit del primer
+  candidato `1634e89`. El commit definitivo vuelve a verificarse antes del tag.
+- Smoke: 26 capturas; Experience: 85 entradas de evidencia/matriz completa;
+  workspaces, lifecycle, 22 comprobaciones MCP/escenas, 13 de autenticación y
+  beta2 con 12 capturas: correctos.
+- Pixel: 116 comprobaciones de estilos/foco/geometría, 18 de acento y 18 de
+  etiquetas Classic. Se probaron Readable/Classic, Dark/Light/OLED, tres
+  calidades y materiales, cinco resoluciones entre 800×600 y 1920×1080,
+  DPR 1/2, inglés, forced colors y movimiento reducido.
+- Living: tres escenarios por tres calidades, cambio real de píxeles, parallax,
+  cachés estables, contexto perdido/restaurado, fallback sin Canvas y doce
+  ciclos de montaje con cero RAF al retirar el último escenario. Un vídeo
+  empaquetado realmente reproduce sin Canvas redundante y el error de vídeo
+  recupera el paisaje. Ajustes/overrides/Aplicar/Cancelar: correctos.
+
+La primera CI de la base confirmó RUSTSEC-2026-0538; se corrigió la dependencia.
+La primera CI de la función detectó un selector incompleto en el test de la
+acción primaria; el harness ahora incluye la variante compartida `.tfl-btn`,
+sin relajar la aserción de color. Forced colors se prueba por alpha calculado,
+porque el RGB de un color totalmente transparente depende del navegador.
+
+## Rendimiento observado
+
+Tres muestras por perfil y revisión, Chromium 159 con IPC simulado y escenario
+predeterminado estático; medias, en la misma máquina:
+
+| Perfil     | UI usable base → cambio (ms) | Heap JS base → cambio (MiB) | Tareas en reposo base → cambio (ms/s) |
+| ---------- | ---------------------------- | --------------------------- | ------------------------------------- |
+| Lite       | 213.0 → 198.7                | 4.75 → 4.76                 | 0.45 → 0.54                           |
+| Balanced   | 185.3 → 186.0                | 4.74 → 4.76                 | 0.99 → 1.04                           |
+| Experience | 184.0 → 189.7                | 4.77 → 4.75                 | 1.21 → 1.17                           |
+
+Abrir Ajustes promedió 48.3/59.3/59.3 ms antes y 47.3/60.0/61.0 después.
+El detalle promedió 66.3/122.3/120.7 ms antes y 61.0/138.3/126.7 después:
+la muestra Balanced incluye una observación de 171 ms. Son muestras pequeñas,
+sin garantía estadística ni equivalencia a rendimiento nativo.
+Las escenas nuevas consumieron aproximadamente 40–73 ms de tareas Chromium
+por segundo en la observación registrada, con ocho superficies 2D por Forest
+y Sunset y nueve por Aurora (incluidas cachés); Lite no crea contextos. Los
+costes de inicio/caché y dibujo medio pueden medirse optativamente con la
+instrumentación descrita en `docs/RENDIMIENTO.md`, sin IPC por fotograma.
+
+## Evidencia, versión y límites
+
+[Capturas antes/después y resultados](../qa/pixel-living-themes/README.md).
+El código de implementación se inicia en `1634e89`; la versión que incorpora
+la revisión final es `0.15.4-beta.1`, cuyo
+[commit etiquetado](https://github.com/TFLivesStudio/TFLClient/commit/v0.15.4-beta.1)
+se comprueba contra CI antes de publicar mediante el workflow oficial.
+La publicación real y su fecha UTC se registran en el índice después de
+verificar instaladores, firmas y `latest.json`. La estable de referencia es
+`v0.15.2`, release ID `433706720`; no se reescriben su tag ni sus assets.
+
+No se certificaron una cuenta Microsoft real, partidas, lectores de pantalla,
+GPU física, autonomía ni todas las combinaciones de controladores y códecs.
+Las pruebas nativas de OAuth en CI usan fixtures sin cuenta real ni bóveda del
+sistema. No se desactiva ninguna compuerta para sustituir estas limitaciones.

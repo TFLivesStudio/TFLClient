@@ -1,0 +1,48 @@
+{
+  "browser": "159.0.8154.6",
+  "scenario": "Chromium production frontend with isolated IPC; synthetic context-loss events; no native benchmarks",
+  "results": [
+    {
+      "preset": "midnight-forest",
+      "quality": "Balanced",
+      "jsHeap": 6628204,
+      "taskMsPerSecond": 41.806000000000004,
+      "contexts": 8
+    },
+    {
+      "preset": "midnight-forest",
+      "quality": "Experience",
+      "jsHeap": 6597048,
+      "taskMsPerSecond": 39.314,
+      "contexts": 8
+    },
+    {
+      "preset": "dithered-sunset",
+      "quality": "Balanced",
+      "jsHeap": 6110692,
+      "taskMsPerSecond": 42.721999999999994,
+      "contexts": 8
+    },
+    {
+      "preset": "dithered-sunset",
+      "quality": "Experience",
+      "jsHeap": 6117916,
+      "taskMsPerSecond": 37.559999999999995,
+      "contexts": 8
+    },
+    {
+      "preset": "aurora-valley",
+      "quality": "Balanced",
+      "jsHeap": 6627132,
+      "taskMsPerSecond": 74.365,
+      "contexts": 9
+    },
+    {
+      "preset": "aurora-valley",
+      "quality": "Experience",
+      "jsHeap": 6630904,
+      "taskMsPerSecond": 78.06,
+      "contexts": 9
+    }
+  ]
+}
