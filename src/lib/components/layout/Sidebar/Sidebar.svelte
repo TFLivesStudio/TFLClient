@@ -339,8 +339,12 @@
 				<button
 					type="button"
 					class="user-profile"
-					title={user.username}
-					aria-label={`${user.username} · ${t('settings.tabs.accounts')}`}
+					title={user.user_type === 'Cracked' ? user.username : t('skinManager.title')}
+					aria-label={user.user_type === 'Cracked'
+						? `${user.username} · ${t('settings.tabs.accounts')}`
+						: collapsed
+							? t('skinManager.title')
+							: `${user.username} · ${t('skinManager.title')}`}
 					onclick={user.user_type === 'Cracked' ? onOpenSettings : onOpenSkinManager}
 				>
 					<span class="user-head">

@@ -309,6 +309,9 @@ async fn free_copy_name(base: &str) -> String {
 /// original).
 pub async fn duplicate_instance(source_name: &str) -> Result<InstanceData, String> {
     let source = get_instance(source_name).await?;
+    if crate::services::selection::installer::is_selection_instance(&source.dir()) {
+        return Err("Instala otra copia del cliente desde TFL Selection para conservar su procedencia oficial.".into());
+    }
     let new_name = free_copy_name(source_name).await;
     let dest_dir = PathManager::get().get_instance_dir().join(&new_name);
     let source_dir = source.dir();
