@@ -52,6 +52,7 @@
 </script>
 
 <button
+	data-pixel-control="primary"
 	class="vr-control primary"
 	disabled={busy}
 	aria-label={`${vr('play')} ${instance.name}`}

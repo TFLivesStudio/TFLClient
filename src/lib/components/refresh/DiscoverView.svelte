@@ -19,7 +19,10 @@
 			<span class="vr-eyebrow"><Tfl width="16" height="16" /> TFLIVES / {vr('curated')}</span>
 			<h2>{vr('selection')}</h2>
 			<p>{vr('selectionSub')}</p>
-			<button class="vr-control primary" onclick={() => openModal('tflSelection')}
+			<button
+				data-pixel-control="primary"
+				class="vr-control primary"
+				onclick={() => openModal('tflSelection')}
 				>{vr('selectionAction')}<ArrowUpRight size={18} /></button
 			>
 		</div>

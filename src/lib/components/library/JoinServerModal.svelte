@@ -284,6 +284,7 @@
 				<button
 					type="button"
 					class="star-btn"
+					data-pixel-control
 					disabled={joining || !address.trim() || alreadyFavorite}
 					title={alreadyFavorite ? t('joinServer.alreadyFavorite') : t('joinServer.saveFavorite')}
 					aria-label={t('joinServer.saveFavorite')}
@@ -301,7 +302,7 @@
 						maxlength="40"
 						onkeydown={(e) => e.key === 'Enter' && handleSaveFavorite()}
 					/>
-					<button type="button" class="btn" onclick={handleSaveFavorite}
+					<button data-pixel-control type="button" class="btn" onclick={handleSaveFavorite}
 						>{t('joinServer.saveFavoriteConfirm')}</button
 					>
 				</div>
@@ -312,6 +313,7 @@
 				<button
 					type="button"
 					class="mode-tab"
+					data-pixel-control
 					class:active={mode === 'existing'}
 					disabled={joining || joinableInstances.length === 0}
 					onclick={() => (mode = 'existing')}
@@ -321,6 +323,7 @@
 				<button
 					type="button"
 					class="mode-tab"
+					data-pixel-control
 					class:active={mode === 'quick'}
 					disabled={joining}
 					onclick={() => (mode = 'quick')}
@@ -363,11 +366,12 @@
 		{/if}
 
 		<div class="actions">
-			<button type="button" class="btn" onclick={onClose} disabled={joining}
+			<button data-pixel-control type="button" class="btn" onclick={onClose} disabled={joining}
 				>{t('common.cancel')}</button
 			>
 			{#if !blocked}
 				<button
+					data-pixel-control="primary"
 					type="button"
 					class="btn primary"
 					disabled={joining ||

@@ -46,6 +46,7 @@
 		<div class="presets">
 			{#each GRAPHICS_PRESETS as preset (preset.projectId)}
 				<button
+					data-pixel-control
 					type="button"
 					class="preset-btn"
 					disabled={installingPreset === preset.projectId}

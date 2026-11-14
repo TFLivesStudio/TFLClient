@@ -49,7 +49,7 @@
 
 		{#if error}<p class="prompt-error">{error}</p>{/if}
 
-		<button type="button" class="ok-btn" disabled={busy} onclick={dismiss}>
+		<button data-pixel-control type="button" class="ok-btn" disabled={busy} onclick={dismiss}>
 			{t('serverConnectionInfo.gotIt')}
 		</button>
 	</div>

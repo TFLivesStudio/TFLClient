@@ -86,7 +86,12 @@
 				{t('updateBadge.download')}
 			</button>
 		{:else if phase === 'downloaded'}
-			<button type="button" class="badge-action primary" onclick={installDownloadedUpdate}>
+			<button
+				data-pixel-control="primary"
+				type="button"
+				class="badge-action primary"
+				onclick={installDownloadedUpdate}
+			>
 				{t('updateBadge.restart')}
 			</button>
 		{:else if phase === 'error'}

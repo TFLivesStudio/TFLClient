@@ -304,7 +304,7 @@
 			/>
 		{:else}
 			<div class="toolbar">
-				<div class="search-row">
+				<div class="search-row" data-search-control>
 					{#if explorer.loading}
 						<Loader2 size={14} class="spin search-icon" />
 					{:else}
@@ -314,10 +314,12 @@
 						type="text"
 						value={explorer.query}
 						oninput={(e) => explorer.setQuery((e.target as HTMLInputElement).value)}
+						aria-label={t('contentManager.searchPlaceholder', { noun: KIND_NOUN[activeKind] })}
 						placeholder={t('contentManager.searchPlaceholder', { noun: KIND_NOUN[activeKind] })}
 					/>
 				</div>
 				<button
+					data-pixel-control
 					type="button"
 					class="filters-toggle"
 					class:active={!filtersCollapsed}
@@ -332,6 +334,7 @@
 				<div class="filters-row">
 					<div class="category-dropdown" bind:this={categoryDropdownEl}>
 						<button
+							data-pixel-control
 							type="button"
 							class="category-trigger"
 							class:active={explorer.selectedCategories.size > 0}
@@ -346,6 +349,7 @@
 							<div class="category-panel">
 								{#each CATEGORIES[activeKind] as cat (cat)}
 									<button
+										data-pixel-control
 										type="button"
 										class="category-option"
 										class:active={explorer.selectedCategories.has(cat)}
@@ -359,6 +363,7 @@
 								{/each}
 								{#if explorer.selectedCategories.size > 0}
 									<button
+										data-pixel-control
 										type="button"
 										class="category-option clear"
 										onclick={() => explorer.clearCategories()}
@@ -383,6 +388,7 @@
 					<p class="error">
 						{t(errorMessageKey(explorer.errorKind))}
 						<button
+							data-pixel-control
 							type="button"
 							class="retry-btn"
 							onclick={() => explorer.setQuery(explorer.query)}
@@ -402,6 +408,7 @@
 									></div>{/if}
 								<span class="favorite-title">{mod.title}</span>
 								<button
+									data-pixel-control="primary"
 									type="button"
 									class="install-btn"
 									disabled={explorer.installingId === mod.projectId}

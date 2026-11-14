@@ -100,6 +100,7 @@
 				<button
 					type="button"
 					class="type-btn"
+					data-pixel-control
 					class:active={selectedType === st.id}
 					disabled={creating}
 					onclick={() => (selectedType = st.id)}
@@ -131,10 +132,11 @@
 		{/if}
 
 		<div class="actions">
-			<button type="button" class="btn" onclick={onClose} disabled={creating}
+			<button data-pixel-control type="button" class="btn" onclick={onClose} disabled={creating}
 				>{t('common.cancel')}</button
 			>
 			<button
+				data-pixel-control="primary"
 				type="button"
 				class="btn primary"
 				disabled={creating || !name.trim() || !selectedVersion}

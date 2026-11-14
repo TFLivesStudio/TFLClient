@@ -1,13 +1,14 @@
 <script lang="ts">
 	import CinematicAtmosphere from './CinematicAtmosphere.svelte';
 	import { cinematicPoster } from './cinematic';
-	import { onMount } from 'svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { invoke } from '$lib/api/invoke';
 	import { dayPhase, sceneCapabilities, type SceneConfig } from './model';
 	import SceneFrame from './SceneFrame.svelte';
 	import ShaderLayer from './ShaderLayer.svelte';
 	import { tr } from '$lib/i18n/experience';
+	import PixelLandscape from './PixelLandscape.svelte';
+	import { isLandscape } from './landscape';
 	let {
 		config,
 		quality = 'balanced',
@@ -31,6 +32,7 @@
 		y = $state(0),
 		hour = $state(new Date().getHours());
 	const phase = $derived(dayPhase(hour));
+	const procedural = $derived(isLandscape(config.preset));
 	type Media = { id: string; path: string; bytes: number; mime: string };
 	$effect(() => {
 		const id = config.mediaId;
@@ -82,13 +84,14 @@
 		window.addEventListener('pointermove', move, { passive: true });
 		return () => window.removeEventListener('pointermove', move);
 	});
-	onMount(() => {
+	$effect(() => {
+		if (!active || !config.adaptTime) return;
+		hour = new Date().getHours();
 		const timer = setInterval(() => {
 			hour = new Date().getHours();
 		}, 60000);
 		return () => {
 			clearInterval(timer);
-			video?.pause();
 		};
 	});
 </script>
@@ -100,12 +103,23 @@
 	data-motion={cap.motion}
 	data-video-playing={cap.video && !failed && !!source}
 >
-	<SceneFrame {config} {x} {y} {phase} />
-	{#if cap.motion && cinematicPoster(config.preset)}<CinematicAtmosphere
-			preset={config.preset}
-			fps={cap.fps}
+	{#if procedural}
+		<PixelLandscape
+			{config}
+			{x}
+			{y}
+			{phase}
+			fps={cap.video && source && !failed ? 0 : cap.fps}
 			depth={cap.depth}
-		/>{/if}
+		/>
+	{:else}
+		<SceneFrame {config} x={x * config.parallax} y={y * config.parallax} {phase} />
+		{#if cap.motion && cinematicPoster(config.preset)}<CinematicAtmosphere
+				preset={config.preset}
+				fps={cap.fps}
+				depth={cap.depth}
+			/>{/if}
+	{/if}
 	{#if cap.video && source && !failed}
 		<video
 			bind:this={video}
@@ -124,17 +138,17 @@
 				/>{:else}<source src={source} />{/if}
 		</video>
 	{/if}
-	{#if cap.shader}{#key config.preset}<ShaderLayer
+	{#if cap.shader && !procedural}{#key config.preset}<ShaderLayer
 				fps={cap.fps}
 				dpr={cap.dpr}
 				preset={config.preset}
 			/>{/key}{/if}
-	{#if cap.particles}<div class="particles" aria-hidden="true">
+	{#if cap.particles && !procedural}<div class="particles" aria-hidden="true">
 			{#each Array.from({ length: cap.maxParticles }, (_, i) => i) as i (i)}<i
 					style={`--i:${i};--left:${(i * 37 + 13) % 100}%;--delay:${-i * 0.9}s;--speed:${9 + (i % 6)}s`}
 				></i>{/each}
 		</div>{/if}
-	{#if config.weather !== 'clear'}<div
+	{#if config.weather !== 'clear' && !procedural}<div
 			class={`weather ${config.weather}`}
 			class:animate={cap.motion}
 			aria-hidden="true"

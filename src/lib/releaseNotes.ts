@@ -5,6 +5,12 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.4-beta.1': [
+		'Beta de prueba: Pixel renueva sus controles, búsquedas y foco de teclado, manteniendo las fuentes Readable y Classic.',
+		'Midnight Forest, Dithered Sunset y Aurora Valley añaden paisajes pixel art con profundidad, clima y animación.',
+		'En Ajustes → Fondos y escenas puedes elegir Hero o ventana completa, ajustar el movimiento y previsualizar antes de aplicar.',
+		'Lite y movimiento reducido conservan fondos estáticos; se mantienen las correcciones de Microsoft y macOS de la beta anterior.'
+	],
 	'0.15.3-beta.7': [
 		'Esta es una versión BETA de prueba, todavía en revisión — avisanos si encontrás algo raro. Podés desactivar las betas en Ajustes → Sistema → Actualizaciones.',
 		'Arreglado: TFL Selection 1.8.9 ahora inicia correctamente en macOS (Apple Silicon e Intel) con Java 25 y aceleración nativa sin crashear en la ventana de juego.',

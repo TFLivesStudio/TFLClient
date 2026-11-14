@@ -156,6 +156,7 @@
 				</p>
 			</div>
 			<button
+				data-pixel-control="primary"
 				class="primary"
 				disabled={busy || !status}
 				onclick={() => action(() => invoke('mcp_enable', { enabled: !status?.enabled }))}
@@ -276,6 +277,7 @@
 							>{/each}
 					</details>
 					<button
+						data-pixel-control="primary"
 						class="primary"
 						disabled={busy}
 						onclick={() =>

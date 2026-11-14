@@ -6,11 +6,18 @@ export const SCENE_IDS = [
 	'night',
 	'cave',
 	'aurora',
-	'pixel'
+	'pixel',
+	'midnight-forest',
+	'dithered-sunset',
+	'aurora-valley'
 ] as const;
 export type SceneId = (typeof SCENE_IDS)[number];
 export interface SceneConfig {
 	preset: SceneId;
+	/** Additive v1 fields: old saved scenes retain their Hero placement. */
+	scope: 'hero' | 'window';
+	parallax: number;
+	dithering: boolean;
 	mediaId: string | null;
 	poster: string;
 	motion: 'off' | 'subtle' | 'full';
@@ -31,6 +38,9 @@ export interface ScenePreferences {
 }
 export const DEFAULT_SCENE: SceneConfig = {
 	preset: 'legacy',
+	scope: 'hero',
+	parallax: 0.5,
+	dithering: true,
 	mediaId: null,
 	poster: 'auto',
 	motion: 'subtle',
@@ -54,6 +64,10 @@ const object = (v: unknown): Record<string, unknown> =>
 export function parseScene(raw: unknown): SceneConfig {
 	const s = object(raw),
 		d = structuredClone(DEFAULT_SCENE);
+	if (s.scope === 'hero' || s.scope === 'window') d.scope = s.scope;
+	if (typeof s.parallax === 'number' && Number.isFinite(s.parallax))
+		d.parallax = Math.max(0, Math.min(1, s.parallax));
+	if (typeof s.dithering === 'boolean') d.dithering = s.dithering;
 	if (SCENE_IDS.includes(s.preset as SceneId)) d.preset = s.preset as SceneId;
 	if (
 		typeof s.mediaId === 'string' &&
@@ -111,13 +125,13 @@ export function sceneCapabilities({
 	return {
 		motion,
 		video: motion && (quality === 'experience' || c.balancedVideo),
-		parallax: motion,
+		parallax: motion && c.parallax > 0,
 		particles: motion && c.particles,
 		shader: motion && quality === 'experience' && c.shader,
 		maxParticles: quality === 'experience' ? 24 : 8,
 		fps: motion ? Math.min(c.fps, quality === 'experience' ? 60 : 24) : 0,
 		dpr: quality === 'experience' ? 1.5 : 1,
-		depth: motion ? (quality === 'experience' && c.motion === 'full' ? 1 : 0.4) : 0
+		depth: motion ? (quality === 'experience' && c.motion === 'full' ? 1 : 0.4) * c.parallax : 0
 	};
 }
 export function dayPhase(hour: number) {
@@ -135,6 +149,33 @@ export const SCENES: {
 	description: [string, string];
 	colors: [string, string, string];
 }[] = [
+	{
+		id: 'midnight-forest',
+		name: ['Midnight Forest', 'Midnight Forest'],
+		description: [
+			'Bosque lunar, niebla y luciérnagas entre pinos.',
+			'Moonlit forest, mist and fireflies among pines.'
+		],
+		colors: ['#10152f', '#37345d', '#7abda4']
+	},
+	{
+		id: 'dithered-sunset',
+		name: ['Dithered Sunset', 'Dithered Sunset'],
+		description: [
+			'Sol cálido, nubes y montañas con paleta tramada.',
+			'Warm sun, clouds and mountains with a dithered palette.'
+		],
+		colors: ['#45365c', '#d17a71', '#f5c77d']
+	},
+	{
+		id: 'aurora-valley',
+		name: ['Aurora Valley', 'Aurora Valley'],
+		description: [
+			'Auroras sobre cumbres nevadas y un lago reflectante.',
+			'Auroras above snowy peaks and a reflective lake.'
+		],
+		colors: ['#101c34', '#407879', '#a0d9b0']
+	},
 	{
 		id: 'legacy',
 		name: ['Tu fondo actual', 'Your current background'],

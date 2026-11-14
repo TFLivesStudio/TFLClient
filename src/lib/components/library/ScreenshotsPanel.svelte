@@ -79,7 +79,12 @@
 		<p class="hint">
 			{t('screenshotsPanel.hint')}
 		</p>
-		<button type="button" class="folder-btn" onclick={() => openScreenshotsFolder(instance.name)}>
+		<button
+			data-pixel-control
+			type="button"
+			class="folder-btn"
+			onclick={() => openScreenshotsFolder(instance.name)}
+		>
 			<FolderOpen size={13} />
 			{t('screenshotsPanel.openFolder')}
 		</button>

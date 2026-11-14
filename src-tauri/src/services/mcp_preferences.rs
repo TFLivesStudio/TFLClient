@@ -86,7 +86,17 @@ pub fn validate(key: &str, v: &Value) -> Result<(), String> {
             s.len() == 7 && s.starts_with('#') && s[1..].bytes().all(|c| c.is_ascii_hexdigit())
         }),
         "scene" => [
-            "legacy", "forest", "embers", "void", "night", "cave", "aurora", "pixel",
+            "legacy",
+            "forest",
+            "embers",
+            "void",
+            "night",
+            "cave",
+            "aurora",
+            "pixel",
+            "midnight-forest",
+            "dithered-sunset",
+            "aurora-valley",
         ]
         .contains(&v.as_str().unwrap_or("")),
         "scene_motion" => ["off", "subtle", "full"].contains(&v.as_str().unwrap_or("")),
@@ -144,6 +154,9 @@ mod tests {
             assert!(validate(key, &json!("not-allowed")).is_err());
         }
         assert!(validate("scene", &json!("https://evil")).is_err());
+        for scene in ["midnight-forest", "dithered-sunset", "aurora-valley"] {
+            assert!(validate("scene", &json!(scene)).is_ok());
+        }
         assert!(validate("style", &json!("pixel")).is_ok());
         assert!(validate("accent", &json!("#ffffff")).is_ok());
     }

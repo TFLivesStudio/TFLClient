@@ -1,14 +1,5 @@
 <script lang="ts">
-	// Antes se montaba una sola vez a nivel de app, a pantalla completa,
-	// tapando el fondo de pantalla elegido en Ajustes — el usuario pidió
-	// que el wallpaper sea SIEMPRE el fondo del launcher entero, y que las
-	// escenas en cambio aparezcan en el hero de Home (ver InstanceHero.svelte,
-	// que ahora es quien monta este componente, pasándole su propia
-	// instancia). `instance` es opcional y cae a la instancia seleccionada
-	// globalmente solo por compatibilidad, para no romper otro uso futuro
-	// que no tenga una instancia propia a mano.
-	import { onMount } from 'svelte';
-	import { scenes, watchScenes } from './preferences.svelte';
+	import { scenes } from './preferences.svelte';
 	import { appearance } from '$lib/state/appearanceState.svelte';
 	import { runtime } from '$lib/visual/runtime.svelte';
 	import { appState } from '$lib/state/state.svelte';
@@ -17,13 +8,20 @@
 	import { effects } from '$lib/visual/runtime.svelte';
 	import SceneStage from './SceneStage.svelte';
 	import type { InstanceData } from '$lib/types/types';
-	let { instance = null }: { instance?: InstanceData | null } = $props();
+	let {
+		instance = null,
+		placement = 'hero'
+	}: { instance?: InstanceData | null; placement?: 'hero' | 'window' } = $props();
 	const target = $derived(instance ?? appState.selectedInstance);
 	const config = $derived((target && scenes.instances[target.uuid]) || scenes.global);
-	onMount(watchScenes);
 </script>
 
-{#if config.preset !== 'legacy'}<div class="living-scene" aria-hidden="true">
+{#if config.preset !== 'legacy' && config.scope === placement}<div
+		class="living-scene"
+		class:window-scene={placement === 'window'}
+		data-scene-placement={placement}
+		aria-hidden="true"
+	>
 		<SceneStage
 			{config}
 			quality={appearance.quality}
@@ -45,6 +43,10 @@
 		pointer-events: none;
 		overflow: hidden;
 		z-index: 0;
+	}
+	.window-scene .veil {
+		background: color-mix(in srgb, var(--surface-canvas) 64%, transparent);
+		opacity: 1;
 	}
 	.veil {
 		position: absolute;

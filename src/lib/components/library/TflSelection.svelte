@@ -305,7 +305,12 @@
 					<strong>No se pudo cargar el catálogo de TFL Selection</strong>
 					<p>{catalogError}</p>
 				</div>
-				<button type="button" class="retry-btn" onclick={() => loadCatalog(true)}>
+				<button
+					data-pixel-control
+					type="button"
+					class="retry-btn"
+					onclick={() => loadCatalog(true)}
+				>
 					<RefreshCw size={14} /> Reintentar
 				</button>
 			</div>
@@ -377,6 +382,7 @@
 							<!-- Botonera de acciones -->
 							<div class="actions-row">
 								<button
+									data-pixel-control="primary"
 									type="button"
 									class="primary-btn play-btn"
 									disabled={isRunning}
@@ -387,6 +393,7 @@
 								</button>
 
 								<button
+									data-pixel-control
 									type="button"
 									class="secondary-btn"
 									disabled={checkingUpdate}
@@ -398,6 +405,7 @@
 								</button>
 
 								<button
+									data-pixel-control
 									type="button"
 									class="secondary-btn"
 									disabled={verifying}
@@ -409,6 +417,7 @@
 								</button>
 
 								<button
+									data-pixel-control
 									type="button"
 									class="secondary-btn"
 									disabled={repairing}
@@ -434,7 +443,9 @@
 									<span
 										>Nueva versión disponible: v{updateInfo.latest_release} (actual: v{updateInfo.current_release}).</span
 									>
-									<button type="button" class="btn-sm" onclick={handleInstall}> Actualizar </button>
+									<button data-pixel-control type="button" class="btn-sm" onclick={handleInstall}>
+										Actualizar
+									</button>
 								</div>
 							{/if}
 
@@ -463,7 +474,7 @@
 												<p>Archivos no autorizados: {integrityReport.foreign_mods.join(', ')}</p>
 											{/if}
 										</div>
-										<button type="button" class="btn-sm" onclick={handleRepair}>
+										<button data-pixel-control type="button" class="btn-sm" onclick={handleRepair}>
 											Reparar ahora
 										</button>
 									{/if}
@@ -555,6 +566,7 @@
 							{/if}
 
 							<button
+								data-pixel-control="primary"
 								type="button"
 								class="primary-btn install-btn"
 								disabled={installing || activeTarget.support.state !== 'supported'}
@@ -575,6 +587,7 @@
 				<!-- Sección colapsable: 11 mods y seguridad -->
 				<div class="components-section">
 					<button
+						data-pixel-control
 						type="button"
 						class="toggle-components-btn"
 						onclick={() => (showComponents = !showComponents)}

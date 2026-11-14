@@ -215,6 +215,7 @@
 							<div class="skin-controls">
 								<div class="variant-tabs">
 									<button
+										data-pixel-control
 										type="button"
 										class="variant-btn"
 										class:active={variant === 'classic'}
@@ -223,6 +224,7 @@
 										{t('skinManager.variantClassic')}
 									</button>
 									<button
+										data-pixel-control
 										type="button"
 										class="variant-btn"
 										class:active={variant === 'slim'}
@@ -232,6 +234,7 @@
 									</button>
 								</div>
 								<button
+									data-pixel-control="primary"
 									type="button"
 									class="action-btn primary"
 									disabled={busy === 'upload' || dialogsBlocked}
@@ -244,6 +247,7 @@
 									{t('skinManager.uploadSkin')}
 								</button>
 								<button
+									data-pixel-control
 									type="button"
 									class="action-btn"
 									disabled={busy === 'reset'}

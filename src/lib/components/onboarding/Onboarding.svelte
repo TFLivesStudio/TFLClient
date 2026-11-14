@@ -42,7 +42,12 @@
 
 		{#if mode === 'choose'}
 			<div class="options">
-				<button type="button" class="option-card primary" onclick={handleMicrosoft}>
+				<button
+					data-pixel-control="primary"
+					type="button"
+					class="option-card primary"
+					onclick={handleMicrosoft}
+				>
 					<span class="option-icon"><Gamepad2 size={20} /></span>
 					<span class="option-text">
 						<span class="option-title">{t('onboarding.microsoftTitle')}</span>
@@ -76,10 +81,20 @@
 				/>
 				<p class="hint">{t('onboarding.offlineHint')}</p>
 				<div class="form-actions">
-					<button type="button" class="option-btn" onclick={() => (mode = 'choose')}>
+					<button
+						type="button"
+						class="option-btn"
+						data-pixel-control
+						onclick={() => (mode = 'choose')}
+					>
 						{t('common.back')}
 					</button>
-					<button type="submit" class="option-btn primary" disabled={busy || !offlineName.trim()}>
+					<button
+						type="submit"
+						class="option-btn primary"
+						data-pixel-control
+						disabled={busy || !offlineName.trim()}
+					>
 						{#if busy}<Loader2 size={16} class="spin" />{/if}
 						{t('common.continue')}
 					</button>

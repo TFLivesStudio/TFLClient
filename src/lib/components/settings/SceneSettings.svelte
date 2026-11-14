@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { cinematicPoster } from '$lib/scenes/cinematic';
+	import { isLandscape, landscapePoster } from '$lib/scenes/landscape';
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 	import { invoke } from '$lib/api/invoke';
@@ -171,9 +172,12 @@
 						class="thumb"
 						style:background={`linear-gradient(145deg,${scene.colors[0]},${scene.colors[1]})`}
 						>{#if scene.id !== 'legacy'}<img
-								src={cinematicPoster(scene.id, true) ?? `/scenes/${scene.id}.svg`}
+								src={isLandscape(scene.id)
+									? landscapePoster(scene.id, draft.dithering)
+									: (cinematicPoster(scene.id, true) ?? `/scenes/${scene.id}.svg`)}
 								alt=""
 								loading="lazy"
+								class:pixel-preview={isLandscape(scene.id)}
 							/>{/if}{#if draft.preset === scene.id}<b><Check size={14} /></b>{/if}</span
 					><strong>{scene.name[locale]}</strong><small>{scene.description[locale]}</small></button
 				>{/each}
@@ -296,6 +300,35 @@
 				><option value="full">{tr('Completo', 'Full')}</option></select
 			></label
 		>
+		<label class="field">
+			{tr('Mostrar escenario en', 'Scene placement')}
+			<select bind:value={draft.scope}>
+				<option value="hero">{tr('Hero de Inicio', 'Home Hero')}</option>
+				<option value="window">{tr('Ventana completa', 'Whole window')}</option>
+			</select>
+		</label>
+		<label class="field">
+			{tr('Intensidad de parallax', 'Parallax intensity')}
+			<span class="range-control">
+				<input
+					type="range"
+					min="0"
+					max="1"
+					step="0.1"
+					bind:value={draft.parallax}
+					disabled={draft.motion === 'off'}
+				/>
+				<output>{Math.round(draft.parallax * 100)}%</output>
+			</span>
+		</label>
+		{#if isLandscape(draft.preset)}
+			<label class="toggle"
+				><span>{tr('Tramado de color (dithering)', 'Color dithering')}</span><input
+					type="checkbox"
+					bind:checked={draft.dithering}
+				/></label
+			>
+		{/if}
 		<label class="field"
 			>{tr('Límite de efectos', 'Effect limit')}<select bind:value={draft.fps}
 				>{#each [15, 24, 30, 60] as fps (fps)}<option value={fps}>{fps} FPS</option>{/each}</select
@@ -313,11 +346,15 @@
 				type="checkbox"
 				bind:checked={draft.balancedVideo}
 			/></label
-		><label class="toggle"
-			><span
-				>{tr('Luz procedural con WebGL · Experience', 'Procedural WebGL light · Experience')}</span
-			><input type="checkbox" bind:checked={draft.shader} /></label
 		>
+		{#if !isLandscape(draft.preset)}<label class="toggle"
+				><span
+					>{tr(
+						'Luz procedural con WebGL · Experience',
+						'Procedural WebGL light · Experience'
+					)}</span
+				><input type="checkbox" bind:checked={draft.shader} /></label
+			>{/if}
 	</SettingGroup>
 	<SettingGroup
 		id="scene-instance"
@@ -450,6 +487,24 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+	}
+	.thumb img.pixel-preview {
+		image-rendering: pixelated;
+	}
+	.range-control {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		max-width: 65%;
+	}
+	.range-control input {
+		min-width: 0;
+		width: 130px;
+		accent-color: var(--accent);
+	}
+	.range-control output {
+		min-width: 4ch;
+		font-variant-numeric: tabular-nums;
 	}
 	.thumb b {
 		position: absolute;

@@ -196,6 +196,7 @@
 						<button
 							type="button"
 							class="candidate"
+							data-pixel-control
 							class:selected={selectedPath === c.path}
 							disabled={!c.mc_version}
 							onclick={() => select(c)}
@@ -230,6 +231,7 @@
 			<div class="divider"><span>{t('importInstance.orDivider')}</span></div>
 
 			<button
+				data-pixel-control
 				type="button"
 				class="mrpack-btn"
 				disabled={dialogsBlocked || !!mrpackBusy}
@@ -249,10 +251,17 @@
 			{#if mrpackError}<p class="error">{mrpackError}</p>{/if}
 
 			<div class="actions">
-				<button type="button" class="secondary" disabled={importing} onclick={onClose}>
+				<button
+					data-pixel-control
+					type="button"
+					class="secondary"
+					disabled={importing}
+					onclick={onClose}
+				>
 					{t('common.cancel')}
 				</button>
 				<button
+					data-pixel-control="primary"
 					type="button"
 					class="primary"
 					disabled={!selectedPath || !nameInput.trim() || importing}
@@ -289,6 +298,7 @@
 
 			<div class="actions">
 				<button
+					data-pixel-control
 					type="button"
 					class="secondary"
 					disabled={mrpackBusy === 'import'}
@@ -297,6 +307,7 @@
 					{t('common.back')}
 				</button>
 				<button
+					data-pixel-control="primary"
 					type="button"
 					class="primary"
 					disabled={!mrpackName.trim() || mrpackBusy === 'import'}

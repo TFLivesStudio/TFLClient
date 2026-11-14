@@ -208,14 +208,6 @@ html[data-visual='pixel'] .vr-heading {
 html[data-visual='pixel'] :is(button, input, select, textarea) {
 	border-radius: 0;
 }
-html[data-visual='pixel'] :is(.vr-control, .tfl-btn, .play-btn, .ptab.active, .tab-btn.active) {
-	box-shadow:
-		inset 0 -3px 0 #0004,
-		inset 0 2px 0 #ffffff15;
-}
-html[data-visual='pixel'] :is(.vr-control.primary, .play-btn, .tfl-btn-primary) {
-	border: 2px solid color-mix(in srgb, var(--accent) 60%, white);
-}
 html[data-visual='pixel'] :is(.vr-library-row, .vr-preview, .hero, .vr-editorial) {
 	border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
 	background-image:
@@ -242,7 +234,13 @@ html[data-visual='pixel'] :is(pre, code, textarea, .log-line, .console-output, .
 	letter-spacing: -0.03em;
 	font-size: var(--text-heading);
 }
-[role='dialog'] :is(input:not([type='checkbox']):not([type='range']), select) {
+[role='dialog']
+	:is(
+		input:not([type='checkbox']):not([type='range']):not(
+				:where(html[data-visual='pixel'] [data-search-control] input)
+			),
+		select
+	) {
 	min-height: 40px;
 	border-radius: var(--border-radius-sm);
 }
@@ -387,16 +385,23 @@ html[data-material='matte'] [role='dialog'] {
 	backdrop-filter: none;
 }
 
-/* Pixel uses a game-menu grammar: stone bevels, inventory slots, grass actions.
+/* Pixel component contract: stone surfaces, inset slots and accent actions.
    Static CSS textures stay cheap in Lite and respect custom themes/materials. */
 html[data-visual='pixel'] {
 	--pixel-rim-light: color-mix(in srgb, var(--text-primary) 24%, transparent);
-	--pixel-rim-dark: #0008;
+	--pixel-rim-dark: color-mix(in srgb, var(--text-primary) 30%, var(--surface-canvas));
+	--pixel-focus: var(--accent);
+	--pixel-action: var(--accent);
+	--pixel-action-text: var(--accent-text);
+	--pixel-action-hover: var(--accent-hover);
+	--pixel-outline: 2px;
+	--pixel-control-height: 36px;
 	--pixel-stone: color-mix(in srgb, var(--surface-interactive) 87%, #8b8b8b);
 	--pixel-slot: color-mix(in srgb, var(--surface-workspace) 88%, #000);
 }
 html[data-visual='pixel']
 	:is(
+		[data-pixel-control],
 		.choice,
 		.vr-control,
 		.tfl-btn,
@@ -425,6 +430,7 @@ html[data-visual='pixel']
 }
 html[data-visual='pixel']
 	:is(
+		[data-pixel-control],
 		.choice,
 		.vr-control,
 		.tfl-btn,
@@ -446,6 +452,7 @@ html[data-visual='pixel']
 }
 html[data-visual='pixel']
 	:is(
+		[data-pixel-control],
 		.choice,
 		.vr-control,
 		.tfl-btn,
@@ -463,6 +470,9 @@ html[data-visual='pixel']
 }
 html[data-visual='pixel']
 	:is(
+		[data-pixel-control].active,
+		[data-pixel-control].selected,
+		[data-pixel-control][aria-pressed='true'],
 		.choice.active,
 		.ptab.active,
 		.home-btn.active,
@@ -474,19 +484,35 @@ html[data-visual='pixel']
 	color: var(--text-primary);
 }
 html[data-visual='pixel']
-	:is(.vr-control.primary, .play-btn, .tfl-btn.primary, .tfl-btn-primary, .launch-button) {
-	background: #4c7835;
-	color: #fff;
-	border: 2px solid #18290f;
+	:is(
+		[data-pixel-control='primary'],
+		[data-pixel-control].primary,
+		.vr-control.primary,
+		.play-btn,
+		.tfl-btn.primary,
+		.tfl-btn-primary,
+		.launch-button
+	) {
+	background: var(--pixel-action);
+	color: var(--pixel-action-text);
+	border: 2px solid color-mix(in srgb, var(--pixel-action) 60%, var(--surface-canvas));
 	box-shadow:
-		inset 2px 2px 0 #88b85e,
-		inset -2px -4px 0 #2d4920,
+		inset 2px 2px 0 #ffffff38,
+		inset -2px -3px 0 #0005,
 		0 3px 0 #0006;
-	text-shadow: 2px 2px 0 #203d18;
+	text-shadow: none;
 }
 html[data-visual='pixel']
-	:is(.vr-control.primary, .play-btn, .tfl-btn.primary, .launch-button):hover:not(:disabled) {
-	background: #5c8e40;
+	:is(
+		[data-pixel-control='primary'],
+		[data-pixel-control].primary,
+		.vr-control.primary,
+		.play-btn,
+		.tfl-btn.primary,
+		.tfl-btn-primary,
+		.launch-button
+	):hover:not(:disabled) {
+	background: var(--pixel-action-hover);
 }
 html[data-visual='pixel']
 	:is(
@@ -507,10 +533,11 @@ html[data-visual='pixel']
 }
 html[data-visual='pixel']
 	:is(
-		input:not([type='checkbox']):not([type='range']):not([type='color']),
+		input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not(
+				:where([data-search-control] input)
+			),
 		select,
-		textarea,
-		.search-box
+		textarea
 	) {
 	border: 2px solid var(--pixel-rim-dark);
 	background-color: var(--pixel-slot);
@@ -536,9 +563,9 @@ html[data-visual='pixel'] :is([role='dialog'], .user-chip) {
 		5px 5px 0 #0006;
 }
 html[data-visual='pixel'] .tfl-tooltip-bubble {
-	background: #160c26;
-	color: #f1e6ff;
-	border: 2px solid #50306e;
+	background: var(--surface-elevated);
+	color: var(--text-primary);
+	border: 2px solid color-mix(in srgb, var(--accent) 60%, var(--border));
 	box-shadow: 2px 2px 0 #0009;
 }
 html[data-visual='pixel'] :is(.hero-badge, .vr-eyebrow, .active-tag) {
@@ -555,29 +582,69 @@ html[data-visual='pixel'] :is(.user-head, .skin-head, .instance-avatar img) {
 	}
 }
 
-/* A search control owns one frame. Inner text fields stay flush in Pixel. */
-html[data-visual='pixel']
-	:is(.search-box, .vr-search, .settings-search, .search-row, .icon-search):has(input) {
-	border: 2px solid var(--pixel-rim-dark);
+/* Explicit opt-in for composed searches; component behavior and Modern styling stay local.
+   The wrapper owns frame/focus. Its input owns text only. */
+html[data-visual='pixel'] [data-search-control] {
+	display: flex;
+	height: auto;
+	height: auto;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	min-height: var(--pixel-control-height);
+	padding: 4px 10px;
+	border: var(--pixel-outline) solid var(--pixel-rim-dark);
 	background: var(--pixel-slot);
+	color: var(--text-secondary);
 	box-shadow:
-		inset 2px 2px #0004,
+		inset 2px 2px #0003,
 		inset -1px -1px var(--pixel-rim-light);
 	border-radius: 0;
 }
-html[data-visual='pixel']
-	:is(.search-box, .vr-search, .settings-search, .search-row, .icon-search)
-	input {
-	border: 0 !important;
-	box-shadow: none !important;
-	background: transparent !important;
+html[data-visual='pixel'] [data-search-control] input {
+	flex: 1 1 0;
+	width: 0;
+	min-width: 0;
+	min-height: 24px;
+	padding: 2px 0;
+	border: 0;
+	box-shadow: none;
+	background: transparent;
+	color: var(--text-primary);
 	outline: none;
 	border-radius: 0;
+	line-height: 1.5;
 }
-html[data-visual='pixel']
-	:is(.search-box, .vr-search, .settings-search, .search-row, .icon-search):focus-within {
-	outline: 2px solid var(--accent);
+html[data-visual='pixel'] [data-search-control] input::placeholder {
+	color: var(--text-secondary);
+	opacity: 1;
+}
+html[data-visual='pixel'] [data-search-control] :is(svg, .search-icon) {
+	flex-shrink: 0;
+	position: static;
+	transform: none;
+}
+html[data-visual='pixel'] [data-search-control]:hover:not(:has(input:disabled)) {
+	border-color: color-mix(in srgb, var(--accent) 65%, var(--pixel-rim-dark));
+}
+html[data-visual='pixel'] [data-search-control]:focus-within {
+	outline: 2px solid var(--pixel-focus);
 	outline-offset: 2px;
+	border-color: var(--pixel-focus);
+}
+html[data-visual='pixel'] [data-search-control]:has(input:disabled) {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+html[data-visual='pixel'] [data-search-control] button {
+	flex-shrink: 0;
+	min-width: 28px;
+	min-height: 28px;
+	color: var(--text-secondary);
+}
+html[data-visual='pixel'] [data-search-control] button:hover:not(:disabled) {
+	background: var(--pixel-stone);
+	color: var(--text-primary);
 }
 /* Keep compact artwork edge-to-edge inside the one existing button frame. */
 html[data-visual='pixel'] :is(.instance-avatar, .user-head):has(img, .skin-head, svg) {
@@ -621,4 +688,106 @@ html[data-visual='pixel']
 html:is([data-quality='lite'], [data-no-blur]) {
 	--surface-elevated: color-mix(in srgb, var(--accent) 3%, var(--raw-sidebar));
 	--surface-card: color-mix(in srgb, var(--accent) 2%, var(--raw-sidebar));
+}
+
+/* Shared states for opt-in controls and established primitives. */
+html[data-visual='pixel']
+	:is(
+		[data-pixel-control],
+		.vr-control,
+		.tfl-btn,
+		.tfl-icon-btn,
+		.play-btn,
+		.mini-btn,
+		.close-btn,
+		.save-btn,
+		.send-btn,
+		.ptab,
+		.tab-btn
+	) {
+	min-height: var(--pixel-control-height);
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+html[data-visual='pixel']
+	:is(
+		[data-pixel-control],
+		.vr-control,
+		.tfl-btn,
+		.tfl-icon-btn,
+		.play-btn,
+		.mini-btn,
+		.close-btn,
+		.save-btn,
+		.send-btn,
+		.ptab,
+		.tab-btn
+	):focus-visible {
+	outline: 2px solid var(--pixel-focus);
+	outline-offset: 3px;
+}
+html[data-visual='pixel']
+	:is(
+		[data-pixel-control],
+		.vr-control,
+		.tfl-btn,
+		.tfl-icon-btn,
+		.play-btn,
+		.mini-btn,
+		.close-btn,
+		.save-btn,
+		.send-btn,
+		.ptab,
+		.tab-btn
+	):disabled {
+	opacity: 0.5;
+	text-shadow: none;
+	box-shadow: inset 1px 1px 0 var(--pixel-rim-light);
+}
+html[data-visual='pixel'][data-pixel-type='classic'] [data-search-control] input {
+	font-family: 'Monocraft', monospace;
+	font-size: 0.86rem;
+	line-height: 1.6;
+}
+html[data-visual='pixel']
+	:is(input[type='checkbox'], input[type='radio'], input[type='range'], progress) {
+	accent-color: var(--accent);
+}
+html[data-visual='pixel'] :is(input, select, textarea):disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+html[data-visual='pixel'] :is(input, select, textarea):user-invalid {
+	border-color: var(--danger, #ef5c64);
+}
+@media (forced-colors: active) {
+	html[data-visual='pixel'] [data-search-control] {
+		border-color: CanvasText;
+		background: Canvas;
+		box-shadow: none;
+	}
+	html[data-visual='pixel'] [data-search-control]:focus-within {
+		outline-color: Highlight;
+		border-color: Highlight;
+	}
+}
+
+html[data-visual='pixel'] :is([data-pixel-control='danger'], .tfl-btn.danger) {
+	background: color-mix(in srgb, var(--color-error) 16%, var(--pixel-stone));
+	border-color: var(--color-error);
+	color: var(--text-primary);
+	text-shadow: none;
+}
+html[data-visual='pixel'] :is([data-pixel-control='danger'], .tfl-btn.danger):hover:not(:disabled) {
+	background: color-mix(in srgb, var(--color-error) 28%, var(--pixel-stone));
+	outline-color: var(--color-error);
+}
+html[data-visual='pixel'] .tfl-btn.ghost {
+	background: transparent;
+	box-shadow: none;
+	border-color: transparent;
+}
+html[data-visual='pixel'] .tfl-btn.ghost:hover:not(:disabled) {
+	background: var(--pixel-stone);
+	border-color: var(--pixel-rim-dark);
 }

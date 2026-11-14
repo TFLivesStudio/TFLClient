@@ -76,12 +76,14 @@
 			<h1 class="vr-heading">{vr('yourWorlds')}</h1>
 			<p class="vr-description">{vr('librarySub')}</p>
 		</div>
-		<button class="vr-control primary" onclick={() => openModal('createChooser')}
-			><Plus size={18} />{vr('create')}</button
+		<button
+			data-pixel-control="primary"
+			class="vr-control primary"
+			onclick={() => openModal('createChooser')}><Plus size={18} />{vr('create')}</button
 		>
 	</header>
 	<div class="vr-toolbar">
-		<label class="library-search"
+		<label class="library-search" data-search-control
 			><Search size={18} /><input
 				aria-label={vr('search')}
 				placeholder={vr('search')}

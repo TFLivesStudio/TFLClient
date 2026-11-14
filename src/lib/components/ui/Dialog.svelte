@@ -34,7 +34,13 @@
 		aria-label={ariaLabel}
 		tabindex="-1"
 	>
-		<button type="button" class="tfl-dialog-close" aria-label={t('ui.close')} onclick={onClose}>
+		<button
+			data-pixel-control
+			type="button"
+			class="tfl-dialog-close"
+			aria-label={t('ui.close')}
+			onclick={onClose}
+		>
 			<X size={16} />
 		</button>
 		{@render children()}

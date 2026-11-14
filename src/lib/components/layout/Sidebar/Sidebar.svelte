@@ -251,9 +251,14 @@
 		</div>
 
 		{#if instances.length > 0 && !collapsed}
-			<div class="search-box">
+			<div class="search-box" data-search-control>
 				<Search size={13} />
-				<input type="text" placeholder={t('sidebar.search')} bind:value={query} />
+				<input
+					type="text"
+					aria-label={t('sidebar.search')}
+					placeholder={t('sidebar.search')}
+					bind:value={query}
+				/>
 				<kbd class="shortcut-hint">{shortcutLabel}</kbd>
 			</div>
 		{/if}

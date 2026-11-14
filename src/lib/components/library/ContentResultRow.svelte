@@ -124,6 +124,7 @@
 		</button>
 		{#if hasVersions}
 			<button
+				data-pixel-control
 				type="button"
 				class="version-toggle"
 				class:open={versionsOpen}
@@ -140,6 +141,7 @@
 			>
 		{:else}
 			<button
+				data-pixel-control="primary"
 				type="button"
 				class="install-btn"
 				aria-label={`${tr('Instalar', 'Install')} ${item.title}`}
@@ -160,6 +162,7 @@
 		{:else}
 			{#each versionOptions as v (v.id)}
 				<button
+					data-pixel-control
 					type="button"
 					class="version-option"
 					disabled={installing}

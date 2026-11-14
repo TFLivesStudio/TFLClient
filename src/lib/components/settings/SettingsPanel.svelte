@@ -497,7 +497,7 @@
 		</div>
 
 		<nav class="panel-tabs" aria-label={t('settings.title')}>
-			<label class="settings-search"
+			<label class="settings-search" data-search-control
 				><Search size={14} /><input
 					type="search"
 					bind:value={settingsQuery}

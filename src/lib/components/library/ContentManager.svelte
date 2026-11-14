@@ -516,6 +516,7 @@
 <div class="content-manager">
 	<div class="subtabs">
 		<button
+			data-pixel-control
 			type="button"
 			class="subtab"
 			class:active={subtab === 'manage'}
@@ -525,6 +526,7 @@
 			{#if installed.length > 0}<span class="count">{installed.length}</span>{/if}
 		</button>
 		<button
+			data-pixel-control
 			type="button"
 			class="subtab"
 			class:active={subtab === 'download'}
@@ -538,6 +540,7 @@
 		{#if manageAvailableCategories.length > 1}
 			<div class="category-dropdown" bind:this={manageCategoryDropdownEl}>
 				<button
+					data-pixel-control
 					type="button"
 					class="category-trigger"
 					class:active={manageSelectedCategories.size > 0}
@@ -552,6 +555,7 @@
 					<div class="category-panel">
 						{#each manageAvailableCategories as cat (cat)}
 							<button
+								data-pixel-control
 								type="button"
 								class="category-option"
 								class:active={manageSelectedCategories.has(cat)}
@@ -569,6 +573,7 @@
 		{/if}
 		<div class="manage-toolbar">
 			<button
+				data-pixel-control
 				type="button"
 				class="tool-btn"
 				onclick={toggleSelectAll}
@@ -579,6 +584,7 @@
 					: t('contentManager.selectAll')}
 			</button>
 			<button
+				data-pixel-control
 				type="button"
 				class="tool-btn"
 				disabled={addingLocal || dialogsBlocked}
@@ -590,6 +596,7 @@
 			</button>
 			{#if kind === 'mod'}
 				<button
+					data-pixel-control
 					type="button"
 					class="tool-btn"
 					disabled={checkingUpdates}
@@ -600,6 +607,7 @@
 				</button>
 			{/if}
 			<button
+				data-pixel-control="danger"
 				type="button"
 				class="tool-btn danger"
 				disabled={selected.size === 0 || removingSelected}
@@ -696,6 +704,7 @@
 						{/if}
 						{#if supportsToggle}
 							<button
+								data-pixel-control
 								type="button"
 								class="icon-btn toggle-btn"
 								class:off={item.disabled}
@@ -710,6 +719,7 @@
 							</button>
 						{/if}
 						<button
+							data-pixel-control
 							type="button"
 							class="icon-btn"
 							onclick={() => handleRemoveOne(item.filename)}
@@ -747,6 +757,7 @@
 		<div class="download-toolbar">
 			<div class="category-dropdown" bind:this={categoryDropdownEl}>
 				<button
+					data-pixel-control
 					type="button"
 					class="category-trigger"
 					class:active={explorer.selectedCategories.size > 0}
@@ -761,6 +772,7 @@
 					<div class="category-panel">
 						{#each CATEGORIES[kind] as cat (cat)}
 							<button
+								data-pixel-control
 								type="button"
 								class="category-option"
 								class:active={explorer.selectedCategories.has(cat)}
@@ -774,6 +786,7 @@
 						{/each}
 						{#if explorer.selectedCategories.size > 0}
 							<button
+								data-pixel-control
 								type="button"
 								class="category-option clear"
 								onclick={() => explorer.clearCategories()}
@@ -791,6 +804,7 @@
 				onchange={(v) => explorer.setSort(v)}
 			/>
 			<button
+				data-pixel-control
 				type="button"
 				class="explore-wide-btn"
 				onclick={() => openContentExplorer({ instance, kind })}
@@ -800,7 +814,7 @@
 			</button>
 		</div>
 
-		<div class="search-row">
+		<div class="search-row" data-search-control>
 			{#if explorer.loading}
 				<Loader2 size={14} class="spin search-icon" />
 			{:else}
@@ -810,6 +824,7 @@
 				type="text"
 				value={explorer.query}
 				oninput={(e) => explorer.setQuery((e.target as HTMLInputElement).value)}
+				aria-label={t('contentManager.searchPlaceholder', { noun: NOUN[kind] })}
 				placeholder={t('contentManager.searchPlaceholder', { noun: NOUN[kind] })}
 			/>
 		</div>
@@ -817,7 +832,12 @@
 		{#if explorer.errorKind}
 			<p class="error">
 				{t(errorMessageKey(explorer.errorKind))}
-				<button type="button" class="retry-btn" onclick={() => explorer.setQuery(explorer.query)}>
+				<button
+					data-pixel-control
+					type="button"
+					class="retry-btn"
+					onclick={() => explorer.setQuery(explorer.query)}
+				>
 					{t('contentManager.retry')}
 				</button>
 			</p>
@@ -835,6 +855,7 @@
 							<span class="mod-title">{mod.title}</span>
 						</div>
 						<button
+							data-pixel-control="primary"
 							type="button"
 							class="install-btn"
 							disabled={explorer.installingId === mod.projectId}

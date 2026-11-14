@@ -148,8 +148,12 @@
 			</ConsoleLayout>
 		</div>
 		<div class="actions">
-			<button type="button" class="vr-control primary" disabled={!dirty} onclick={apply}
-				><Check size={14} />{tr('Aplicar', 'Apply')}</button
+			<button
+				data-pixel-control="primary"
+				type="button"
+				class="vr-control primary"
+				disabled={!dirty}
+				onclick={apply}><Check size={14} />{tr('Aplicar', 'Apply')}</button
 			><button type="button" class="vr-control" disabled={!dirty} onclick={cancel}
 				>{tr('Cancelar', 'Cancel')}</button
 			><button type="button" class="vr-control" disabled={!undo.length} onclick={undoLast}
@@ -324,6 +328,7 @@
 	</SettingGroup>
 	{#if dirty}<div class="pending">
 			<span>{tr('Cambios sin aplicar', 'Unapplied changes')}</span><button
+				data-pixel-control="primary"
 				type="button"
 				class="vr-control primary"
 				onclick={apply}>{tr('Aplicar cambios', 'Apply changes')}</button

@@ -128,6 +128,7 @@
 		<div class="loader-grid" id="instance-loader">
 			{#each LOADERS as l (l.id)}
 				<button
+					data-pixel-control
 					type="button"
 					class="loader-btn"
 					class:active={selectedLoader === l.id}
@@ -147,8 +148,11 @@
 		{/if}
 
 		<div class="actions">
-			<button type="button" class="btn" onclick={onClose}>{t('common.cancel')}</button>
+			<button data-pixel-control type="button" class="btn" onclick={onClose}
+				>{t('common.cancel')}</button
+			>
 			<button
+				data-pixel-control="primary"
 				type="button"
 				class="btn primary"
 				disabled={creating || !name.trim() || !selectedVersion}

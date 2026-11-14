@@ -9,6 +9,8 @@
 	import { startVisualRuntime, effects, runtime } from '$lib/visual/runtime.svelte';
 
 	import { onMount } from 'svelte';
+	import LivingScene from '$lib/scenes/LivingScene.svelte';
+	import { watchScenes } from '$lib/scenes/preferences.svelte';
 	import TitleBar from '$lib/components/layout/TitleBar/TitleBar.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar/Sidebar.svelte';
 	import Onboarding from '$lib/components/onboarding/Onboarding.svelte';
@@ -28,6 +30,15 @@
 	} from '$lib/state/instanceState.svelte';
 	import { flow, openInstanceContextMenu, openModal, ui, modals } from '$lib/state/uiState.svelte';
 
+	// Match Home's featured client so instance overrides have one rendering owner.
+	const sceneInstance = $derived(
+		appState.selectedInstance ??
+			(navigation.section === 'home'
+				? ([...appState.instances]
+						.filter((i) => !i.server_type)
+						.sort((a, b) => b.last_played - a.last_played)[0] ?? null)
+				: null)
+	);
 	$effect(() => {
 		runtime.overlay = Object.values(modals).some(Boolean) || contentExplorer.open;
 	});
@@ -38,11 +49,13 @@
 	onMount(() => {
 		const stopViewport = initViewportListener();
 		restoreVisualPreferences();
+		const stopScenes = watchScenes();
 		const stopVisual = startVisualRuntime();
 		const stopNotifications = startNotifications();
 		return () => {
 			stopViewport?.();
 			stopVisual();
+			stopScenes();
 			stopNotifications();
 		};
 	});
@@ -61,6 +74,9 @@
 		<NativeDialogModePrompt variant="modal" onDone={() => (ui.justOnboarded = false)} />
 	{:else}
 		<div class="app-body">
+			<div class="window-scene" aria-hidden="true">
+				<LivingScene instance={sceneInstance} placement="window" />
+			</div>
 			<div class="ambient-bg">
 				{#if appearance.ambience === 'particles' && effects.current.ambient}
 					<ParticlesBackground />
@@ -151,6 +167,13 @@
 		flex: 1;
 		min-height: 0;
 		min-width: 0;
+	}
+
+	.window-scene {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
 	}
 
 	.main-content {

@@ -96,7 +96,13 @@
 <section class="backups">
 	<div class="head">
 		<span class="section-label">{t('worldBackups.title')}</span>
-		<button type="button" class="create-btn" disabled={creating} onclick={handleCreate}>
+		<button
+			data-pixel-control="primary"
+			type="button"
+			class="create-btn"
+			disabled={creating}
+			onclick={handleCreate}
+		>
 			{#if creating}<Loader2 size={13} class="spin" />{:else}<Archive size={13} />{/if}
 			{t('worldBackups.create')}
 		</button>
@@ -117,6 +123,7 @@
 						<span class="size">{formatSize(b.size_bytes)}</span>
 					</div>
 					<button
+						data-pixel-control
 						type="button"
 						class="row-btn"
 						disabled={busyId === b.id}
@@ -128,6 +135,7 @@
 						{t('worldBackups.restore')}
 					</button>
 					<button
+						data-pixel-control
 						type="button"
 						class="icon-btn"
 						disabled={busyId === b.id}

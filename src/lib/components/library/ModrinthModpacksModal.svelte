@@ -186,10 +186,11 @@
 		</div>
 
 		<div class="search-bar">
-			<div class="input-wrap">
+			<div class="input-wrap" data-search-control>
 				<Search size={16} class="search-icon" />
 				<input
 					type="text"
+					aria-label="Buscar modpacks en Modrinth"
 					placeholder="Buscar modpacks en Modrinth..."
 					value={query}
 					oninput={handleQueryInput}
@@ -198,6 +199,7 @@
 					<button
 						type="button"
 						class="clear-btn"
+						aria-label="Limpiar b?squeda"
 						onclick={() => {
 							query = '';
 							debouncedQuery = '';
@@ -228,7 +230,9 @@
 			{:else if error}
 				<div class="error-state">
 					<p>{error}</p>
-					<button type="button" class="retry-btn" onclick={runSearch}>Reintentar</button>
+					<button data-pixel-control type="button" class="retry-btn" onclick={runSearch}
+						>Reintentar</button
+					>
 				</div>
 			{:else if hits.length === 0}
 				<div class="empty-state">
@@ -263,15 +267,16 @@
 							</div>
 							<div class="hit-actions">
 								{#if installSuccessId === hit.project_id}
-									<button type="button" class="action-btn success" disabled>
+									<button data-pixel-control type="button" class="action-btn success" disabled>
 										<Check size={16} /> Instalado
 									</button>
 								{:else if installingId === hit.project_id}
-									<button type="button" class="action-btn installing" disabled>
+									<button data-pixel-control type="button" class="action-btn installing" disabled>
 										<Loader2 size={16} class="spin" /> Instalando...
 									</button>
 								{:else}
 									<button
+										data-pixel-control="primary"
 										type="button"
 										class="action-btn primary"
 										onclick={() => handleInstall(hit)}

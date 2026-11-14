@@ -128,7 +128,12 @@
 			spellcheck="false"></textarea></SettingGroup
 	>
 	<div class="launch-actions">
-		<button type="button" class="vr-control primary" disabled={busy} onclick={save}
+		<button
+			data-pixel-control="primary"
+			type="button"
+			class="vr-control primary"
+			disabled={busy}
+			onclick={save}
 			>{busy
 				? tr('Guardando…', 'Saving…')
 				: tr('Guardar opciones de inicio', 'Save launch options')}</button

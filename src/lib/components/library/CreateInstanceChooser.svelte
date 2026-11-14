@@ -91,7 +91,9 @@
 				</button>
 			</div>
 
-			<button type="button" class="cancel-btn" onclick={onClose}>{t('common.cancel')}</button>
+			<button data-pixel-control type="button" class="cancel-btn" onclick={onClose}
+				>{t('common.cancel')}</button
+			>
 		{:else}
 			<div class="header-with-back">
 				<button
@@ -128,10 +130,17 @@
 			</div>
 
 			<div class="footer-actions">
-				<button type="button" class="cancel-btn secondary" onclick={() => (step = 'main')}>
+				<button
+					data-pixel-control
+					type="button"
+					class="cancel-btn secondary"
+					onclick={() => (step = 'main')}
+				>
 					Volver
 				</button>
-				<button type="button" class="cancel-btn" onclick={onClose}>{t('common.cancel')}</button>
+				<button data-pixel-control type="button" class="cancel-btn" onclick={onClose}
+					>{t('common.cancel')}</button
+				>
 			</div>
 		{/if}
 	</div>

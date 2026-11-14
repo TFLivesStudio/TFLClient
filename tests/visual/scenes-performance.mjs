@@ -13,8 +13,8 @@ await mkdir(output, { recursive: true });
 const samples = [];
 try {
 	for (const [revision, url, version] of [
-		['baseline', process.env.BASELINE_URL, '0.14.0-beta.1'],
-		['refresh', process.env.VISUAL_URL, '0.14.0-beta.2']
+		['baseline', process.env.BASELINE_URL, process.env.BASELINE_VERSION || '0.15.3-beta.7'],
+		['refresh', process.env.VISUAL_URL, process.env.APP_VERSION || '0.15.4-beta.1']
 	])
 		for (const quality of ['Lite', 'Balanced', 'Experience'])
 			for (const scene of ['forest', 'embers', 'void', 'aurora', 'pixel']) {

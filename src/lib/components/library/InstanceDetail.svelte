@@ -442,7 +442,9 @@
 </script>
 
 <div class="instance-detail vr-tools" class:server-detail={isServer}>
-	<button class="detail-back" onclick={() => navigate('library')}>← {vr('back')}</button>
+	<button data-pixel-control class="detail-back" onclick={() => navigate('library')}
+		>← {vr('back')}</button
+	>
 	<div
 		class="hero"
 		class:with-art={!!artworkUrl(instanceVisual(instance.uuid).artwork)}
@@ -484,6 +486,7 @@
 						{@attach (el) => el.focus()}
 					/>
 					<button
+						data-pixel-control
 						type="button"
 						class="icon-btn"
 						onclick={confirmRename}
@@ -492,6 +495,7 @@
 						<Check size={15} />
 					</button>
 					<button
+						data-pixel-control
 						type="button"
 						class="icon-btn"
 						onclick={() => {
@@ -507,6 +511,7 @@
 				<div class="name-row">
 					<h2>{instance.name}</h2>
 					<button
+						data-pixel-control
 						type="button"
 						class="icon-btn"
 						onclick={() => (editingName = true)}
@@ -515,6 +520,7 @@
 						<Pencil size={13} />
 					</button>
 					<button
+						data-pixel-control
 						type="button"
 						class="icon-btn"
 						disabled={duplicating}
@@ -525,6 +531,7 @@
 						{#if duplicating}<Loader2 size={13} class="spin" />{:else}<Copy size={13} />{/if}
 					</button>
 					<button
+						data-pixel-control
 						type="button"
 						class="icon-btn"
 						disabled={exporting}
@@ -535,6 +542,7 @@
 						{#if exporting}<Loader2 size={13} class="spin" />{:else}<FileOutput size={13} />{/if}
 					</button>
 					<button
+						data-pixel-control
 						type="button"
 						class="icon-btn"
 						disabled={verifying}
@@ -545,6 +553,7 @@
 						{#if verifying}<Loader2 size={13} class="spin" />{:else}<ShieldCheck size={13} />{/if}
 					</button>
 					<button
+						data-pixel-control="danger"
 						type="button"
 						class="icon-btn danger"
 						onclick={() => (showDeleteConfirm = true)}
@@ -800,6 +809,7 @@
 							<div class="connection-row">
 								<code class="connection-address">{connectionInfo.tunnel_address}</code>
 								<button
+									data-pixel-control
 									type="button"
 									class="icon-btn"
 									onclick={copyConnectionAddress}
@@ -815,6 +825,7 @@
 									>{connectionInfo.public_ip}:{connectionInfo.port}</code
 								>
 								<button
+									data-pixel-control
 									type="button"
 									class="icon-btn"
 									onclick={copyConnectionAddress}
@@ -843,6 +854,7 @@
 									>{connectionInfo.local_ip}:{connectionInfo.port}</code
 								>
 								<button
+									data-pixel-control
 									type="button"
 									class="icon-btn"
 									onclick={copyConnectionAddress}
@@ -860,6 +872,7 @@
 							<div class="playit-prompt">
 								<p class="hint">{t('serverInstance.playitPitch')}</p>
 								<button
+									data-pixel-control
 									type="button"
 									class="playit-link-btn"
 									onclick={startPlayitLink}

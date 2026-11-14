@@ -392,6 +392,9 @@ pub async fn execute(app: &AppHandle, client: &str, tool: &str, p: Value) -> Res
         "tfl_set_instance_scene" => {
             let i = instance(&p).await?;
             let preset = text(&p, "preset")?;
+            if preset != "inherit" {
+                mcp_preferences::validate("scene", &json!(preset))?;
+            }
             let current = mcp_preferences::snapshot();
             let mut doc = current
                 .values

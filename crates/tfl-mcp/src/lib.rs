@@ -181,6 +181,48 @@ mod tests {
         }
     }
     #[test]
+    fn instance_scene_schema_accepts_bundled_living_themes_only() {
+        let defs = definitions();
+        let d = defs
+            .iter()
+            .find(|d| d.name == "tfl_set_instance_scene")
+            .unwrap();
+        for preset in [
+            "midnight-forest",
+            "dithered-sunset",
+            "aurora-valley",
+            "inherit",
+            "pixel",
+        ] {
+            assert!(
+                validate(
+                    &d.schema,
+                    &json!({
+                        "instance_id": "instance-id", "preset": preset, "expected_revision": 0
+                    })
+                )
+                .is_ok()
+            );
+        }
+        for preset in [
+            "https://example.com/theme",
+            "file:///private",
+            "../scene",
+            "unknown",
+        ] {
+            assert!(
+                validate(
+                    &d.schema,
+                    &json!({
+                        "instance_id": "instance-id", "preset": preset, "expected_revision": 0
+                    })
+                )
+                .is_err()
+            );
+        }
+        assert_eq!(d.permission, Permission::Configure);
+    }
+    #[test]
     fn schema_rejects_extremes_and_unknown_actions() {
         let defs = definitions();
         let d = defs

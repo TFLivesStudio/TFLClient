@@ -56,8 +56,10 @@
 			</label>
 		{/if}
 		<div class="actions">
-			<button type="button" class="btn" onclick={onCancel}>{t('common.cancel')}</button>
-			<button type="button" class="btn" class:danger onclick={onConfirm}>
+			<button data-pixel-control type="button" class="btn" onclick={onCancel}
+				>{t('common.cancel')}</button
+			>
+			<button data-pixel-control type="button" class="btn" class:danger onclick={onConfirm}>
 				{confirmLabel}
 			</button>
 		</div>

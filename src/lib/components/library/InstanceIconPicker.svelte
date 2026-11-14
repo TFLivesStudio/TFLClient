@@ -133,6 +133,7 @@
 		</div>
 
 		<button
+			data-pixel-control
 			type="button"
 			class="upload-btn"
 			disabled={busy === 'upload' || dialogsBlocked}
@@ -151,7 +152,7 @@
 		{#if loading}
 			<div class="loading-row"><Loader2 size={18} class="spin" /></div>
 		{:else}
-			<label class="icon-search"
+			<label class="icon-search" data-search-control
 				><Search size={14} /><input
 					type="search"
 					bind:value={query}

@@ -68,14 +68,25 @@
 						<span class="world-size">{fmtSize(world.size_bytes)}</span>
 					</div>
 					{#if confirmDelete === world.name}
-						<button type="button" class="confirm-btn" onclick={() => handleDelete(world.name)}>
+						<button
+							data-pixel-control
+							type="button"
+							class="confirm-btn"
+							onclick={() => handleDelete(world.name)}
+						>
 							{t('serverWorlds.confirmDelete')}
 						</button>
-						<button type="button" class="icon-btn" onclick={() => (confirmDelete = null)}>
+						<button
+							data-pixel-control
+							type="button"
+							class="icon-btn"
+							onclick={() => (confirmDelete = null)}
+						>
 							{t('common.cancel')}
 						</button>
 					{:else}
 						<button
+							data-pixel-control="danger"
 							type="button"
 							class="icon-btn danger"
 							disabled={deletingName === world.name}

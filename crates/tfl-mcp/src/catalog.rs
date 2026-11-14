@@ -297,7 +297,7 @@ pub fn definitions() -> Vec<Definition> {
         "tfl_set_instance_scene",
         "Select a bundled scene for an exact instance UUID, or restore global inheritance. No external URLs or file paths.",
         Configure,
-        json!({"instance_id":id,"preset":choice(&["inherit","legacy","forest","embers","void","night","cave","aurora","pixel"]),"expected_revision":number(0,u32::MAX)}),
+        json!({"instance_id":id,"preset":choice(&["inherit","legacy","forest","embers","void","night","cave","aurora","pixel","midnight-forest","dithered-sunset","aurora-valley"]),"expected_revision":number(0,u32::MAX)}),
         &["instance_id", "preset", "expected_revision"],
         false,
     );

@@ -186,6 +186,7 @@
 						<span class="filename">{pack.title} · {pack.file_count} archivos</span>
 						{#if updates[pack.version_id]}
 							<button
+								data-pixel-control
 								type="button"
 								class="update-btn"
 								disabled={updatingId === pack.version_id}
@@ -200,6 +201,7 @@
 							</button>
 						{/if}
 						<button
+							data-pixel-control
 							type="button"
 							class="icon-btn"
 							disabled={removingId === pack.version_id}
@@ -220,6 +222,7 @@
 		<div class="download-toolbar">
 			<div class="category-dropdown" bind:this={categoryDropdownEl}>
 				<button
+					data-pixel-control
 					type="button"
 					class="category-trigger"
 					class:active={explorer.selectedCategories.size > 0}
@@ -234,6 +237,7 @@
 					<div class="category-panel">
 						{#each CATEGORIES as cat (cat)}
 							<button
+								data-pixel-control
 								type="button"
 								class="category-option"
 								class:active={explorer.selectedCategories.has(cat)}
@@ -247,6 +251,7 @@
 						{/each}
 						{#if explorer.selectedCategories.size > 0}
 							<button
+								data-pixel-control
 								type="button"
 								class="category-option clear"
 								onclick={() => explorer.clearCategories()}
@@ -264,6 +269,7 @@
 				onchange={(v) => explorer.setSort(v)}
 			/>
 			<button
+				data-pixel-control
 				type="button"
 				class="explore-wide-btn"
 				onclick={() => openContentExplorer({ instance, kind: 'modpack' })}
@@ -273,7 +279,7 @@
 			</button>
 		</div>
 
-		<div class="search-row">
+		<div class="search-row" data-search-control>
 			{#if explorer.loading}
 				<Loader2 size={14} class="spin search-icon" />
 			{:else}
@@ -283,6 +289,7 @@
 				type="text"
 				value={explorer.query}
 				oninput={(e) => explorer.setQuery((e.target as HTMLInputElement).value)}
+				aria-label={t('contentManager.searchPlaceholder', { noun: 'modpacks' })}
 				placeholder={t('contentManager.searchPlaceholder', { noun: 'modpacks' })}
 			/>
 		</div>
@@ -290,7 +297,12 @@
 		{#if explorer.errorKind}
 			<p class="error">
 				{t(errorMessageKey(explorer.errorKind))}
-				<button type="button" class="retry-btn" onclick={() => explorer.setQuery(explorer.query)}>
+				<button
+					data-pixel-control
+					type="button"
+					class="retry-btn"
+					onclick={() => explorer.setQuery(explorer.query)}
+				>
 					{t('contentManager.retry')}
 				</button>
 			</p>

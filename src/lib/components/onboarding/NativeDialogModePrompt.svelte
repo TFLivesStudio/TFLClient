@@ -50,6 +50,7 @@
 			</p>
 			<div class="options">
 				<button
+					data-pixel-control="primary"
 					type="button"
 					class="option primary"
 					disabled={!!busy}

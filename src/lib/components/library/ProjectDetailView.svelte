@@ -114,7 +114,13 @@
 					><Check size={16} /></span
 				>
 			{:else}
-				<button type="button" class="install-btn" disabled={installing} onclick={() => onInstall()}>
+				<button
+					data-pixel-control="primary"
+					type="button"
+					class="install-btn"
+					disabled={installing}
+					onclick={() => onInstall()}
+				>
 					{#if installing}<Loader2 size={16} class="spin" />{:else}<Download size={16} />{/if}
 					{t('common.install')}
 				</button>

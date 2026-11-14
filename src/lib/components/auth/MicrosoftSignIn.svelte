@@ -189,7 +189,12 @@
 					'Copy'
 				)}</button
 			>
-			<button type="button" class="auth-primary" disabled={starting} onclick={openDevice}
+			<button
+				data-pixel-control="primary"
+				type="button"
+				class="auth-primary"
+				disabled={starting}
+				onclick={openDevice}
 				><ExternalLink size={16} />{text('Abrir Microsoft', 'Open Microsoft')}</button
 			>
 		</div>
@@ -218,7 +223,7 @@
 			>
 		</div>
 	{:else if !active && !starting && login?.phase !== 'success'}
-		<button type="button" class="auth-primary" onclick={() => begin()}
+		<button data-pixel-control="primary" type="button" class="auth-primary" onclick={() => begin()}
 			><RotateCcw size={16} />{text('Reintentar', 'Retry')}</button
 		>
 	{/if}

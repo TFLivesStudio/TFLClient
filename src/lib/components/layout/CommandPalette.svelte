@@ -214,12 +214,13 @@
 			aria-modal="true"
 			tabindex="-1"
 		>
-			<div class="input-row">
+			<div class="input-row" data-search-control>
 				<Search size={15} class="search-icon" />
 				<input
 					bind:this={inputEl}
 					bind:value={query}
 					onkeydown={handleInputKeydown}
+					aria-label={t('commandPalette.searchPlaceholder')}
 					placeholder={t('commandPalette.searchPlaceholder')}
 					type="text"
 					autocomplete="off"

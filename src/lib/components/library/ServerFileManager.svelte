@@ -125,6 +125,7 @@
 			<span class="editor-filename">{editingFile}</span>
 			<div class="editor-actions">
 				<button
+					data-pixel-control
 					type="button"
 					class="icon-btn"
 					onclick={() => (editingFile = null)}
@@ -155,7 +156,13 @@
 					>
 				{/each}
 			</div>
-			<button type="button" class="tool-btn" onclick={handleNewFolder} disabled={creatingDir}>
+			<button
+				data-pixel-control
+				type="button"
+				class="tool-btn"
+				onclick={handleNewFolder}
+				disabled={creatingDir}
+			>
 				{#if creatingDir}<Loader2 size={13} class="spin" />{:else}<FolderPlus size={13} />{/if}
 				{t('serverFileManager.newFolder')}
 			</button>
@@ -191,11 +198,17 @@
 							{#if !entry.is_dir}<span class="entry-size">{fmtSize(entry.size_bytes)}</span>{/if}
 						</button>
 						{#if confirmDeleteName === entry.name}
-							<button type="button" class="confirm-btn" onclick={() => handleDelete(entry.name)}>
+							<button
+								data-pixel-control
+								type="button"
+								class="confirm-btn"
+								onclick={() => handleDelete(entry.name)}
+							>
 								{t('serverWorlds.confirmDelete')}
 							</button>
 						{:else}
 							<button
+								data-pixel-control="danger"
 								type="button"
 								class="icon-btn danger"
 								onclick={() => (confirmDeleteName = entry.name)}

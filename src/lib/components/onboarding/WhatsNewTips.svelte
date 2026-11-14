@@ -117,7 +117,9 @@
 				</button>
 			{/if}
 
-			<button type="button" class="got-it-btn" onclick={dismiss}>{t('whatsNewTips.gotIt')}</button>
+			<button data-pixel-control type="button" class="got-it-btn" onclick={dismiss}
+				>{t('whatsNewTips.gotIt')}</button
+			>
 		</div>
 	</div>
 {/if}
