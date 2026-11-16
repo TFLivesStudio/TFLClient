@@ -3,6 +3,7 @@ export const LANDSCAPE_IDS = ['midnight-forest', 'dithered-sunset', 'aurora-vall
 export type LandscapeId = (typeof LANDSCAPE_IDS)[number];
 export const LANDSCAPE_WIDTH = 384;
 export const LANDSCAPE_HEIGHT = 216;
+export const LANDSCAPE_PERIOD = 768;
 export const BAYER_4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5] as const;
 export function isLandscape(id: string): id is LandscapeId {
 	return LANDSCAPE_IDS.includes(id as LandscapeId);
@@ -57,13 +58,36 @@ export function noise(seed: number) {
 	const n = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
 	return n - Math.floor(n);
 }
+/** Reserve the first 70% of each band for quiet, solid colour. Canvas and SVG share this quantisation. */
+export function skyDitherLevel(value: number) {
+	const fraction = value - Math.floor(value);
+	return Math.round(Math.max(0, Math.min(1, (fraction - 0.7) / 0.3)) * 16);
+}
 /** Palette selection depends only on logical coordinates: camera movement cannot shimmer the sky. */
 export function skyColor(id: LandscapeId, x: number, y: number, dither = true) {
 	const colors = LANDSCAPE_PALETTES[id].sky;
 	const value = Math.max(0, Math.min(colors.length - 1, (y / 155) * (colors.length - 1)));
 	const band = Math.floor(value);
-	const threshold = (BAYER_4[((y & 3) << 2) + (x & 3)] + 0.5) / 16;
-	return colors[Math.min(colors.length - 1, band + (dither && value - band > threshold ? 1 : 0))];
+	const threshold = BAYER_4[((y & 3) << 2) + (x & 3)];
+	return colors[
+		Math.min(colors.length - 1, band + (dither && threshold < skyDitherLevel(value) ? 1 : 0))
+	];
+}
+/** Periodic geometry meets at identical height and slope on both ends. */
+export function ridgeHeight(id: LandscapeId, layer: number, x: number) {
+	const angle = (x / LANDSCAPE_PERIOD) * Math.PI * 2;
+	const amplitude =
+		id === 'aurora-valley'
+			? 27 - layer * 5
+			: id === 'midnight-forest'
+				? 14 - layer * 2
+				: 22 - layer * 3;
+	return Math.round(
+		106 +
+			layer * 18 +
+			Math.sin(angle * 3 + layer * 2.3) * amplitude +
+			Math.sin(angle * 7 + layer * 0.8) * amplitude * 0.42
+	);
 }
 export function landscapeLayers(id: LandscapeId): LandscapeLayer[] {
 	const p = LANDSCAPE_PALETTES[id];
@@ -72,20 +96,17 @@ export function landscapeLayers(id: LandscapeId): LandscapeLayer[] {
 		const shapes: LandscapeShape[] = [];
 		const baseline = 110 + layer * 18;
 		const points = [
-			[-24, 216],
-			[-24, baseline]
+			[0, 216],
+			[0, ridgeHeight(id, layer, 0)]
 		];
-		for (let x = -24; x <= 408; x += 3) {
-			const ridge =
-				Math.sin(x * (0.022 + layer * 0.004) + layer * 2.3) * (20 - layer * 4) +
-				Math.sin(x * 0.061 + layer) * 9;
-			points.push([x, Math.round(baseline - 12 + ridge)]);
+		for (let x = 0; x <= LANDSCAPE_PERIOD; x += 3) {
+			points.push([x, ridgeHeight(id, layer, x)]);
 		}
-		points.push([408, 216]);
+		points.push([LANDSCAPE_PERIOD, 216]);
 		shapes.push({ fill: p.mountains[layer], points });
 		if (id === 'aurora-valley' && layer < 2) {
-			for (let x = -24; x < 408; x += 3) {
-				const pt = points[(x + 24) / 3 + 2];
+			for (let x = 0; x < LANDSCAPE_PERIOD; x += 3) {
+				const pt = points[x / 3 + 2];
 				if (pt[1] < baseline - 18)
 					shapes.push({
 						fill: layer ? '#91b2bb' : '#bfd0d0',
@@ -96,14 +117,14 @@ export function landscapeLayers(id: LandscapeId): LandscapeLayer[] {
 		layers.push({ depth: 0.15 + layer * 0.17, shapes });
 	}
 	if (id === 'aurora-valley')
-		layers.push({ depth: 0.4, shapes: [{ fill: p.water, rect: [-24, 147, 432, 69] }] });
+		layers.push({ depth: 0.4, shapes: [{ fill: p.water, rect: [0, 147, LANDSCAPE_PERIOD, 69] }] });
 	for (let layer = 0; layer < 3; layer++) {
 		const shapes: LandscapeShape[] = [];
 		const floor = 149 + layer * 19;
-		for (let i = 0; i < 22; i++) {
-			const x = Math.round(i * 22 - 29 + noise(i + layer * 20) * 9);
+		for (let i = 0; i < 25; i++) {
+			const x = Math.round((i * LANDSCAPE_PERIOD) / 25 + noise(i + layer * 20) * 14);
 			// Open center of Aurora's reflective lake and the sunset valley.
-			if (id !== 'midnight-forest' && x > 100 - layer * 20 && x < 286 + layer * 20) continue;
+			if (id !== 'midnight-forest' && i % 9 > 3) continue;
 			const h = Math.round(16 + layer * 10 + noise(i + 53 + layer) * 30);
 			const w = Math.round(h * 0.24);
 			shapes.push({ fill: p.trees[layer], rect: [x - 1, floor - h, 3, h + 10] });
@@ -120,21 +141,35 @@ export function landscapeLayers(id: LandscapeId): LandscapeLayer[] {
 				});
 			}
 		}
-		if (layer === 2)
-			shapes.push({
-				fill: p.trees[2],
-				points: [
-					[-24, 207],
-					[48, 201],
-					[114, 214],
-					[198, 211],
-					[272, 206],
-					[343, 201],
-					[408, 205],
-					[408, 216],
-					[-24, 216]
-				]
-			});
+		if (layer === 2) {
+			const points = [[0, 216]];
+			for (let x = 0; x <= LANDSCAPE_PERIOD; x += 4)
+				points.push([
+					x,
+					Math.round(
+						207 +
+							Math.sin((x / LANDSCAPE_PERIOD) * Math.PI * 6) * 4 +
+							Math.sin((x / LANDSCAPE_PERIOD) * Math.PI * 14) * 2
+					)
+				]);
+			points.push([LANDSCAPE_PERIOD, 216]);
+			shapes.push({ fill: p.trees[2], points });
+		}
+		// Wrap sprites crossing a tile boundary into the opposite edge.
+		const originals = [...shapes];
+		for (const shift of [-LANDSCAPE_PERIOD, LANDSCAPE_PERIOD])
+			for (const shape of originals) {
+				const bounds = shape.rect
+					? [shape.rect[0], shape.rect[0] + shape.rect[2]]
+					: shape.points!.map((p) => p[0]);
+				if (Math.min(...bounds) + shift >= LANDSCAPE_PERIOD || Math.max(...bounds) + shift <= 0)
+					continue;
+				shapes.push(
+					shape.rect
+						? { ...shape, rect: [shape.rect[0] + shift, ...shape.rect.slice(1)] }
+						: { ...shape, points: shape.points!.map(([x, y]) => [x + shift, y]) }
+				);
+			}
 		layers.push({ depth: 0.5 + layer * 0.25, shapes });
 	}
 	return layers;
@@ -160,7 +195,7 @@ export function landscapePoster(
 	if (!isLandscape(id)) return '';
 	const p = LANDSCAPE_PALETTES[id];
 	let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 216" shape-rendering="crispEdges"><defs>`;
-	for (let i = 0; i < 16; i++) {
+	for (let i = 0; i <= 16; i++) {
 		svg += `<pattern id="b${i}" width="4" height="4" patternUnits="userSpaceOnUse">`;
 		for (let y = 0; y < 4; y++)
 			for (let x = 0; x < 4; x++)
@@ -174,8 +209,9 @@ export function landscapePoster(
 		const v = Math.min(4, (y / 155) * 4),
 			band = Math.floor(v);
 		svg += `<rect y="${y}" width="384" height="1" fill="${p.sky[band]}"/>`;
-		if (dither && band < 4)
-			svg += `<rect y="${y}" width="384" height="1" fill="${p.sky[band + 1]}" mask="url(#m${Math.floor((v - band) * 16)})"/>`;
+		const level = skyDitherLevel(v);
+		if (dither && band < 4 && level > 0)
+			svg += `<rect y="${y}" width="384" height="1" fill="${p.sky[band + 1]}" mask="url(#m${level})"/>`;
 	}
 	if (id !== 'dithered-sunset')
 		for (let i = 0; i < 68; i++)

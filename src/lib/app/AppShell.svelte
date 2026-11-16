@@ -6,6 +6,7 @@
 	import DiscoverView from '$lib/components/refresh/DiscoverView.svelte';
 	import { navigation } from '$lib/visual/navigation.svelte';
 	import { restoreVisualPreferences } from '$lib/visual/preferences.svelte';
+	import { startAddons } from '$lib/addons/state.svelte';
 	import { startVisualRuntime, effects, runtime } from '$lib/visual/runtime.svelte';
 
 	import { onMount } from 'svelte';
@@ -49,12 +50,14 @@
 		const stopViewport = initViewportListener();
 		restoreVisualPreferences();
 		const stopScenes = watchScenes();
+		const stopAddons = startAddons();
 		const stopVisual = startVisualRuntime();
 		const stopNotifications = startNotifications();
 		return () => {
 			stopViewport?.();
 			stopVisual();
 			stopScenes();
+			stopAddons();
 			stopNotifications();
 		};
 	});
@@ -175,8 +178,9 @@
 		pointer-events: none;
 	}
 	:global(html[data-living-background]) .app-body {
-		--surface-workspace: color-mix(in srgb, var(--bg-sidebar) 92%, transparent);
-		--surface-card: color-mix(in srgb, var(--bg-card) 90%, transparent);
+		/* Stable local reading surfaces, independent of the scene's brightest frame. */
+		--surface-workspace: var(--bg-sidebar);
+		--surface-card: var(--bg-card);
 	}
 
 	.main-content {

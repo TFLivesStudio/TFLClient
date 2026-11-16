@@ -7,8 +7,6 @@
 	import { instanceVisual } from '$lib/visual/preferences.svelte';
 	import { resolveBanner } from '$lib/visual/banners';
 	import { instanceDisplayName, instanceEdition } from '$lib/selection-identity';
-	import { effects } from '$lib/visual/runtime.svelte';
-	import { parallax } from '$lib/visual/motion';
 	import { selectInstance } from '$lib/state/instanceState.svelte';
 	import type { InstanceData, MojangProfile } from '$lib/types/types';
 	let {
@@ -46,7 +44,6 @@
 	class="hero"
 	class:launching
 	class:running={isRunning}
-	use:parallax={effects.current.parallax}
 	data-banner-source={banner.source}
 	data-banner-id={banner.id}
 	style={`--hero-image:${banner.url ? `url("${banner.url}")` : 'none'};--banner-position:${banner.position}`}
@@ -103,8 +100,6 @@
 		background: #111820;
 		color: #fff;
 		--hero-image: url('/wallpapers/mc-wallpaper-6.jpg');
-		--pointer-x: 0px;
-		--pointer-y: 0px;
 	}
 	.hero-art {
 		position: absolute;
@@ -113,8 +108,6 @@
 		background: var(--hero-image);
 		background-size: cover;
 		background-position: var(--banner-position, center 42%);
-		transform: translate3d(var(--pointer-x), var(--pointer-y), 0);
-		transition: transform 180ms ease-out;
 	}
 	.hero:after {
 		content: '';
@@ -235,7 +228,6 @@
 		align-items: center;
 		justify-content: center;
 		min-height: 290px;
-		transform: translate3d(calc(var(--pointer-x) * -1), calc(var(--pointer-y) * -1), 0);
 	}
 	.character-stage {
 		pointer-events: none;

@@ -79,6 +79,16 @@ fn main_window_can_use_every_app_command_and_log_window_only_its_own() {
         "import_scene_video",
         "remove_scene_media",
         "pick_scene_video_file",
+        "addons_list",
+        "addons_inspect",
+        "addons_install",
+        "addons_resource",
+        "addons_scene_resources",
+        "addons_set_enabled",
+        "addons_remove",
+        "addons_safe_mode",
+        "addons_rollback",
+        "addons_pick_file",
     ] {
         assert!(
             allowed(&main, cmd),
@@ -119,6 +129,16 @@ fn main_window_can_use_every_app_command_and_log_window_only_its_own() {
         "import_scene_video",
         "remove_scene_media",
         "pick_scene_video_file",
+        "addons_list",
+        "addons_inspect",
+        "addons_install",
+        "addons_resource",
+        "addons_scene_resources",
+        "addons_set_enabled",
+        "addons_remove",
+        "addons_safe_mode",
+        "addons_rollback",
+        "addons_pick_file",
     ] {
         assert!(
             !allowed(&log, cmd),

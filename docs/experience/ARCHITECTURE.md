@@ -1,5 +1,11 @@
 # Experience & Settings Rework
 
+La **0.15.4-beta.3** sustituye el movimiento de cámara por puntero por viaje
+automático periódico. El contrato vigente y las diferencias entre capas,
+pósteres y vídeo están en [SCENE_MOTION.md](SCENE_MOTION.md). Los apartados de
+la base inicial que siguen describen su contexto histórico cuando difieren
+de ese contrato; no implican que siga existiendo parallax por cursor.
+
 La actualización Pixel/Living Themes de noviembre de 2026 amplía esta base sin
 reemplazar los presets ni vídeos existentes. El contrato actualizado de controles
 está en [PIXEL_COMPONENTS.md](PIXEL_COMPONENTS.md); los escenarios procedurales,

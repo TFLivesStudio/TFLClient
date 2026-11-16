@@ -3,6 +3,7 @@
 	import { visual, setVisual } from '$lib/visual/preferences.svelte';
 	import { tr } from '$lib/i18n/experience';
 	import { accentText } from '$lib/visual/policy';
+	import { selectAddonTheme } from '$lib/addons/state.svelte';
 	let { onReset }: { onReset: () => void } = $props();
 	const colors = [
 		['TFL', '#ff7a2e'],
@@ -55,7 +56,10 @@
 	}
 	function apply(value: string) {
 		hex = value;
-		if (/^#[\da-f]{6}$/i.test(value)) setVisual('customAccent', value);
+		if (/^#[\da-f]{6}$/i.test(value)) {
+			selectAddonTheme('');
+			setVisual('customAccent', value);
+		}
 	}
 </script>
 

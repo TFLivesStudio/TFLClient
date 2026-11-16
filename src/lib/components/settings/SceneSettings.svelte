@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { cinematicPoster } from '$lib/scenes/cinematic';
+	import { sceneVectorPoster } from '$lib/scenes/layeredArt';
+	import { addonSceneOptions, resolveAddonScene } from '$lib/addons/state.svelte';
 	import { isLandscape, landscapePoster } from '$lib/scenes/landscape';
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
@@ -8,7 +10,7 @@
 	import { appearance } from '$lib/state/appearanceState.svelte';
 	import { openSettingsAt } from '$lib/state/uiState.svelte';
 	import { runtime } from '$lib/visual/runtime.svelte';
-	import { SCENES, DEFAULT_SCENE, type SceneConfig } from '$lib/scenes/model';
+	import { SCENES, DEFAULT_SCENE, type SceneConfig, type SceneId } from '$lib/scenes/model';
 	import { scenes, saveScene, sceneStatus } from '$lib/scenes/preferences.svelte';
 	import SceneStage from '$lib/scenes/SceneStage.svelte';
 	import SettingGroup from './SettingGroup.svelte';
@@ -24,6 +26,15 @@
 		saved = $state(false);
 	type Media = { id: string; path: string; bytes: number; mime: string };
 	let media = $state<Media[]>([]);
+	const availableScenes = $derived([...SCENES, ...addonSceneOptions()]);
+	const addonLayers = $derived(resolveAddonScene(draft.preset)?.scene.layers ?? []);
+	const hasDepth = $derived(
+		!draft.mediaId &&
+			draft.poster === 'auto' &&
+			draft.preset !== 'legacy' &&
+			(!draft.preset.startsWith('addon:') ||
+				new Set(addonLayers.map((layer) => layer.speed)).size > 1)
+	);
 	const locale = $derived(i18nState.locale === 'en' ? 1 : 0);
 	$effect(() => {
 		const current = scenes.global;
@@ -150,22 +161,22 @@
 	</SettingGroup>
 	<SettingGroup id="scene-gallery"
 		><div class="gallery">
-			{#each SCENES as scene (scene.id)}<button
+			{#each availableScenes as scene (scene.id)}<button
 					type="button"
 					class="scene-tile"
 					aria-pressed={draft.preset === scene.id}
 					onclick={() => {
-						draft.preset = scene.id;
+						draft.preset = scene.id as SceneId;
 						draft.poster = 'auto';
 						draft.mediaId = null;
 					}}
 					><span
 						class="thumb"
 						style:background={`linear-gradient(145deg,${scene.colors[0]},${scene.colors[1]})`}
-						>{#if scene.id !== 'legacy'}<img
+						>{#if scene.id !== 'legacy' && !scene.id.startsWith('addon:')}<img
 								src={isLandscape(scene.id)
 									? landscapePoster(scene.id, draft.dithering)
-									: (cinematicPoster(scene.id, true) ?? `/scenes/${scene.id}.svg`)}
+									: sceneVectorPoster(scene.id as SceneId)}
 								alt=""
 								loading="lazy"
 								class:pixel-preview={isLandscape(scene.id)}
@@ -199,8 +210,10 @@
 	>
 		<label class="field"
 			>{tr('Imagen de respaldo', 'Fallback image')}<select bind:value={draft.poster}
-				><option value="auto">{tr('Imagen de la escena', 'Scene image')}</option><option
-					value="custom">{tr('Mi fondo estático', 'My static wallpaper')}</option
+				><option value="auto">{tr('Capas de la escena', 'Scene layers')}</option
+				>{#if cinematicPoster(draft.preset)}<option value="cinematic"
+						>{tr('Arte original (estático)', 'Original artwork (static)')}</option
+					>{/if}<option value="custom">{tr('Mi fondo estático', 'My static wallpaper')}</option
 				>{#each Array.from({ length: 13 }, (_, i) => `mc-${i + 1}`) as id (id)}<option value={id}
 						>Minecraft · {id.slice(3)}</option
 					>{/each}</select
@@ -298,7 +311,7 @@
 			)}
 		</p>
 		<label class="field">
-			{tr('Intensidad de parallax', 'Parallax intensity')}
+			{tr('Profundidad automática', 'Automatic depth')}
 			<span class="range-control">
 				<input
 					type="range"
@@ -306,11 +319,27 @@
 					max="1"
 					step="0.1"
 					bind:value={draft.parallax}
-					disabled={draft.motion === 'off'}
+					disabled={draft.motion === 'off' || !hasDepth}
 				/>
 				<output>{Math.round(draft.parallax * 100)}%</output>
 			</span>
 		</label>
+		<p class="hint">
+			{hasDepth
+				? tr(
+						'El paisaje viaja hacia la derecha por capas, sin seguir el cursor. La profundidad separa sus velocidades; a 0 % todas viajan juntas. Balanced limita el movimiento a 24 FPS; Lite y movimiento reducido muestran una imagen estática.',
+						'The landscape travels right in layers, independently of the cursor. Depth separates their speeds; at 0% they travel together. Balanced caps movement at 24 FPS; Lite and reduced motion show a static image.'
+					)
+				: draft.preset.startsWith('addon:') && !draft.mediaId
+					? tr(
+							'Esta escena de addon no ofrece planos con velocidades distintas. Conserva el movimiento declarado y respeta las políticas del perfil.',
+							'This addon scene does not offer layers with different speeds. It keeps its declared motion and respects profile policies.'
+						)
+					: tr(
+							'Los pósteres y wallpapers son imágenes estáticas sin profundidad por capas. El vídeo conserva su reproducción original, sin desplazamiento artificial.',
+							'Posters and wallpapers are static images without layered depth. Video keeps its original playback, without artificial translation.'
+						)}
+		</p>
 		{#if isLandscape(draft.preset)}
 			<label class="toggle"
 				><span>{tr('Tramado de color (dithering)', 'Color dithering')}</span><input
@@ -337,7 +366,7 @@
 				bind:checked={draft.balancedVideo}
 			/></label
 		>
-		{#if !isLandscape(draft.preset)}<label class="toggle"
+		{#if !isLandscape(draft.preset) && !draft.preset.startsWith('addon:')}<label class="toggle"
 				><span
 					>{tr(
 						'Luz procedural con WebGL · Experience',

@@ -1,0 +1,42 @@
+{
+	"schemaVersion": 1,
+	"id": "tfl.orange-dunes",
+	"name": "Orange Dunes",
+	"author": "TFL Client contributors (declared)",
+	"version": "1.0.0",
+	"description": "Tema oscuro y paisaje de dunas por capas. Arte original generado por el script del repositorio; sin código ejecutable ni permisos.",
+	"apiVersion": "^1.0.0",
+	"launcherVersion": ">=0.15.4-beta.3",
+	"permissions": [],
+	"themes": [
+		{
+			"id": "dusk",
+			"name": "Dunes at dusk",
+			"tokens": {
+				"--bg-main": "#17131B",
+				"--bg-sidebar": "#201A24",
+				"--bg-card": "#251E29",
+				"--bg-input": "#17131B",
+				"--bg-item-active": "#3A2935",
+				"--text-primary": "#FFF7ED",
+				"--text-secondary": "#E8D2C3",
+				"--text-muted": "#C4ADAA",
+				"--border": "#81666E",
+				"--accent": "#FB923C",
+				"--accent-text": "#21120A"
+			}
+		}
+	],
+	"scenes": [
+		{
+			"id": "dunes",
+			"name": "Orange Dunes",
+			"background": "#241A35",
+			"layers": [
+				{ "path": "assets/distant.png", "speed": 0.6, "opacity": 1 },
+				{ "path": "assets/ridge.png", "speed": 1.4, "opacity": 1 },
+				{ "path": "assets/dunes.png", "speed": 2.8, "opacity": 1 }
+			]
+		}
+	]
+}

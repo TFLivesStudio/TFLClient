@@ -1,6 +1,7 @@
 import {
 	LANDSCAPE_WIDTH as W,
 	LANDSCAPE_HEIGHT as H,
+	LANDSCAPE_PERIOD as PERIOD,
 	LANDSCAPE_PALETTES,
 	landscapeLayers,
 	skyColor,
@@ -9,6 +10,7 @@ import {
 	type LandscapeShape
 } from './landscape';
 import type { SceneConfig } from './model';
+import { createLayerMotion } from './motion';
 
 function drawShape(ctx: CanvasRenderingContext2D, s: LandscapeShape) {
 	ctx.fillStyle = s.fill;
@@ -24,7 +26,8 @@ function drawShape(ctx: CanvasRenderingContext2D, s: LandscapeShape) {
 export function createLandscapeRenderer(
 	canvas: HTMLCanvasElement,
 	id: LandscapeId,
-	dither: boolean
+	dither: boolean,
+	initialPhases: number[] = []
 ) {
 	canvas.width = W;
 	canvas.height = H;
@@ -34,7 +37,7 @@ export function createLandscapeRenderer(
 	const resources: HTMLCanvasElement[] = [];
 	function cache() {
 		const surface = document.createElement('canvas');
-		surface.width = W + 48;
+		surface.width = PERIOD;
 		surface.height = H;
 		const context = surface.getContext('2d');
 		if (!context) throw new Error('Canvas unavailable');
@@ -66,21 +69,16 @@ export function createLandscapeRenderer(
 			sky.context.fillRect(278, 63, 5, 7);
 			sky.context.fillRect(287, 75, 7, 4);
 		}
-		const layers = landscapeLayers(id).map((layer) => {
+		const layers = landscapeLayers(id).map((layer, index) => {
 			const cached = cache();
-			cached.context.translate(24, 0);
 			layer.shapes.forEach((shape) => drawShape(cached.context, shape));
-			return { ...cached, depth: layer.depth };
+			return {
+				...cached,
+				motion: createLayerMotion(PERIOD, layer.depth, true, initialPhases[index])
+			};
 		});
 		let disposed = false;
-		function draw(
-			t: number,
-			x: number,
-			y: number,
-			depth: number,
-			config: SceneConfig,
-			phase: string
-		) {
+		function draw(t: number, depth: number, config: SceneConfig, phase: string, delta = 0) {
 			if (disposed || !ctx) return;
 			ctx.globalAlpha = 1;
 			ctx.drawImage(sky.surface, 0, 0);
@@ -113,9 +111,9 @@ export function createLandscapeRenderer(
 			}
 			for (const [index, layer] of layers.entries()) {
 				ctx.globalAlpha = 1;
-				const dx = Math.round(x * depth * layer.depth * 13),
-					dy = Math.round(y * depth * layer.depth * 4);
-				ctx.drawImage(layer.surface, -24 + dx, dy);
+				const offset = layer.motion.advance(delta, depth);
+				ctx.drawImage(layer.surface, offset - PERIOD, 0);
+				ctx.drawImage(layer.surface, offset, 0);
 				if (index < 3) {
 					ctx.fillStyle = p.cloud;
 					ctx.globalAlpha = 0.045;
@@ -172,6 +170,9 @@ export function createLandscapeRenderer(
 		}
 		return {
 			draw,
+			get phases() {
+				return layers.map((layer) => layer.motion.phase);
+			},
 			dispose() {
 				disposed = true;
 				resources.forEach((surface) => {

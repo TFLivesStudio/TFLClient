@@ -1,7 +1,7 @@
 // Browser-only IPC fixture. Never imported by production code.
 export function installFixture({
 	quality = 'Balanced',
-	appVersion = '0.15.4-beta.2',
+	appVersion = '0.15.4-beta.3',
 	empty = false,
 	language = 'es',
 	theme = 'dark',
@@ -141,6 +141,8 @@ export function installFixture({
 		unregisterCallback: (id) => callbacks.delete(id),
 		invoke: async (cmd, args = {}) => {
 			window.__fixtureCommands.push({ cmd, args });
+			if (cmd === 'addons_list') return { safeMode: false, addons: [], errors: [] };
+			if (cmd === 'addons_pick_file') return null;
 			if (cmd === 'plugin:event|listen') {
 				listeners.set(++sequence, { event: args.event, cb: args.handler });
 				return sequence;

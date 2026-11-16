@@ -14,6 +14,10 @@ se conservan para poder consultar o restaurar su redacción original.
 
 ## Publicaciones
 
+Preparada, sin publicar: [v0.15.4-beta.3](v0.15.4-beta.3.md). No tiene fecha
+de publicación ni tag; consulta sus comprobaciones en el
+[informe técnico](../changes/2026-11-16-beta3-scenes-addons.md).
+
 | Versión                                 | Canal   | Fecha original (UTC) | Resumen                                                                                                                                                                              |
 | --------------------------------------- | ------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [v0.15.4-beta.2](v0.15.4-beta.2.md)     | Beta    | 2026-11-14           | Fondo global, 25 banners por versión, Pixel y sidebar refinados, clientes oficiales y personaje interactivo.                                                                         |

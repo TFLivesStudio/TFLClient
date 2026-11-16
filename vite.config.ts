@@ -35,7 +35,9 @@ export default defineConfig({
 				}
 			: undefined,
 		watch: {
-			ignored: ['**/src-tauri/**']
+			// Cargo's workspace target is at the repository root. Watching its
+			// running .exe build scripts can terminate Vite with EBUSY on Windows.
+			ignored: ['**/src-tauri/**', '**/target/**']
 		}
 	},
 

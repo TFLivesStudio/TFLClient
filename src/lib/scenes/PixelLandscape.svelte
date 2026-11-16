@@ -5,19 +5,16 @@
 	import { isLandscape, landscapePoster } from './landscape';
 	import { createLandscapeRenderer } from './landscapeRenderer';
 	import type { SceneConfig } from './model';
+	import { advanceSceneTime } from './motion';
 	let {
 		config,
 		fps = 0,
 		depth = 0,
-		x = 0,
-		y = 0,
 		phase = 'night'
 	}: {
 		config: SceneConfig;
 		fps?: number;
 		depth?: number;
-		x?: number;
-		y?: number;
 		phase?: string;
 	} = $props();
 	let canvas = $state<HTMLCanvasElement>();
@@ -27,6 +24,21 @@
 		top = $state(0);
 	let failed = $state(false);
 	let time = 0;
+	let retainedPhases: number[] = [];
+	let retainedId = '';
+	let frozenFrame = $state('');
+	let frozenKey = $state('');
+	const frameKey = $derived(
+		JSON.stringify({
+			preset: config.preset,
+			dithering: config.dithering,
+			weather: config.weather,
+			lighting: config.lighting,
+			adaptTime: config.adaptTime,
+			particles: config.particles,
+			phase
+		})
+	);
 	const poster = $derived(
 		landscapePoster(config.preset, config.dithering, {
 			weather: config.weather,
@@ -53,7 +65,8 @@
 		const node = canvas,
 			id = config.preset,
 			dither = config.dithering,
-			rate = fps;
+			rate = fps,
+			key = frameKey;
 		if (!node || !isLandscape(id) || rate <= 0) return;
 		failed = false;
 		let renderer: ReturnType<typeof createLandscapeRenderer> = null;
@@ -62,17 +75,22 @@
 			frameCount = 0;
 		const start = () => {
 			stop();
+			if (renderer) retainedPhases = renderer.phases;
 			renderer?.dispose();
+			if (retainedId !== id) {
+				retainedId = id;
+				retainedPhases = [];
+			}
 			const started = perfEnabled ? performance.now() : 0;
-			renderer = createLandscapeRenderer(node, id, dither);
+			renderer = createLandscapeRenderer(node, id, dither, retainedPhases);
 			if (perfEnabled) perfRecord(`landscape.cache.${id}`, performance.now() - started);
 			failed = !renderer;
 			if (!renderer) return;
-			renderer.draw(time, x, y, depth, config, phase);
+			renderer.draw(time, depth, config, phase);
 			stop = subscribeFrame((delta) => {
-				time += delta;
+				time = advanceSceneTime(time, delta);
 				const started = perfEnabled ? performance.now() : 0;
-				renderer?.draw(time, x, y, depth, config, phase);
+				renderer?.draw(time, depth, config, phase, delta);
 				if (perfEnabled) {
 					frameMs += performance.now() - started;
 					frameCount++;
@@ -89,6 +107,18 @@
 		node.addEventListener('contextrestored', start);
 		return () => {
 			stop();
+			if (renderer) retainedPhases = renderer.phases;
+			// Capture once on pause, before releasing every canvas backing store. The
+			// immutable, bounded 384×216 image keeps the last phase visible without RAF.
+			if (renderer && !failed && fps <= 0) {
+				try {
+					frozenFrame = node.toDataURL();
+					frozenKey = key;
+				} catch {
+					frozenFrame = '';
+					frozenKey = '';
+				}
+			}
 			if (perfEnabled && frameCount) perfRecord(`landscape.frame.${id}`, frameMs / frameCount);
 			node.removeEventListener('contextlost', lost);
 			node.removeEventListener('contextrestored', start);
@@ -105,7 +135,11 @@
 	data-animated={fps > 0 && !failed}
 	aria-hidden="true"
 >
-	<img src={poster} alt="" draggable="false" />
+	<img
+		src={fps <= 0 && frozenKey === frameKey && frozenFrame ? frozenFrame : poster}
+		alt=""
+		draggable="false"
+	/>
 	{#if fps > 0}<canvas bind:this={canvas} class:failed></canvas>{/if}
 </div>
 

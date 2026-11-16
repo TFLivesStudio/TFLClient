@@ -95,6 +95,37 @@ try {
 					first,
 					`${preset} has actual scene animation`
 				);
+				const cacheSetContexts = await page.evaluate(() => window.__landscapeContextCount);
+				const frozen = await canvas.evaluate((node) => {
+					const image = node.toDataURL();
+					window.__landscapeFocus = document.hasFocus.bind(document);
+					Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => false });
+					window.dispatchEvent(new Event('blur'));
+					return image;
+				});
+				await page.waitForFunction(() => !document.querySelector('.pixel-landscape canvas'));
+				assert.equal(
+					await page.locator('.pixel-landscape img').getAttribute('src'),
+					frozen,
+					'pause displays the exact final frame, not phase zero'
+				);
+				await page.waitForTimeout(180);
+				assert.equal(await page.locator('.pixel-landscape img').getAttribute('src'), frozen);
+				await page.evaluate(() => {
+					Object.defineProperty(document, 'hasFocus', {
+						configurable: true,
+						value: window.__landscapeFocus
+					});
+					window.dispatchEvent(new Event('focus'));
+				});
+				await page.waitForFunction(() =>
+					document.querySelector('.pixel-landscape[data-animated="true"] canvas')
+				);
+				assert.notEqual(
+					await canvas.evaluate((node) => node.toDataURL()),
+					first,
+					'resume retains the accumulated phase rather than restarting the renderer'
+				);
 				const count = await page.evaluate(() => window.__landscapeContextCount);
 				for (let i = 0; i < 8; i++) await page.mouse.move(20 + i * 150, 150 + i * 30);
 				assert.equal(
@@ -127,7 +158,7 @@ try {
 				);
 				assert.equal(
 					await page.evaluate(() => window.__landscapeContextCount),
-					count * 2,
+					count + cacheSetContexts,
 					'restore creates exactly one cache set'
 				);
 				const cdp = await page.context().newCDPSession(page);
@@ -215,6 +246,41 @@ try {
 		await lifecycle.locator('.pixel-landscape canvas').evaluate((n) => n.toDataURL()),
 		beforeFallback,
 		'media failure resumes real landscape animation'
+	);
+	await selectScene(lifecycle, { preset: 'forest', poster: 'cinematic', particles: false });
+	await lifecycle.waitForFunction(() => {
+		const image = document.querySelector('.scene-frame img');
+		return image && image.complete && image.naturalWidth > 0;
+	});
+	await lifecycle
+		.locator('.scene-frame img')
+		.evaluate((node) => node.dispatchEvent(new Event('error')));
+	await lifecycle.waitForFunction(
+		() => document.querySelectorAll('.scene-frame .travel-layer').length >= 6
+	);
+	const fallbackOffsets = await lifecycle
+		.locator('.travel-layer')
+		.evaluateAll((nodes) => nodes.map((node) => node.style.backgroundPositionX));
+	await lifecycle.waitForTimeout(180);
+	assert.deepEqual(
+		await lifecycle
+			.locator('.travel-layer')
+			.evaluateAll((nodes) => nodes.map((node) => node.style.backgroundPositionX)),
+		fallbackOffsets,
+		'failed static poster falls back to static SVG rather than silently animating'
+	);
+	await lifecycle.screenshot({ path: `${output}/cinematic-error-fallback.png` });
+	await selectScene(lifecycle, { preset: 'embers', poster: 'cinematic', particles: false });
+	await lifecycle.waitForFunction(() => {
+		const image = document.querySelector('.scene-frame img');
+		return (
+			image && image.src.includes('cinematic/embers') && image.complete && image.naturalWidth > 0
+		);
+	});
+	assert.equal(
+		await lifecycle.locator('.travel-layer').count(),
+		0,
+		'changing poster resets the failed-resource state'
 	);
 	await lifecycle.close();
 	assert.deepEqual(errors, []);

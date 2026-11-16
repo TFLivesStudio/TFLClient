@@ -1,5 +1,10 @@
 # Recursos originales
 
+La beta 3 añade geometría periódica generada por código en `landscape.ts` y
+`layeredArt.ts`, sin recursos externos nuevos. Su autoría, licencia y movimiento
+se documentan en [SCENE_MOTION.md](SCENE_MOTION.md#autoría-y-licencia). Los pósteres
+anteriores se conservan como opción estática y mantienen su procedencia original.
+
 ## Imágenes de escenas y fondos de pantalla
 
 `static/scenes/cinematic/*.webp` (siete escenas) y `static/wallpapers/pack-*.jpg` (fondos adicionales) se generan a partir del paquete de imágenes aportado por el equipo (capturas con shaders, arte oficial de Minecraft y obras de la comunidad). **No son recursos originales de TFL ni están cubiertos por la GPL-3.0 del repositorio**: antes de distribuir una versión pública hay que confirmar su licencia o permiso de uso (arte de Mojang/Microsoft y créditos de los autores de la comunidad). Una imagen usada como escena no se repite en la lista de fondos de pantalla, y viceversa.

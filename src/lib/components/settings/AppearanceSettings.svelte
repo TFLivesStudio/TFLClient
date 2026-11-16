@@ -8,6 +8,7 @@
 	import { tr } from '$lib/i18n/experience';
 	import type { QualityProfile } from '$lib/types/types';
 	import SettingGroup from './SettingGroup.svelte';
+	import { addonState, addonThemes, selectAddonTheme } from '$lib/addons/state.svelte';
 	import AccentPalette from './AccentPalette.svelte';
 	let {
 		onQuality,
@@ -51,6 +52,7 @@
 		}
 	}
 	async function theme(value: 'dark' | 'light' | 'oled') {
+		selectAddonTheme('');
 		if (value === 'oled') {
 			await onTheme('dark');
 			onSurface('oled');
@@ -113,6 +115,27 @@
 		</div></SettingGroup
 	>
 	<SettingGroup id="accent"><AccentPalette onReset={() => onAccent('orange')} /></SettingGroup>
+	{#if addonThemes().length || addonState.theme}
+		<div class="addon-theme-picker">
+			<label class="field"
+				>{tr('Tema de addon', 'Addon theme')}<select
+					aria-label={tr('Tema de addon', 'Addon theme')}
+					value={addonState.theme}
+					onchange={(e) => selectAddonTheme(e.currentTarget.value)}
+					><option value="">{tr('Tema de TFL Client', 'TFL Client theme')}</option
+					>{#each addonThemes() as theme (theme.id)}<option value={theme.id}
+							>{theme.name} · {theme.packageName}</option
+						>{/each}</select
+				></label
+			><small
+				>{tr(
+					'Personalización declarativa instalada. Desactivar o eliminar el addon restaura el tema de TFL Client.',
+					'Installed declarative customization. Disabling or removing the addon restores the TFL Client theme.'
+				)}</small
+			>
+		</div>
+		{#if addonState.error}<p role="alert">{addonState.error}</p>{/if}
+	{/if}
 	<SettingGroup
 		id="material"
 		hint={tr(

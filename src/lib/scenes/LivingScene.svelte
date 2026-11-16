@@ -21,7 +21,6 @@
 			active={runtime.visible && runtime.focused && !runtime.overlay && runtime.modalDepth === 0}
 			gameRunning={gameSession.running.length > 0}
 		/>
-		<div class="veil"></div>
 		{#if config.reactive && effects.current.cinematic && reaction.kind !== 'idle'}{#key reaction.sequence}<div
 					class="reaction-light"
 					class:error={reaction.kind === 'error'}
@@ -35,20 +34,6 @@
 		pointer-events: none;
 		overflow: hidden;
 		z-index: 0;
-	}
-	.veil {
-		position: absolute;
-		inset: 0;
-		background:
-			linear-gradient(
-				90deg,
-				color-mix(in srgb, var(--bg-main) 62%, transparent),
-				color-mix(in srgb, var(--bg-main) 25%, transparent) 70%
-			),
-			linear-gradient(0deg, color-mix(in srgb, var(--bg-main) 68%, transparent), transparent 80%);
-	}
-	:global([data-theme='light']) .veil {
-		background: color-mix(in srgb, var(--bg-main) 62%, transparent);
 	}
 	.reaction-light {
 		position: absolute;

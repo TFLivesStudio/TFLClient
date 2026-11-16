@@ -6022,7 +6022,7 @@ dependencies = [
 
 [[package]]
 name = "tflclient"
-version = "0.15.4-beta.2"
+version = "0.15.4-beta.3"
 dependencies = [
  "ablage",
  "aqua",

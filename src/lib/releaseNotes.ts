@@ -5,6 +5,12 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.4-beta.3': [
+		'Beta de prueba: los paisajes avanzan automáticamente hacia la derecha con capas a distintas velocidades, sin seguir el cursor.',
+		'Pixel reduce marcos y relieves; el modo claro conserva los colores del paisaje y protege la lectura con superficies locales.',
+		'Ajustes → Addons permite revisar e instalar paquetes .tfl locales con temas y escenas, activarlos, actualizarlos, restaurar su versión anterior o desinstalarlos.',
+		'Los addons de esta beta son declarativos: no ejecutan código. El modo seguro desactiva sus contribuciones; Lite y movimiento reducido conservan fondos estáticos.'
+	],
 	'0.15.4-beta.2': [
 		'Beta de prueba: Living Themes acompaña toda la aplicación y 25 artworks identifican las versiones de Minecraft en Inicio, Biblioteca y detalle.',
 		'Pixel refina sus relieves y la barra lateral se pliega desde el centro de su borde, tanto en Modern como en Pixel.',

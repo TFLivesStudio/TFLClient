@@ -1,9 +1,8 @@
 <script lang="ts">
-	import CinematicAtmosphere from './CinematicAtmosphere.svelte';
-	import { cinematicPoster } from './cinematic';
+	import AddonScene from '$lib/addons/AddonScene.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { invoke } from '$lib/api/invoke';
-	import { dayPhase, sceneCapabilities, type SceneConfig } from './model';
+	import { dayPhase, sceneCapabilities, isAddonSceneId, type SceneConfig } from './model';
 	import SceneFrame from './SceneFrame.svelte';
 	import ShaderLayer from './ShaderLayer.svelte';
 	import { tr } from '$lib/i18n/experience';
@@ -28,11 +27,10 @@
 	let video = $state<HTMLVideoElement>();
 	let failed = $state(false),
 		source = $state(''),
-		x = $state(0),
-		y = $state(0),
 		hour = $state(new Date().getHours());
 	const phase = $derived(dayPhase(hour));
 	const procedural = $derived(isLandscape(config.preset));
+	const videoActive = $derived(cap.video && !!source && !failed);
 	type Media = { id: string; path: string; bytes: number; mime: string };
 	$effect(() => {
 		const id = config.mediaId;
@@ -72,19 +70,6 @@
 	});
 
 	$effect(() => {
-		if (!cap.parallax) {
-			x = 0;
-			y = 0;
-			return;
-		}
-		const move = (e: PointerEvent) => {
-			x = (e.clientX / innerWidth - 0.5) * 2;
-			y = (e.clientY / innerHeight - 0.5) * 2;
-		};
-		window.addEventListener('pointermove', move, { passive: true });
-		return () => window.removeEventListener('pointermove', move);
-	});
-	$effect(() => {
 		if (!active || !config.adaptTime) return;
 		hour = new Date().getHours();
 		const timer = setInterval(() => {
@@ -101,24 +86,24 @@
 	data-biome={config.preset}
 	class:preview
 	data-motion={cap.motion}
-	data-video-playing={cap.video && !failed && !!source}
+	data-video-playing={videoActive}
 >
-	{#if procedural}
+	{#if isAddonSceneId(config.preset)}
+		<AddonScene {config} fps={cap.video && source && !failed ? 0 : cap.fps} depth={cap.depth} />
+	{:else if procedural}
 		<PixelLandscape
 			{config}
-			{x}
-			{y}
 			{phase}
 			fps={cap.video && source && !failed ? 0 : cap.fps}
 			depth={cap.depth}
 		/>
 	{:else}
-		<SceneFrame {config} x={x * config.parallax} y={y * config.parallax} {phase} />
-		{#if cap.motion && cinematicPoster(config.preset)}<CinematicAtmosphere
-				preset={config.preset}
-				fps={cap.fps}
-				depth={cap.depth}
-			/>{/if}
+		<SceneFrame
+			{config}
+			{phase}
+			fps={cap.video && source && !failed ? 0 : cap.fps}
+			depth={cap.depth}
+		/>
 	{/if}
 	{#if cap.video && source && !failed}
 		<video
@@ -138,17 +123,20 @@
 				/>{:else}<source src={source} />{/if}
 		</video>
 	{/if}
-	{#if cap.shader && !procedural}{#key config.preset}<ShaderLayer
+	{#if cap.shader && !videoActive && !procedural && !isAddonSceneId(config.preset)}{#key config.preset}<ShaderLayer
 				fps={cap.fps}
 				dpr={cap.dpr}
 				preset={config.preset}
 			/>{/key}{/if}
-	{#if cap.particles && !procedural}<div class="particles" aria-hidden="true">
+	{#if cap.particles && !videoActive && !procedural && !isAddonSceneId(config.preset)}<div
+			class="particles"
+			aria-hidden="true"
+		>
 			{#each Array.from({ length: cap.maxParticles }, (_, i) => i) as i (i)}<i
 					style={`--i:${i};--left:${(i * 37 + 13) % 100}%;--delay:${-i * 0.9}s;--speed:${9 + (i % 6)}s`}
 				></i>{/each}
 		</div>{/if}
-	{#if config.weather !== 'clear' && !procedural}<div
+	{#if config.weather !== 'clear' && !videoActive && !procedural && !isAddonSceneId(config.preset)}<div
 			class={`weather ${config.weather}`}
 			class:animate={cap.motion}
 			aria-hidden="true"
@@ -173,7 +161,7 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		opacity: 0.72;
+		opacity: 1;
 	}
 	.particles {
 		position: absolute;

@@ -140,15 +140,27 @@ try {
 			});
 			if (theme === 'oled')
 				await page.evaluate(() => (document.documentElement.dataset.surface = 'oled'));
-			await page.locator('.cinematic-art').waitFor();
+			await page.locator('.scene-frame[data-layered="true"]').waitFor();
+			assert.ok((await page.locator('.travel-layer').count()) >= 6);
 			assert(
-				await page.locator('.cinematic-art').evaluate((n) => n.complete && n.naturalWidth > 1200)
+				await page.locator('.scene-frame img').evaluate((n) => n.complete && n.naturalWidth > 0)
 			);
 			await page.screenshot({ path: `${output}/scene-${scene}-${theme}.png` });
 			await page.getByRole('button', { name: 'Ajustes', exact: true }).click();
 			assert.equal(await page.locator('.living-scene .atmosphere').count(), 0);
 			assert.equal(await page.locator('.living-scene canvas').count(), 0);
-			checks.push(`${scene} ${theme}: poster + overlay suspension`);
+			const offsets = await page
+				.locator('.travel-layer')
+				.evaluateAll((nodes) => nodes.map((n) => n.style.backgroundPositionX));
+			await page.waitForTimeout(150);
+			assert.deepEqual(
+				await page
+					.locator('.travel-layer')
+					.evaluateAll((nodes) => nodes.map((n) => n.style.backgroundPositionX)),
+				offsets,
+				'overlay suspends layered terrain'
+			);
+			checks.push(`${scene} ${theme}: repeating layers + overlay suspension`);
 			await context.close();
 		}
 	const { page, context } = await open({ quality: 'Lite', scene: 'aurora' });

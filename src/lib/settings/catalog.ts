@@ -3,12 +3,27 @@ export type SettingsPage =
 	| 'general'
 	| 'appearance'
 	| 'scenes'
+	| 'addons'
 	| 'game'
 	| 'accounts'
 	| 'console'
 	| 'updates'
 	| 'integrations';
 export const SETTINGS = [
+	{
+		id: 'addons',
+		page: 'addons',
+		label: ['Addons locales', 'Local addons'],
+		keywords:
+			'addon addons tfl extensiones temas escenas instalar desinstalar seguro permisos extension theme scene',
+		current: 'addons catalog / active contributions',
+		default: 'none',
+		control: 'packages',
+		storage: 'app data addons / tfl-addon-theme-v1',
+		profiles: 'All',
+		behavior: 'explicit',
+		reason: 'Declarative local launcher contributions, separate from Minecraft plugins.'
+	},
 	{
 		id: 'language',
 		page: 'general',
@@ -497,6 +512,14 @@ export const PAGES: { id: SettingsPage; label: [string, string]; description: [s
 			description: [
 				'El ambiente de tus mundos. Previsualiza una escena antes de aplicarla.',
 				'The atmosphere of your worlds. Preview a scene before applying it.'
+			]
+		},
+		{
+			id: 'addons',
+			label: ['Addons', 'Addons'],
+			description: [
+				'Temas y escenas locales. Inspecciona cada paquete antes de instalar.',
+				'Local themes and scenes. Inspect each package before installing.'
 			]
 		},
 		{

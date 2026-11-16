@@ -14,6 +14,9 @@ Para conocer el launcher y obtener una descarga, visita la
 
 ## Interfaz y rendimiento
 
+- [Beta 3: escenas, Pixel y Addons](changes/2026-11-16-beta3-scenes-addons.md).
+- [Movimiento automático y arte de escenas](experience/SCENE_MOTION.md).
+
 - [Refinamiento de la experiencia, beta 2](changes/2026-11-14-visual-experience-refinement.md).
 - [Banners y fondo global](experience/BACKGROUNDS_AND_BANNERS.md).
 - [Sidebar](experience/SIDEBAR.md) y [personaje](experience/CHARACTER.md).
@@ -22,6 +25,8 @@ Para conocer el launcher y obtener una descarga, visita la
 - [Validación del rediseño visual](visual-refresh/VALIDATION.md).
 - [Rendimiento](RENDIMIENTO.md).
 - [Integración MCP](mcp/ARCHITECTURE.md).
+- [Addons declarativos: instalación, formato y ejemplo](addons/README.md).
+- [Addons: seguridad, confianza y futura API de extensiones](addons/security-and-sdk.md).
 
 ## Historial y archivos
 

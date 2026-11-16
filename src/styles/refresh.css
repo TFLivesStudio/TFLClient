@@ -1,5 +1,6 @@
 /* Visual Refresh 2. Presentation only: theme and quality never replace component state. */
 :root {
+	--text-accent: var(--accent);
 	--text-xs: 0.78rem;
 	--text-sm: 0.86rem;
 	--text-base: 1rem;
@@ -37,6 +38,7 @@ html:not([data-font]) {
 	--font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
 }
 html[data-theme='light'] {
+	--text-accent: #a53c00;
 	--text-muted: #60616c;
 	--text-secondary: #4f505c;
 	--vr-ambient: #607cad;
@@ -96,7 +98,7 @@ button:disabled {
 	cursor: not-allowed;
 }
 :focus-visible {
-	outline: 2px solid var(--accent);
+	outline: 2px solid var(--text-accent);
 	outline-offset: 4px;
 }
 input:focus-visible,
@@ -120,7 +122,7 @@ button[aria-pressed='true'] {
 	font-weight: 700;
 	letter-spacing: 0.13em;
 	text-transform: uppercase;
-	color: var(--accent);
+	color: var(--text-accent);
 }
 .vr-heading {
 	font-size: clamp(1.7rem, 2.8vw, 2.8rem);
@@ -193,8 +195,8 @@ html[data-visual='pixel'] {
 	--shadow-md: 2px 3px 0 #0003;
 	--shadow-lg: 3px 4px 0 #0005;
 	--font-brand: 'Monocraft', monospace;
-	--vr-grid: color-mix(in srgb, var(--accent) 5%, transparent);
-	--easing-standard: steps(6, end);
+	--vr-grid: transparent;
+	--easing-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 html[data-visual='pixel']
 	:is(h1, h2, h3, .vr-heading, .vr-eyebrow, .hero-name, .section-label, .panel-header, .nav-label) {
@@ -431,7 +433,7 @@ html[data-visual='pixel']
 	border: 1px solid var(--pixel-rim-dark);
 	box-shadow:
 		inset 1px 1px 0 var(--pixel-rim-light),
-		inset -1px -2px 0 var(--pixel-rim-dark),
+		inset 0 -1px 0 var(--pixel-rim-dark),
 		0 1px 0 #0004;
 	text-shadow: none;
 	border-radius: 0;
@@ -552,21 +554,12 @@ html[data-visual='pixel']
 		inset 1px 1px 0 #0003,
 		inset -1px -1px 0 var(--pixel-rim-light);
 }
-html[data-visual='pixel'] :is(.sidebar) {
-	background-image: repeating-linear-gradient(
-		0deg,
-		#00000004 0px,
-		#00000004 2px,
-		transparent 2px,
-		transparent 8px
-	);
+html[data-visual='pixel'] .sidebar {
+	background-image: none;
 }
 html[data-visual='pixel'] :is([role='dialog'], .user-chip) {
 	border: 1px solid color-mix(in srgb, var(--surface-elevated) 65%, #9c9c9c);
-	box-shadow:
-		inset 1px 1px 0 var(--pixel-rim-light),
-		inset -1px -1px 0 #0005,
-		3px 4px 0 #0004;
+	box-shadow: 2px 3px 0 #0003;
 }
 html[data-visual='pixel'] .tfl-tooltip-bubble {
 	background: var(--surface-elevated);
@@ -593,7 +586,6 @@ html[data-visual='pixel'] :is(.user-head, .skin-head, .instance-avatar img) {
 html[data-visual='pixel'] [data-search-control] {
 	display: flex;
 	height: auto;
-	height: auto;
 	align-items: center;
 	gap: 8px;
 	min-width: 0;
@@ -602,9 +594,7 @@ html[data-visual='pixel'] [data-search-control] {
 	border: var(--pixel-outline) solid var(--pixel-rim-dark);
 	background: var(--pixel-slot);
 	color: var(--text-secondary);
-	box-shadow:
-		inset 1px 1px #0003,
-		inset -1px -1px var(--pixel-rim-light);
+	box-shadow: inset 0 1px #0002;
 	border-radius: 0;
 }
 html[data-visual='pixel'] [data-search-control] input {
@@ -835,4 +825,95 @@ html[data-visual='pixel'] :is(.scene-tile, .theme-card, .style-option, .quality-
 html[data-visual='pixel'][data-theme='light'] {
 	--pixel-rim-light: #fff9;
 	--pixel-rim-dark: #0003;
+}
+
+/* Beta 3: contrast belongs to content, never to a full-window scene veil.
+   Opaque color tokens bound contrast even over white video or black wallpaper. */
+html:is([data-living-background], [data-wallpaper]:not([data-wallpaper='none'])) {
+	--raw-card: var(--raw-sidebar);
+	--surface-card: var(--bg-card);
+	--surface-elevated: var(--bg-sidebar);
+	--surface-reading: var(--bg-sidebar);
+}
+html:is([data-living-background], [data-wallpaper]:not([data-wallpaper='none']))
+	:is(
+		.home-greeting,
+		.library-heading,
+		.discover-view > header,
+		.library-empty,
+		.empty-state,
+		.home-customize,
+		.others-head,
+		.detail-back,
+		.detail-workspace,
+		.instance-detail > .hint,
+		.instance-detail > .error
+	) {
+	background: var(--surface-reading);
+	border-radius: var(--border-radius);
+	padding: 16px;
+}
+html:is([data-living-background], [data-wallpaper]:not([data-wallpaper='none']))
+	:is(.library-count, .discover-context > h2, .discover-context > p) {
+	width: fit-content;
+	max-width: 100%;
+	background: var(--surface-reading);
+	padding: 8px 12px;
+	border-radius: var(--border-radius-sm);
+}
+/* One edge per navigation target. Headings retain the pixel face, reading text
+   and icons retain their native resolution; relief is reserved for actions. */
+html[data-visual='pixel'] {
+	--pixel-rim-light: #ffffff19;
+	--pixel-rim-dark: #00000066;
+}
+html[data-visual='pixel'][data-theme='light'] {
+	--pixel-rim-light: #ffffffbb;
+	--pixel-rim-dark: #00000042;
+}
+html[data-visual='pixel'] :is(.vr-library-row, .vr-editorial, .chart-card, .content-row) {
+	box-shadow: none;
+}
+html[data-visual='pixel'] :is(.ptab, .tab-btn) {
+	box-shadow: none;
+	border-color: transparent;
+}
+html[data-visual='pixel'] :is(.ptab.active, .tab-btn.active) {
+	border-color: var(--accent);
+	box-shadow: inset 0 -2px var(--accent);
+}
+html[data-visual='pixel'] :is(button, input, select, textarea):focus-visible {
+	outline: 2px solid var(--text-accent);
+	outline-offset: 3px;
+}
+html[data-visual='pixel'] [data-search-control]:focus-within {
+	outline-color: var(--text-accent);
+}
+html[data-theme='light'] :is(.vr-eyebrow, .section-label, .active-tag) {
+	color: var(--text-accent);
+}
+
+/* Surface variants in global.css have higher specificity than the general
+   light-theme defaults. Metadata remains reading text on every variant. */
+:root[data-theme='light'],
+:root[data-theme='light'][data-surface] {
+	--text-muted: #555763;
+	--text-secondary: #494b57;
+	--color-error: #b42331;
+	--color-error-rgb: 180, 35, 49;
+	--color-success: #16713b;
+	--color-warning: #805500;
+}
+:root:not([data-theme='light']),
+:root:not([data-theme='light'])[data-surface] {
+	--text-muted: #b1b3be;
+}
+html[data-theme='light'] :is(.link-btn, .panel-link, .see-all, .others-label) {
+	color: var(--text-accent);
+}
+html[data-theme='light'] .panel-title svg {
+	color: var(--text-accent);
+}
+html[data-theme] :is(.ptab.active, .detail-workspace .tab-btn.active) {
+	color: var(--text-accent);
 }

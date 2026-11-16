@@ -15,6 +15,7 @@
 	import SettingGroup from './SettingGroup.svelte';
 	import AppearanceSettings from './AppearanceSettings.svelte';
 	import SceneSettings from './SceneSettings.svelte';
+	import AddonSettings from './AddonSettings.svelte';
 	import WallpaperSettings from './WallpaperSettings.svelte';
 	import LaunchSettings from './LaunchSettings.svelte';
 
@@ -82,6 +83,7 @@
 		accounts: Users,
 		console: Terminal,
 		integrations: WandSparkles,
+		addons: Plus,
 		updates: RefreshCw
 	};
 	let settingsQuery = $state(''),
@@ -642,6 +644,7 @@
 							{pickCustomWallpaper}
 						/></SceneSettings
 					>
+				{:else if tab === 'addons'}<AddonSettings />
 				{:else if tab === 'game'}<SettingGroup id="ram"
 						><section>
 							<span class="section-label">

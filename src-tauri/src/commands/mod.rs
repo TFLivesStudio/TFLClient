@@ -1,4 +1,5 @@
 pub mod activity;
+pub mod addons;
 pub mod auth;
 pub mod content;
 pub mod crash_diagnosis;

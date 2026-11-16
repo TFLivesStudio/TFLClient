@@ -11,7 +11,21 @@ export const SCENE_IDS = [
 	'dithered-sunset',
 	'aurora-valley'
 ] as const;
-export type SceneId = (typeof SCENE_IDS)[number];
+export type SceneId = (typeof SCENE_IDS)[number] | `addon:${string}:${string}`;
+export function isAddonSceneId(id: unknown): id is SceneId {
+	if (typeof id !== 'string') return false;
+	const parts = id.split(':');
+	if (parts.length !== 3 || parts[0] !== 'addon') return false;
+	const slug = (part: string) => /^[a-z][a-z0-9-]{0,47}$/.test(part);
+	const packageId = parts[1];
+	return (
+		packageId.length >= 3 &&
+		packageId.length <= 80 &&
+		packageId.includes('.') &&
+		packageId.split('.').every(slug) &&
+		slug(parts[2])
+	);
+}
 export interface SceneConfig {
 	preset: SceneId;
 	/** Compatibility field: v2 always renders ambience in the application shell. */
@@ -69,7 +83,8 @@ export function parseScene(raw: unknown): SceneConfig {
 	if (typeof s.parallax === 'number' && Number.isFinite(s.parallax))
 		d.parallax = Math.max(0, Math.min(1, s.parallax));
 	if (typeof s.dithering === 'boolean') d.dithering = s.dithering;
-	if (SCENE_IDS.includes(s.preset as SceneId)) d.preset = s.preset as SceneId;
+	if ((SCENE_IDS as readonly string[]).includes(s.preset as string) || isAddonSceneId(s.preset))
+		d.preset = s.preset as SceneId;
 	if (
 		typeof s.mediaId === 'string' &&
 		/^(?:builtin-(?:aurora|embers)|scene-[a-f0-9]{10,40})$/.test(s.mediaId)
@@ -77,6 +92,7 @@ export function parseScene(raw: unknown): SceneConfig {
 		d.mediaId = s.mediaId;
 	if (
 		s.poster === 'custom' ||
+		s.poster === 'cinematic' ||
 		(typeof s.poster === 'string' && /^mc-(?:[1-9]|1[0-3])$/.test(s.poster))
 	)
 		d.poster = s.poster;

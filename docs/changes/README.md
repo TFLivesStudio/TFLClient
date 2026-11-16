@@ -21,3 +21,4 @@ Los informes originales trasladados de la raíz siguen en
 otra vez al documentar un cambio nuevo.
 
 - [2026-11-14 — Visual experience refinement](2026-11-14-visual-experience-refinement.md).
+- [2026-11-16 — Beta 3: escenas, Pixel y Addons](2026-11-16-beta3-scenes-addons.md).

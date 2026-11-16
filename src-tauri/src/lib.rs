@@ -143,6 +143,16 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::addons::addons_pick_file,
+            commands::addons::addons_list,
+            commands::addons::addons_inspect,
+            commands::addons::addons_install,
+            commands::addons::addons_set_enabled,
+            commands::addons::addons_remove,
+            commands::addons::addons_safe_mode,
+            commands::addons::addons_rollback,
+            commands::addons::addons_resource,
+            commands::addons::addons_scene_resources,
             core::perf::get_perf_report,
             core::perf::perf_record,
             commands::mcp::mcp_status,
