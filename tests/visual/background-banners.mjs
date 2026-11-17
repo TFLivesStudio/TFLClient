@@ -1,9 +1,12 @@
 // Production UI + isolated IPC; real owner-approved packaged artwork.
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { installFixture } from './fixture.mjs';
 import { BANNERS } from '../../src/lib/visual/banners.ts';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const appVersion = JSON.parse(
+	await readFile(new URL('../../package.json', import.meta.url), 'utf8')
+).version;
 const browser = await chromium.launch({
 	headless: true,
 	executablePath: process.env.CHROMIUM_PATH || undefined
@@ -25,7 +28,8 @@ async function open({
 	page.on('pageerror', (e) => errors.push(e.message));
 	await page.addInitScript(installFixture, {
 		quality,
-		appVersion: url === process.env.BASELINE_URL ? '0.15.4-beta.1' : '0.15.4-beta.2'
+		// Keep update notes out of this scene-lifecycle test; they deliberately pause Canvas.
+		appVersion: url === process.env.BASELINE_URL ? '0.15.4-beta.1' : appVersion
 	});
 	const legacy = {
 		version: schema,
