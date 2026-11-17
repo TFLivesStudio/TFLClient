@@ -10,7 +10,9 @@ import {
 	contrastRatio,
 	themeContrastIssues,
 	advanceAddonLayer,
-	readableThemeAccent
+	readableThemeAccent,
+	themeRawAliases,
+	readableSemanticColors
 } from '../../src/lib/addons/model.ts';
 
 const tokens = {
@@ -69,6 +71,12 @@ test('addon theme selection checks normal text on every stable surface', () => {
 	assert.ok(contrastRatio('#ffffff', 'rgba(0,0,0,0.2)') < 4.5);
 	assert.deepEqual(themeContrastIssues(tokens, {}), []);
 	assert.ok(
+		themeContrastIssues({ '--text-muted': '#22313f' }, tokens).includes(
+			'--text-muted / --bg-item-active'
+		),
+		'unreadable metadata must be rejected'
+	);
+	assert.ok(
 		themeContrastIssues({ '--bg-card': '#ffffff' }, tokens).includes('--text-primary / --bg-card')
 	);
 	assert.ok(
@@ -117,4 +125,40 @@ test('full dark addon themes derive readable accent text independently of host a
 		false,
 		'derived host token is not an addon capability'
 	);
+});
+test('theme materials derive only explicit background tokens and preserve partial host palettes', () => {
+	assert.deepEqual(themeRawAliases({ '--accent': '#ff7a2e' }), {});
+	assert.deepEqual(
+		themeRawAliases({ '--bg-card': '#251e29', '--raw-main': '#ffffff', '--bg-main': '#17131b' }),
+		{ '--raw-main': '#17131b', '--raw-card': '#251e29' }
+	);
+	for (const key of Object.keys(themeRawAliases(tokens)))
+		assert.equal(validThemeTokens({ [key]: '#101010' }), false);
+});
+test('semantic alert colors follow effective surfaces and keep RGB channels coherent', () => {
+	const full = JSON.parse(
+		readFileSync(
+			new URL('../../examples/addons/orange-dunes/manifest.json', import.meta.url),
+			'utf8'
+		)
+	).themes[0].tokens;
+	const surfaces = ['--bg-main', '--bg-sidebar', '--bg-card', '--bg-input', '--bg-item-active'].map(
+		(key) => full[key]
+	);
+	const colors = readableSemanticColors(surfaces, full['--text-primary'], {
+		'--color-error': '#b42331',
+		'--color-success': '#16713b',
+		'--color-warning': '#805500'
+	});
+	for (const key of ['--color-error', '--color-success', '--color-warning']) {
+		assert.ok(surfaces.every((surface) => contrastRatio(colors[key], surface) >= 4.5));
+		assert.equal(validThemeTokens({ [key]: colors[key] }), false);
+	}
+	assert.equal(
+		colors['--color-error-rgb'],
+		[1, 3, 5].map((i) => parseInt(colors['--color-error'].slice(i, i + 2), 16)).join(', ')
+	);
+	const fallback = readableSemanticColors(['#000000', '#ffffff'], '#767676', {});
+	assert.equal(fallback['--color-error'], '#767676');
+	assert.equal(fallback['--color-error-rgb'], '118, 118, 118');
 });

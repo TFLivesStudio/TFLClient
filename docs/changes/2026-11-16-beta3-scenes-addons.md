@@ -71,16 +71,25 @@ Formato, ejemplo instalable y arquitectura futura:
 Los resultados finales de CI y publicación se registrarán al completar el tag.
 La evidencia local generada vive en `artifacts/`, ignorado por Git.
 
-- 54 tests unitarios Node pasaron, incluidos migración, política, movimiento,
+- 56 tests unitarios Node pasaron, incluidos migración, política, movimiento,
   continuidad geométrica y correspondencia de texels entre Canvas y SVG.
 - `bun run check`: cero errores; cinco advertencias previas de referencias
   iniciales en ContextMenu, InstanceDetail y ContentExplorerView.
 - Build de producción del frontend completado. Los avisos de tamaño de chunks
   no bloquean la compilación.
-- Matriz de interfaz compilada con IPC simulado: 25 capturas/casos, contraste
+- Matriz de interfaz compilada con IPC simulado: 29 capturas/casos, contraste
   de tokens sobre superficies estables, límites de ventana y escala lógica.
 - Addons con IPC simulado: cuatro variantes Pixel/Modern × claro/oscuro, desde
   inspección y consentimiento hasta actualización, recuperación y eliminación.
+- Dos casos adicionales aplican el tema completo del ejemplo en Pixel claro y
+  oscuro. Miden texto compuesto y mensajes reales de error con mínimo 4.5:1,
+  rechazan metadatos ilegibles y comprueban la restauración del anfitrión.
+  Cambiar Modern/Pixel, tipografía o material conserva la paleta seleccionada.
+- La captura de pausa ocurre antes del desmontaje de Canvas. Se comprueba
+  igualdad del último PNG, reanudación y liberación de renderizadores.
+- La primera CI de preparación pasó Rust, clippy, auditoría, aceptación MCP y
+  270 tests de librería (incluidos 18 del instalador de addons). Su fallo visual
+  de pausa se reprodujo y corrigió antes de etiquetar la versión.
 - Raster de Chromium: continuidad al cruzar el periodo en los tres paisajes y
   liberación de recursos. No equivale a certificar GPU o WebView nativos.
 
@@ -90,6 +99,10 @@ CI usa las versiones de Node y Bun declaradas en el workflow. DPI del navegador
 es emulación; no acredita el panel de escalado de Windows, otras GPU, una cuenta
 Microsoft real ni una partida de Minecraft. No se inventan métricas de FPS o
 compatibilidad universal.
+
+El enlazado de la build nativa local se canceló al provocar presión de memoria;
+no se contabiliza como prueba superada. Los resultados nativos de CI se
+distinguen de la revisión del frontend con IPC simulado.
 
 ## Herramientas y mantenimiento
 

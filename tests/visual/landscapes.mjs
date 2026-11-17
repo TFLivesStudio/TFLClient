@@ -105,12 +105,16 @@ try {
 				});
 				await page.waitForFunction(() => !document.querySelector('.pixel-landscape canvas'));
 				assert.equal(
-					await page.locator('.pixel-landscape img').getAttribute('src'),
-					frozen,
+					(await page.locator('.pixel-landscape img').getAttribute('src')) === frozen,
+					true,
 					'pause displays the exact final frame, not phase zero'
 				);
 				await page.waitForTimeout(180);
-				assert.equal(await page.locator('.pixel-landscape img').getAttribute('src'), frozen);
+				assert.equal(
+					(await page.locator('.pixel-landscape img').getAttribute('src')) === frozen,
+					true,
+					'paused frame remains exact'
+				);
 				await page.evaluate(() => {
 					Object.defineProperty(document, 'hasFocus', {
 						configurable: true,

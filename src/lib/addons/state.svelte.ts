@@ -1,6 +1,6 @@
 import { invoke } from '$lib/api/invoke';
 import { listen } from '@tauri-apps/api/event';
-import { applyVisualAttributes } from '$lib/visual/preferences.svelte';
+import { applyVisualAttributes, VISUAL_APPLIED_EVENT } from '$lib/visual/preferences.svelte';
 import { scenes, persist } from '$lib/scenes/preferences.svelte';
 import { DEFAULT_SCENE } from '$lib/scenes/model';
 import {
@@ -11,6 +11,9 @@ import {
 	THEME_TOKENS,
 	themeContrastIssues,
 	readableThemeAccent,
+	themeRawAliases,
+	contrastRatio,
+	readableSemanticColors,
 	type AddonCatalog
 } from './model';
 export const ADDON_THEME_KEY = 'tfl-addon-theme-v1';
@@ -21,14 +24,14 @@ export const addonState = $state({
 	theme: ''
 });
 const previous = new Map<string, string>();
-function resolvedThemeDefaults(root: HTMLElement) {
+function resolvedThemeDefaults(root: HTMLElement, keys: readonly string[] = THEME_TOKENS) {
 	const probe = document.createElement('span');
 	probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none';
 	root.append(probe);
 	const context = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
 	try {
 		return Object.fromEntries(
-			THEME_TOKENS.map((key) => {
+			keys.map((key) => {
 				probe.style.color = `var(${key})`;
 				const color = getComputedStyle(probe).color;
 				if (!context) return [key, color];
@@ -50,7 +53,8 @@ function restoreTheme() {
 		else document.documentElement.style.removeProperty(key);
 	}
 	previous.clear();
-	applyVisualAttributes();
+	// Rebuilding host defaults is internal to reapplication; do not notify recursively.
+	applyVisualAttributes(false);
 }
 export function applyAddonTheme() {
 	restoreTheme();
@@ -68,6 +72,11 @@ export function applyAddonTheme() {
 		previous.set(key, root.style.getPropertyValue(key));
 		root.style.setProperty(key, value);
 	}
+	// Keep host material derivations while applying the addon's explicit raw palette.
+	for (const [key, value] of Object.entries(themeRawAliases(found.theme.tokens))) {
+		previous.set(key, root.style.getPropertyValue(key));
+		root.style.setProperty(key, value);
+	}
 	// Link/focus text must follow the installed palette even when the host appearance is light.
 	previous.set('--text-accent', root.style.getPropertyValue('--text-accent'));
 	root.style.setProperty('--text-accent', readableThemeAccent(found.theme.tokens, defaults));
@@ -80,6 +89,46 @@ export function applyAddonTheme() {
 			previous.set(key, root.style.getPropertyValue(key));
 			root.style.setProperty(key, value);
 		}
+	const surfaces = [
+		'--surface-canvas',
+		'--surface-workspace',
+		'--surface-card',
+		'--surface-elevated',
+		'--surface-interactive'
+	];
+	const effective = resolvedThemeDefaults(root, [
+		...surfaces,
+		'--text-primary',
+		'--text-secondary',
+		'--text-muted',
+		'--text-accent'
+	]);
+	const surfaceIssues = surfaces.flatMap((surface) =>
+		['--text-primary', '--text-secondary', '--text-muted']
+			.filter((text) => contrastRatio(effective[text], effective[surface]) < 4.5)
+			.map((text) => `${text} / ${surface}`)
+	);
+	if (surfaceIssues.length) {
+		restoreTheme();
+		addonState.error = `Tema sin contraste suficiente en el material actual (4.5:1): ${surfaceIssues.join(', ')}.`;
+		return false;
+	}
+	if (
+		surfaces.some((surface) => contrastRatio(effective['--text-accent'], effective[surface]) < 4.5)
+	)
+		root.style.setProperty('--text-accent', effective['--text-primary']);
+	const semanticKeys = ['--color-error', '--color-success', '--color-warning'];
+	const semanticDefaults = resolvedThemeDefaults(root, semanticKeys);
+	for (const [key, value] of Object.entries(
+		readableSemanticColors(
+			surfaces.map((surface) => effective[surface]),
+			effective['--text-primary'],
+			semanticDefaults
+		)
+	)) {
+		previous.set(key, root.style.getPropertyValue(key));
+		root.style.setProperty(key, value);
+	}
 	return true;
 }
 export function selectAddonTheme(id: string) {
@@ -192,11 +241,38 @@ export function startAddons() {
 		}
 	};
 	window.addEventListener('storage', storage);
+	const visualApplied = () => {
+		if (addonState.loaded && addonState.theme) selectAddonTheme(addonState.theme);
+	};
+	window.addEventListener(VISUAL_APPLIED_EVENT, visualApplied);
+	const colorAttributes = [
+		'data-material',
+		'data-quality',
+		'data-theme',
+		'data-surface',
+		'data-adaptive',
+		'data-wallpaper'
+	];
+	const colorSignature = () =>
+		JSON.stringify(colorAttributes.map((key) => document.documentElement.getAttribute(key)));
+	let previousAppearance = colorSignature();
+	const appearanceObserver = new MutationObserver(() => {
+		const next = colorSignature();
+		if (next === previousAppearance) return;
+		previousAppearance = next;
+		if (addonState.loaded && addonState.theme) selectAddonTheme(addonState.theme);
+	});
+	appearanceObserver.observe(document.documentElement, {
+		attributes: true,
+		attributeFilter: colorAttributes
+	});
 	return () => {
 		stopped = true;
 		lifecycle++;
 		unlisten?.();
 		window.removeEventListener('storage', storage);
+		window.removeEventListener(VISUAL_APPLIED_EVENT, visualApplied);
+		appearanceObserver.disconnect();
 		restoreTheme();
 	};
 }

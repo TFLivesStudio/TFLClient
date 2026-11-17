@@ -907,6 +907,8 @@ html[data-theme='light'] :is(.vr-eyebrow, .section-label, .active-tag) {
 :root:not([data-theme='light']),
 :root:not([data-theme='light'])[data-surface] {
 	--text-muted: #b1b3be;
+	--color-error: #ff8b92;
+	--color-error-rgb: 255, 139, 146;
 }
 html[data-theme='light'] :is(.link-btn, .panel-link, .see-all, .others-label) {
 	color: var(--text-accent);

@@ -28,6 +28,7 @@
 	let retainedId = '';
 	let frozenFrame = $state('');
 	let frozenKey = $state('');
+	let renderedKey = '';
 	const frameKey = $derived(
 		JSON.stringify({
 			preset: config.preset,
@@ -48,6 +49,22 @@
 			particles: config.particles
 		})
 	);
+	$effect.pre(() => {
+		if (fps > 0) return;
+		// Svelte teardown observes the previous effect's prop values. Capture in
+		// the pre-effect, with the new policy and the still-mounted source canvas.
+		untrack(() => {
+			const node = canvas;
+			if (!node || failed || node.width !== 384 || node.height !== 216) return;
+			try {
+				frozenFrame = node.toDataURL();
+				frozenKey = renderedKey;
+			} catch {
+				frozenFrame = '';
+				frozenKey = '';
+			}
+		});
+	});
 	$effect(() => {
 		const node = container;
 		if (!node) return;
@@ -87,6 +104,7 @@
 			failed = !renderer;
 			if (!renderer) return;
 			renderer.draw(time, depth, config, phase);
+			renderedKey = key;
 			stop = subscribeFrame((delta) => {
 				time = advanceSceneTime(time, delta);
 				const started = perfEnabled ? performance.now() : 0;
@@ -108,17 +126,6 @@
 		return () => {
 			stop();
 			if (renderer) retainedPhases = renderer.phases;
-			// Capture once on pause, before releasing every canvas backing store. The
-			// immutable, bounded 384×216 image keeps the last phase visible without RAF.
-			if (renderer && !failed && fps <= 0) {
-				try {
-					frozenFrame = node.toDataURL();
-					frozenKey = key;
-				} catch {
-					frozenFrame = '';
-					frozenKey = '';
-				}
-			}
 			if (perfEnabled && frameCount) perfRecord(`landscape.frame.${id}`, frameMs / frameCount);
 			node.removeEventListener('contextlost', lost);
 			node.removeEventListener('contextrestored', start);

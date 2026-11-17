@@ -7,9 +7,10 @@ import {
 	type InstanceVisual
 } from './policy';
 const KEY = 'tfl-visual-refresh-v1';
+export const VISUAL_APPLIED_EVENT = 'tfl-visual-applied';
 export const visual = $state<VisualPreferences>(structuredClone(DEFAULT_VISUAL));
 export const preferenceStatus = $state({ error: false });
-export function applyVisualAttributes() {
+export function applyVisualAttributes(notify = true) {
 	if (typeof document === 'undefined') return;
 	const root = document.documentElement;
 	root.dataset.visual = visual.style;
@@ -31,6 +32,7 @@ export function applyVisualAttributes() {
 	root.dataset.pixelType = visual.pixelType;
 	root.dataset.material = visual.material;
 	root.toggleAttribute('data-adaptive', visual.adaptive);
+	if (notify) window.dispatchEvent(new Event(VISUAL_APPLIED_EVENT));
 }
 export function restoreVisualPreferences() {
 	try {

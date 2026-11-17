@@ -213,6 +213,7 @@ jobs:
           node tests/visual/selection-experience.mjs
           node tests/visual/beta3.mjs
           node tests/visual/addons.mjs
+          ADDONS_UI_FULL_THEME=1 ADDONS_UI_CASE=pixel/dark,pixel/light ADDONS_OUTPUT=artifacts/beta3-addon-full-theme node tests/visual/addons.mjs
           node tests/visual/scene-motion.mjs
       - name: Upload visual review evidence
         if: always()

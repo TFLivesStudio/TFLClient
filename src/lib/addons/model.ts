@@ -129,7 +129,7 @@ export function themeContrastIssues(
 ) {
 	const merged = { ...defaults, ...tokens };
 	const issues: string[] = [];
-	for (const text of ['--text-primary', '--text-secondary'])
+	for (const text of ['--text-primary', '--text-secondary', '--text-muted'])
 		for (const surface of [
 			'--bg-main',
 			'--bg-sidebar',
@@ -142,6 +142,45 @@ export function themeContrastIssues(
 	if (contrastRatio(merged['--accent-text'] ?? '', merged['--accent'] ?? '') < 4.5)
 		issues.push('--accent-text / --accent');
 	return issues;
+}
+export function themeRawAliases(tokens: Record<string, string>) {
+	const aliases: Record<string, string> = {
+		'--bg-main': '--raw-main',
+		'--bg-sidebar': '--raw-sidebar',
+		'--bg-card': '--raw-card',
+		'--bg-input': '--raw-input',
+		'--bg-item-active': '--raw-item-active'
+	};
+	return Object.fromEntries(
+		Object.entries(aliases)
+			.filter(([key]) => tokens[key] !== undefined)
+			.map(([key, alias]) => [alias, tokens[key]])
+	);
+}
+export function readableSemanticColors(
+	surfaces: string[],
+	primary: string,
+	current: Record<string, string>
+) {
+	const palettes: Record<string, string[]> = {
+		'--color-error': ['#EF4444', '#FCA5A5', '#B42331', '#7F1D1D'],
+		'--color-success': ['#22C55E', '#86EFAC', '#16713B', '#064E3B'],
+		'--color-warning': ['#EAB308', '#FDE68A', '#805500', '#713F12']
+	};
+	const colors = Object.fromEntries(
+		Object.entries(palettes).map(([key, candidates]) => [
+			key,
+			[current[key], ...candidates].find(
+				(color) => color && surfaces.every((surface) => contrastRatio(color, surface) >= 4.5)
+			) ?? primary
+		])
+	);
+	colors['--color-error-rgb'] = (
+		colorChannels(colors['--color-error'])?.slice(0, 3) ?? [255, 255, 255]
+	)
+		.map(Math.round)
+		.join(', ');
+	return colors;
 }
 /** Internal semantic token; addons cannot provide arbitrary CSS custom properties. */
 export function readableThemeAccent(

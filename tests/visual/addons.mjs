@@ -50,6 +50,12 @@ function addonsFixture(fullTokens) {
 	};
 	const state = { safeMode: false, addons: [], errors: [], brokenAddons: [] };
 	if (fullTokens) manifest.themes[0].tokens = fullTokens;
+	if (fullTokens)
+		manifest.themes.push({
+			id: 'bad-muted',
+			name: 'Metadatos sin contraste',
+			tokens: { ...fullTokens, '--text-muted': fullTokens['--bg-card'] }
+		});
 	const digest = 'a'.repeat(64);
 	let version = '1.0.0';
 	let previous = null;
@@ -63,7 +69,8 @@ function addonsFixture(fullTokens) {
 		},
 		setVersion(value) {
 			version = value;
-		}
+		},
+		failNextInspect: false
 	};
 	const catalog = () =>
 		structuredClone({
@@ -75,6 +82,10 @@ function addonsFixture(fullTokens) {
 		window.__fixtureCommands.push({ cmd, args });
 		if (cmd === 'addons_list') return catalog();
 		if (cmd === 'addons_pick_file') return '/fixture/dunes.tfl';
+		if (cmd === 'addons_inspect' && window.__addonFixture.failNextInspect) {
+			window.__addonFixture.failNextInspect = false;
+			throw new Error('Archivo de prueba inválido');
+		}
 		if (cmd === 'addons_inspect')
 			return {
 				manifest: { ...manifest, version },
@@ -167,6 +178,17 @@ try {
 			);
 			await page.locator('.installed-addon .enabled input').check();
 			await tab(page, 'Apariencia');
+			if (fullThemeTokens) {
+				await page
+					.getByRole('combobox', { name: 'Tema de addon', exact: true })
+					.selectOption('addon:test.dunes:bad-muted');
+				assert.equal(
+					await page.evaluate(() => localStorage.getItem('tfl-addon-theme-v1')),
+					'',
+					'unreadable metadata theme rejected'
+				);
+				await page.getByRole('alert').filter({ hasText: '--text-muted' }).waitFor();
+			}
 			await page
 				.getByRole('combobox', { name: 'Tema de addon', exact: true })
 				.selectOption('addon:test.dunes:orange');
@@ -180,6 +202,35 @@ try {
 				fullThemeTokens?.['--accent'] ?? '#ff7a2e'
 			);
 			await page.locator('.addon-theme-picker').scrollIntoViewIfNeeded();
+			if (fullThemeTokens) {
+				// Every visual save reapplies host defaults, including saves with no color-attribute change.
+				for (const button of ['Modern', 'Pixel', 'Clásica', 'Legible']) {
+					await page
+						.getByRole('button', { name: button, exact: button !== 'Modern' && button !== 'Pixel' })
+						.click();
+					const selected = await page.evaluate(() => ({
+						id: localStorage.getItem('tfl-addon-theme-v1'),
+						accent: document.documentElement.style.getPropertyValue('--accent'),
+						text: document.documentElement.style.getPropertyValue('--accent-text')
+					}));
+					assert.equal(selected.id, 'addon:test.dunes:orange');
+					assert.equal(selected.accent, fullThemeTokens['--accent']);
+					assert.equal(selected.text, fullThemeTokens['--accent-text']);
+				}
+				await page.getByRole('button', { name: 'Matte', exact: true }).click();
+				assert.equal(await page.evaluate(() => document.documentElement.dataset.material), 'matte');
+				assert.equal(
+					await page.evaluate(() => localStorage.getItem('tfl-addon-theme-v1')),
+					'addon:test.dunes:orange',
+					'host material revalidation retains compatible addon'
+				);
+				await page.getByRole('button', { name: 'Soft Glass', exact: true }).click();
+				assert.equal(
+					await page.evaluate(() => document.documentElement.dataset.material),
+					'soft-glass'
+				);
+				await page.locator('.addon-theme-picker').scrollIntoViewIfNeeded();
+			}
 			await page.screenshot({ path: `${output}/theme-${style}-${theme}.png` });
 			if (fullThemeTokens) {
 				const palette = await page.evaluate(() => {
@@ -199,7 +250,114 @@ try {
 					palette.surfaces.every((surface) => contrastRatio(palette.textAccent, surface) >= 4.5),
 					'full addon theme keeps accent text readable on every surface'
 				);
+				const renderedContrast = await page.evaluate(() => {
+					const canvas = document.createElement('canvas');
+					canvas.width = canvas.height = 1;
+					const context = canvas.getContext('2d');
+					if (!context) throw new Error('Canvas required for composed contrast measurement');
+					const rgba = () => {
+						const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+						return `rgba(${r},${g},${b},${a / 255})`;
+					};
+					return [
+						'.settings-refresh .panel-header h2',
+						'.settings-page-heading h3',
+						'.settings-page-heading p',
+						'.addon-theme-picker .field',
+						'.addon-theme-picker small'
+					].map((selector) => {
+						const element = document.querySelector(selector);
+						if (!element) throw new Error(`Missing real text surface ${selector}`);
+						const chain = [];
+						for (let node = element; node; node = node.parentElement) chain.push(node);
+						const backgrounds = ['#000000', '#ffffff'].map((backdrop) => {
+							context.fillStyle = backdrop;
+							context.fillRect(0, 0, 1, 1);
+							for (const node of chain.toReversed()) {
+								context.fillStyle = getComputedStyle(node).backgroundColor;
+								context.fillRect(0, 0, 1, 1);
+							}
+							return rgba();
+						});
+						context.clearRect(0, 0, 1, 1);
+						context.fillStyle = getComputedStyle(element).color;
+						context.fillRect(0, 0, 1, 1);
+						return { selector, foreground: rgba(), backgrounds };
+					});
+				});
+				for (const sample of renderedContrast)
+					assert.ok(
+						sample.backgrounds.every(
+							(background) => contrastRatio(sample.foreground, background) >= 4.5
+						),
+						`actual composed text contrast fails: ${sample.selector}`
+					);
+				await writeFile(
+					`${output}/contrast-${style}-${theme}.json`,
+					JSON.stringify({ palette, renderedContrast }, null, 2)
+				);
 				await tab(page, 'Addons');
+				await page.evaluate(() => (window.__addonFixture.failNextInspect = true));
+				await page.getByRole('button', { name: 'Seleccionar .tfl', exact: true }).click();
+				await page.getByRole('alert').filter({ hasText: 'Archivo de prueba inválido' }).waitFor();
+				await page.locator('.addon-settings .error').scrollIntoViewIfNeeded();
+				await page.screenshot({ path: `${output}/alert-${style}-${theme}.png` });
+				const alertSample = await page.evaluate(() => {
+					const element = document.querySelector('.addon-settings .error');
+					if (!element) throw new Error('Missing real addon validation alert');
+					const canvas = document.createElement('canvas');
+					canvas.width = canvas.height = 1;
+					const ctx = canvas.getContext('2d');
+					if (!ctx) throw new Error('Canvas required');
+					const rgba = () => {
+						const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+						return `rgba(${r},${g},${b},${a / 255})`;
+					};
+					const chain = [];
+					for (let node = element; node; node = node.parentElement) chain.push(node);
+					const backgrounds = ['#000000', '#ffffff'].map((color) => {
+						ctx.fillStyle = color;
+						ctx.fillRect(0, 0, 1, 1);
+						for (const node of chain.toReversed()) {
+							ctx.fillStyle = getComputedStyle(node).backgroundColor;
+							ctx.fillRect(0, 0, 1, 1);
+						}
+						return rgba();
+					});
+					const colors = Object.fromEntries(
+						['--color-error', '--color-success', '--color-warning', '--text-muted'].map((key) => {
+							ctx.clearRect(0, 0, 1, 1);
+							ctx.fillStyle = getComputedStyle(element).getPropertyValue(key);
+							ctx.fillRect(0, 0, 1, 1);
+							return [key, rgba()];
+						})
+					);
+					ctx.clearRect(0, 0, 1, 1);
+					ctx.fillStyle = getComputedStyle(element).color;
+					ctx.fillRect(0, 0, 1, 1);
+					return {
+						backgrounds,
+						colors,
+						foreground: rgba(),
+						errorRgb: getComputedStyle(element).getPropertyValue('--color-error-rgb').trim()
+					};
+				});
+				for (const color of [...Object.values(alertSample.colors), alertSample.foreground])
+					assert.ok(
+						alertSample.backgrounds.every((background) => contrastRatio(color, background) >= 4.5),
+						'real alert and semantic foregrounds remain readable'
+					);
+				assert.equal(
+					alertSample.errorRgb,
+					alertSample.colors['--color-error']
+						.match(/^rgba\((\d+),(\d+),(\d+),/)
+						.slice(1)
+						.join(', ')
+				);
+				await writeFile(
+					`${output}/alert-contrast-${style}-${theme}.json`,
+					JSON.stringify(alertSample, null, 2)
+				);
 				await page
 					.getByLabel('Perfil seguro: desactivar todos los addons', { exact: true })
 					.check();
@@ -210,8 +368,24 @@ try {
 					'',
 					'safe profile restores previous host accent text token'
 				);
+				assert.ok(
+					await page.evaluate(() =>
+						[
+							'--raw-main',
+							'--raw-sidebar',
+							'--raw-card',
+							'--raw-input',
+							'--raw-item-active',
+							'--color-error',
+							'--color-error-rgb',
+							'--color-success',
+							'--color-warning'
+						].every((key) => !document.documentElement.style.getPropertyValue(key))
+					),
+					'safe profile restores host material aliases'
+				);
 				results.push(
-					`${style}/${theme}: full example theme readable accent text >=4.5 on five surfaces; safe-mode token restoration`
+					`${style}/${theme}: full example theme composed text+alert contrast >=4.5; unreadable metadata rejected; semantic RGB+safe-mode restoration`
 				);
 				await context.close();
 				continue;
