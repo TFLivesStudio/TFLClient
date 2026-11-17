@@ -14,12 +14,9 @@ se conservan para poder consultar o restaurar su redacción original.
 
 ## Publicaciones
 
-Preparada, sin publicar: [v0.15.4-beta.3](v0.15.4-beta.3.md). No tiene fecha
-de publicación ni tag; consulta sus comprobaciones en el
-[informe técnico](../changes/2026-11-16-beta3-scenes-addons.md).
-
 | Versión                                 | Canal   | Fecha original (UTC) | Resumen                                                                                                                                                                              |
 | --------------------------------------- | ------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [v0.15.4-beta.3](v0.15.4-beta.3.md)     | Beta    | 2026-11-17           | Paisajes automáticos por capas, superficies claras sin velo global, Pixel refinado y Addons declarativos locales con temas y escenas.                                                |
 | [v0.15.4-beta.2](v0.15.4-beta.2.md)     | Beta    | 2026-11-14           | Fondo global, 25 banners por versión, Pixel y sidebar refinados, clientes oficiales y personaje interactivo.                                                                         |
 | [v0.15.4-beta.1](v0.15.4-beta.1.md)     | Beta    | 2026-11-14           | Pixel renueva controles y búsquedas; Living Themes añade tres paisajes procedurales con parallax, dithering y destino Hero o ventana.                                                |
 | [v0.15.3-beta.7](v0.15.3-beta.7.md)     | Beta    | 2026-11-13           | Se corrige la preparación del arranque de Minecraft en macOS y la elección de Java 25 nativo para TFLClient en equipos Apple Silicon.                                                |

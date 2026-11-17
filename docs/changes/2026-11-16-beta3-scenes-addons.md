@@ -68,8 +68,10 @@ Formato, ejemplo instalable y arquitectura futura:
 
 ## Comprobaciones
 
-Los resultados finales de CI y publicación se registrarán al completar el tag.
-La evidencia local generada vive en `artifacts/`, ignorado por Git.
+El tag `v0.15.4-beta.3` apunta a `d69122c9a0574170efa733cf3f211a6fea231ea0`.
+La [CI de ese commit](https://github.com/TFLivesStudio/TFLClient/actions/runs/44013565754)
+pasó íntegramente antes de publicar el tag. La evidencia local generada vive en
+`artifacts/`, ignorado por Git; CI conserva además su artefacto `beta-ui-review`.
 
 - 56 tests unitarios Node pasaron, incluidos migración, política, movimiento,
   continuidad geométrica y correspondencia de texels entre Canvas y SVG.
@@ -77,6 +79,9 @@ La evidencia local generada vive en `artifacts/`, ignorado por Git.
   iniciales en ContextMenu, InstanceDetail y ContentExplorerView.
 - Build de producción del frontend completado. Los avisos de tamaño de chunks
   no bloquean la compilación.
+- Prettier y ESLint completados. Rust: fmt, clippy, 270 tests de librería,
+  aceptación nativa MCP con perfil aislado y auditoría pasaron en CI Linux.
+  Los tests incluyen 18 casos del instalador de addons y sus entradas hostiles.
 - Matriz de interfaz compilada con IPC simulado: 29 capturas/casos, contraste
   de tokens sobre superficies estables, límites de ventana y escala lógica.
 - Addons con IPC simulado: cuatro variantes Pixel/Modern × claro/oscuro, desde
@@ -92,6 +97,17 @@ La evidencia local generada vive en `artifacts/`, ignorado por Git.
   de pausa se reprodujo y corrigió antes de etiquetar la versión.
 - Raster de Chromium: continuidad al cruzar el periodo en los tres paisajes y
   liberación de recursos. No equivale a certificar GPU o WebView nativos.
+- Regresiones: 116 comprobaciones Pixel, 22 MCP/escenas, 11 de fondos, 216
+  observaciones de sidebar, cinco escenarios del personaje y ocho casos de
+  TFL Selection. La batería completa del workflow también quedó en verde.
+- Comparación antes/después: ocho capturas de los builds reales de Beta 2 y
+  Beta 3, Pixel/Modern × claro/oscuro, misma escena estática y ventana 1100×700.
+  Es evidencia de navegador con IPC simulado, no una captura nativa.
+
+La CI detectó además un fixture antiguo de fondos que guardaba Beta 2 como
+última versión vista: abría el modal de novedades y pausaba correctamente el
+paisaje. La prueba ahora obtiene la versión de package.json, sin relajar la
+política de pausa del producto.
 
 Entorno local: Windows, cuatro procesadores lógicos y aproximadamente 7.45 GiB
 de RAM. Rust 1.94.1 fijado por el proyecto; Node 26.13.0 y Bun 1.4.1 locales.
@@ -103,6 +119,56 @@ compatibilidad universal.
 El enlazado de la build nativa local se canceló al provocar presión de memoria;
 no se contabiliza como prueba superada. Los resultados nativos de CI se
 distinguen de la revisión del frontend con IPC simulado.
+
+Se ejecutó una copia verificada de Beta 2 en Windows con `TFL_DATA_DIR` y
+`WEBVIEW2_USER_DATA_FOLDER` separados. Se observó el Inicio nativo mediante
+accesibilidad con el usuario offline de prueba. Las capturas fallaron con
+`FrameArrived timed out`/`window capture timed out`; la automatización posterior
+se interrumpió por ventana minimizada y detección de entrada de usuario. Esto
+no acredita una revisión visual nativa ni el ciclo completo de actualización.
+El perfil se preparó en `settings/settings.tfl`, que contiene JSON.
+
+Después de verificar la firma del instalador real de Beta 3 se extrajo su
+ejecutable, sin instalarlo sobre la aplicación habitual. FileVersion y
+ProductVersion indican `0.15.4-beta.3`; el proceso abrió una ventana y respondió.
+Con un perfil de datos y WebView separado se observó mediante accesibilidad el
+panel nativo Ajustes → Addons: selección local, inspección, perfil seguro e
+Instalados (0). Se guardó `artifacts/beta3-updater/native-beta3-accessibility.txt`.
+Las capturas nativas volvieron a fallar con `FrameArrived timed out`. No se
+certifica el ciclo nativo de instalar un addon, jugar ni aplicar una actualización.
+
+## Publicación y actualizador
+
+[Build TFL Client](https://github.com/TFLivesStudio/TFLClient/actions/runs/44014768149)
+terminó en verde para Windows x86_64, Linux x86_64 y macOS aarch64, incluidas sus
+compuertas de calidad. Solo se lanzó una ejecución de instaladores sobre el tag
+validado. La build auxiliar MP Guard también pasó.
+
+La [release v0.15.4-beta.3](https://github.com/TFLivesStudio/TFLClient/releases/tag/v0.15.4-beta.3)
+se publicó el **2026-11-17T04:22:46Z**, como prerelease y sin borrador. Se
+comprobaron 17 assets. El canal estable continúa en `v0.15.2`.
+
+- `latest.json` anuncia `0.15.4-beta.3` con ocho entradas de plataforma y cinco
+  paquetes distintos: aplicación macOS, AppImage, DEB, RPM y NSIS de Windows.
+- Se descargaron los cinco paquetes y sus firmas. Cada entrada pasó verificación
+  con la clave pública del tag y `minisign-verify 0.2.5`, la misma biblioteca del
+  updater. También se rechazó alterar el contenido o el comentario firmado.
+- Las firmas sueltas coinciden con las del manifest. Los tamaños y SHA-256
+  coinciden con los digests publicados por GitHub. Los nombres de descarga fijos
+  apuntan a bytes con el mismo digest que los archivos versionados.
+- El cuerpo publicado coincide con el Markdown revisado. Se verificaron en un
+  navegador real la tarjeta de Novedades y el artículo de Beta 3, ambos HTTP 200,
+  con resumen y notas de Addons presentes y sin errores de página.
+
+Evidencia local: `artifacts/beta3-updater/release-verification.json`,
+`metadata-verification.json`, `github-release.json` y
+`web-browser-verification.json`. El verificador temporal usa únicamente la clave
+pública; no firma ni modifica paquetes, no requiere secretos y no acredita
+Authenticode, notarización ni una instalación completa del updater.
+
+Para recibirla desde el launcher: Ajustes → Actualizaciones, activar
+«Versiones beta» y pulsar «Buscar actualizaciones». La selección de canal y los
+bytes firmados se conservaron; no se amplió el canal estable.
 
 ## Herramientas y mantenimiento
 
