@@ -1,6 +1,6 @@
 // Chromium observations only: production frontend with identical IPC fixtures, no native/game claims.
 import { writeFile, mkdir } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -17,11 +17,13 @@ try {
 		for (const quality of ['Lite', 'Balanced', 'Experience'])
 			for (let run = 0; run < 3; run++) {
 				const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-				await page.addInitScript(installFixture, {
-					quality,
-					appVersion:
-						revision === 'baseline' ? process.env.BASELINE_VERSION || '0.13.1-beta.4' : undefined
-				});
+				await page.addInitScript(
+					withFixture({
+						quality,
+						appVersion:
+							revision === 'baseline' ? process.env.BASELINE_VERSION || '0.13.1-beta.4' : undefined
+					})
+				);
 				const cdp = await page.context().newCDPSession(page);
 				await cdp.send('Performance.enable');
 				const start = performance.now();

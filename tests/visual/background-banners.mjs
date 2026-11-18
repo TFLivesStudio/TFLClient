@@ -1,7 +1,7 @@
 // Production UI + isolated IPC; real owner-approved packaged artwork.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 import { BANNERS } from '../../src/lib/visual/banners.ts';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const appVersion = JSON.parse(
@@ -26,11 +26,13 @@ async function open({
 } = {}) {
 	const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 	page.on('pageerror', (e) => errors.push(e.message));
-	await page.addInitScript(installFixture, {
-		quality,
-		// Keep update notes out of this scene-lifecycle test; they deliberately pause Canvas.
-		appVersion: url === process.env.BASELINE_URL ? '0.15.4-beta.1' : appVersion
-	});
+	await page.addInitScript(
+		withFixture({
+			quality,
+			// Keep update notes out of this scene-lifecycle test; they deliberately pause Canvas.
+			appVersion: url === process.env.BASELINE_URL ? '0.15.4-beta.1' : appVersion
+		})
+	);
 	const legacy = {
 		version: schema,
 		global: { preset: 'midnight-forest', scope: 'hero', motion: 'full', fps: 24, adaptTime: false },

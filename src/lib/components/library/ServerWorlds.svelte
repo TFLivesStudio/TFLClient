@@ -716,7 +716,7 @@
 		padding: 9px 10px;
 		font-size: 0.8rem;
 	}
-	.spin {
+	.worlds-panel :global(.spin) {
 		animation: world-spin 0.8s linear infinite;
 	}
 	@keyframes world-spin {
@@ -736,7 +736,7 @@
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.spin {
+		.worlds-panel :global(.spin) {
 			animation: none;
 		}
 	}

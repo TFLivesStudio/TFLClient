@@ -1,6 +1,7 @@
 //! On-demand console providers. No worker/timer survives closing a console.
 //! Network and GPU fall back to the computer, never to an invented per-game value.
 use super::{ProcessStats, process_stats};
+use crate::services::settings_manager::UiMode;
 use serde::Serialize;
 use std::{
     path::Path,
@@ -48,7 +49,7 @@ pub struct GpuMetrics {
 }
 #[derive(Clone, Serialize)]
 pub struct ConsoleMetrics {
-    pub ui_mode: String,
+    pub ui_mode: UiMode,
     pub process: Option<ProcessStats>,
     pub running: bool,
     pub sampled_at_ms: u64,
@@ -170,7 +171,7 @@ pub fn collect(pid: Option<u32>, directory: &Path) -> Result<ConsoleMetrics, Str
         RefreshKind::new().with_memory(MemoryRefreshKind::new().with_ram()),
     );
     Ok(ConsoleMetrics {
-        ui_mode: crate::services::SettingsManager::read().ui_mode.clone(),
+        ui_mode: crate::services::SettingsManager::read().ui_mode,
         running: pid.is_some(),
         process,
         sampled_at_ms: SystemTime::now()
@@ -370,6 +371,182 @@ mod windows_disk {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{
+        fs::OpenOptions,
+        hint::black_box,
+        io::{Read, Write},
+        net::{TcpListener, TcpStream},
+    };
+
+    fn transfer_locally(payload: &[u8]) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let mut client = TcpStream::connect_timeout(&address, Duration::from_secs(5)).unwrap();
+        client
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
+        std::thread::scope(|threads| {
+            threads.spawn(|| {
+                let (mut stream, _) = listener.accept().unwrap();
+                stream
+                    .set_write_timeout(Some(Duration::from_secs(5)))
+                    .unwrap();
+                stream.write_all(payload).unwrap();
+            });
+            let mut received = vec![0; payload.len()];
+            client.read_exact(&mut received).unwrap();
+            assert_eq!(received, payload);
+        });
+    }
+
+    #[tokio::test]
+    async fn console_measures_native_cpu_disk_and_network_activity() {
+        let directory = std::env::temp_dir();
+        let fixture = directory.join(format!("tfl-monitor-{}.bin", uuid::Uuid::new_v4()));
+        let result = std::panic::catch_unwind(|| {
+            let pid = std::process::id();
+            let payload = vec![73; 4 * 1024 * 1024];
+            let mut file = OpenOptions::new()
+                .create_new(true)
+                .write(true)
+                .open(&fixture)
+                .unwrap();
+            let baseline = collect(Some(pid), &directory).unwrap();
+            assert!(baseline.running);
+            transfer_locally(&payload);
+            let start = Instant::now();
+            let mut writes = 0u64;
+            let mut seed = 0xa7c31u64;
+            while start.elapsed() < Duration::from_millis(1250) {
+                file.write_all(&payload).unwrap();
+                file.sync_data().unwrap();
+                writes += 1;
+                // Keep this process busy between real, flushed writes.
+                let compute = Instant::now();
+                while compute.elapsed() < Duration::from_millis(100) {
+                    seed = black_box(seed.wrapping_mul(0x5851f42d4c957f2d).rotate_left(11));
+                }
+            }
+            let sample = collect(Some(pid), &directory).unwrap();
+            assert!(sample.running);
+            let after = sample.process.as_ref().expect("running process is visible");
+            let before = baseline
+                .process
+                .as_ref()
+                .expect("baseline process is visible");
+            assert!(after.ready);
+            assert!(after.cpu_core_percent > 0.0);
+            assert!(after.memory_mb > 0);
+            assert!(after.process_count >= 1);
+            assert!(
+                after
+                    .disk_write_bytes_total
+                    .saturating_sub(before.disk_write_bytes_total)
+                    >= payload.len() as u64
+            );
+            assert_eq!(
+                file.metadata().unwrap().len(),
+                writes * payload.len() as u64
+            );
+            assert_eq!(
+                sample
+                    .storage
+                    .as_ref()
+                    .expect("fixture volume is measurable")
+                    .scope,
+                "instance_volume"
+            );
+
+            #[cfg(not(target_os = "windows"))]
+            {
+                let net = sample
+                    .network
+                    .as_ref()
+                    .expect("network provider is available");
+                let initial = baseline
+                    .network
+                    .as_ref()
+                    .expect("baseline network is available");
+                assert!(
+                    net.total_received_bytes
+                        .saturating_sub(initial.total_received_bytes)
+                        >= payload.len() as u64
+                );
+                assert!(
+                    net.total_transmitted_bytes
+                        .saturating_sub(initial.total_transmitted_bytes)
+                        >= payload.len() as u64
+                );
+                assert!(net.received_bytes_per_sec.is_some_and(|rate| rate > 0.0));
+                assert!(net.transmitted_bytes_per_sec.is_some_and(|rate| rate > 0.0));
+                let io = sample
+                    .io
+                    .as_ref()
+                    .expect("process I/O provider is available");
+                assert_eq!(io.scope, "process_tree");
+                assert!(io.write_bytes_per_sec.is_some_and(|rate| rate > 0.0));
+            }
+            #[cfg(target_os = "windows")]
+            if let Some(io) = &sample.io {
+                assert_eq!(io.scope, "machine_disks");
+                assert!(io.write_bytes_per_sec.is_some_and(|rate| rate > 0.0));
+            }
+            println!(
+                "Native CPU {:.1}% (sum), test file {} bytes, disk provider {}",
+                after.cpu_core_percent,
+                file.metadata().unwrap().len(),
+                sample
+                    .io
+                    .as_ref()
+                    .map(|io| io.provider)
+                    .unwrap_or("unavailable")
+            );
+        });
+        let _ = std::fs::remove_file(fixture);
+        if let Err(panic) = result {
+            std::panic::resume_unwind(panic);
+        }
+
+        #[cfg(target_os = "windows")]
+        if let Ok(url) = std::env::var("TFL_NATIVE_NETWORK_TEST_URL") {
+            // Sysinfo intentionally excludes software interfaces (including loopback) on Windows.
+            // CI supplies a stable public HTTPS resource to exercise the actual runner adapter.
+            let baseline = collect(None, &directory)
+                .unwrap()
+                .network
+                .expect("runner network adapter is available");
+            let response = reqwest::Client::builder()
+                .timeout(Duration::from_secs(15))
+                .build()
+                .unwrap()
+                .get(url)
+                .send()
+                .await
+                .unwrap()
+                .error_for_status()
+                .unwrap();
+            assert!(!response.bytes().await.unwrap().is_empty());
+            tokio::time::sleep(Duration::from_millis(1100)).await;
+            let measured = collect(None, &directory)
+                .unwrap()
+                .network
+                .expect("runner network adapter remains available");
+            assert!(measured.total_received_bytes > baseline.total_received_bytes);
+            assert!(measured.total_transmitted_bytes > baseline.total_transmitted_bytes);
+            assert!(
+                measured
+                    .received_bytes_per_sec
+                    .is_some_and(|rate| rate > 0.0)
+            );
+            assert!(
+                measured
+                    .transmitted_bytes_per_sec
+                    .is_some_and(|rate| rate > 0.0)
+            );
+            println!("Native network adapter reported incoming and outgoing traffic.");
+        }
+    }
+
     #[test]
     fn gpu_provider_preserves_adapters_and_missing_values_without_zeroes() {
         let gpus = parse_nvidia(

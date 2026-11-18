@@ -1,7 +1,7 @@
 // Compiled production UI with deterministic IPC. This is not native WebView evidence.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({ headless: true });
 const url = process.env.VISUAL_URL || 'http://127.0.0.1:1431';
@@ -14,7 +14,7 @@ async function open(style, theme, viewport = { width: 1100, height: 700 }, dpr =
 	const page = await context.newPage();
 	page.setDefaultTimeout(30000);
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.addInitScript(installFixture, { theme, ...extra });
+	await page.addInitScript(withFixture({ theme, ...extra }));
 	await page.addInitScript(
 		({ style }) => {
 			localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style }));

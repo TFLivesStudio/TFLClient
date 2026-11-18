@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Play, LoaderCircle } from 'lucide-svelte';
-	import { launchInstance, updateSettings } from '$lib/api';
+	import { launchInstance, patchSettings } from '$lib/api';
 	import { appState } from '$lib/state/state.svelte';
 	import { gameSession } from '$lib/state/gameSession.svelte';
 	import { multiInstanceWarningKind } from '$lib/state/launch';
@@ -41,7 +41,7 @@
 		confirm = false;
 		if (dontAsk && appState.settings) {
 			try {
-				await updateSettings({ ...appState.settings, multi_instance_warning_dismissed: true });
+				await patchSettings({ multi_instance_warning_dismissed: true });
 				appState.settings.multi_instance_warning_dismissed = true;
 			} catch {
 				/* A failed preference write must not block launch. */

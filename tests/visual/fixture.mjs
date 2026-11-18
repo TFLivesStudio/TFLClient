@@ -1,13 +1,19 @@
 // Browser-only IPC fixture. Never imported by production code.
+import { readFileSync } from 'node:fs';
+
+const appVersion = JSON.parse(
+	readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
+).version;
+
 export function withFixture(options, extend, args) {
-	return {
-		content: `(${installFixture})(${JSON.stringify(options)});(${extend})(${JSON.stringify(args)});`
-	};
+	const setup = `(${installFixture})(${JSON.stringify({ appVersion, ...options })});`;
+	const extension = extend ? `(${extend})(${JSON.stringify(args)});` : '';
+	return { content: setup + extension };
 }
 
-export function installFixture({
+function installFixture({
 	quality = 'Balanced',
-	appVersion = '0.15.4-beta.3',
+	appVersion,
 	empty = false,
 	language = 'es',
 	theme = 'dark',

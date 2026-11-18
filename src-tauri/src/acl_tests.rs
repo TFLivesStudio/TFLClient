@@ -67,7 +67,9 @@ fn main_window_can_use_every_app_command_and_log_window_only_its_own() {
     // La principal: comandos propios de todo tipo.
     for cmd in [
         "get_settings",
-        "update_settings",
+        "patch_settings",
+        "list_instance_worlds",
+        "inspect_instance_source",
         "launch",
         "install_mod",
         "update_all_mods",
@@ -99,6 +101,7 @@ fn main_window_can_use_every_app_command_and_log_window_only_its_own() {
     // La de log: solo lo de la pantalla de log.
     for cmd in [
         "get_running_instance_stats",
+        "get_console_metrics",
         "stop_running_instance",
         "get_crash_report",
         "diagnose_crash",
@@ -112,7 +115,9 @@ fn main_window_can_use_every_app_command_and_log_window_only_its_own() {
     }
     for cmd in [
         "get_settings",
-        "update_settings",
+        "patch_settings",
+        "list_instance_worlds",
+        "inspect_instance_source",
         "launch",
         "install_mod",
         "update_all_mods",

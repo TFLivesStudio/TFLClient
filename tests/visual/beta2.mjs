@@ -1,7 +1,7 @@
 // Production UI + deterministic IPC fixtures; native telemetry is covered separately by Rust tests.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -20,7 +20,7 @@ async function open(options = {}) {
 	page.setDefaultTimeout(12000);
 	page.on('pageerror', (e) => errors.push(e.message));
 	// Preserve coverage of advanced settings, including update-channel diagnostics.
-	await page.addInitScript(installFixture, { mode: 'advanced', ...options });
+	await page.addInitScript(withFixture({ mode: 'advanced', ...options }));
 	await page.addInitScript(
 		({ style }) => localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style })),
 		{ style: options.style || 'pixel' }
@@ -187,8 +187,9 @@ try {
 	assert.equal(await log.locator('.line.info').count(), 1);
 	const cpu = log.locator('.chart-card').filter({ hasText: 'CPU' });
 	assert.ok(parseFloat(await cpu.locator('strong').textContent()) > 100);
-	await log.waitForTimeout(2100);
-	assert.ok((await cpu.locator('.trace').getAttribute('d')).includes('L'));
+	await log.waitForFunction(() =>
+		document.querySelector('[data-console-metric="cpu"] .trace')?.getAttribute('d')?.includes('L')
+	);
 	const colors = await log
 		.locator('.line.warn,.line.error')
 		.evaluateAll((ns) => ns.map((n) => getComputedStyle(n).color));
@@ -228,29 +229,31 @@ try {
 	});
 	await log.locator('.console-layout.bottom').waitFor();
 	await sibling.close();
+	await log.evaluate(() => {
+		window.__fixtureStatsMode = 'missing';
+		window.__fixtureEmit('InstanceExited', { instance: 'Horizontes', code: 0 });
+	});
+	await log
+		.locator('.monitor-caption')
+		.getByText(/Instancia detenida/)
+		.waitFor();
 	const count = await log.evaluate(
-		() => window.__fixtureCommands.filter((c) => c.cmd === 'get_running_instance_stats').length
+		() => window.__fixtureCommands.filter((c) => c.cmd === 'get_console_metrics').length
 	);
-	await log.evaluate(() =>
-		window.__fixtureEmit('InstanceExited', { instance: 'Horizontes', code: 0 })
-	);
-	await log.waitForTimeout(1200);
+	await log.waitForTimeout(2300);
 	assert.equal(
 		await log.evaluate(
-			() => window.__fixtureCommands.filter((c) => c.cmd === 'get_running_instance_stats').length
+			() => window.__fixtureCommands.filter((c) => c.cmd === 'get_console_metrics').length
 		),
 		count
 	);
-	assert.ok(
-		(await cpu.locator('.trace').getAttribute('d')).includes('L'),
-		'history retained after exit'
-	);
+	assert.equal(await cpu.locator('.trace').getAttribute('d'), '', 'no stale activity after exit');
 	await shot(log, 'console-customized-stopped');
 	await log.reload();
 	await log.locator('.console-layout.bottom').waitFor();
 	assert.equal(await log.locator('.chart-card').first().getAttribute('data-console-metric'), 'ram');
 	await log.close();
-	// Server uses a separate PID endpoint; unmount stops polling.
+	// A server is sampled by its own instance name. Navigating away stops polling.
 	const server = await open({ telemetry: true });
 	await server.getByRole('button', { name: 'TFL Friends', exact: true }).click();
 	await server.locator('.tabs').getByRole('button', { name: 'Consola', exact: true }).click();
@@ -258,17 +261,19 @@ try {
 		window.__fixtureEmit('InstanceStatusChanged', { name: 'TFL Friends', status: 'running' })
 	);
 	await server.waitForFunction(() =>
-		window.__fixtureCommands.some((c) => c.cmd === 'get_running_server_stats')
+		window.__fixtureCommands.some(
+			(c) => c.cmd === 'get_console_metrics' && c.args.instanceName === 'TFL Friends'
+		)
 	);
 	await server.getByRole('button', { name: 'Biblioteca', exact: true }).click();
 	await server.waitForTimeout(100);
 	const calls = await server.evaluate(
-		() => window.__fixtureCommands.filter((c) => c.cmd === 'get_running_server_stats').length
+		() => window.__fixtureCommands.filter((c) => c.cmd === 'get_console_metrics').length
 	);
 	await server.waitForTimeout(1200);
 	assert.equal(
 		await server.evaluate(
-			() => window.__fixtureCommands.filter((c) => c.cmd === 'get_running_server_stats').length
+			() => window.__fixtureCommands.filter((c) => c.cmd === 'get_console_metrics').length
 		),
 		calls
 	);

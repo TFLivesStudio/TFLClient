@@ -1,7 +1,7 @@
 // Synthetic skin/cape textures and IPC; exercises real skinview3d/WebGL, not native GPU certification.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -18,7 +18,7 @@ async function open(quality = 'Experience', reduced = false, cape = true) {
 		reducedMotion: reduced ? 'reduce' : 'no-preference'
 	});
 	page.on('pageerror', (e) => errors.push(e.message));
-	await page.addInitScript(installFixture, { premium: true, skin: true, quality });
+	await page.addInitScript(withFixture({ premium: true, skin: true, quality }));
 	await page.addInitScript(
 		({ cape }) => {
 			const texture = document.createElement('canvas');

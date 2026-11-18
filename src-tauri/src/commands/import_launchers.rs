@@ -548,19 +548,4 @@ mod tests {
         assert!(err.is_err(), "abrir un archivo que no existe debe fallar");
         let _ = std::fs::remove_dir_all(root);
     }
-
-    #[test]
-    fn copy_recursive_copies_nested_files() {
-        let src = temp_dir("copy-src");
-        let dst = temp_dir("copy-dst");
-        std::fs::create_dir_all(src.join("saves").join("World1")).unwrap();
-        std::fs::write(src.join("saves").join("World1").join("level.dat"), b"data").unwrap();
-        copy_recursive(&src.join("saves"), &dst.join("saves")).unwrap();
-        assert_eq!(
-            std::fs::read(dst.join("saves").join("World1").join("level.dat")).unwrap(),
-            b"data"
-        );
-        let _ = std::fs::remove_dir_all(src);
-        let _ = std::fs::remove_dir_all(dst);
-    }
 }

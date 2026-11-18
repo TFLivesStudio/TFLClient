@@ -7,14 +7,6 @@ export { settingsSaveStatus } from '$lib/state/settingsSave.svelte';
 
 let persisted: Settings | null = null;
 let queue: Promise<unknown> = Promise.resolve();
-const protectedKeys = new Set([
-	'user',
-	'active_user_idx',
-	'onboarded',
-	'schema_version',
-	'settings_revision',
-	'preference_origins'
-]);
 function accept(settings: Settings) {
 	if (persisted && (persisted.settings_revision ?? 0) > (settings.settings_revision ?? 0)) {
 		return structuredClone(persisted);
@@ -61,18 +53,6 @@ export function patchSettings(patch: Partial<Settings>): Promise<Settings> {
 		.finally(() => settingsSaveStatus.pending--);
 	queue = task;
 	return task;
-}
-export async function updateSettings(settings: Settings): Promise<void> {
-	if (!persisted) await getSettings();
-	const patch: Record<string, unknown> = {};
-	for (const [key, value] of Object.entries(settings))
-		if (
-			!protectedKeys.has(key) &&
-			JSON.stringify(value) !== JSON.stringify(persisted?.[key as keyof Settings])
-		)
-			patch[key] = value;
-	if (Object.keys(patch).length) Object.assign(settings, await patchSettings(patch));
-	else if (persisted) Object.assign(settings, persisted);
 }
 export const setQualityProfile = (profile: QualityProfile) =>
 	patchSettings({

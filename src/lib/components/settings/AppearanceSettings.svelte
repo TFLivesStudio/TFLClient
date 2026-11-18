@@ -42,9 +42,8 @@
 	) {
 		if (!appState.settings) return;
 		try {
-			await patchSettings({ [key]: value });
-			// Committed by the settings API.
-			applyQualityVisuals(next);
+			const saved = await patchSettings({ [key]: value });
+			applyQualityVisuals(saved);
 			error = '';
 		} catch (e) {
 			error = String(e);

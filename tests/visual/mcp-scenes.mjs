@@ -1,7 +1,7 @@
 // Browser presentation/lifecycle evidence; native authorization is tested separately.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -24,7 +24,7 @@ async function open({
 	const page = await context.newPage();
 	page.on('pageerror', (e) => errors.push(e.message));
 	// This suite verifies the Advanced permission/manual-configuration interface.
-	await page.addInitScript(installFixture, { theme, quality, language, mode: 'advanced' });
+	await page.addInitScript(withFixture({ theme, quality, language, mode: 'advanced' }));
 	await page.addInitScript(
 		({ style, scene }) => {
 			localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style }));

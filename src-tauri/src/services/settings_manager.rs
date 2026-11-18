@@ -148,7 +148,8 @@ pub struct SettingsManager {
     /// que pueden traer errores — ver `commands/updater.rs`.
     #[serde(default = "default_true")]
     pub beta_updates: bool,
-    /// "auto" (default) oculta/deshabilita en el frontend cualquier función
+    /// Preferencia heredada de Beta 3. Se conserva para compatibilidad.
+    // "auto" (default) oculta/deshabilita en el frontend cualquier función
     /// que dependa del diálogo nativo de archivos (subir ícono/wallpaper
     /// propio, agregar mods/shaders/resourcepacks por archivo) — el diálogo
     /// nativo es lo que rompe el launcher en macOS con hardened runtime +
@@ -267,31 +268,37 @@ impl SettingsManager {
         PathManager::get().get_settings_dir().join("settings.tfl")
     }
 
+    fn from_disk(raw: &str) -> Result<Self, serde_json::Error> {
+        let mut settings: Self = serde_json::from_str(raw)?;
+        if settings.schema_version < 2 {
+            let fields: serde_json::Value = serde_json::from_str(raw)?;
+            // Missing flags in an existing profile retain the previous defaults.
+            settings.beta_updates = fields
+                .get("beta_updates")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(false);
+            settings.multi_instance_warning_dismissed = fields
+                .get("multi_instance_warning_dismissed")
+                .and_then(|value| value.as_bool())
+                .unwrap_or(false);
+            if let Some(fields) = fields.as_object() {
+                for key in fields.keys() {
+                    settings
+                        .preference_origins
+                        .entry(key.clone())
+                        .or_insert_with(|| "existing-profile".into());
+                }
+            }
+            settings.schema_version = 2;
+        }
+        Ok(settings)
+    }
+
     pub fn load() -> Self {
         let path = Self::settings_path();
         match std::fs::read_to_string(&path) {
-            Ok(raw) => match serde_json::from_str::<SettingsManager>(&raw) {
-                Ok(mut s) => {
-                    if s.schema_version < 2 {
-                        // A prior profile used false for missing keys. Explicit values survive.
-                        if let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) {
-                            s.beta_updates = value
-                                .get("beta_updates")
-                                .and_then(|v| v.as_bool())
-                                .unwrap_or(false);
-                            s.multi_instance_warning_dismissed = value
-                                .get("multi_instance_warning_dismissed")
-                                .and_then(|v| v.as_bool())
-                                .unwrap_or(false);
-                            if let Some(fields) = value.as_object() {
-                                for key in fields.keys() {
-                                    s.preference_origins
-                                        .insert(key.clone(), "existing-profile".into());
-                                }
-                            }
-                        }
-                        s.schema_version = 2;
-                    }
+            Ok(raw) => match Self::from_disk(&raw) {
+                Ok(s) => {
                     info!("Configuración cargada desde {:?}", path);
                     s
                 }
@@ -391,6 +398,7 @@ impl SettingsManager {
             file.write_all(&json)
                 .and_then(|_| file.sync_all())
                 .map_err(|e| e.to_string())?;
+            drop(file);
             std::fs::rename(&tmp, &path).map_err(|e| e.to_string())?;
             next.dirty = false;
             *current = next.clone();
@@ -441,5 +449,44 @@ impl SettingsManager {
             return Err("Variable de entorno inválida".into());
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn existing_profile_keeps_explicit_preferences_and_legacy_defaults() {
+        let prev = SettingsManager::from_disk(r#"{"onboarded":true,"auto_updates":false,"beta_updates":true,"theme":"light","min_memory":1024,"max_memory":3072}"#).unwrap();
+        assert_eq!(prev.schema_version, 2);
+        assert!(prev.onboarded);
+        assert!(prev.beta_updates);
+        assert!(!prev.auto_updates);
+        assert!(!prev.multi_instance_warning_dismissed);
+        assert_eq!(prev.theme.as_str(), "light");
+        assert_eq!(prev.max_memory, 3072);
+        assert_eq!(prev.preference_origins["beta_updates"], "existing-profile");
+        assert!(
+            !prev
+                .preference_origins
+                .contains_key("multi_instance_warning_dismissed")
+        );
+        let older = SettingsManager::from_disk("{}").unwrap();
+        assert!(!older.beta_updates);
+        assert!(older.auto_updates);
+    }
+
+    #[test]
+    fn new_profile_defaults_survive_round_trip_and_are_distinct_from_legacy_defaults() {
+        let new = SettingsManager::default();
+        let restored = SettingsManager::from_disk(&serde_json::to_string(&new).unwrap()).unwrap();
+        assert!(
+            restored.auto_updates
+                && restored.beta_updates
+                && restored.multi_instance_warning_dismissed
+        );
+        assert_eq!(restored.ui_mode, UiMode::Simple);
+        assert!(restored.preference_origins.is_empty());
     }
 }

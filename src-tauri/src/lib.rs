@@ -209,7 +209,6 @@ pub fn run() {
             commands::mcp::mcp_quick_connect_targets,
             commands::mcp::mcp_quick_connect_write,
             commands::mojang_profile::get_character_profile,
-            commands::settings::update_settings,
             commands::settings::set_quality_profile,
             commands::settings::get_recommended_ram,
             commands::settings::get_recommended_ram_for_instance,

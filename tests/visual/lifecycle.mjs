@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 const output = process.env.VISUAL_OUTPUT || 'artifacts/visual-refresh';
 await mkdir(output, { recursive: true });
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -14,7 +14,7 @@ page.setDefaultTimeout(10000);
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 try {
-	await page.addInitScript(installFixture, { premium: true, skin: true, quality: 'Lite' });
+	await page.addInitScript(withFixture({ premium: true, skin: true, quality: 'Lite' }));
 	await page.addInitScript(() => {
 		window.__webglCreated = 0;
 		const original = HTMLCanvasElement.prototype.getContext;

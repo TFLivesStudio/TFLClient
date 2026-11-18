@@ -1,7 +1,7 @@
 // Actual compiled UI, browser-only IPC fixture; no native launch/account certification.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -20,7 +20,7 @@ async function open({
 	const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
 	const page = await context.newPage();
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.addInitScript(installFixture, { quality, mode: 'advanced' });
+	await page.addInitScript(withFixture({ quality, mode: 'advanced' }));
 	await page.addInitScript(
 		({ scope, style, instances }) => {
 			localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style }));

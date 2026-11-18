@@ -303,7 +303,6 @@
 	:global(body) {
 		margin: 0;
 		height: 100%;
-		background: #0b0d12;
 	}
 
 	.log-window {
@@ -311,8 +310,8 @@
 		flex-direction: column;
 		height: 100vh;
 		min-height: 0;
-		background: #0b0d12;
-		color: #e4e6eb;
+		background: var(--surface-workspace);
+		color: var(--text-primary);
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 	}
 
@@ -321,7 +320,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 12px 16px;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		border-bottom: 1px solid var(--border);
 		flex-shrink: 0;
 	}
 
@@ -332,11 +331,11 @@
 
 	.status {
 		font-size: 0.72rem;
-		color: #8b93a7;
+		color: var(--text-secondary);
 	}
 
 	.status.exited {
-		color: #f59e0b;
+		font-weight: 600;
 	}
 
 	.friendly-error {
@@ -347,7 +346,7 @@
 		padding: 8px 14px;
 		background: rgba(245, 158, 11, 0.14);
 		border-bottom: 1px solid rgba(245, 158, 11, 0.35);
-		color: #f5c518;
+		color: var(--text-primary);
 		font-size: 0.74rem;
 	}
 
@@ -379,7 +378,7 @@
 		background: rgba(239, 68, 68, 0.1);
 		border-bottom: 1px solid rgba(239, 68, 68, 0.3);
 		font-size: 0.74rem;
-		color: #fca5a5;
+		color: var(--text-primary);
 	}
 
 	.suspects-head {
@@ -426,12 +425,12 @@
 
 	.suspect-error {
 		margin: 0;
-		color: #fecaca;
+		font-weight: 600;
 	}
 
 	.suspect-ok {
 		margin: 0;
-		color: #86efac;
+		font-weight: 600;
 	}
 
 	.actions {
@@ -445,15 +444,15 @@
 		gap: 6px;
 		padding: 6px 10px;
 		border-radius: 6px;
-		border: 1px solid rgba(255, 255, 255, 0.12);
-		background: rgba(255, 255, 255, 0.04);
-		color: #e4e6eb;
+		border: 1px solid var(--border);
+		background: var(--surface-interactive);
+		color: var(--text-primary);
 		font-size: 0.75rem;
 		cursor: pointer;
 	}
 
 	.actions button:hover:not(:disabled) {
-		background: rgba(255, 255, 255, 0.1);
+		border-color: var(--accent);
 	}
 
 	.actions button:disabled {

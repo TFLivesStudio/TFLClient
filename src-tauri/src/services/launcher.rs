@@ -272,7 +272,7 @@ async fn ensure_downloaded(
 /// libera la tarea de fondo que espera a que el proceso termine (ver el
 /// final de `launch_inner`).
 pub async fn launch(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     instance_name: String,
     server_address: Option<String>,
 ) -> Result<(), String> {
@@ -296,18 +296,14 @@ pub async fn launch(
     }
 
     drop(mutation_guard);
-    let result = launch_inner(app, instance_name.clone(), server_address).await;
+    let result = launch_inner(instance_name.clone(), server_address).await;
     if result.is_err() {
         RUNNING.lock().unwrap().remove(&instance_name);
     }
     result
 }
 
-async fn launch_inner(
-    app: tauri::AppHandle,
-    instance_name: String,
-    server_address: Option<String>,
-) -> Result<(), String> {
+async fn launch_inner(instance_name: String, server_address: Option<String>) -> Result<(), String> {
     info!("Lanzando instancia \"{instance_name}\"");
     let _perf_total = crate::core::perf::span("launch.total");
     let data = instance_manager::get_instance(&instance_name).await?;

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 const output = process.env.VISUAL_OUTPUT || 'artifacts/visual-refresh';
 await mkdir(output, { recursive: true });
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const b = await chromium.launch({
 	headless: true,
@@ -12,7 +12,7 @@ const p = await b.newPage({ viewport: { width: 800, height: 600 } });
 const errors = [];
 p.on('pageerror', (e) => errors.push(e.message));
 p.setDefaultTimeout(10000);
-await p.addInitScript(installFixture, { premium: true });
+await p.addInitScript(withFixture({ premium: true }));
 const shot = async (name) => {
 	await p.waitForTimeout(200);
 	await p.screenshot({ path: `${output}/${name}.png` });

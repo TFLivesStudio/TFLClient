@@ -22,7 +22,7 @@
 		launchInstance,
 		getCharacterProfile,
 		getInstanceIconPath,
-		updateSettings,
+		patchSettings,
 		getFavoriteServers,
 		getRecentActivity,
 		getSystemStatus
@@ -256,7 +256,7 @@
 		showMultiInstanceConfirm = false;
 		if (multiInstanceDontAskAgain && appState.settings) {
 			try {
-				await updateSettings({ ...appState.settings, multi_instance_warning_dismissed: true });
+				await patchSettings({ multi_instance_warning_dismissed: true });
 				appState.settings.multi_instance_warning_dismissed = true;
 			} catch {
 				// si falla guardar la preferencia, no vale la pena bloquear el

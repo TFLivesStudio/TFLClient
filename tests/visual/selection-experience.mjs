@@ -1,7 +1,7 @@
 // Production UI with isolated IPC. Future Fabric release is a presentation fixture, not an install claim.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -15,7 +15,7 @@ try {
 	for (const style of ['modern', 'pixel']) {
 		const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 		page.on('pageerror', (e) => errors.push(e.message));
-		await page.addInitScript(installFixture, { selectionFixtures: true });
+		await page.addInitScript(withFixture({ selectionFixtures: true }));
 		await page.addInitScript(
 			(style) => localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style })),
 			style

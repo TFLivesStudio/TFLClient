@@ -1,7 +1,7 @@
 // Production UI with explicit simulated IPC. Native codec/GPU and real login are separate manual checks.
 import assert from 'node:assert/strict';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 import { SETTINGS, PAGES } from '../../src/lib/settings/catalog.ts';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
@@ -33,7 +33,7 @@ async function open(options = {}) {
 	page.setDefaultTimeout(12000);
 	page.on('pageerror', (e) => errors.push(e.message));
 	// This suite exercises advanced overrides and explicit Apply/Save contracts.
-	await page.addInitScript(installFixture, { mode: 'advanced', ...options, iconPresets: icons });
+	await page.addInitScript(withFixture({ mode: 'advanced', ...options, iconPresets: icons }));
 	await page.addInitScript(
 		({ style, scene, surface }) => {
 			localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style }));
@@ -143,13 +143,13 @@ try {
 	await p.locator('.ram-row input').first().fill('8192');
 	await p.locator('.ram-row input').nth(1).fill('1024');
 	const before = await p.evaluate(
-		() => window.__fixtureCommands.filter((c) => c.cmd === 'update_settings').length
+		() => window.__fixtureCommands.filter((c) => c.cmd === 'patch_settings').length
 	);
 	await p.getByRole('button', { name: 'Guardar', exact: true }).click();
 	await p.getByRole('alert').filter({ hasText: 'valores enteros' }).waitFor();
 	assert.equal(
 		await p.evaluate(
-			() => window.__fixtureCommands.filter((c) => c.cmd === 'update_settings').length
+			() => window.__fixtureCommands.filter((c) => c.cmd === 'patch_settings').length
 		),
 		before
 	);
@@ -167,7 +167,7 @@ try {
 	await p.getByRole('button', { name: 'Guardar opciones de inicio' }).click();
 	await p.waitForFunction(() =>
 		window.__fixtureCommands.some(
-			(c) => c.cmd === 'update_settings' && c.args.newSettings.env_vars.TFL_DEMO === 'one=two'
+			(c) => c.cmd === 'patch_settings' && c.args?.patch?.env_vars?.TFL_DEMO === 'one=two'
 		)
 	);
 	checks.push('canonical-targets-deep-search-ram-java-validation');

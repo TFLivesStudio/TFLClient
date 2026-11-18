@@ -154,7 +154,7 @@ pub fn worlds_root(root: &Path, server: bool) -> Result<PathBuf, String> {
     Ok(result)
 }
 
-fn level_path(world: &Path) -> Result<PathBuf, String> {
+fn find_level(world: &Path) -> Result<Option<PathBuf>, String> {
     // Windows is case-insensitive; also inspect imported case variants on Unix.
     let mut found = None;
     for entry in fs::read_dir(world).map_err(|e| io_error("No se pudo leer el mundo", e))? {
@@ -171,7 +171,11 @@ fn level_path(world: &Path) -> Result<PathBuf, String> {
             found = Some(entry.path());
         }
     }
-    found.ok_or_else(|| "Esta carpeta no contiene level.dat.".into())
+    Ok(found)
+}
+
+fn level_path(world: &Path) -> Result<PathBuf, String> {
+    find_level(world)?.ok_or_else(|| "Esta carpeta no contiene level.dat.".into())
 }
 
 pub fn world_path(root: &Path, server: bool, name: &str) -> Result<PathBuf, String> {
@@ -410,13 +414,22 @@ pub fn list_worlds(root: &Path, server: bool) -> Result<Vec<WorldInfo>, String> 
         return Ok(Vec::new());
     }
     let primary = if server {
-        match fs::read_to_string(root.join("server.properties")) {
-            Ok(properties) => properties
-                .lines()
-                .filter_map(|line| line.trim().split_once('='))
-                .find(|(key, _)| key.trim() == "level-name")
-                .map(|(_, value)| value.trim().to_string())
-                .unwrap_or_else(|| "world".into()),
+        let path = root.join("server.properties");
+        match fs::symlink_metadata(&path) {
+            Ok(meta) if meta.is_file() && meta.len() <= 1024 * 1024 => {
+                no_link(&path)?;
+                let mut raw = String::new();
+                File::open(&path)
+                    .and_then(|file| file.take(1024 * 1024 + 1).read_to_string(&mut raw))
+                    .map_err(|e| io_error("No se pudo leer server.properties", e))?;
+                if raw.len() > 1024 * 1024 {
+                    return Err("server.properties supera el límite de 1 MiB.".into());
+                }
+                super::server_ports::properties(&raw)?
+                    .remove("level-name")
+                    .unwrap_or_else(|| "world".into())
+            }
+            Ok(_) => return Err("server.properties no es un archivo normal de hasta 1 MiB.".into()),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => "world".into(),
             Err(e) => return Err(io_error("No se pudo leer server.properties", e)),
         }
@@ -458,17 +471,7 @@ pub fn list_worlds(root: &Path, server: bool) -> Result<Vec<WorldInfo>, String> 
     }
     let mut result = Vec::new();
     for (name, path) in candidates {
-        if !fs::read_dir(&path)
-            .map_err(|e| io_error("No se pudo consultar un mundo", e))?
-            .any(|entry| {
-                entry.is_ok_and(|entry| {
-                    entry
-                        .file_name()
-                        .to_string_lossy()
-                        .eq_ignore_ascii_case("level.dat")
-                })
-            })
-        {
+        if find_level(&path)?.is_none() {
             continue;
         }
         no_link(&path)?;
@@ -630,13 +633,16 @@ pub fn rename_world(
     atomic_replace_file(&level, &bytes)
 }
 
-/// Keep the original until the complete replacement is durable. On Windows
-/// rename cannot replace an existing destination, hence the explicit rollback.
+/// Keep the old file in place until the complete replacement is durable.
 pub fn atomic_replace_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
     let parent = path.parent().ok_or("Ruta sin directorio padre.")?;
     no_link(parent)?;
+    match fs::symlink_metadata(path) {
+        Ok(_) => no_link(path)?,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+        Err(error) => return Err(io_error("No se pudo consultar el destino", error)),
+    }
     let staging = parent.join(format!(".tfl-stage-{}", uuid::Uuid::new_v4()));
-    let previous = parent.join(format!(".tfl-previous-{}", uuid::Uuid::new_v4()));
     let mut file = OpenOptions::new()
         .create_new(true)
         .write(true)
@@ -647,30 +653,9 @@ pub fn atomic_replace_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
         return Err(io_error("No se pudo guardar el archivo completo", error));
     }
     drop(file);
-    let existed = path
-        .try_exists()
-        .map_err(|e| io_error("No se pudo consultar el destino", e))?;
-    if existed {
-        no_link(path)?;
-        if let Err(error) = fs::rename(path, &previous) {
-            let _ = fs::remove_file(&staging);
-            return Err(io_error("No se pudo conservar el archivo original", error));
-        }
-    }
     if let Err(error) = fs::rename(&staging, path) {
-        if existed {
-            fs::rename(&previous, path).map_err(|_| {
-                format!(
-                    "No se pudo restaurar el original; se conserva en {}",
-                    previous.display()
-                )
-            })?;
-        }
         let _ = fs::remove_file(&staging);
         return Err(io_error("No se pudo reemplazar el archivo", error));
-    }
-    if existed {
-        let _ = fs::remove_file(previous);
     }
     Ok(())
 }

@@ -15,6 +15,7 @@
 //! comprobar, se cae a la última versión disponible, que es lo que ya hace
 //! `import_external_instance` para los launchers detectados.
 
+use super::import_sources::{ActiveImport, canceled};
 use crate::commands::{instance::assign_random_icon, modpacks};
 use crate::core::{HTTP, PathManager, get_json_retrying};
 use crate::services::instance_manager::{self, InstanceData, LoaderKind};
@@ -78,6 +79,7 @@ fn friendly(e: MrpackError) -> String {
         MrpackError::Download(msg) => {
             format!("No se pudieron descargar los mods del modpack: {msg}")
         }
+        MrpackError::Cancelled => "Importación cancelada. El archivo de origen se conserva.".into(),
     }
 }
 
@@ -302,13 +304,17 @@ pub async fn import_mrpack_file(
     app: AppHandle,
     path: String,
     new_name: Option<String>,
+    request_id: Option<String>,
 ) -> Result<InstanceData, String> {
+    let active = ActiveImport::register(request_id)?;
     let path = validate_path(&path)?;
+    crate::services::worlds::no_link(&path)?;
     let parse_path = path.clone();
     let parsed = tokio::task::spawn_blocking(move || parse_blocking(&parse_path))
         .await
         .map_err(|e| e.to_string())??;
     check_mc_version(&parsed.mc_version).await?;
+    canceled(&active.cancel)?;
 
     let name = match new_name.map(|n| n.trim().to_string()) {
         Some(n) if !n.is_empty() => n,
@@ -321,42 +327,65 @@ pub async fn import_mrpack_file(
         parsed.pack_loader_version.as_deref(),
     )
     .await?;
+    canceled(&active.cancel)?;
 
-    // Falla con "Ya existe una instancia con ese nombre" si el nombre se repite.
-    let data = instance_manager::create_instance(
-        name,
-        parsed.mc_version.clone(),
-        parsed.loader,
-        loader_version,
-        launch_id,
-    )
-    .await?;
-    assign_random_icon(&app, &data).await;
+    instance_manager::valid_instance_name(&name)?;
+    crate::services::worlds::valid_name(&name)?;
+    let _mutation = crate::services::content::mutation_lock(&name).await;
+    canceled(&active.cancel)?;
+    let data: InstanceData = serde_json::from_value(serde_json::json!({
+        "uuid": uuid::Uuid::new_v4().to_string(),
+        "name": name,
+        "mc_version": parsed.mc_version,
+        "loader": parsed.loader,
+        "loader_version": loader_version,
+        "launch_version_id": launch_id,
+    }))
+    .map_err(|_| "No se pudo crear el manifiesto del modpack.")?;
+    let destination = data.dir();
+    tokio::fs::create_dir(&destination).await.map_err(|error| {
+        if error.kind() == std::io::ErrorKind::AlreadyExists {
+            "Ya existe una instancia con ese nombre. Sus archivos siguen intactos.".into()
+        } else {
+            format!("No se pudo preparar la importación: {error}")
+        }
+    })?;
 
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
     let (tx, watcher) = progress::watch(&format!("mrpack:{}", data.name));
-    let installed = mrpack::install_mrpack(&path, &data.dir(), &shared_dir, Some(tx))
-        .await
-        .map_err(friendly);
-    let status = installed.as_ref().map(|_| ()).map_err(|e| e.clone());
-    let _ = watcher.finish(status).await;
-
-    let metadata = match installed {
-        Ok(m) => m,
-        Err(e) => {
-            let _ = instance_manager::delete_instance(&data.name).await;
-            return Err(e);
+    let installed = mrpack::install_mrpack_cancellable(
+        &path,
+        &destination,
+        &shared_dir,
+        Some(tx),
+        Some(&active.cancel),
+    )
+    .await
+    .map_err(friendly);
+    let result: Result<(), String> = async {
+        let metadata = installed?;
+        canceled(&active.cancel)?;
+        let version_id = if modpacks::valid_version_id(&metadata.version_id).is_ok() {
+            metadata.version_id.clone()
+        } else {
+            format!("local-{}", uuid::Uuid::new_v4())
+        };
+        write_manifest(&destination, &version_id, &metadata).await?;
+        canceled(&active.cancel)?;
+        data.save().await.map_err(|e| e.to_string())
+    }
+    .await;
+    let _ = watcher.finish(result.clone()).await;
+    if let Err(reason) = result {
+        if let Err(error) = tokio::fs::remove_dir_all(&destination).await {
+            return Err(format!(
+                "{reason} No se pudo retirar la carpeta incompleta: {error}"
+            ));
         }
-    };
-
-    // Sin esto el pack no se podría verificar ni desinstalar después.
-    let version_id = if modpacks::valid_version_id(&metadata.version_id).is_ok() {
-        metadata.version_id.clone()
-    } else {
-        format!("local-{}", uuid::Uuid::new_v4())
-    };
-    if let Err(e) = write_manifest(&data.dir(), &version_id, &metadata).await {
-        tracing::warn!("mrpack importado sin manifest de desinstalación: {e}");
+        return Err(reason);
+    }
+    if !destination.join("icon.png").is_file() {
+        assign_random_icon(&app, &data).await;
     }
     Ok(data)
 }

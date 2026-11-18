@@ -1,7 +1,7 @@
 // Selected-scene Chromium observations; not native CPU/GPU/RSS measurements.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -19,7 +19,7 @@ try {
 		for (const quality of ['Lite', 'Balanced', 'Experience'])
 			for (const scene of ['forest', 'embers', 'void', 'aurora', 'pixel']) {
 				const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-				await page.addInitScript(installFixture, { quality, appVersion: version });
+				await page.addInitScript(withFixture({ quality, appVersion: version }));
 				await page.addInitScript(
 					(scene) =>
 						localStorage.setItem(

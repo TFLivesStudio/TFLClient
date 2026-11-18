@@ -1,7 +1,7 @@
 // Actual frontend with isolated IPC. Timings and screenshots describe Chromium, not native Tauri.
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const appVersion = JSON.parse(
 	await readFile(new URL('../../package.json', import.meta.url), 'utf8')
@@ -22,13 +22,15 @@ async function open(o) {
 	});
 	p.setDefaultTimeout(15000);
 	p.on('pageerror', (e) => errors.push(e.message));
-	await p.addInitScript(installFixture, {
-		premium: true,
-		appVersion,
-		quality: o.quality,
-		theme: o.theme === 'light' ? 'light' : 'dark',
-		language: o.language
-	});
+	await p.addInitScript(
+		withFixture({
+			premium: true,
+			appVersion,
+			quality: o.quality,
+			theme: o.theme === 'light' ? 'light' : 'dark',
+			language: o.language
+		})
+	);
 	await p.addInitScript((o) => {
 		localStorage.setItem(
 			'tfl-visual-refresh-v1',
@@ -193,10 +195,8 @@ try {
 						() =>
 							window.__fixtureCommands.filter(
 								(c) =>
-									(c.cmd === 'patch_settings' &&
-										Object.hasOwn(c.args?.patch ?? {}, 'sidebar_collapsed')) ||
-									(c.cmd === 'update_settings' &&
-										Object.hasOwn(c.args?.settings ?? {}, 'sidebar_collapsed'))
+									c.cmd === 'patch_settings' &&
+									Object.hasOwn(c.args?.patch ?? {}, 'sidebar_collapsed')
 							).length
 					);
 				const count = await writes();

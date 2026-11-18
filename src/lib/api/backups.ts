@@ -19,5 +19,5 @@ export const detectImportableInstances = () =>
 export const importExternalInstance = (path: string, newName: string) =>
 	invoke<InstanceData>('import_external_instance', { path, newName });
 export const inspectMrpack = (path: string) => invoke<MrpackPreview>('inspect_mrpack', { path });
-export const importMrpackFile = (path: string, newName?: string) =>
-	invoke<InstanceData>('import_mrpack_file', { path, newName });
+export const importMrpackFile = (path: string, newName?: string, requestId?: string) =>
+	invoke<InstanceData>('import_mrpack_file', { path, newName, requestId });

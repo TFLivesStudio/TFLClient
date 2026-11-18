@@ -1,7 +1,7 @@
 // Real frontend, simulated IPC. Run against Vite; never claims native/game verification.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -18,7 +18,7 @@ async function open(options = {}) {
 		deviceScaleFactor: options.dpr || 1
 	});
 	page.on('pageerror', (e) => errors.push(e.message));
-	await page.addInitScript(installFixture, options);
+	await page.addInitScript(withFixture(options));
 	await page.addInitScript(
 		({ style, theme, surface }) => {
 			if (!localStorage.getItem('tfl-visual-refresh-v1'))

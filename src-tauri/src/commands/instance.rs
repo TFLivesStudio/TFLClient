@@ -2,7 +2,6 @@ use crate::services::instance_manager::InstanceData;
 use crate::services::{SettingsManager, instance_manager, launcher};
 use base64::Engine;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder, command};
-use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 
 /// Ahora se puede tener más de una instancia corriendo a la vez (ver

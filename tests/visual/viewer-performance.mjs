@@ -1,6 +1,6 @@
 // Software-rendered browser probe, not a native GPU or whole-process CPU benchmark.
 import { writeFile, mkdir } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -18,13 +18,15 @@ try {
 		for (const quality of ['Lite', 'Balanced', 'Experience']) {
 			const p = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 			p.setDefaultTimeout(10000);
-			await p.addInitScript(installFixture, {
-				quality,
-				premium: true,
-				skin: true,
-				appVersion:
-					revision === 'baseline' ? process.env.BASELINE_VERSION || '0.13.1-beta.4' : undefined
-			});
+			await p.addInitScript(
+				withFixture({
+					quality,
+					premium: true,
+					skin: true,
+					appVersion:
+						revision === 'baseline' ? process.env.BASELINE_VERSION || '0.13.1-beta.4' : undefined
+				})
+			);
 			await p.addInitScript(() => {
 				window.__contexts = 0;
 				window.__frames = 0;

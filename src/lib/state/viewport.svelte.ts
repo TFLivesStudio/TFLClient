@@ -14,7 +14,7 @@ import { appState } from './state.svelte';
  *
  *  - "manual": `appState.settings.sidebar_collapsed` — la preferencia del
  *    usuario, persistida en el backend (ver Sidebar.svelte / toggleCollapsed
- *    / updateSettings). SOLO cambia cuando el usuario clickea el toggle de
+ *    / patchSettings). Solo cambia cuando la persona usa el control de
  *    la sidebar. Este módulo nunca la escribe.
  *  - "forzado": `viewport.width < SIDEBAR_FORCE_COMPACT_WIDTH` — la ventana
  *    no tiene espacio para la sidebar completa en este momento. Es un

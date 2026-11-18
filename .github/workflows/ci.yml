@@ -110,6 +110,17 @@ jobs:
       - name: cargo test
         run: cargo test --workspace --lib --locked
 
+      - name: Build native updater probe
+        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+        run: cargo build --locked -p tflclient --example updater_smoke
+      - name: Upload native updater probe
+        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-updater-probe
+          path: target/debug/examples/updater_smoke
+          if-no-files-found: error
+
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: '1.4.2'
@@ -170,6 +181,8 @@ jobs:
       - uses: ./.github/actions/setup-rust
       - name: Run native feature tests with an isolated profile
         shell: bash
+        env:
+          TFL_NATIVE_NETWORK_TEST_URL: https://raw.githubusercontent.com/TFLivesStudio/TFLClient/fb23b9df3164bb95d65e157554f7e4c67a68a7c0/README.md
         run: |
           set -euo pipefail
           mkdir -p build artifacts/native "$RUNNER_TEMP/tfl-native"
@@ -201,7 +214,7 @@ jobs:
             services::worlds:: services::world_backup:: services::server_ports:: \
             services::server_tasks:: services::instance_archive:: services::settings_manager:: \
             services::mcp_quick_connect:: commands::import_sources:: commands::settings:: \
-            commands::instance::console_metrics:: commands::instance::tests:: \
+            commands::instance::console_metrics:: commands::instance::tests:: commands::system_status:: \
             2>&1 | tee artifacts/native/results.txt
       - name: Upload native feature evidence
         if: always()
@@ -274,6 +287,7 @@ jobs:
           node tests/visual/scene-motion.mjs
           node tests/visual/release-154-home.mjs
           node tests/visual/release-154-settings.mjs
+          node tests/visual/release-154-console.mjs
           node tests/visual/release-154-character.mjs
       - name: Upload visual review evidence
         if: always()

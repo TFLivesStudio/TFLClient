@@ -1,7 +1,7 @@
 // Actual Svelte frontend with isolated IPC fixtures; this is not native OS certification.
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -21,14 +21,16 @@ async function open(options) {
 	});
 	page.setDefaultTimeout(12000);
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.addInitScript(installFixture, {
-		mode: 'advanced',
-		premium: true,
-		appVersion,
-		quality: options.quality || 'Balanced',
-		theme: options.theme === 'light' ? 'light' : 'dark',
-		language: options.language || 'es'
-	});
+	await page.addInitScript(
+		withFixture({
+			mode: 'advanced',
+			premium: true,
+			appVersion,
+			quality: options.quality || 'Balanced',
+			theme: options.theme === 'light' ? 'light' : 'dark',
+			language: options.language || 'es'
+		})
+	);
 	await page.addInitScript((o) => {
 		localStorage.setItem(
 			'tfl-visual-refresh-v1',

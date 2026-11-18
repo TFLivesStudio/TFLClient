@@ -1,7 +1,7 @@
 // Controlled Chromium observations. These are not native CPU/GPU/RSS benchmarks.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({ headless: true, args: ['--enable-unsafe-swiftshader'] });
 const output = process.env.PERFORMANCE_OUTPUT || 'artifacts/refinement-performance';
@@ -15,12 +15,14 @@ try {
 		for (const quality of ['Lite', 'Balanced', 'Experience'])
 			for (const cape of [false, true]) {
 				const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-				await page.addInitScript(installFixture, {
-					premium: true,
-					skin: true,
-					quality,
-					appVersion
-				});
+				await page.addInitScript(
+					withFixture({
+						premium: true,
+						skin: true,
+						quality,
+						appVersion
+					})
+				);
 				await page.addInitScript((cape) => {
 					const texture = document.createElement('canvas');
 					texture.width = 64;

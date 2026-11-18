@@ -1,7 +1,7 @@
 // Real production frontend, simulated IPC; observations are Chromium, not native GPU certification.
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({ headless: true });
 const url = process.env.VISUAL_URL || 'http://localhost:4175';
@@ -16,7 +16,7 @@ async function open(preset, quality = 'Balanced', extra = {}) {
 		reducedMotion: extra.reduced ? 'reduce' : 'no-preference'
 	});
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.addInitScript(installFixture, { quality });
+	await page.addInitScript(withFixture({ quality }));
 	await page.addInitScript(
 		({ preset, noCanvas }) => {
 			localStorage.setItem(

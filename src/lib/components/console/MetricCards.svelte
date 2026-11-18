@@ -60,6 +60,7 @@
 	const activeMetrics = $derived(p.order.filter((metric) => p.visible[metric]));
 	const end = $derived(history.at(-1)?.time ?? Date.now());
 	const monitor = $derived(monitorOf(current));
+	const additionalGpus = $derived(monitor?.gpus.slice(1) ?? []);
 	const process = $derived(processOf(current));
 	function name(metric: Metric) {
 		return metricLabel(metric);
@@ -146,6 +147,7 @@
 				class:selected={selected === metric}
 				class:measured={snapshot.value !== null}
 				class:active={snapshot.value !== null && snapshot.value > 0}
+				class:gauge={advanced && p.metricStyles[metric] === 'gauge'}
 				data-console-metric={metric}
 				style:--metric-color={p.colors[metric]}
 				draggable={advanced}
@@ -218,7 +220,7 @@
 									'processes · resident memory, not heap'
 								)}</span
 							>{/if}
-						{#if metric === 'gpu' && monitor?.gpus?.length > 1}{#each monitor.gpus.slice(1) as gpu (gpu.name)}<span
+						{#if metric === 'gpu'}{#each additionalGpus as gpu, index (`${gpu.name}:${index}`)}<span
 									>{gpu.name}: {gpu.utilization_percent === null
 										? '—'
 										: `${gpu.utilization_percent}%`} · VRAM {byteSize(gpu.vram_used_bytes)}</span
@@ -230,8 +232,12 @@
 						preserveAspectRatio="none"
 						role="img"
 						aria-label={`${name(metric)} · ${p.metricSeconds[metric]} s`}
-						><path d="M0,98H400" class="baseline" /><path d={plot(metric)} class="trace" /></svg
 					>
+						<path d="M0,98H400" class="baseline" />
+						{#if !advanced || p.metricStyles[metric] === 'lines'}
+							<path d={plot(metric)} class="trace" />
+						{/if}
+					</svg>
 				</div>
 				{#if advanced}<footer>
 						<small>−{p.metricSeconds[metric]}s → 0s</small><span class="moves">
@@ -340,6 +346,10 @@
 		fill: none;
 		stroke-width: 2.7;
 	}
+	.gauge .metric-ring {
+		width: 38px;
+		height: 38px;
+	}
 	.ring-track {
 		stroke: var(--border);
 	}
@@ -364,7 +374,10 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.active .metric-value {
-		color: color-mix(in srgb, var(--metric-color) 72%, var(--text-primary));
+		color: color-mix(in srgb, var(--text-primary) 78%, var(--metric-color));
+	}
+	:global(html[data-theme='dark']) .active .metric-value {
+		color: color-mix(in srgb, var(--metric-color) 65%, var(--text-primary));
 	}
 	.metric-denominator,
 	.directions,

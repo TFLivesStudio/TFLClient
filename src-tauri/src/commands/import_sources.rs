@@ -32,12 +32,12 @@ pub fn any_critical_import() -> bool {
     !IMPORTS.lock().unwrap().is_empty()
 }
 
-struct ActiveImport {
+pub(super) struct ActiveImport {
     id: String,
-    cancel: Arc<AtomicBool>,
+    pub(super) cancel: Arc<AtomicBool>,
 }
 impl ActiveImport {
-    fn register(request: Option<String>) -> Result<Self, String> {
+    pub(super) fn register(request: Option<String>) -> Result<Self, String> {
         let id = request.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         uuid::Uuid::parse_str(&id).map_err(|_| "Identificador de importación inválido.")?;
         let mut active = IMPORTS.lock().unwrap();
@@ -145,7 +145,7 @@ struct ServerManifest {
 fn error(value: impl std::fmt::Display) -> String {
     value.to_string()
 }
-fn canceled(cancel: &AtomicBool) -> Result<(), String> {
+pub(super) fn canceled(cancel: &AtomicBool) -> Result<(), String> {
     if cancel.load(Ordering::Relaxed) {
         Err("Importación cancelada. El origen se conserva sin cambios.".into())
     } else {

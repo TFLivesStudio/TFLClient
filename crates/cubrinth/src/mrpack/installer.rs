@@ -1,5 +1,8 @@
+use std::collections::HashSet;
 use std::io::Read;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use super::pack_format::{MrpackMetadata, PackFormat};
 use crate::utils::path::safe_join;
@@ -16,12 +19,134 @@ pub enum MrpackError {
     Download(String),
     #[error("Invalid mrpack: {0}")]
     Invalid(String),
+    #[error("Installation was cancelled")]
+    Cancelled,
 }
 
-pub fn parse_mrpack(path: &Path) -> Result<MrpackMetadata, MrpackError> {
-    let file = std::fs::File::open(path)?;
-    let mut archive = zip::ZipArchive::new(file)?;
+const MAX_ENTRIES: usize = 50_000;
+const MAX_EXPANDED: u64 = 32 * 1024 * 1024 * 1024;
+const MAX_INDEX: u64 = 16 * 1024 * 1024;
+const MAX_OVERRIDE: u64 = 128 * 1024 * 1024;
 
+fn invalid(message: &str) -> MrpackError {
+    MrpackError::Invalid(message.to_string())
+}
+
+fn portable_path(raw: &str) -> bool {
+    !raw.is_empty()
+        && raw.len() <= 4096
+        && raw.split('/').all(|part| {
+            !part.is_empty()
+                && part.len() <= 240
+                && !part.ends_with(['.', ' '])
+                && !part
+                    .chars()
+                    .any(|c| c.is_control() || "\\:*?\"<>|".contains(c))
+                && !matches!(
+                    part.split('.')
+                        .next()
+                        .unwrap_or("")
+                        .to_ascii_uppercase()
+                        .as_str(),
+                    "CON"
+                        | "PRN"
+                        | "AUX"
+                        | "NUL"
+                        | "COM1"
+                        | "COM2"
+                        | "COM3"
+                        | "COM4"
+                        | "COM5"
+                        | "COM6"
+                        | "COM7"
+                        | "COM8"
+                        | "COM9"
+                        | "LPT1"
+                        | "LPT2"
+                        | "LPT3"
+                        | "LPT4"
+                        | "LPT5"
+                        | "LPT6"
+                        | "LPT7"
+                        | "LPT8"
+                        | "LPT9"
+                )
+        })
+}
+
+fn pack_destination(raw: &str) -> bool {
+    portable_path(raw)
+        && raw.split('/').all(|part| {
+            let part = part.to_ascii_lowercase();
+            !part.starts_with(".tfl")
+                && !matches!(
+                    part.as_str(),
+                    "instance.tfl.json"
+                        | "accounts.json"
+                        | "launcher_accounts.json"
+                        | "launcher_accounts_microsoft_store.json"
+                        | "auth.json"
+                        | "credentials.json"
+                        | "msa-cache.json"
+                        | ".env"
+                        | "session.lock"
+                )
+        })
+}
+
+fn trusted_download(raw: &str) -> bool {
+    let Some((host, path)) = raw
+        .strip_prefix("https://")
+        .and_then(|url| url.split_once('/'))
+    else {
+        return false;
+    };
+    matches!(
+        host,
+        "cdn.modrinth.com" | "github.com" | "raw.githubusercontent.com" | "gitlab.com"
+    ) && !path.is_empty()
+        && !raw
+            .chars()
+            .any(|c| c.is_control() || c.is_whitespace() || c == '\\')
+}
+
+fn read_pack(archive: &mut zip::ZipArchive<std::fs::File>) -> Result<PackFormat, MrpackError> {
+    if archive.len() > MAX_ENTRIES {
+        return Err(invalid("El archivo .mrpack supera el límite de entradas."));
+    }
+    let mut expanded = 0u64;
+    let mut archive_paths = HashSet::new();
+    for index in 0..archive.len() {
+        let entry = archive.by_index(index)?;
+        let name = entry.name()?;
+        let name = name.strip_suffix('/').unwrap_or(&name);
+        if !portable_path(name) || !archive_paths.insert(name.to_lowercase()) {
+            return Err(invalid("El .mrpack contiene rutas inválidas o duplicadas."));
+        }
+        if ["overrides/", "client-overrides/"].iter().any(|prefix| {
+            name.strip_prefix(*prefix)
+                .is_some_and(|relative| !pack_destination(relative))
+        }) {
+            return Err(invalid(
+                "El .mrpack intenta copiar archivos de cuentas o del launcher.",
+            ));
+        }
+        if entry
+            .unix_mode()
+            .is_some_and(|mode| !matches!(mode & 0o170000, 0 | 0o100000 | 0o040000))
+        {
+            return Err(invalid("El .mrpack contiene un enlace o archivo especial."));
+        }
+        if entry.size() > MAX_OVERRIDE {
+            return Err(invalid(
+                "Un archivo del .mrpack supera el límite de tamaño.",
+            ));
+        }
+        expanded = expanded
+            .checked_add(entry.size())
+            .filter(|n| *n <= MAX_EXPANDED)
+            .ok_or_else(|| invalid("El .mrpack supera el límite de contenido descomprimido."))?;
+    }
     let manifest_idx = archive
         .file_names()
         .position(|name| matches!(name.as_deref(), Ok("modrinth.index.json")))
@@ -32,7 +157,11 @@ pub fn parse_mrpack(path: &Path) -> Result<MrpackMetadata, MrpackError> {
     let mut content = String::new();
     archive
         .by_index(manifest_idx)?
+        .take(MAX_INDEX + 1)
         .read_to_string(&mut content)?;
+    if content.len() as u64 > MAX_INDEX {
+        return Err(invalid("El manifiesto .mrpack supera el límite de tamaño."));
+    }
 
     let pack: PackFormat = serde_json::from_str(&content)?;
 
@@ -43,7 +172,42 @@ pub fn parse_mrpack(path: &Path) -> Result<MrpackMetadata, MrpackError> {
         )));
     }
 
-    Ok(pack.extract_metadata())
+    if pack.format_version != 1 || pack.files.len() + archive.len() > MAX_ENTRIES {
+        return Err(invalid(
+            "La versión o el número de archivos de este .mrpack no son compatibles.",
+        ));
+    }
+    let mut download_paths = HashSet::new();
+    for file in &pack.files {
+        let valid_hash = |kind: &str, length: usize| {
+            file.hashes.get(kind).is_some_and(|hash| {
+                hash.len() == length && hash.bytes().all(|c| c.is_ascii_hexdigit())
+            })
+        };
+        if !pack_destination(&file.path) || !download_paths.insert(file.path.to_lowercase()) {
+            return Err(invalid(
+                "El manifiesto incluye rutas inválidas, reservadas o duplicadas.",
+            ));
+        }
+        if !file.downloads.iter().any(|url| trusted_download(url))
+            || !valid_hash("sha1", 40)
+            || !valid_hash("sha512", 128)
+        {
+            return Err(invalid(
+                "Una descarga no incluye una URL HTTPS admitida y hashes válidos.",
+            ));
+        }
+        expanded = expanded
+            .checked_add(u64::from(file.file_size))
+            .filter(|n| *n <= MAX_EXPANDED)
+            .ok_or_else(|| invalid("El .mrpack supera el límite total de contenido."))?;
+    }
+    Ok(pack)
+}
+
+pub fn parse_mrpack(path: &Path) -> Result<MrpackMetadata, MrpackError> {
+    let mut archive = zip::ZipArchive::new(std::fs::File::open(path)?)?;
+    Ok(read_pack(&mut archive)?.extract_metadata())
 }
 
 pub async fn install_mrpack(
@@ -52,29 +216,28 @@ pub async fn install_mrpack(
     shared_dir: &Path,
     progress: Option<aqua::progress::ProgressSender>,
 ) -> Result<MrpackMetadata, MrpackError> {
+    install_mrpack_cancellable(path, instance_dir, shared_dir, progress, None).await
+}
+
+fn check_cancel(cancel: Option<&AtomicBool>) -> Result<(), MrpackError> {
+    if cancel.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+        return Err(MrpackError::Cancelled);
+    }
+    Ok(())
+}
+
+pub async fn install_mrpack_cancellable(
+    path: &Path,
+    instance_dir: &Path,
+    shared_dir: &Path,
+    progress: Option<aqua::progress::ProgressSender>,
+    cancel: Option<&AtomicBool>,
+) -> Result<MrpackMetadata, MrpackError> {
+    check_cancel(cancel)?;
     let file = std::fs::File::open(path)?;
     let mut archive = zip::ZipArchive::new(file)?;
 
-    let manifest_idx = archive
-        .file_names()
-        .position(|name| matches!(name.as_deref(), Ok("modrinth.index.json")))
-        .ok_or_else(|| {
-            MrpackError::Invalid("No modrinth.index.json found in mrpack".to_string())
-        })?;
-
-    let mut content = String::new();
-    archive
-        .by_index(manifest_idx)?
-        .read_to_string(&mut content)?;
-
-    let pack: PackFormat = serde_json::from_str(&content)?;
-
-    if pack.game != "minecraft" {
-        return Err(MrpackError::Invalid(format!(
-            "Pack is for '{}', not 'minecraft'",
-            pack.game
-        )));
-    }
+    let pack = read_pack(&mut archive)?;
 
     let mut metadata = pack.extract_metadata();
 
@@ -89,41 +252,26 @@ pub async fn install_mrpack(
         })
         .collect();
 
-    // Build DownloadItemSpecs for files that need downloading — cualquier
-    // archivo que se descarte acá (sin URL de descarga, o con un path que
-    // no pasa `safe_join`) antes se perdía en silencio: el pack terminaba
-    // instalado "incompleto" sin ningún rastro de qué faltó, indistinguible
-    // de un pack armado mal. Ahora queda logueado.
-    let mut skipped: Vec<String> = Vec::new();
-    let items: Vec<aqua::DownloadItemSpec> = applicable_files
+    let items = applicable_files
         .iter()
-        .filter_map(|f| {
-            let Some(url) = f.downloads.first() else {
-                skipped.push(format!("{} (sin URL de descarga)", f.path));
-                return None;
-            };
-            let dest = match safe_join(instance_dir, &f.path) {
-                Ok(d) => d,
-                Err(e) => {
-                    skipped.push(format!("{} (path inválido: {e})", f.path));
-                    return None;
-                }
-            };
-            let hash = f.hashes.get("sha1").map(|s| s.as_str()).unwrap_or("");
-            Some(
-                aqua::DownloadItemSpec::new(url.clone(), dest, &f.path)
-                    .with_hash(hash)
-                    .with_size(f.file_size as u64),
+        .map(|file| {
+            let url = file
+                .downloads
+                .iter()
+                .find(|url| trusted_download(url))
+                .ok_or_else(|| invalid("No hay una URL admitida para uno de los archivos."))?;
+            let destination = safe_join(instance_dir, &file.path).map_err(MrpackError::Invalid)?;
+            let hash = file
+                .hashes
+                .get("sha1")
+                .ok_or_else(|| invalid("Falta el hash SHA-1."))?;
+            Ok(
+                aqua::DownloadItemSpec::new(url.clone(), destination, &file.path)
+                    .with_hash(hash.to_ascii_lowercase())
+                    .with_size(u64::from(file.file_size)),
             )
         })
-        .collect();
-    if !skipped.is_empty() {
-        tracing::warn!(
-            "mrpack: {} archivo(s) del índice no se pudieron preparar para descarga, se omiten: {}",
-            skipped.len(),
-            skipped.join(", ")
-        );
-    }
+        .collect::<Result<Vec<_>, MrpackError>>()?;
 
     if !items.is_empty() {
         let batch = aqua::GenericBatch::new(format!("mrpack-{}", metadata.version_id), items);
@@ -134,16 +282,31 @@ pub async fn install_mrpack(
             .await
             .map_err(|e| MrpackError::Download(e.to_string()))?;
 
-        handle
-            .download_all(progress)
-            .await
-            .map_err(|e| MrpackError::Download(e.to_string()))?;
+        let download = handle.download_all(progress);
+        tokio::pin!(download);
+        loop {
+            tokio::select! {
+                result = &mut download => {
+                    check_cancel(cancel)?;
+                    result.map_err(|e| MrpackError::Download(e.to_string()))?;
+                    break;
+                }
+                _ = tokio::time::sleep(Duration::from_millis(150)), if cancel.is_some() => {
+                    if check_cancel(cancel).is_err() {
+                        handle.cancel();
+                        let _ = download.await;
+                        return Err(MrpackError::Cancelled);
+                    }
+                }
+            }
+        }
     }
 
     metadata.installed_paths = applicable_files.iter().map(|f| f.path.clone()).collect();
     metadata
         .installed_paths
-        .extend(extract_overrides(&mut archive, instance_dir).await?);
+        .extend(extract_overrides(&mut archive, instance_dir, cancel).await?);
+    check_cancel(cancel)?;
     extract_icon(&mut archive, instance_dir).await?;
 
     Ok(metadata)
@@ -152,9 +315,11 @@ pub async fn install_mrpack(
 async fn extract_overrides(
     archive: &mut zip::ZipArchive<std::fs::File>,
     instance_dir: &Path,
+    cancel: Option<&AtomicBool>,
 ) -> Result<Vec<String>, MrpackError> {
     let mut written = Vec::new();
     for i in 0..archive.len() {
+        check_cancel(cancel)?;
         let entry = archive.by_index(i)?;
         let entry_name = entry.name()?.to_string();
         let is_dir = entry.is_dir();

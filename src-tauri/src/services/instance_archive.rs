@@ -59,7 +59,7 @@ impl Archive {
         self.zip
             .start_file(
                 relative,
-                SimpleFileOptions::default().large_file(meta.len() >= u32::MAX.into()),
+                SimpleFileOptions::default().large_file(meta.len() >= u64::from(u32::MAX)),
             )
             .map_err(error)?;
         let mut input = File::open(source).map_err(error)?;

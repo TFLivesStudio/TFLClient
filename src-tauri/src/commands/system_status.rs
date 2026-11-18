@@ -195,3 +195,66 @@ pub async fn get_system_status() -> Result<SystemStatus, String> {
     .await
     .map_err(|_| "No se pudo consultar el hardware".to_string())?
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn status_measures_host_memory_and_keeps_missing_gpu_explicit() {
+        let measured = get_system_status().await.expect("host inventory responds");
+        assert!(measured.ram_total_mb > 0);
+        assert!(measured.ram_available_mb <= measured.ram_total_mb);
+        assert!(measured.gpu_adapters.iter().all(|adapter| {
+            !adapter.name.trim().is_empty() && !adapter.provider.trim().is_empty()
+        }));
+        assert!(measured.hardware_error.is_none() || measured.gpu_adapters.is_empty());
+        if let (Some(free), Some(total)) = (measured.disk_free_gb, measured.disk_total_gb) {
+            assert!(free >= 0.0 && total >= free);
+        }
+        println!(
+            "CPU: {:?}; GPU: {:?}; unavailable: {:?}",
+            measured.cpu_model,
+            measured
+                .gpu_adapters
+                .iter()
+                .map(|gpu| &gpu.name)
+                .collect::<Vec<_>>(),
+            measured.hardware_error
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[tokio::test]
+    async fn adapter_names_match_windows_cim() {
+        let measured = get_system_status()
+            .await
+            .expect("Windows inventory responds");
+        let Ok(raw) = provider_output(
+            "powershell.exe",
+            &[
+                "-NoLogo",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "[Console]::OutputEncoding=[Text.UTF8Encoding]::new(); (Get-CimInstance -ClassName Win32_VideoController).Name",
+            ],
+        ) else {
+            assert!(measured.hardware_error.is_some() || measured.gpu_adapters.is_empty());
+            return;
+        };
+        let mut expected: Vec<_> = raw
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .collect();
+        let mut inventory: Vec<_> = measured
+            .gpu_adapters
+            .iter()
+            .map(|adapter| adapter.name.trim())
+            .collect();
+        expected.sort_unstable();
+        inventory.sort_unstable();
+        assert_eq!(inventory, expected);
+    }
+}

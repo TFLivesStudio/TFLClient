@@ -335,7 +335,7 @@
 		outline: 2px solid var(--accent);
 		outline-offset: 3px;
 	}
-	.spin {
+	.review :global(.spin) {
 		animation: source-spin 0.8s linear infinite;
 	}
 	@keyframes source-spin {
@@ -344,7 +344,7 @@
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.spin {
+		.review :global(.spin) {
 			animation: none;
 		}
 	}

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { modalFocus } from '$lib/visual/modalFocus';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import type { ImportCandidate, InstanceData, MrpackPreview } from '$lib/types/types';
 	import {
 		detectImportableInstances,
@@ -11,7 +11,7 @@
 	import { mrpackDropIntent } from '$lib/state/uiState.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { tr } from '$lib/i18n/experience';
-	import { pickImportDirectory } from '$lib/api/importSources';
+	import { cancelInstanceImport, pickImportDirectory } from '$lib/api/importSources';
 	import ImportSourceReview from './ImportSourceReview.svelte';
 	import { Loader2, Download, FolderInput } from 'lucide-svelte';
 
@@ -46,6 +46,11 @@
 	let mrpackName = $state('');
 	let mrpackBusy = $state<'pick' | 'inspect' | 'import' | null>(null);
 	let mrpackError = $state<string | null>(null);
+	let mrpackCancelling = $state(false);
+	let mrpackRequest: string | undefined;
+	onDestroy(() => {
+		if (mrpackRequest) void cancelInstanceImport(mrpackRequest);
+	});
 
 	const LOADER_LABEL: Record<MrpackPreview['loader'], string> = {
 		vanilla: 'Vanilla',
@@ -93,12 +98,29 @@
 		if (!mrpackPath || !name || mrpackBusy) return;
 		mrpackBusy = 'import';
 		mrpackError = null;
+		mrpackCancelling = false;
+		mrpackRequest = crypto.randomUUID();
 		try {
-			const instance = await importMrpackFile(mrpackPath, name);
+			const instance = await importMrpackFile(mrpackPath, name, mrpackRequest);
+			mrpackRequest = undefined;
 			onImported(instance);
 		} catch (e) {
 			mrpackError = String(e);
+		} finally {
+			mrpackRequest = undefined;
 			mrpackBusy = null;
+			mrpackCancelling = false;
+		}
+	}
+
+	async function cancelMrpack() {
+		if (!mrpackRequest || mrpackCancelling) return;
+		mrpackCancelling = true;
+		try {
+			await cancelInstanceImport(mrpackRequest);
+		} catch (error) {
+			mrpackError = String(error);
+			mrpackCancelling = false;
 		}
 	}
 
@@ -315,10 +337,10 @@
 					data-pixel-control
 					type="button"
 					class="secondary"
-					disabled={mrpackBusy === 'import'}
-					onclick={backToList}
+					disabled={mrpackCancelling}
+					onclick={mrpackBusy === 'import' ? cancelMrpack : backToList}
 				>
-					{t('common.back')}
+					{mrpackBusy === 'import' ? tr('Cancelar importación', 'Cancel import') : t('common.back')}
 				</button>
 				<button
 					data-pixel-control="primary"
@@ -327,7 +349,8 @@
 					disabled={!mrpackName.trim() || mrpackBusy === 'import'}
 					onclick={confirmMrpackImport}
 				>
-					{#if mrpackBusy === 'import'}<Loader2 size={14} class="spin" />{t(
+					{#if mrpackCancelling}<Loader2 size={14} class="spin" />{tr('Cancelando…', 'Cancelling…')}
+					{:else if mrpackBusy === 'import'}<Loader2 size={14} class="spin" />{t(
 							'importInstance.mrpackImporting'
 						)}{:else}<Download size={14} />{t('importInstance.mrpackConfirm')}{/if}
 				</button>

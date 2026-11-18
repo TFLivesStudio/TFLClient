@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { contrastRatio } from '../../src/lib/addons/model.ts';
-import { installFixture } from './fixture.mjs';
+import { withFixture } from './fixture.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const browser = await chromium.launch({
 	headless: true,
@@ -148,11 +148,13 @@ try {
 			page.setDefaultTimeout(30000);
 			page.on('pageerror', (e) => errors.push(e.message));
 			// Manual paths and package diagnostics remain an Advanced capability.
-			await page.addInitScript(installFixture, {
-				theme,
-				mode: 'advanced',
-				appVersion: '0.15.4-beta.3'
-			});
+			await page.addInitScript(
+				withFixture({
+					theme,
+					mode: 'advanced',
+					appVersion: '0.15.4-beta.3'
+				})
+			);
 			await page.addInitScript(addonsFixture, fullThemeTokens);
 			await page.addInitScript(
 				(value) => localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style: value })),

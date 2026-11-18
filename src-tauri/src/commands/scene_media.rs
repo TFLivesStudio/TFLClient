@@ -1,8 +1,6 @@
 //! Managed local videos. No network fetch, codec installation or arbitrary asset URLs.
 use crate::core::PathManager;
-use crate::services::SettingsManager;
 use tauri::AppHandle;
-use tauri_plugin_dialog::DialogExt;
 use tokio::io::AsyncReadExt;
 
 const MAX_BYTES: u64 = 128 * 1024 * 1024;

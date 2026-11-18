@@ -23,7 +23,7 @@
 		isSidebarEffectiveCollapsed,
 		isSidebarForcedCompact
 	} from '$lib/state/viewport.svelte';
-	import { updateSettings } from '$lib/api';
+	import { patchSettings } from '$lib/api';
 	import { t } from '$lib/i18n/index.svelte';
 	import { getInstanceIconPath } from '$lib/api';
 	import type { InstanceData, MinecraftUser } from '$lib/types/types';
@@ -78,7 +78,7 @@
 		if (!appState.settings || forcedCompact) return;
 		const next = !manualCollapsed;
 		appState.settings.sidebar_collapsed = next;
-		updateSettings({ ...appState.settings, sidebar_collapsed: next }).catch(() => {
+		patchSettings({ sidebar_collapsed: next }).catch(() => {
 			// revertir si no se pudo guardar, para no mostrar un estado que
 			// después se pierde solo al reabrir el launcher
 			if (appState.settings) appState.settings.sidebar_collapsed = !next;

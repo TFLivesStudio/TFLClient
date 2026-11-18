@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { appState } from '$lib/state/state.svelte';
-	import { updateSettings } from '$lib/api';
+	import { patchSettings } from '$lib/api';
 	import { Wifi, Globe } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
 
@@ -14,7 +14,7 @@
 		busy = true;
 		error = null;
 		try {
-			await updateSettings({ ...appState.settings, server_connection_info_shown: true });
+			await patchSettings({ server_connection_info_shown: true });
 			appState.settings.server_connection_info_shown = true;
 			onDone();
 		} catch (e) {
