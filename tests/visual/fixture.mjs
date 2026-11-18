@@ -159,6 +159,7 @@ function installFixture({
 		invoke: async (cmd, args = {}) => {
 			window.__fixtureCommands.push({ cmd, args });
 			if (cmd === 'addons_list') return { safeMode: false, addons: [], errors: [] };
+			if (cmd === 'mcp_quick_connect_targets') return [];
 			if (cmd === 'addons_pick_file') return null;
 			if (cmd === 'plugin:event|listen') {
 				listeners.set(++sequence, { event: args.event, cb: args.handler });

@@ -31,7 +31,7 @@ async function open(options = {}) {
 	});
 	const page = await context.newPage();
 	page.setDefaultTimeout(12000);
-	page.on('pageerror', (e) => errors.push(e.message));
+	page.on('pageerror', (e) => errors.push(e.stack ?? e.message));
 	// This suite exercises advanced overrides and explicit Apply/Save contracts.
 	await page.addInitScript(withFixture({ mode: 'advanced', ...options, iconPresets: icons }));
 	await page.addInitScript(
