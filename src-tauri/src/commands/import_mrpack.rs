@@ -8,12 +8,8 @@
 //! `.tfl_modpacks/` (igual que un modpack instalado desde Modrinth, para que
 //! se pueda verificar/desinstalar después).
 //!
-//! Versión del loader (decisión documentada): si el pack indica una versión
-//! EXACTA de loader y esa versión se puede instalar de verdad (se comprueba
-//! contra la misma URL que usa el launcher al jugar), se usa esa — los packs
-//! de Forge/NeoForge dependen mucho del build exacto. Si no se puede
-//! comprobar, se cae a la última versión disponible, que es lo que ya hace
-//! `import_external_instance` para los launchers detectados.
+//! El loader declarado por el pack se conserva. Si la comprobación exacta
+//! falla, la importación informa el error y permite reintentar.
 
 use super::import_sources::{ActiveImport, canceled};
 use crate::commands::{instance::assign_random_icon, modpacks};
@@ -172,25 +168,36 @@ fn normalize_loader_version(kind: LoaderKind, mc_version: &str, version: &str) -
     version.to_string()
 }
 
-async fn url_ok(client_get: bool, url: &str) -> bool {
+async fn verify_loader_url(client_get: bool, url: &str) -> Result<(), String> {
     let req = if client_get {
         HTTP.get(url)
     } else {
         HTTP.head(url)
     };
-    req.send()
-        .await
-        .map(|r| r.status().is_success())
-        .unwrap_or(false)
+    let response = req.timeout(std::time::Duration::from_secs(12)).send().await
+        .map_err(|_| "LOADER_CHECK_FAILED: No se pudo comprobar el proveedor. Revisa la conexión e inténtalo de nuevo.".to_string())?;
+    let status = response.status();
+    if status.is_success() {
+        return Ok(());
+    }
+    if status == reqwest::StatusCode::NOT_FOUND || status == reqwest::StatusCode::GONE {
+        return Err(
+            "LOADER_VERSION_UNAVAILABLE: El proveedor no ofrece esa versión exacta.".into(),
+        );
+    }
+    Err(format!(
+        "LOADER_CHECK_FAILED: El proveedor respondió HTTP {}. Inténtalo de nuevo.",
+        status.as_u16()
+    ))
 }
 
 /// ¿Se puede instalar esta versión exacta del loader? Comprueba la misma
 /// URL que usa el launcher al jugar (ver aqua/downloaders).
-async fn exact_loader_installable(kind: LoaderKind, mc_version: &str, lv: &str) -> bool {
+async fn verify_exact_loader(kind: LoaderKind, mc_version: &str, lv: &str) -> Result<(), String> {
     match kind {
-        LoaderKind::Vanilla => true,
+        LoaderKind::Vanilla => Ok(()),
         LoaderKind::Fabric => {
-            url_ok(
+            verify_loader_url(
                 true,
                 &format!(
                     "https://meta.fabricmc.net/v2/versions/loader/{mc_version}/{lv}/profile/json"
@@ -199,7 +206,7 @@ async fn exact_loader_installable(kind: LoaderKind, mc_version: &str, lv: &str) 
             .await
         }
         LoaderKind::Quilt => {
-            url_ok(
+            verify_loader_url(
                 true,
                 &format!(
                     "https://meta.quiltmc.org/v3/versions/loader/{mc_version}/{lv}/profile/json"
@@ -208,17 +215,17 @@ async fn exact_loader_installable(kind: LoaderKind, mc_version: &str, lv: &str) 
             .await
         }
         LoaderKind::Forge => {
-            url_ok(
+            verify_loader_url(
                 false,
                 &aqua::ForgeBatch::resolve_installer_url(mc_version, lv),
             )
             .await
         }
         LoaderKind::NeoForge => {
-            url_ok(false, &aqua::NeoForgeBatch::resolve_installer_url(lv)).await
+            verify_loader_url(false, &aqua::NeoForgeBatch::resolve_installer_url(lv)).await
         }
         LoaderKind::OrnitheGen2 => {
-            url_ok(
+            verify_loader_url(
                 true,
                 &format!(
                     "https://meta.ornithemc.net/v3/versions/gen2/fabric-loader/{mc_version}/{lv}/profile/json"
@@ -239,14 +246,16 @@ async fn resolve_loader_for_pack(
     }
     if let Some(v) = pack_version {
         let v = normalize_loader_version(kind, mc_version, v);
-        if exact_loader_installable(kind, mc_version, &v).await {
-            let id = instance_manager::launch_version_id(mc_version, kind, &v);
-            return Ok((Some(v), id));
-        }
-        tracing::warn!(
-            "mrpack: la versión exacta del loader ({} {v}) no se pudo comprobar para {mc_version}; se usa la última disponible",
-            loader_str(kind)
-        );
+        verify_exact_loader(kind, mc_version, &v)
+            .await
+            .map_err(|error| {
+                format!(
+                    "{error} El modpack requiere {} {v} para Minecraft {mc_version}.",
+                    loader_str(kind)
+                )
+            })?;
+        let id = instance_manager::launch_version_id(mc_version, kind, &v);
+        return Ok((Some(v), id));
     }
     instance_manager::resolve_loader(mc_version, kind).await
 }
@@ -579,5 +588,40 @@ mod tests {
             normalize_loader_version(LoaderKind::Fabric, "1.20.1", "0.15.11"),
             "0.15.11"
         );
+    }
+    #[tokio::test]
+    async fn exact_loader_probe_distinguishes_missing_version_from_provider_failure() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        async fn endpoint(status: &str) -> String {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let address = listener.local_addr().unwrap();
+            let response =
+                format!("HTTP/1.1 {status}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+            tokio::spawn(async move {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let mut request = [0u8; 1024];
+                socket.read(&mut request).await.unwrap();
+                socket.write_all(response.as_bytes()).await.unwrap();
+            });
+            format!("http://{address}/exact-loader")
+        }
+        verify_loader_url(false, &endpoint("200 OK").await)
+            .await
+            .unwrap();
+        let missing = verify_loader_url(false, &endpoint("404 Not Found").await)
+            .await
+            .unwrap_err();
+        assert!(missing.starts_with("LOADER_VERSION_UNAVAILABLE"));
+        let unavailable = verify_loader_url(false, &endpoint("503 Service Unavailable").await)
+            .await
+            .unwrap_err();
+        assert!(unavailable.starts_with("LOADER_CHECK_FAILED"));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        drop(listener);
+        let unreachable = verify_loader_url(false, &format!("http://{address}/exact-loader"))
+            .await
+            .unwrap_err();
+        assert!(unreachable.starts_with("LOADER_CHECK_FAILED"));
     }
 }

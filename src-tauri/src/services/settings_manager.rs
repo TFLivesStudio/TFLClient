@@ -485,9 +485,12 @@ mod tests {
                 .get_settings_dir()
                 .parent()
                 .unwrap()
+                .parent()
+                .unwrap()
                 .join("TEST_PROFILE")
                 .is_file()
         );
+        PathManager::ensure_dirs().unwrap();
         let original = SettingsManager::snapshot();
         let changed = SettingsManager::patch(
             serde_json::json!({"ui_mode":"advanced"}),

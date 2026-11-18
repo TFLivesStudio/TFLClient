@@ -26,15 +26,6 @@ async function open({
 } = {}) {
 	const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 	page.on('pageerror', (e) => errors.push(e.message));
-	await page.addInitScript(
-		withFixture({
-			quality,
-			mode: 'advanced',
-			mode: 'advanced',
-			// Keep update notes out of this scene-lifecycle test; they deliberately pause Canvas.
-			appVersion: url === process.env.BASELINE_URL ? '0.15.4-beta.1' : appVersion
-		})
-	);
 	const legacy = {
 		version: schema,
 		global: { preset: 'midnight-forest', scope: 'hero', motion: 'full', fps: 24, adaptTime: false },
@@ -44,27 +35,35 @@ async function open({
 		}
 	};
 	await page.addInitScript(
-		({ style, legacy, version, artwork }) => {
-			localStorage.setItem('tfl-scenes-v1', JSON.stringify(legacy));
-			localStorage.setItem(
-				'tfl-visual-refresh-v1',
-				JSON.stringify({ style, instances: { horizons: { artwork } } })
-			);
-			const invoke = window.__TAURI_INTERNALS__.invoke;
-			window.__TAURI_INTERNALS__.invoke = async (cmd, args) => {
-				const result = await invoke(cmd, args);
-				if (cmd === 'get_instances')
-					return result.map((i) => (i.uuid === 'horizons' ? { ...i, mc_version: version } : i));
-				return result;
-			};
-			window.__sceneContexts = 0;
-			const original = HTMLCanvasElement.prototype.getContext;
-			HTMLCanvasElement.prototype.getContext = function (type, ...args) {
-				if (type === '2d') window.__sceneContexts++;
-				return original.call(this, type, ...args);
-			};
-		},
-		{ style, legacy, version, artwork }
+		withFixture(
+			{
+				quality,
+				mode: 'advanced',
+				appVersion: url === process.env.BASELINE_URL ? '0.15.4-beta.1' : appVersion
+			},
+			({ style, legacy, version, artwork }) => {
+				localStorage.setItem('tfl-scenes-v1', JSON.stringify(legacy));
+				localStorage.setItem(
+					'tfl-visual-refresh-v1',
+					JSON.stringify({ style, instances: { horizons: { artwork } } })
+				);
+				const invoke = window.__TAURI_INTERNALS__.invoke;
+				window.__TAURI_INTERNALS__.invoke = async (cmd, args) => {
+					const result = await invoke(cmd, args);
+					if (cmd === 'get_instances')
+						return result.map((i) => (i.uuid === 'horizons' ? { ...i, mc_version: version } : i));
+					return result;
+				};
+				window.__sceneContexts = 0;
+				const original = HTMLCanvasElement.prototype.getContext;
+				HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+					if (type === '2d' && this.height === 216 && [384, 768].includes(this.width))
+						window.__sceneContexts++;
+					return original.call(this, type, ...args);
+				};
+			},
+			{ style, legacy, version, artwork }
+		)
 	);
 	await page.goto(url);
 	await page.locator('.hero-name').waitFor();
@@ -123,6 +122,7 @@ try {
 		assert.equal(migrated.current.instances.horizons.preset, 'embers');
 		assert.equal(migrated.current.instances.horizons.fps, 15);
 		assert.equal(migrated.current.instances.horizons.particles, false);
+		await page.waitForFunction(() => window.__sceneContexts > 0);
 		const node = await page.locator('[data-scene-placement] canvas').elementHandle(),
 			contexts = await page.evaluate(() => window.__sceneContexts);
 		await capture(page, `${style}-home`);

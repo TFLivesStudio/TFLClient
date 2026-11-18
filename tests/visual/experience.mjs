@@ -192,7 +192,7 @@ try {
 	await p.getByRole('button', { name: 'Inferior', exact: true }).click();
 	await p.getByRole('button', { name: 'Deshacer', exact: true }).click();
 	assert.equal(await p.locator('.designer-preview .console-layout.bottom').count(), 0);
-	await p.getByRole('button', { name: 'Lateral', exact: true }).click();
+	await p.getByRole('button', { name: 'Superior', exact: true }).click();
 	await p.locator('.designer-preview').scrollIntoViewIfNeeded();
 	const cards = p.locator('.designer-preview .chart-card'),
 		handle = await cards.first().locator('.drag-handle').boundingBox(),
@@ -200,6 +200,7 @@ try {
 	await p.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
 	await p.mouse.down();
 	await p.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 8 });
+	await cards.nth(1).locator('xpath=self::*[@data-drop-target]').waitFor();
 	await p.mouse.up();
 	assert.equal(await cards.first().getAttribute('data-console-metric'), 'ram');
 	await p.locator('.inspector input[type=color]').fill('#12ab34');

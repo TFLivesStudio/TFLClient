@@ -55,6 +55,7 @@ pub async fn remove_file(
     kind: ContentKind,
     filename: &str,
 ) -> Result<(), String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     let _mutation = super::mutation_lock(instance_name).await;
     super::ensure_mutable(instance_name, kind).await?;
     remove_file_unlocked(instance_name, kind, filename).await
@@ -104,6 +105,7 @@ pub async fn set_enabled(
     filename: &str,
     enabled: bool,
 ) -> Result<String, String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     let _mutation = super::mutation_lock(instance_name).await;
     super::ensure_mutable(instance_name, kind).await?;
     if is_unsafe_filename(filename) {

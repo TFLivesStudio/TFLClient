@@ -195,6 +195,10 @@ try {
 		await page.close();
 	}
 	const lifecycle = await open('midnight-forest', 'Experience');
+	// The Home character is also a frame-clock subscriber. Keep the scene
+	// mounted in the shell while leaving Home before testing its last frame.
+	await lifecycle.getByRole('button', { name: 'Biblioteca', exact: true }).first().click();
+	await lifecycle.locator('.hero').waitFor({ state: 'detached' });
 	for (let cycle = 0; cycle < 12; cycle++) {
 		await selectScene(lifecycle, { preset: cycle % 2 ? 'aurora-valley' : 'midnight-forest' });
 		await lifecycle.waitForFunction(() =>

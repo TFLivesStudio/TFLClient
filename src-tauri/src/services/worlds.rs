@@ -745,6 +745,30 @@ pub fn verify_archive(path: &Path, max: u64) -> Result<(), String> {
     Ok(())
 }
 
+fn copy_planned_file(path: &Path, output: &mut impl Write, planned: u64) -> Result<(), String> {
+    no_link(path)?;
+    let mut file =
+        File::open(path).map_err(|e| io_error("No se pudo abrir un archivo del mundo", e))?;
+    let metadata = file
+        .metadata()
+        .map_err(|e| io_error("No se pudo consultar un archivo del mundo", e))?;
+    if !metadata.is_file() || metadata.len() != planned {
+        return Err("Un archivo del mundo cambió de tamaño. Vuelve a crear el respaldo.".into());
+    }
+    let copied = std::io::copy(&mut (&mut file).take(planned + 1), output)
+        .map_err(|e| io_error("No se pudo completar el respaldo", e))?;
+    if copied != planned
+        || file
+            .metadata()
+            .map_err(|e| io_error("No se pudo verificar el archivo respaldado", e))?
+            .len()
+            != planned
+    {
+        return Err("Un archivo del mundo cambió de tamaño. Vuelve a crear el respaldo.".into());
+    }
+    Ok(())
+}
+
 pub fn archive_directory(source: &Path, dest: &Path) -> Result<(), String> {
     let files = tree_files(source, MAX_ARCHIVE)?;
     let parent = dest.parent().ok_or("Destino de respaldo inválido.")?;
@@ -759,7 +783,7 @@ pub fn archive_directory(source: &Path, dest: &Path) -> Result<(), String> {
             .open(&staging)
             .map_err(|e| io_error("No se pudo preparar el respaldo", e))?;
         let mut zip = zip::ZipWriter::new(file);
-        for (path, _) in files {
+        for (path, planned) in files {
             // session.lock describes a live OS lock, never durable world data.
             if path.file_name().is_some_and(|name| name == "session.lock") {
                 continue;
@@ -777,12 +801,12 @@ pub fn archive_directory(source: &Path, dest: &Path) -> Result<(), String> {
                     .map_err(|_| "No se pudo conservar una carpeta vacía del mundo.")?;
                 continue;
             }
-            zip.start_file(rel, zip::write::SimpleFileOptions::default())
-                .map_err(|_| "No se pudo crear una entrada del respaldo.")?;
-            let mut file = File::open(path)
-                .map_err(|e| io_error("No se pudo abrir un archivo del mundo", e))?;
-            std::io::copy(&mut file, &mut zip)
-                .map_err(|e| io_error("No se pudo completar el respaldo", e))?;
+            zip.start_file(
+                rel,
+                zip::write::SimpleFileOptions::default().large_file(planned >= u64::from(u32::MAX)),
+            )
+            .map_err(|_| "No se pudo crear una entrada del respaldo.")?;
+            copy_planned_file(&path, &mut zip, planned)?;
         }
         zip.finish()
             .map_err(|_| "No se pudo cerrar el respaldo.")?
@@ -1574,9 +1598,21 @@ mod tests {
         let fixture = Fixture::new();
         fixture.world("saves/new world");
         let saves = fixture.0.join("saves");
+        let identity = Command::new("whoami.exe")
+            .args(["/user", "/fo", "csv", "/nh"])
+            .output()
+            .unwrap();
+        assert!(identity.status.success());
+        let output = String::from_utf8_lossy(&identity.stdout);
+        let sid = output
+            .split('"')
+            .find(|part| part.starts_with("S-1-"))
+            .unwrap();
+        let principal = format!("*{sid}");
+        let deny_read = format!("{principal}:(RD,RA,REA)");
         let deny = Command::new("icacls.exe")
             .arg(&saves)
-            .args(["/deny", "*S-1-1-0:(R)"])
+            .args(["/deny", &deny_read])
             .output()
             .unwrap();
         assert!(
@@ -1584,20 +1620,32 @@ mod tests {
             "icacls failed: {}",
             String::from_utf8_lossy(&deny.stderr)
         );
+        let os_denied = fs::read_dir(&saves)
+            .err()
+            .is_some_and(|error| error.kind() == io::ErrorKind::PermissionDenied);
         let unreadable = list_worlds(&fixture.0, false);
         let restore = Command::new("icacls.exe")
             .arg(&saves)
-            .args(["/remove:d", "*S-1-1-0"])
+            .args(["/remove:d", &principal])
             .output()
             .unwrap();
         assert!(
             restore.status.success(),
             "could not undo temporary test ACL"
         );
-        assert!(
-            unreadable.unwrap_err().contains("No se pudo"),
-            "the manager should report a read error for an inaccessible saves directory"
-        );
+        if os_denied {
+            assert!(unreadable.unwrap_err().contains("No se pudo"));
+        } else {
+            // The hosted token may retain directory enumeration despite its ACL.
+            // Exercise a real read failure under that token as well.
+            eprintln!("The Windows runner token can enumerate the directory despite the deny ACL.");
+            fs::rename(&saves, fixture.0.join("saved-worlds")).unwrap();
+            fs::write(&saves, b"not a directory").unwrap();
+            let result = list_worlds(&fixture.0, false);
+            fs::remove_file(&saves).unwrap();
+            fs::rename(fixture.0.join("saved-worlds"), &saves).unwrap();
+            assert!(result.unwrap_err().contains("No se pudo"));
+        }
         assert_eq!(list_worlds(&fixture.0, false).unwrap().len(), 1);
     }
 
@@ -1971,5 +2019,26 @@ mod tests {
         assert!(validate_nbt_shape(&nested, 3).is_err());
         let huge_list = [10, 0, 0, 9, 0, 1, b'x', 1, 0x7f, 0xff, 0xff, 0xff, 0];
         assert!(validate_nbt_shape(&huge_list, 3).is_err());
+    }
+    #[test]
+    fn backup_copy_refuses_file_growth_after_the_size_budget_was_reserved() {
+        let fixture = Fixture::new();
+        let file = fixture.0.join("growing-region.mca");
+        fs::write(&file, b"old").unwrap();
+        let planned = fs::metadata(&file).unwrap().len();
+        let mut output = Vec::new();
+        copy_planned_file(&file, &mut output, planned).unwrap();
+        assert_eq!(output, b"old");
+        let mut file_handle = OpenOptions::new().append(true).open(&file).unwrap();
+        file_handle.write_all(b"new chunk").unwrap();
+        drop(file_handle);
+        let mut output = Vec::new();
+        assert!(
+            copy_planned_file(&file, &mut output, planned)
+                .unwrap_err()
+                .contains("cambió de tamaño")
+        );
+        assert!(output.is_empty());
+        assert_eq!(fs::read(&file).unwrap(), b"oldnew chunk");
     }
 }

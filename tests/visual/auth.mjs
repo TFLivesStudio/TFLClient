@@ -26,9 +26,14 @@ function authFixture({ style, onboarding, language }) {
 	window.__authCalls = [];
 	window.__TAURI_INTERNALS__.invoke = async (cmd, args = {}) => {
 		window.__authCalls.push({ cmd, args });
-		if (cmd === 'get_settings') {
+		if (cmd === 'get_settings' || cmd === 'patch_settings') {
 			const s = await base(cmd, args);
-			return { ...s, onboarded: !onboarding, language };
+			return {
+				...s,
+				onboarded: !onboarding,
+				language,
+				locale: language === 'en' ? 'en-US' : 'es-419'
+			};
 		}
 		if (cmd === 'get_user_list') return [user];
 		if (cmd === 'account_session_statuses')

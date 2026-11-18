@@ -34,8 +34,8 @@ def measure(binary):
     with tempfile.TemporaryDirectory(prefix="tfl-idle-") as directory:
         profile = Path(directory)
         (profile / "TEST_PROFILE").touch()
-        (profile / "settings").mkdir()
-        (profile / "settings/settings.tfl").write_text(
+        (profile / ".tflclient/settings").mkdir(parents=True)
+        (profile / ".tflclient/settings/settings.tfl").write_text(
             json.dumps({"onboarded": True, "auto_updates": False, "discord_presence": False})
         )
         binary = Path(binary).resolve()

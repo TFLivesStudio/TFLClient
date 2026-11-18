@@ -214,6 +214,9 @@ jobs:
           export TFL_DATA_DIR="$RUNNER_TEMP/tfl-native/profile"
           mkdir -p "$TFL_DATA_DIR"
           touch "$TFL_DATA_DIR/TEST_PROFILE"
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            export TFL_DATA_DIR="$(cygpath -w "$TFL_DATA_DIR")"
+          fi
           cargo_json="$RUNNER_TEMP/tfl-native/cargo.jsonl"
           if ! cargo test --locked -p tflclient --lib --no-run --message-format=json > "$cargo_json"; then
             jq -r 'select(.reason == "compiler-message") | .message.rendered // empty' \

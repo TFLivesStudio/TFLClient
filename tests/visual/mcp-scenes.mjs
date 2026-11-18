@@ -57,16 +57,16 @@ async function open({
 					approved: false,
 					decided: false
 				};
+				const snapshot = () => ({
+					enabled,
+					sidecar_path: 'C:\\Program Files\\TFL Client\\tflclient-mcp.exe',
+					clients: enabled ? [{ ...client }] : [],
+					plans: enabled ? [{ ...plan }] : [],
+					audit: []
+				});
 				window.__TAURI_INTERNALS__.invoke = async (cmd, args = {}) => {
-					const snapshot = () =>
-						structuredClone({
-							enabled,
-							sidecar_path: 'C:\\Program Files\\TFL Client\\tflclient-mcp.exe',
-							clients: enabled ? [client] : [],
-							plans: enabled ? [plan] : [],
-							audit: []
-						});
 					if (cmd === 'mcp_status') return snapshot();
+					if (cmd === 'mcp_quick_connect_targets') return [];
 					if (cmd === 'mcp_enable') {
 						enabled = args.enabled;
 						return snapshot();
@@ -106,6 +106,13 @@ async function open({
 	);
 	await page.goto(process.env.VISUAL_URL || 'http://localhost:1434');
 	await page.locator('.hero').waitFor();
+	assert.ok(
+		await page.evaluate(async () => {
+			const status = await window.__TAURI_INTERNALS__.invoke('mcp_status');
+			return status?.sidecar_path && !status.enabled;
+		}),
+		'MCP fixture must provide a disabled helper before opening settings'
+	);
 	return { page, context };
 }
 try {

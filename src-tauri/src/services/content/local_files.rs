@@ -58,6 +58,7 @@ pub async fn add_local_files(
     kind: ContentKind,
     paths: Vec<String>,
 ) -> Result<u32, String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     let _mutation = super::mutation_lock(instance_name).await;
     super::ensure_mutable(instance_name, kind).await?;
     let instance = instance_manager::get_instance(instance_name).await?;
