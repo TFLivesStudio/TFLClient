@@ -434,19 +434,12 @@
 		}
 	}
 
-	// El diálogo nativo de archivos crashea el launcher en macOS con la
-	// firma ad-hoc del build (ver docs/history/legacy/CHANGELOG_macos-dialog-crash-java26.txt) —
-	// por eso esta función queda detrás del modo global Automático/Manual
-	// (Ajustes), no de la plataforma.
-	let dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');
-
 	async function handleAddLocal() {
-		if (dialogsBlocked) return;
-		const paths = await pickContentFiles(EXTENSION[kind], FILTER_LABEL[kind]);
-		if (paths.length === 0) return;
 		addingLocal = true;
 		manageError = null;
 		try {
+			const paths = await pickContentFiles(EXTENSION[kind], FILTER_LABEL[kind]);
+			if (paths.length === 0) return;
 			const added = await apiAddLocal(paths);
 			await refreshInstalled();
 			// El backend sigue de largo con lo que sí puede copiar — si algo
@@ -587,8 +580,7 @@
 				data-pixel-control
 				type="button"
 				class="tool-btn"
-				disabled={addingLocal || dialogsBlocked}
-				title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
+				disabled={addingLocal}
 				onclick={handleAddLocal}
 			>
 				{#if addingLocal}<Loader2 size={13} class="spin" />{:else}<Upload size={13} />{/if}
@@ -617,9 +609,6 @@
 				{t('contentManager.remove')}{selected.size > 0 ? ` (${selected.size})` : ''}
 			</button>
 		</div>
-		{#if dialogsBlocked}
-			<p class="hint">{t('contentManager.autoModeDisablesAddByFile')}</p>
-		{/if}
 		{#if updateMsg}<p class="hint">{updateMsg}</p>{/if}
 		{#if manageError}<p class="error">{manageError}</p>{/if}
 

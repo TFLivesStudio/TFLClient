@@ -1,8 +1,22 @@
-//! Política de acceso multijugador por tipo de cuenta. Cuentas offline/cracked
-//! solo pueden jugar en singleplayer; Microsoft y Yggdrasil tienen acceso
-//! completo. Única fuente de verdad de esta regla.
+//! El launcher permite intentar multijugador con cualquier tipo de cuenta.
+//! El servidor conserva su autenticación y decide si acepta esa identidad.
 use launchwerk::auth::AccountType;
 
-pub fn allows_multiplayer(user_type: AccountType) -> bool {
-    !matches!(user_type, AccountType::Cracked)
+pub fn allows_multiplayer(_user_type: AccountType) -> bool {
+    true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn every_identity_can_attempt_a_server_connection() {
+        for kind in [
+            AccountType::Cracked,
+            AccountType::Microsoft,
+            AccountType::Yggdrasil,
+        ] {
+            assert!(allows_multiplayer(kind));
+        }
+    }
 }

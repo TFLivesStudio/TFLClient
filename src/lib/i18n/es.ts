@@ -29,18 +29,18 @@ export const es = {
 		retry: 'Reintentar'
 	},
 	onboarding: {
-		tagline: 'Iniciá sesión para empezar a jugar',
+		tagline: 'Inicia sesión para empezar a jugar',
 		microsoftTitle: 'Cuenta Microsoft',
 		microsoftSub: 'Acceso completo, multijugador incluido',
 		offlineTitle: 'Cuenta offline',
-		offlineSub: 'Solo singleplayer',
+		offlineSub: 'Cuenta offline',
 		usernameLabel: 'Nombre de usuario',
-		offlineHint: 'Las cuentas offline solo pueden jugar en singleplayer.',
+		offlineHint: 'El acceso depende de la autenticación del servidor.',
 		fetchingCode: 'Obteniendo código...',
-		goTo: 'Andá a',
+		goTo: 'Ve a',
 		enterCode: 'e ingresá el código:',
 		waitingConfirmation: 'Esperando confirmación...',
-		copyCodeFailed: 'No se pudo copiar. Seleccioná el código y copialo manualmente.'
+		copyCodeFailed: 'No se pudo copiar. Selecciona el código y cópialo manualmente.'
 	},
 	settings: {
 		language: 'Idioma',
@@ -84,32 +84,26 @@ export const es = {
 		},
 		multiInstance: {
 			label: 'Aviso de varias instancias',
-			hint: 'Si abrís una instancia mientras otra ya está corriendo, te avisa antes (misma cuenta puede dar problemas de multijugador; cuentas distintas solo pega en rendimiento). Podés desactivar este aviso acá.',
+			hint: 'Recibe un aviso al abrir otra instancia. Usar la misma cuenta puede afectar el multijugador. Ejecutar varias instancias aumenta el uso de CPU y memoria.',
 			on: 'Avisar: Activado',
 			off: 'Avisar: Desactivado'
-		},
-		dialogs: {
-			label: 'Diálogos de archivo nativos',
-			auto: 'Automático',
-			manual: 'Manual',
-			hint: 'Automático (recomendado): subir tu propio ícono/wallpaper o agregar mods por archivo queda desactivado — no hace falta, todo se instala solo. Manual: lo habilita, pero en algunos casos puede cerrar el launcher de golpe (diálogo nativo de archivos).'
 		},
 		updates: {
 			betaEnabled: 'Versiones beta: Activadas',
 			betaDisabled: 'Versiones beta: Desactivadas',
 			betaHint:
-				'Las betas son pruebas anticipadas de lo que viene: llegan antes pero pueden tener errores. Podés desactivarlas cuando quieras.',
+				'Las versiones beta incluyen novedades antes de la publicación estable y pueden tener errores. Puedes desactivarlas en cualquier momento.',
 			currentVersion: 'Versión instalada: {{version}}',
 			betaWarningTitle: '¿Activar las versiones beta?',
 			betaWarningMessage:
-				'Las versiones beta son pruebas anticipadas: pueden contener errores, cerrarse de golpe o dejar tus instancias en un estado raro. Hacé una copia de tus mundos importantes antes de probarlas. Podés desactivarlas cuando quieras, pero el launcher no vuelve solo a la versión estable: te quedás en la beta hasta que salga una estable más nueva.',
+				'Las versiones beta pueden tener errores o cierres inesperados. Respalda tus mundos antes de probarlas. Si desactivas las betas, el launcher conservará la versión instalada hasta que se publique una versión estable más reciente.',
 			betaWarningConfirm: 'Activar betas',
 			label: 'Actualizaciones',
 			autoEnabled: 'Auto-actualizar: Activado',
 			autoDisabled: 'Auto-actualizar: Desactivado',
-			hint: 'Con esto activado, el launcher chequea y baja actualizaciones solo al abrir, en segundo plano, sin interrumpirte — vos elegís cuándo reiniciar para aplicarlas. Con esto apagado solo se busca a mano desde acá.',
+			hint: 'Al abrir el launcher, las actualizaciones se buscan y descargan en segundo plano. Elige cuándo reiniciar para instalarlas. Con la opción desactivada, puedes comprobarlas desde esta sección.',
 			check: 'Buscar actualizaciones',
-			upToDate: 'Ya tenés la última versión.',
+			upToDate: 'Ya tienes la última versión.',
 			available: 'Actualización disponible: v{{version}}',
 			download: 'Descargar actualización',
 			downloading: 'Descargando actualización… {{percent}}%',
@@ -154,8 +148,6 @@ export const es = {
 			yourImage: 'Tu imagen',
 			change: 'Cambiar tu imagen',
 			upload: 'Subir tu imagen',
-			uploadDisabledTitle: 'Activá el modo Manual (más abajo) para usar esto',
-			autoModeDisabled: 'Desactivado en modo Automático — activá "Manual" en la sección de abajo.',
 			items: {
 				none: 'Ninguno',
 				voidNight: 'Noche vacía',
@@ -237,14 +229,14 @@ export const es = {
 		}
 	},
 	sidebar: {
-		offline: 'Sin conexión — jugá lo que ya tenés instalado',
+		offline: 'Sin conexión — juega lo que ya tienes instalado',
 		yourInstances: 'Tus instancias',
 		createInstance: 'Crear instancia',
 		search: 'Buscar…',
 		noInstancesYet: 'Todavía no creaste ninguna instancia',
 		createFirst: 'Crear la primera',
 		noResultsFor: 'Sin resultados para "{{query}}"',
-		offlineAccountType: 'Offline — solo singleplayer',
+		offlineAccountType: 'Cuenta offline',
 		openSettings: 'Ajustes',
 		logout: 'Cerrar sesión',
 		joinServer: 'Unirse a servidor',
@@ -266,27 +258,26 @@ export const es = {
 		addressPlaceholder: 'ejemplo.com:25565',
 		modeExisting: 'Una instancia mía',
 		modeQuick: 'Quick Join',
-		noInstances: 'No tenés ninguna instancia de cliente todavía — usá Quick Join.',
+		noInstances: 'No tienes ninguna instancia de cliente todavía — usa Quick Join.',
 		quickHint:
 			'Crea (o reusa) una instancia Vanilla con esa versión y te conecta directo, sin pasar por el menú de Multijugador.',
 		quickPlayUnsupported:
 			'Esta versión es anterior a 1.20.2 y no soporta conexión directa — el juego va a abrir normal, conectate a mano desde el menú de Multijugador.',
-		crackedBlocked:
-			'Las cuentas offline solo pueden jugar en singleplayer — iniciá sesión con una cuenta Microsoft para unirte a un servidor.',
+		crackedBlocked: 'Selecciona una cuenta para intentar conectarte al servidor.',
 		join: 'Unirse',
 		joining: 'Conectando…'
 	},
 	createInstance: {
 		importTitle: 'Importar de otro launcher',
-		importDesc: 'Traé tus instancias de Prism, MultiMC o CurseForge con sus mods y mundos.',
+		importDesc: 'Revisa los formatos compatibles y el contenido que puedes importar.',
 		title: 'Nueva instancia',
-		chooserSubtitle: '¿Cómo la querés armar?',
+		chooserSubtitle: '¿Qué tipo de instancia quieres crear?',
 		customTitle: 'Personalizada',
-		customDesc: 'Creá tu propia instancia con los mods que vos elijas.',
+		customDesc: 'Crea tu propia instancia con los mods que elijas.',
 		modpackTitle: 'Clientes y modpacks',
-		modpackDesc: 'Instalá un cliente oficial o un modpack en una instancia nueva.',
+		modpackDesc: 'Instala un cliente oficial o un modpack en una instancia nueva.',
 		serverTitle: 'Servidor',
-		serverDesc: 'Creá tu propio servidor de Minecraft para jugar con otros.',
+		serverDesc: 'Crea tu propio servidor de Minecraft para jugar con otros.',
 		nameLabel: 'Nombre',
 		namePlaceholder: 'Mi mundo',
 		versionLabel: 'Versión de Minecraft',
@@ -312,7 +303,7 @@ export const es = {
 	},
 	worldBackups: {
 		title: 'Copias de seguridad de mundos',
-		hint: 'Se guardan solas antes de actualizar mods. Podés crear una a mano cuando quieras y restaurarla si algo sale mal (se guardan las últimas 10).',
+		hint: 'Se guardan solas antes de actualizar mods. Puedes crear una a mano cuando quieras y restaurarla si algo sale mal (se guardan las últimas 10).',
 		create: 'Crear copia ahora',
 		created: 'Copia creada.',
 		noWorlds: 'Esta instancia todavía no tiene mundos para respaldar.',
@@ -337,12 +328,11 @@ export const es = {
 		importing: 'Importando…',
 		orDivider: 'o',
 		mrpackButton: 'Importar archivo .mrpack',
-		mrpackDialogsBlocked: 'Activá el modo Manual en Ajustes para elegir un archivo .mrpack.',
 		mrpackPreviewTitle: 'Confirmar modpack',
 		mrpackFileCount: '{{count}} archivos',
 		mrpackConfirm: 'Importar modpack',
 		mrpackImporting: 'Importando modpack…',
-		dropHint: 'Soltá para importar el modpack'
+		dropHint: 'Suelta para importar el modpack'
 	},
 	contentManager: {
 		manageTab: 'Gestionar',
@@ -350,12 +340,9 @@ export const es = {
 		categories: 'Categorías',
 		selectNone: 'Ninguno',
 		selectAll: 'Seleccionar todos',
-		manualModeRequired: 'Activá el modo Manual en Ajustes para usar esto',
 		addByFile: 'Añadir por archivo',
 		checkUpdates: 'Buscar actualizaciones',
 		remove: 'Quitar',
-		autoModeDisablesAddByFile:
-			'Añadir por archivo está desactivado en modo Automático — activá "Manual" en Ajustes.',
 		allUpToDate: 'Todo al día — no hay actualizaciones.',
 		noChangelogNotes: 'Sin notas de cambios.',
 		changelogLoadFailed: 'No se pudo cargar: {{error}}',
@@ -365,9 +352,9 @@ export const es = {
 		duplicateOne: 'Hay un mod',
 		duplicateMany: 'Hay {{count}} mods',
 		duplicateWarning:
-			'instalado dos veces (versiones distintas del mismo mod a la vez) — puede causar crashes. Revisá: {{list}}',
+			'instalado dos veces (versiones distintas del mismo mod a la vez) — puede causar crashes. Revisa: {{list}}',
 		updateAll: 'Actualizar todos',
-		notInstalledYet: 'Todavía no instalaste ningún {{kind}} acá.',
+		notInstalledYet: 'Todavía no instalaste ningún {{kind}} aquí.',
 		noneMatchCategories: 'Ningún {{kind}} instalado coincide con esas categorías.',
 		select: 'Seleccionar',
 		changelogButton: 'Novedades',
@@ -389,11 +376,11 @@ export const es = {
 		exploreWide: 'Explorar en vista amplia',
 		viewDetail: 'Ver ficha completa',
 		backToResults: 'Volver a los resultados',
-		errorNetwork: 'No se pudo conectar con Modrinth — revisá tu conexión.',
+		errorNetwork: 'No se pudo conectar con Modrinth — revisa tu conexión.',
 		errorTimeout: 'Modrinth tardó demasiado en responder.',
 		errorInvalid: 'Modrinth devolvió algo que no se pudo leer.',
 		errorProviderDown: 'Modrinth no responde en este momento.',
-		errorRateLimited: 'Demasiadas solicitudes — esperá un momento y volvé a intentar.',
+		errorRateLimited: 'Demasiadas solicitudes — espera un momento y vuelve a intentar.',
 		retry: 'Reintentar',
 		noResults: 'Sin resultados para esta búsqueda.',
 		clearCategories: 'Limpiar filtros'
@@ -424,9 +411,9 @@ export const es = {
 		otherInstanceRunning: 'También corriendo ahora: {{names}}',
 		multiInstanceTitle: 'Ya hay otra instancia corriendo',
 		multiInstanceSameAccount:
-			'Es la misma cuenta que estás por usar acá — el multijugador puede fallar (no podés estar en dos lados con el mismo jugador) y suma carga de CPU/RAM. ¿Igual querés abrir esta también?',
+			'Es la misma cuenta que estás por usar aquí — el multijugador puede fallar (no puedes estar en dos lados con el mismo jugador) y suma carga de CPU/RAM. ¿Igual quieres abrir esta también?',
 		multiInstanceDifferentAccount:
-			'Es otra cuenta, así que no hay problema de "mismo jugador" — pero dos instancias a la vez pesan más en CPU/RAM y solo se puede jugar una por vez con una persona. ¿Igual querés abrir esta también?',
+			'Es otra cuenta, así que no hay problema de "mismo jugador" — pero dos instancias a la vez pesan más en CPU/RAM y solo se puede jugar una por vez con una persona. ¿Igual quieres abrir esta también?',
 		multiInstanceProceed: 'Abrir igual',
 		multiInstanceDontAskAgain: 'No volver a preguntarme (editable en Ajustes)',
 		modsNotSupportedVanilla: 'No soportado en Vanilla',
@@ -454,8 +441,7 @@ export const es = {
 	},
 	instanceIconPicker: {
 		title: 'Ícono de la instancia',
-		uploadOwn: 'Subir mi propia imagen',
-		autoModeNotice: 'Desactivado en modo Automático — activá "Manual" en Ajustes para usarlo.'
+		uploadOwn: 'Subir mi propia imagen'
 	},
 	instanceLogWindow: {
 		suspectsTitle: 'Posibles mods culpables',
@@ -479,55 +465,44 @@ export const es = {
 		closeNotice: 'Cerrar aviso',
 		waitingOutput: 'Esperando salida del juego…',
 		errors: {
-			outOfMemory: 'Se quedó sin memoria RAM asignada — probá subir la RAM máxima en Ajustes.',
+			outOfMemory: 'Se quedó sin memoria RAM asignada — prueba subir la RAM máxima en Ajustes.',
 			unsupportedJavaVersion:
 				'Esta versión de Minecraft necesita una versión de Java más nueva que la instalada.',
 			insufficientSystemRam:
-				'Le pediste más RAM de la que tiene disponible tu compu — bajá el máximo en Ajustes.',
+				'Le pediste más RAM de la que tiene disponible tu compu — reduce el máximo en Ajustes.',
 			jniError: 'Conflicto entre mods, o una versión de Java incompatible con esta instancia.',
-			mixinConflict: 'Un mod (mixin) chocó con otro — probá sacar el último mod que instalaste.',
+			mixinConflict: 'Un mod (mixin) chocó con otro — prueba sacar el último mod que instalaste.',
 			missingDependency:
-				'Falta una dependencia que un mod necesita — revisá si instalaste todo lo que pedía.',
+				'Falta una dependencia que un mod necesita — revisa si instalaste todo lo que pedía.',
 			duplicateMod:
-				'Tenés el mismo mod instalado dos veces — revisá la lista de mods de la instancia.',
+				'Tienes el mismo mod instalado dos veces — revisa la lista de mods de la instancia.',
 			nativeCrash:
 				'La JVM crasheó de forma nativa (no es un error de un mod puntual) — puede ser drivers de video desactualizados, o falta de RAM real de la compu. Java dejó un hs_err_pid*.log con el detalle en la carpeta de la instancia.'
 		},
 		crashSummary: 'La JVM crasheó de forma nativa — resumen del reporte:\n{{summary}}',
 		exitOom:
-			'El sistema operativo cortó el juego por falta de memoria RAM (no solo la asignada al juego — memoria real de la compu). Cerrá otros programas o bajá la memoria máxima en Ajustes.',
+			'El sistema operativo cortó el juego por falta de memoria RAM (no solo la asignada al juego — memoria real de la compu). Cierra otros programas o reduce la memoria máxima en Ajustes.',
 		exitNullCode:
-			'El juego se cerró de golpe sin avisar — normalmente es el sistema operativo cortando el proceso por falta de RAM. Probá subir la memoria máxima en Ajustes.',
+			'El juego se cerró de golpe sin avisar — normalmente es el sistema operativo cortando el proceso por falta de RAM. Prueba subir la memoria máxima en Ajustes.',
 		exitOtherCode:
-			'El juego se cerró con código {{code}} sin un error reconocible en el log — con varios mods instalados, suele ser falta de RAM. Probá subir la memoria máxima en Ajustes.'
-	},
-	nativeDialogModePrompt: {
-		title: '¿Cómo querés instalar contenido propio?',
-		lead: 'Esto define si vas a poder subir tu propio ícono/wallpaper o agregar mods por archivo a mano. Lo podés cambiar cuando quieras desde Ajustes.',
-		autoRecommended: 'Automático (recomendado)',
-		autoSub: 'Todo se instala solo — sin diálogos de archivo, sin riesgo de crash.',
-		manualSub:
-			'Habilita subir tu propio ícono/wallpaper y mods por archivo — en algunos casos puede cerrar el launcher de golpe.',
-		bannerSub: 'Automático: sin diálogos de archivo. Manual: los habilita, con riesgo de crash.',
-		dismissAriaLabel: 'Cerrar sin elegir todavía',
-		dismissTitle: 'Cerrar sin elegir — se vuelve a preguntar la próxima vez'
+			'El juego se cerró con código {{code}} sin un error reconocible en el log — con varios mods instalados, suele ser falta de RAM. Prueba subir la memoria máxima en Ajustes.'
 	},
 	screenshotsPanel: {
-		hint: 'Capturas de esta instancia (F2 en el juego las guarda acá). El launcher no saca capturas por sí mismo, solo las muestra y las administra.',
+		hint: 'Capturas de esta instancia (F2 en el juego las guarda aquí). El launcher no saca capturas por sí mismo, solo las muestra y las administra.',
 		openFolder: 'Abrir carpeta',
-		empty: 'Sin capturas todavía. Jugá y presioná F2 para guardar una.',
+		empty: 'Sin capturas todavía. Juega y presiona F2 para guardar una.',
 		copyImage: 'Copiar imagen',
 		delete: 'Borrar'
 	},
 	tflSelection: {
 		eyebrow: 'Contenido destacado',
 		subtitle:
-			'Descubrí packs curados y añadilos a una instancia compatible, o creá una nueva al toque.',
+			'Explora paquetes seleccionados e instálalos en una instancia compatible o en una nueva.',
 		allTab: 'Todos',
 		empty: 'Todavía no hay modpacks en la selección.',
 		createNewOption: '＋ Crear instancia nueva — {{mcVersion}} ({{loader}})',
 		needsLoaderInstance:
-			'Necesitás una instancia con Fabric, Forge, NeoForge o Quilt para instalar este pack.',
+			'Necesitas una instancia con Fabric, Forge, NeoForge o Quilt para instalar este pack.',
 		noMatchingInstance: 'Ninguna instancia tuya coincide con las versiones de este pack.',
 		added: 'Añadido',
 		add: 'Añadir',
@@ -536,7 +511,7 @@ export const es = {
 	},
 	modpacksPanel: {
 		vanillaNotSupported:
-			'Vanilla no soporta modpacks — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.',
+			'Vanilla no soporta modpacks — elige Fabric, Forge, NeoForge o Quilt al crear la instancia.',
 		hint: 'Instalar un modpack agrega sus mods y configuración a esta instancia — no reemplaza lo que ya tenías. Quitarlo borra exactamente lo que trajo, nada más.',
 		installedCount: 'Instalados ({{count}})',
 		update: 'Actualizar',
@@ -566,7 +541,7 @@ export const es = {
 		filters: 'Filtros',
 		compatibilityAdvanced: 'Ver contenido de otras versiones',
 		compatibilityAdvancedHint:
-			'Solo para explorar — si instalás algo que no es compatible con esta instancia, el launcher te avisa antes.',
+			'Solo para explorar — si instalas algo que no es compatible con esta instancia, el launcher te avisa antes.',
 		incompatibleWithInstance: 'No compatible con esta instancia'
 	},
 	projectDetail: {
@@ -594,7 +569,7 @@ export const es = {
 	home: {
 		exploreTflSelection: 'Explorar TFL Selection',
 		title: 'Tu biblioteca Minecraft,\nbien organizada.',
-		subtitle: 'Creá una instancia para jugar, instalar contenido y ajustar cada perfil.',
+		subtitle: 'Crea una instancia para jugar, instalar contenido y ajustar cada perfil.',
 		modsCardTitle: 'Mods y modpacks',
 		modsCardHint: 'Por instancia',
 		javaCardTitle: 'Java automático',
@@ -619,9 +594,9 @@ export const es = {
 		scrollRight: 'Ver siguientes',
 		neverPlayed: 'Todavía no la jugaste',
 		runningBadge: 'Corriendo',
-		skinLoadError: 'No se pudo cargar el skin',
-		noAccountCaption: 'Iniciá sesión para ver tu personaje',
-		noServersSavedHint: 'Guardá un servidor desde "Unirse a servidor" para verlo acá.',
+		skinLoadError: 'No se pudo cargar la skin',
+		noAccountCaption: 'Inicia sesión para ver tu personaje',
+		noServersSavedHint: 'Guarda un servidor desde "Unirse a servidor" para verlo aquí.',
 		noActivityYetHint: 'Cuando termines una sesión de juego, va a aparecer en esta lista.',
 		systemStatusUnavailable: 'No se pudo leer el estado del sistema',
 		systemStatusRetry: 'Reintentar'
@@ -630,9 +605,9 @@ export const es = {
 		welcomeTitle: 'Bienvenido a TFL Client',
 		updatesTitle: 'Novedades en v{{version}}',
 		tip1: 'Ctrl+K (⌘K en Mac) abre una paleta para saltar entre instancias o acciones sin tocar el mouse.',
-		tip2: '"TFL Selection" es la biblioteca de clientes modificados de TFLives. Allí encontrás TFLClient, el cliente que instalás desde este launcher.',
+		tip2: '"TFL Selection" es la biblioteca de clientes modificados de TFLives. Allí encuentras TFLClient, el cliente que instalas desde este launcher.',
 		tip3: 'Cada instancia tiene su propia pestaña de Mods, Shaders y Modpacks — nada se mezcla entre instancias.',
-		tip4: 'En Ajustes → Estilo podés cambiar acento, superficie, densidad y hasta el fondo animado.',
+		tip4: 'En Ajustes → Estilo puedes cambiar acento, superficie, densidad y hasta el fondo animado.',
 		updatedToVersionWithNotes: 'Se actualizó solo a la versión {{version}}:',
 		viewTechnicalDetail: 'Ver el detalle técnico en GitHub',
 		updatedToVersionNoNotes:
@@ -682,20 +657,20 @@ export const es = {
 	},
 	modsPanel: {
 		vanillaHint:
-			'Vanilla no soporta mods — elegí Fabric, Forge, NeoForge o Quilt al crear la instancia.',
+			'Vanilla no soporta mods — elige Fabric, Forge, NeoForge o Quilt al crear la instancia.',
 		selectionHint:
-			'Este cliente instalado desde la biblioteca TFL Selection administra sus mods solo: no se pueden agregar ni sacar a mano. Usá el ícono de escudo junto al nombre para verificar la integridad, y la página de TFL Selection en Explorar para reparar o actualizar.'
+			'Este cliente instalado desde la biblioteca TFL Selection administra sus mods solo: no se pueden agregar ni sacar a mano. Usa el ícono de escudo junto al nombre para verificar la integridad, y la página de TFL Selection en Explorar para reparar o actualizar.'
 	},
 	resourcePacksPanel: {
-		hint: 'Los resource packs funcionan en cualquier instancia, con o sin mods — no necesitás nada extra instalado. Se activan desde el menú de Minecraft (Opciones → Paquetes de recursos).'
+		hint: 'Activa los paquetes de recursos desde Opciones → Paquetes de recursos dentro de Minecraft.'
 	},
 	pluginsPanel: {
-		vanillaHint: 'Vanilla no soporta plugins — elegí Paper o Purpur al crear el servidor.'
+		vanillaHint: 'Vanilla no soporta plugins — elige Paper o Purpur al crear el servidor.'
 	},
 	serverConsole: {
 		notRunning: 'El servidor no está corriendo.',
 		waitingOutput: 'Esperando salida del servidor…',
-		commandPlaceholder: 'Escribí un comando y presioná Enter…',
+		commandPlaceholder: 'Escribe un comando y presiona Enter…',
 		send: 'Enviar'
 	},
 	serverWorlds: {
@@ -728,11 +703,11 @@ export const es = {
 		connectionPublicReady:
 			'Esta dirección ya sirve para cualquiera, esté donde esté — TFL Client abrió el puerto solo en tu router.',
 		connectionPublicManual:
-			'Esta dirección sirve para cualquiera, pero tu router no dejó abrirla sola: hay que abrir (port forward) el puerto {{port}} a mano — buscá "port forwarding" + el modelo de tu router.',
+			'Esta dirección sirve para cualquiera, pero tu router no dejó abrirla sola: hay que abrir (port forward) el puerto {{port}} a mano — busca "port forwarding" + el modelo de tu router.',
 		connectionLanFallback:
 			'Si están en la misma red Wi-Fi, también pueden usar {{address}} directamente.',
 		connectionUnavailable:
-			'No se pudo detectar la dirección de red — revisá que tengas conexión a internet o red local.',
+			'No se pudo detectar la dirección de red — revisa que tengas conexión a internet o red local.',
 		connectionTunnelReady:
 			'Esta dirección ya sirve para cualquiera, esté donde esté — no depende de tu router.',
 		playitPitch:
@@ -750,8 +725,8 @@ export const es = {
 		resetSkin: 'Restaurar por defecto',
 		noCapes: 'Esta cuenta no tiene ninguna capa — se consiguen con eventos/promociones de Mojang.',
 		noCape: 'Sin capa',
-		viewerHint: 'Arrastrá para girar, rueda del mouse para zoom',
-		skinLoadError: 'No se pudo cargar la textura del skin — probá de nuevo en un momento'
+		viewerHint: 'Arrastra para girar y usa la rueda del mouse para acercar o alejar',
+		skinLoadError: 'No se pudo cargar la textura de la skin. Inténtalo de nuevo en un momento.'
 	},
 	serverConnectionInfo: {
 		title: 'Cómo se conectan los demás a tu servidor',

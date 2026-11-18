@@ -33,16 +33,13 @@ fn video_format(ext: &str, bytes: &[u8]) -> bool {
     }
 }
 #[tauri::command]
-pub async fn pick_scene_video_file(app: AppHandle) -> Option<String> {
-    if SettingsManager::read().native_dialog_mode != "manual" {
-        return None;
-    }
-    app.dialog()
-        .file()
-        .add_filter("Video (MP4 / WebM)", &["mp4", "webm"])
-        .blocking_pick_file()
-        .and_then(|f| f.into_path().ok())
-        .map(|p| p.to_string_lossy().to_string())
+pub async fn pick_scene_video_file(app: AppHandle) -> Result<Option<String>, String> {
+    Ok(
+        crate::core::file_dialog::pick_files(app, "Video (MP4 / WebM)", &["mp4", "webm"], false)
+            .await?
+            .into_iter()
+            .next(),
+    )
 }
 #[tauri::command]
 pub async fn list_scene_media() -> Result<Vec<SceneMedia>, String> {
@@ -87,7 +84,7 @@ async fn import_into(source_path: String, dir: std::path::PathBuf) -> Result<Sce
         .and_then(|s| s.to_str())
         .map(str::to_ascii_lowercase)
         .filter(|s| ["mp4", "webm"].contains(&s.as_str()))
-        .ok_or("Usá un vídeo MP4 o WebM")?;
+        .ok_or("Usa un vídeo MP4 o WebM")?;
     let metadata = tokio::fs::metadata(&source)
         .await
         .map_err(|e| e.to_string())?;
@@ -106,7 +103,7 @@ async fn import_into(source_path: String, dir: std::path::PathBuf) -> Result<Sce
     }
     if list_at(&dir).await?.len() >= MAX_FILES {
         return Err(
-            "La biblioteca admite hasta 12 vídeos. Quitá uno antes de importar otro.".into(),
+            "La biblioteca admite hasta 12 vídeos. Quita uno antes de importar otro.".into(),
         );
     }
     let id = format!(

@@ -32,7 +32,8 @@ async function open(options = {}) {
 	const page = await context.newPage();
 	page.setDefaultTimeout(12000);
 	page.on('pageerror', (e) => errors.push(e.message));
-	await page.addInitScript(installFixture, { ...options, iconPresets: icons });
+	// This suite exercises advanced overrides and explicit Apply/Save contracts.
+	await page.addInitScript(installFixture, { mode: 'advanced', ...options, iconPresets: icons });
 	await page.addInitScript(
 		({ style, scene, surface }) => {
 			localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style }));

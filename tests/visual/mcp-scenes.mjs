@@ -23,7 +23,8 @@ async function open({
 	const context = await browser.newContext({ viewport });
 	const page = await context.newPage();
 	page.on('pageerror', (e) => errors.push(e.message));
-	await page.addInitScript(installFixture, { theme, quality, language });
+	// This suite verifies the Advanced permission/manual-configuration interface.
+	await page.addInitScript(installFixture, { theme, quality, language, mode: 'advanced' });
 	await page.addInitScript(
 		({ style, scene }) => {
 			localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style }));

@@ -1,18 +1,24 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { setting, type SettingId } from '$lib/settings/catalog';
+	import { setting, isSettingVisible, type SettingId } from '$lib/settings/catalog';
+	import { experience } from '$lib/state/experience.svelte';
 	import { i18nState } from '$lib/i18n/index.svelte';
 	let { id, hint = '', children }: { id: SettingId; hint?: string; children: Snippet } = $props();
 	const item = $derived(setting(id));
 </script>
 
-<section class="setting-group" data-setting={id} tabindex="-1" aria-labelledby={`setting-${id}`}>
-	<header>
-		<h4 id={`setting-${id}`}>{item.label[i18nState.locale === 'en' ? 1 : 0]}</h4>
-		{#if hint}<p>{hint}</p>{/if}
-	</header>
-	<div class="setting-content">{@render children()}</div>
-</section>
+{#if isSettingVisible(id, experience.mode)}<section
+		class="setting-group"
+		data-setting={id}
+		tabindex="-1"
+		aria-labelledby={`setting-${id}`}
+	>
+		<header>
+			<h4 id={`setting-${id}`}>{item.label[i18nState.locale.startsWith('en') ? 1 : 0]}</h4>
+			{#if hint}<p>{hint}</p>{/if}
+		</header>
+		<div class="setting-content">{@render children()}</div>
+	</section>{/if}
 
 <style>
 	.setting-group {

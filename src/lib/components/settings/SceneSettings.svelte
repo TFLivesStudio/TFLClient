@@ -6,6 +6,7 @@
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 	import { invoke } from '$lib/api/invoke';
+	import { experience } from '$lib/state/experience.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import { appearance } from '$lib/state/appearanceState.svelte';
 	import { openSettingsAt } from '$lib/state/uiState.svelte';
@@ -19,6 +20,7 @@
 	import { Play, Pause, Upload, Trash2, Check, RotateCcw } from 'lucide-svelte';
 	let { children }: { children: Snippet } = $props();
 	let previousScene = $state('');
+	let undoScene = $state<SceneConfig | null>(null);
 	let draft = $state<SceneConfig>(structuredClone(DEFAULT_SCENE)),
 		playing = $state(false),
 		error = $state(''),
@@ -35,7 +37,7 @@
 			(!draft.preset.startsWith('addon:') ||
 				new Set(addonLayers.map((layer) => layer.speed)).size > 1)
 	);
-	const locale = $derived(i18nState.locale === 'en' ? 1 : 0);
+	const locale = $derived(i18nState.locale.startsWith('en') ? 1 : 0);
 	$effect(() => {
 		const current = scenes.global;
 		draft = structuredClone($state.snapshot(current));
@@ -61,6 +63,7 @@
 			await load();
 			draft.mediaId = item.id;
 			if (draft.preset === 'legacy') draft.preset = 'aurora';
+			commitSimple();
 		} catch (e) {
 			error = String(e);
 		} finally {
@@ -93,15 +96,30 @@
 		draft = structuredClone($state.snapshot(scenes.global));
 		playing = false;
 	}
+	function commitSimple() {
+		if (experience.mode !== 'simple') return;
+		undoScene = structuredClone($state.snapshot(scenes.global));
+		apply();
+	}
+	function undoSimple() {
+		if (!undoScene) return;
+		saveScene($state.snapshot(undoScene));
+		undoScene = null;
+	}
 </script>
 
 <div class="scene-settings">
 	<SettingGroup
 		id="scene-current"
-		hint={tr(
-			'Previsualiza antes de aplicar. El fondo se pausa mientras editas para evitar dos escenas activas.',
-			'Preview before applying. The background pauses while you edit to avoid two active scenes.'
-		)}
+		hint={experience.mode === 'simple'
+			? tr(
+					'Los cambios se guardan al seleccionar una escena.',
+					'Changes save when you choose a scene.'
+				)
+			: tr(
+					'Previsualiza antes de aplicar. El fondo se pausa mientras editas para evitar dos escenas activas.',
+					'Preview before applying. The background pauses while you edit to avoid two active scenes.'
+				)}
 	>
 		<div class="preview">
 			<SceneStage
@@ -145,16 +163,22 @@
 				>
 			</p>{/if}
 		<div class="actions">
-			<button class="primary" type="button" disabled={!dirty} onclick={apply}
-				><Check size={14} />{tr('Aplicar escena', 'Apply scene')}</button
-			><button type="button" class="vr-control" disabled={!dirty} onclick={cancel}
-				>{tr('Cancelar', 'Cancel')}</button
-			><button
+			{#if experience.mode === 'advanced'}<button
+					class="primary"
+					type="button"
+					disabled={!dirty}
+					onclick={apply}><Check size={14} />{tr('Aplicar escena', 'Apply scene')}</button
+				><button type="button" class="vr-control" disabled={!dirty} onclick={cancel}
+					>{tr('Cancelar', 'Cancel')}</button
+				>{:else if undoScene}<button type="button" class="vr-control" onclick={undoSimple}
+					>{tr('Deshacer', 'Undo')}</button
+				>{/if}<button
 				type="button"
 				class="vr-control"
 				onclick={() => {
 					draft = structuredClone(DEFAULT_SCENE);
 					playing = false;
+					commitSimple();
 				}}><RotateCcw size={14} />{tr('Restablecer', 'Reset')}</button
 			>{#if saved}<span role="status">{tr('Guardado', 'Saved')}</span>{/if}
 		</div>
@@ -169,6 +193,7 @@
 						draft.preset = scene.id as SceneId;
 						draft.poster = 'auto';
 						draft.mediaId = null;
+						commitSimple();
 					}}
 					><span
 						class="thumb"
@@ -209,7 +234,12 @@
 		)}
 	>
 		<label class="field"
-			>{tr('Imagen de respaldo', 'Fallback image')}<select bind:value={draft.poster}
+			>{tr('Imagen de respaldo', 'Fallback image')}<select
+				value={draft.poster}
+				onchange={(e) => {
+					draft.poster = e.currentTarget.value as SceneConfig['poster'];
+					commitSimple();
+				}}
 				><option value="auto">{tr('Capas de la escena', 'Scene layers')}</option
 				>{#if cinematicPoster(draft.preset)}<option value="cinematic"
 						>{tr('Arte original (estático)', 'Original artwork (static)')}</option
@@ -225,6 +255,7 @@
 				onchange={(e) => {
 					draft.mediaId = e.currentTarget.value || null;
 					if (draft.mediaId && draft.preset === 'legacy') draft.preset = 'aurora';
+					commitSimple();
 				}}
 				><option value="">{tr('Sin vídeo', 'No video')}</option><option value="builtin-aurora"
 					>Aurora Drift · {tr('incluido', 'included')}</option
@@ -238,22 +269,12 @@
 			></label
 		>
 		<div class="actions">
-			<button
-				type="button"
-				class="vr-control"
-				disabled={busy || appState.settings?.native_dialog_mode !== 'manual'}
-				onclick={importVideo}
+			<button type="button" class="vr-control" disabled={busy} onclick={importVideo}
 				><Upload size={14} />{busy
 					? tr('Importando…', 'Importing…')
 					: tr('Importar vídeo', 'Import video')}</button
 			>
 		</div>
-		{#if appState.settings?.native_dialog_mode !== 'manual'}<p class="hint">
-				{tr(
-					'Selecciona diálogos manuales en General para importar archivos.',
-					'Choose manual dialogs in General to import files.'
-				)}
-			</p>{/if}
 		{#each media as item (item.id)}<div class="media-item">
 				<span>{item.id.slice(-6)} · {(item.bytes / 1048576).toFixed(1)} MB</span><button
 					type="button"

@@ -4,8 +4,8 @@
 //! `services::server_downloads`, el ciclo de vida del proceso en
 //! `services::server_process` — este archivo es la capa fina que el
 //! frontend invoca.
-use crate::core::{HTTP, get_bytes_retrying};
-use crate::services::instance_manager::{self, InstanceData, LoaderKind, ServerType};
+use crate::core::HTTP;
+use crate::services::instance_manager::{self, InstanceData, ServerType};
 use crate::services::{playit_tunnel, server_downloads, server_process};
 use aqua::path_security::safe_join;
 use serde::Serialize;
@@ -76,10 +76,9 @@ pub(crate) async fn read_server_port(instance_dir: &std::path::Path) -> u16 {
     let Ok(content) = tokio::fs::read_to_string(&path).await else {
         return 25565;
     };
-    content
-        .lines()
-        .find_map(|line| line.strip_prefix("server-port="))
-        .and_then(|v| v.trim().parse().ok())
+    crate::services::server_ports::configured(&content)
+        .ok()
+        .and_then(|ports| ports.first().map(|port| port.number))
         .unwrap_or(25565)
 }
 
@@ -88,6 +87,9 @@ pub async fn get_server_connection_info(
     instance_name: String,
 ) -> Result<ServerConnectionInfo, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
+    if instance.server_type.is_none() {
+        return Err("Esta instancia no es un servidor".into());
+    }
     let port = read_server_port(&instance.dir()).await;
     let public_ip = fetch_public_ip().await;
 
@@ -118,39 +120,53 @@ pub async fn create_server_instance(
     name: String,
     mc_version: String,
     server_type: String,
+    port: Option<u16>,
+    accept_eula: Option<bool>,
 ) -> Result<InstanceData, String> {
-    let kind = ServerType::parse(&server_type)
-        .ok_or_else(|| format!("Tipo de servidor desconocido: {server_type}"))?;
-    let download = server_downloads::resolve_server_download(kind, &mc_version).await?;
-
-    let data = instance_manager::create_instance_full(
-        name,
-        mc_version.clone(),
-        LoaderKind::Vanilla,
-        None,
-        mc_version,
-        Some(kind),
-        Some(download.filename.clone()),
-        Some(download.build_label),
-    )
-    .await?;
-
-    let bytes = get_bytes_retrying(&download.url).await.map_err(|e| {
-        // La instancia ya quedó creada en disco — no la dejamos a medio
-        // instalar sin avisar por qué falló la parte que sí importa (el
-        // jar en sí).
-        format!("Instancia creada pero no se pudo descargar el servidor: {e}")
-    })?;
-    tokio::fs::write(data.dir().join(&download.filename), &bytes)
+    let kind = ServerType::parse(&server_type).ok_or("Tipo de servidor desconocido")?;
+    crate::services::server_tasks::create(name, mc_version, kind, port, accept_eula == Some(true))
         .await
-        .map_err(|e| format!("Instancia creada pero no se pudo guardar el jar: {e}"))?;
+}
 
-    Ok(data)
+#[command]
+pub async fn list_server_tasks() -> Vec<crate::services::server_tasks::ServerTask> {
+    crate::services::server_tasks::list().await
+}
+#[command]
+pub async fn cancel_server_task(id: String) -> Result<(), String> {
+    crate::services::server_tasks::cancel(&id).await
+}
+#[command]
+pub async fn retry_server_task(id: String) -> Result<(), String> {
+    crate::services::server_tasks::retry(&id).await
+}
+#[command]
+pub async fn accept_server_eula(instance_name: String) -> Result<(), String> {
+    let _guard = crate::services::content::mutation_lock(&instance_name).await;
+    let data = instance_manager::get_instance(&instance_name).await?;
+    if data.server_type.is_none() {
+        return Err("Esta instancia no es un servidor".into());
+    }
+    if server_process::is_server_running(&instance_name) {
+        return Err("Detén el servidor antes de cambiar la EULA".into());
+    }
+    let path = safe_join(&data.dir(), "eula.txt")?;
+    tokio::fs::write(
+        path,
+        "# Aceptación explícita del usuario en TFL Client\neula=true\n",
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[command]
 pub async fn launch_server(instance_name: String) -> Result<(), String> {
     server_process::launch_server(instance_name).await
+}
+
+#[command]
+pub async fn export_server(instance_name: String) -> Result<String, String> {
+    crate::services::instance_archive::create(instance_name, true).await
 }
 
 #[command]
@@ -176,73 +192,20 @@ pub struct WorldInfo {
     pub size_bytes: u64,
 }
 
-async fn dir_size(path: &std::path::Path) -> u64 {
-    let mut total = 0u64;
-    let mut stack = vec![path.to_path_buf()];
-    while let Some(dir) = stack.pop() {
-        let Ok(mut entries) = tokio::fs::read_dir(&dir).await else {
-            continue;
-        };
-        while let Ok(Some(entry)) = entries.next_entry().await {
-            let Ok(meta) = entry.metadata().await else {
-                continue;
-            };
-            if meta.is_dir() {
-                stack.push(entry.path());
-            } else {
-                total += meta.len();
-            }
-        }
-    }
-    total
-}
-
-/// Un "world" de servidor es cualquier carpeta en la raíz de la instancia
-/// que tenga un `level.dat` adentro — así se detectan world/world_nether/
-/// world_the_end (los nombres estándar) y también mundos con nombre
-/// custom (server.properties `level-name`) sin tener que parsear ese
-/// archivo de propiedades.
+/// Compatibility route; all world paths and mutations use the same service.
 #[command]
 pub async fn list_server_worlds(instance_name: String) -> Result<Vec<WorldInfo>, String> {
-    let instance = instance_manager::get_instance(&instance_name).await?;
-    let dir = if instance.server_type.is_some() {
-        instance.dir()
-    } else {
-        instance.dir().join("saves")
-    };
-    let mut worlds = Vec::new();
-    if !dir.exists() {
-        return Ok(worlds);
-    }
-    let mut entries = tokio::fs::read_dir(&dir).await.map_err(|e| e.to_string())?;
-    while let Ok(Some(entry)) = entries.next_entry().await {
-        let path = entry.path();
-        if path.is_dir() && path.join("level.dat").exists() {
-            let name = entry.file_name().to_string_lossy().to_string();
-            let size_bytes = dir_size(&path).await;
-            worlds.push(WorldInfo { name, size_bytes });
-        }
-    }
-    Ok(worlds)
+    let worlds = crate::commands::worlds::list_instance_worlds(instance_name).await?;
+    worlds.into_iter().filter(|world| !world.missing).map(|world| Ok(WorldInfo {
+        name: world.name,
+        size_bytes: world.size_bytes.ok_or("No se pudo medir un mundo; consulta sus detalles para ver el error de lectura.")?,
+    })).collect()
 }
 
 #[command]
 pub async fn delete_server_world(instance_name: String, world_name: String) -> Result<(), String> {
-    let instance = instance_manager::get_instance(&instance_name).await?;
-    let dir = if instance.server_type.is_some() {
-        instance.dir()
-    } else {
-        instance.dir().join("saves")
-    };
-    let path = safe_join(&dir, &world_name)?;
-    if !path.join("level.dat").exists() {
-        return Err("Esa carpeta no es un mundo válido".into());
-    }
-    tokio::fs::remove_dir_all(&path)
-        .await
-        .map_err(|e| e.to_string())
+    crate::commands::worlds::delete_instance_world(instance_name, world_name).await
 }
-
 // ─── File manager (genérico, scoped a la carpeta de la instancia) ───────
 
 #[derive(Debug, Serialize)]
@@ -291,7 +254,7 @@ pub async fn read_instance_text_file(
         .await
         .map_err(|e| e.to_string())?;
     if meta.len() > MAX_TEXT_FILE_SIZE {
-        return Err("El archivo es demasiado grande para editar acá (más de 2 MB)".into());
+        return Err("El archivo es demasiado grande para editar aquí (más de 2 MB)".into());
     }
     tokio::fs::read_to_string(&path)
         .await
@@ -304,17 +267,72 @@ pub async fn write_instance_text_file(
     subpath: String,
     content: String,
 ) -> Result<(), String> {
+    let _guard = crate::services::content::mutation_lock(&instance_name).await;
+    let _port_guard = crate::services::server_ports::CREATION.lock().await;
+    crate::services::worlds::ensure_stopped(&instance_name)?;
     let instance = instance_manager::get_instance(&instance_name).await?;
-    crate::services::selection::installer::ensure_personal_path(&instance.dir(), &subpath)?;
+    if instance.server_type.is_none() {
+        return Err("El administrador de archivos corresponde a servidores".into());
+    }
+    if content.len() > MAX_TEXT_FILE_SIZE as usize {
+        return Err("El archivo supera el tamaño permitido".into());
+    }
     let path = safe_join(&instance.dir(), &subpath)?;
-    tokio::fs::write(&path, content)
-        .await
-        .map_err(|e| e.to_string())
+    if path == instance.dir().join("server.properties")
+        || path
+            .file_name()
+            .is_some_and(|name| name.eq_ignore_ascii_case("server.properties"))
+    {
+        crate::services::server_ports::check_reserved(&instance_name, &content).await?;
+    }
+    if path == instance.dir().join("instance.tfl.json")
+        || instance
+            .server_jar
+            .as_ref()
+            .is_some_and(|jar| path == instance.dir().join(jar))
+    {
+        return Err("Usa las acciones de la instancia para modificar ese archivo".into());
+    }
+    crate::services::selection::installer::ensure_personal_path(&instance.dir(), &subpath)?;
+    let parent = path.parent().ok_or("Ruta de configuración inválida")?;
+    let temp = parent.join(format!(".tfl-edit-{}.tmp", uuid::Uuid::new_v4()));
+    let result = async {
+        use tokio::io::AsyncWriteExt;
+        let mut file = tokio::fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(&temp)
+            .await?;
+        file.write_all(content.as_bytes()).await?;
+        file.sync_all().await?;
+        drop(file);
+        tokio::fs::rename(&temp, &path).await
+    }
+    .await;
+    if result.is_err() {
+        let _ = tokio::fs::remove_file(temp).await;
+    }
+    result.map_err(|e| e.to_string())
 }
 
 #[command]
 pub async fn delete_instance_path(instance_name: String, subpath: String) -> Result<(), String> {
+    let _guard = crate::services::content::mutation_lock(&instance_name).await;
+    crate::services::worlds::ensure_stopped(&instance_name)?;
     let instance = instance_manager::get_instance(&instance_name).await?;
+    if instance.server_type.is_none() {
+        return Err("El administrador de archivos corresponde a servidores".into());
+    }
+    if subpath.trim_matches(['/', '\\']).is_empty()
+        || subpath.eq_ignore_ascii_case("server.properties")
+        || subpath.eq_ignore_ascii_case("instance.tfl.json")
+        || instance
+            .server_jar
+            .as_deref()
+            .is_some_and(|jar| subpath.eq_ignore_ascii_case(jar))
+    {
+        return Err("Usa las acciones de la instancia para modificar ese archivo".into());
+    }
     crate::services::selection::installer::ensure_personal_path(&instance.dir(), &subpath)?;
     let path = safe_join(&instance.dir(), &subpath)?;
     let meta = tokio::fs::metadata(&path)
@@ -333,7 +351,12 @@ pub async fn delete_instance_path(instance_name: String, subpath: String) -> Res
 
 #[command]
 pub async fn create_instance_dir(instance_name: String, subpath: String) -> Result<(), String> {
+    let _guard = crate::services::content::mutation_lock(&instance_name).await;
+    crate::services::worlds::ensure_stopped(&instance_name)?;
     let instance = instance_manager::get_instance(&instance_name).await?;
+    if instance.server_type.is_none() {
+        return Err("El administrador de archivos corresponde a servidores".into());
+    }
     crate::services::selection::installer::ensure_personal_path(&instance.dir(), &subpath)?;
     let path = safe_join(&instance.dir(), &subpath)?;
     tokio::fs::create_dir_all(&path)

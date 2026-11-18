@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { Server, Terminal, Network, Folder } from 'lucide-svelte';
-	import type { InstanceData, ServerConnectionInfo } from '$lib/types/types';
+	import type { InstanceData, ServerConnectionInfo, ServerStatus } from '$lib/types/types';
 	import { vr } from '$lib/i18n/refresh';
+	import { tr } from '$lib/i18n/experience';
+	import { pingServer } from '$lib/api/servers';
 	let {
 		instance,
 		running,
@@ -15,6 +17,33 @@
 		onConsole: () => void;
 		onFiles: () => void;
 	} = $props();
+
+	let live = $state<ServerStatus | null>(null);
+	$effect(() => {
+		const port = connection?.port;
+		const lan = connection?.local_ip;
+		live = null;
+		if (!running || !port) return;
+		let stale = false;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		async function poll() {
+			try {
+				let status = await pingServer(`127.0.0.1:${port}`);
+				if (!stale && !status.online && lan && lan !== '127.0.0.1')
+					status = await pingServer(`${lan}:${port}`);
+				if (!stale) live = status.online ? status : null;
+			} catch {
+				if (!stale) live = null;
+			} finally {
+				if (!stale) timer = setTimeout(poll, 15000);
+			}
+		}
+		void poll();
+		return () => {
+			stale = true;
+			clearTimeout(timer);
+		};
+	});
 </script>
 
 <section class="server-dashboard">
@@ -37,6 +66,16 @@
 				>{connection?.local_ip ? `${connection.local_ip}:${connection.port}` : '—'}</strong
 			>
 		</div>
+		{#if running}
+			<div>
+				<span>{tr('Jugadores', 'Players')}</span>
+				<strong
+					>{live?.players_online != null && live.players_max != null
+						? `${live.players_online} / ${live.players_max}`
+						: tr('Sin datos', 'No data')}</strong
+				>
+			</div>
+		{/if}
 	</div>
 	<div class="server-links">
 		<button class="vr-control" onclick={onConsole}><Terminal size={17} />{vr('console')}</button
@@ -59,7 +98,7 @@
 	}
 	.server-facts {
 		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
 		gap: 18px;
 		padding: 24px 0;
 		margin: 18px 0;

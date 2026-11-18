@@ -26,4 +26,3 @@ export { default as SkinViewer3D } from './SkinViewer3D.svelte';
 export { default as ConfirmDialog } from './ConfirmDialog.svelte';
 export { default as ContextMenu } from './ContextMenu.svelte';
 export { default as InfoTooltip } from './InfoTooltip.svelte';
-export { default as Mascot } from './Mascot.svelte';

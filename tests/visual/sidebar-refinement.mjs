@@ -190,9 +190,20 @@ try {
 				assert.deepEqual(focus, { style: 'solid', width: '2px' });
 				const writes = () =>
 					p.evaluate(
-						() => window.__fixtureCommands.filter((c) => c.cmd === 'update_settings').length
+						() =>
+							window.__fixtureCommands.filter(
+								(c) =>
+									(c.cmd === 'patch_settings' &&
+										Object.hasOwn(c.args?.patch ?? {}, 'sidebar_collapsed')) ||
+									(c.cmd === 'update_settings' &&
+										Object.hasOwn(c.args?.settings ?? {}, 'sidebar_collapsed'))
+							).length
 					);
 				const count = await writes();
+				assert.ok(
+					count >= 6,
+					'manual pointer and keyboard collapse changes were actually persisted'
+				);
 				for (const [width, height] of [
 					[800, 600],
 					[1100, 700],

@@ -15,8 +15,18 @@ export const getServerVersions = (serverType: ServerType) =>
 	invoke<string[]>('get_server_versions', { serverType });
 export const getServerConnectionInfo = (instanceName: string) =>
 	invoke<ServerConnectionInfo>('get_server_connection_info', { instanceName });
-export const createServerInstance = (name: string, mcVersion: string, serverType: ServerType) =>
-	invoke<InstanceData>('create_server_instance', { name, mcVersion, serverType });
+export const createServerInstance = (
+	name: string,
+	mcVersion: string,
+	serverType: ServerType,
+	port: number | null = null,
+	acceptEula = false
+) =>
+	invoke<InstanceData>('create_server_instance', { name, mcVersion, serverType, port, acceptEula });
+export const acceptServerEula = (instanceName: string) =>
+	invoke<void>('accept_server_eula', { instanceName });
+export const exportServer = (instanceName: string) =>
+	invoke<string>('export_server', { instanceName });
 export const launchServer = (instanceName: string) =>
 	invoke<void>('launch_server', { instanceName });
 export const stopServer = (instanceName: string) => invoke<void>('stop_server', { instanceName });
@@ -46,5 +56,7 @@ export const playitOpenClaimUrl = (code: string) => invoke<void>('playit_open_cl
 export const getFavoriteServers = () => invoke<FavoriteServer[]>('get_favorite_servers');
 export const addFavoriteServer = (name: string, address: string) =>
 	invoke<FavoriteServer>('add_favorite_server', { name, address });
+export const updateFavoriteServer = (id: string, name: string, address: string) =>
+	invoke<FavoriteServer>('update_favorite_server', { id, name, address });
 export const removeFavoriteServer = (id: string) => invoke<void>('remove_favorite_server', { id });
 export const pingServer = (address: string) => invoke<ServerStatus>('ping_server', { address });

@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { experience } from '$lib/state/experience.svelte';
 	import { appState } from '$lib/state/state.svelte';
-	import { updateSettings } from '$lib/api';
+	import { patchSettings } from '$lib/api';
 	import { tr } from '$lib/i18n/experience';
 	import SettingGroup from './SettingGroup.svelte';
 	import type { JavaStatus } from '$lib/types/types';
@@ -22,6 +24,21 @@
 	let error = $state(''),
 		busy = $state(false),
 		saved = $state(false);
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	function schedule() {
+		if (experience.mode !== 'simple') return;
+		clearTimeout(timer);
+		timer = setTimeout(() => {
+			timer = undefined;
+			void save();
+		}, 500);
+	}
+	onMount(() => () => {
+		if (timer) {
+			clearTimeout(timer);
+			void save();
+		}
+	});
 	async function save() {
 		if (!appState.settings) return;
 		const env: Record<string, string> = {};
@@ -61,9 +78,8 @@
 		error = '';
 		saved = false;
 		try {
-			const next = { ...appState.settings, ...paths, jvm_args: jvm, env_vars: env };
-			await updateSettings(next);
-			appState.settings = next;
+			await patchSettings({ ...paths, jvm_args: jvm, env_vars: env });
+			// The settings API applies only the committed value.
 			await onSaved();
 			saved = true;
 		} catch (e) {
@@ -74,7 +90,7 @@
 	}
 </script>
 
-<div class="launch-settings">
+<div class="launch-settings" oninput={schedule}>
 	<SettingGroup
 		id="java"
 		hint={tr(
@@ -128,16 +144,17 @@
 			spellcheck="false"></textarea></SettingGroup
 	>
 	<div class="launch-actions">
-		<button
-			data-pixel-control="primary"
-			type="button"
-			class="vr-control primary"
-			disabled={busy}
-			onclick={save}
-			>{busy
-				? tr('Guardando…', 'Saving…')
-				: tr('Guardar opciones de inicio', 'Save launch options')}</button
-		>{#if saved}<span role="status">{tr('Guardado', 'Saved')}</span>{/if}
+		{#if experience.mode === 'advanced'}
+			<button
+				data-pixel-control="primary"
+				type="button"
+				class="vr-control primary"
+				disabled={busy}
+				onclick={save}
+				>{busy
+					? tr('Guardando…', 'Saving…')
+					: tr('Guardar opciones de inicio', 'Save launch options')}</button
+			>{/if}{#if saved}<span role="status">{tr('Guardado', 'Saved')}</span>{/if}
 	</div>
 	{#if error}<p role="alert">{error}</p>{/if}
 </div>

@@ -12,6 +12,10 @@ export interface MinecraftUser {
 export type QualityProfile = 'Lite' | 'Balanced' | 'Experience';
 
 export interface Settings {
+	schema_version?: number;
+	settings_revision?: number;
+	ui_mode?: 'simple' | 'advanced';
+	preference_origins?: Record<string, 'explicit' | 'existing-profile'>;
 	user: MinecraftUser[];
 	active_user_idx: number;
 	min_memory: number;
@@ -21,6 +25,7 @@ export interface Settings {
 	jre21_path: string;
 	jre25_path: string;
 	language: string;
+	locale?: string | null;
 	theme: string;
 	quality_profile: QualityProfile;
 	discord_presence: boolean;
@@ -60,6 +65,8 @@ export interface InstanceData {
 	loader_version: string | null;
 	launch_version_id: string;
 	last_played: number;
+	last_activity?: number;
+	preparation?: string | null;
 	play_time_secs: number;
 	min_memory: number | null;
 	max_memory: number | null;
@@ -336,11 +343,14 @@ export interface ActivityEntry {
 }
 
 export interface SystemStatus {
-	java_major: number | null;
+	cpu_model: string | null;
+	gpu_adapters: { name: string; provider: string; vram_bytes: number | null }[];
+	hardware_error: string | null;
 	ram_assigned_mb: number;
 	ram_total_mb: number;
-	disk_free_gb: number;
-	disk_total_gb: number;
+	ram_available_mb: number;
+	disk_free_gb: number | null;
+	disk_total_gb: number | null;
 	instances_dir: string;
 }
 

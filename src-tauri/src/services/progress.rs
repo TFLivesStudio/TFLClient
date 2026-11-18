@@ -3,7 +3,13 @@
 //! spinner genérico) durante descargas de versiones/loaders/mods/Java.
 use crate::core::{AppEvent, emit};
 use aqua::{DownloadProgress, DownloadStage, ProgressSender};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use tokio::task::JoinHandle;
+
+static ACTIVE: AtomicUsize = AtomicUsize::new(0);
+pub fn has_active_downloads() -> bool {
+    ACTIVE.load(Ordering::Acquire) != 0
+}
 
 fn stage_str(stage: &DownloadStage) -> String {
     stage.as_str().to_string()
@@ -14,15 +20,24 @@ pub struct ProgressWatcher {
     handle: JoinHandle<()>,
 }
 
+impl Drop for ProgressWatcher {
+    fn drop(&mut self) {
+        self.handle.abort();
+        ACTIVE.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
 impl ProgressWatcher {
     /// Termina el watcher y emite `DownloadFinished`/`DownloadFailed` según
     /// el resultado de la descarga.
     pub async fn finish(self, result: Result<(), String>) -> Result<(), String> {
         self.handle.abort();
         match &result {
-            Ok(()) => emit(AppEvent::DownloadFinished { task: self.task }),
+            Ok(()) => emit(AppEvent::DownloadFinished {
+                task: self.task.clone(),
+            }),
             Err(e) => emit(AppEvent::DownloadFailed {
-                task: self.task,
+                task: self.task.clone(),
                 error: e.clone(),
             }),
         }
@@ -49,6 +64,7 @@ pub fn mark_processing(tx: &ProgressSender, label: &str) {
 /// `ProgressSender` devuelto con `handle.download_all(Some(tx))`, y llamar
 /// `watcher.finish(result)` con el resultado de esa descarga.
 pub fn watch(task: &str) -> (ProgressSender, ProgressWatcher) {
+    ACTIVE.fetch_add(1, Ordering::AcqRel);
     let (tx, mut rx) = tokio::sync::watch::channel(DownloadProgress {
         stage: DownloadStage::Resolving,
         item_current: 0,

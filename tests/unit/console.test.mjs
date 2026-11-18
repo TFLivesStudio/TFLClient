@@ -18,7 +18,7 @@ test('console preferences survive round trip; bad values cannot break layout or 
 		fontSize: 500,
 		dock: 'absolute'
 	});
-	assert.deepEqual(p.order, ['ram', 'cpu', 'disk']);
+	assert.deepEqual(p.order, ['ram', 'cpu', 'storage', 'network', 'disk', 'gpu']);
 	assert.equal(p.visible.cpu, false);
 	assert.equal(p.colors.cpu, '#112233');
 	assert.equal(p.colors.warn, DEFAULT_CONSOLE.colors.warn);
@@ -43,7 +43,7 @@ test('all supported arrangements persist without dropping metric order', () => {
 			});
 			assert.equal(p.dock, dock);
 			assert.equal(p.columns, columns);
-			assert.deepEqual(p.order, ['disk', 'cpu', 'ram']);
+			assert.deepEqual(p.order, ['disk', 'cpu', 'ram', 'storage', 'network', 'gpu']);
 			assert.equal(p.follow, false);
 			assert.equal(p.wrap, false);
 		}

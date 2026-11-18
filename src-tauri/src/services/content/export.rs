@@ -160,6 +160,9 @@ impl<P: ContentProvider> ContentService<P> {
     pub async fn export_mrpack(&self, instance_name: &str) -> Result<String, String> {
         super::ensure_mutable(instance_name, super::types::ContentKind::Mod).await?;
         let instance = instance_manager::get_instance(instance_name).await?;
+        if instance.server_type.is_some() {
+            return Err("Exporta el servidor con el formato de servidor de TFL Client".into());
+        }
         let instance_dir = instance.dir();
         let mods_dir = instance_dir.join("mods");
 

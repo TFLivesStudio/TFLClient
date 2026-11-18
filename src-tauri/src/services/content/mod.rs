@@ -55,8 +55,23 @@ pub fn service() -> ContentService<ModrinthProvider> {
 
 /// Shared by UI and MCP mutations: official curation is installation provenance, not a loader.
 pub(crate) async fn ensure_mutable(instance: &str, kind: types::ContentKind) -> Result<(), String> {
+    let instance = crate::services::instance_manager::get_instance(instance).await?;
+    use crate::services::instance_manager::ServerType;
+    use types::ContentKind;
+    match (instance.server_type, kind) {
+        (Some(ServerType::Paper | ServerType::Purpur), ContentKind::Plugin) => {}
+        (_, ContentKind::Plugin) => {
+            return Err("Los plugins requieren un servidor Paper o Purpur".into());
+        }
+        (Some(_), _) => {
+            return Err(
+                "Esta acción instala contenido de cliente. Gestiona los datapacks desde Mundos."
+                    .into(),
+            );
+        }
+        (None, _) => {}
+    }
     if matches!(kind, types::ContentKind::Mod | types::ContentKind::Shader) {
-        let instance = crate::services::instance_manager::get_instance(instance).await?;
         if crate::services::selection::installer::is_selection_instance(&instance.dir()) {
             if kind == types::ContentKind::Mod {
                 return Err("TFL Selection administra este cliente. Usa verificar, reparar o actualizar el cliente completo.".into());

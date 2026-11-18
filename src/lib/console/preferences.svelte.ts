@@ -28,22 +28,39 @@ export function watchConsole() {
 }
 export function saveConsole(patch: Partial<ConsolePreferences>) {
 	if (patch.chartStyle && !patch.metricStyles)
-		patch.metricStyles = { cpu: patch.chartStyle, ram: patch.chartStyle, disk: patch.chartStyle };
+		patch.metricStyles = {
+			cpu: patch.chartStyle,
+			ram: patch.chartStyle,
+			disk: patch.chartStyle,
+			storage: patch.chartStyle,
+			network: patch.chartStyle,
+			gpu: patch.chartStyle
+		};
 	if (patch.seconds && !patch.metricSeconds)
-		patch.metricSeconds = { cpu: patch.seconds, ram: patch.seconds, disk: patch.seconds };
-	Object.assign(consolePrefs, parseConsole({ ...$state.snapshot(consolePrefs), ...patch }));
+		patch.metricSeconds = {
+			cpu: patch.seconds,
+			ram: patch.seconds,
+			disk: patch.seconds,
+			storage: patch.seconds,
+			network: patch.seconds,
+			gpu: patch.seconds
+		};
+	const next = parseConsole({ ...$state.snapshot(consolePrefs), ...patch });
 	try {
-		localStorage.setItem(CONSOLE_KEY, JSON.stringify($state.snapshot(consolePrefs)));
-		persistAuthority('console', $state.snapshot(consolePrefs));
+		localStorage.setItem(CONSOLE_KEY, JSON.stringify(next));
+		Object.assign(consolePrefs, next);
+		persistAuthority('console', next);
 		consoleStorage.error = false;
+		return true;
 	} catch {
 		consoleStorage.error = true;
+		return false;
 	}
 }
 export function moveMetric(metric: Metric, offset: number) {
 	const order = [...consolePrefs.order];
 	const from = order.indexOf(metric),
-		to = Math.max(0, Math.min(2, from + offset));
+		to = Math.max(0, Math.min(order.length - 1, from + offset));
 	order.splice(from, 1);
 	order.splice(to, 0, metric);
 	saveConsole({ order });

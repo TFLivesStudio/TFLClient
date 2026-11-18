@@ -1,5 +1,5 @@
 //! Only main-window ACL can grant MCP access or approve critical actions.
-use crate::services::{mcp, mcp_preferences};
+use crate::services::{mcp, mcp_preferences, mcp_quick_connect};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, command};
 #[command]
@@ -87,4 +87,51 @@ pub async fn mcp_probe(app: AppHandle) -> Result<Value, String> {
     }
     mcp::notify(&app);
     Ok(serde_json::json!({"authenticated_ipc":true,"unapproved_read_denied":true}))
+}
+
+fn quick_connect_paths() -> Result<(std::path::PathBuf, std::path::PathBuf), String> {
+    let home = directories::UserDirs::new()
+        .ok_or("No se pudo localizar tu carpeta de usuario.")?
+        .home_dir()
+        .to_path_buf();
+    let registry = crate::core::PathManager::get()
+        .get_settings_dir()
+        .join("mcp/quick-connect.json");
+    Ok((home, registry))
+}
+
+#[command]
+pub async fn mcp_quick_connect_targets() -> Result<Vec<mcp_quick_connect::Target>, String> {
+    let (home, registry) = quick_connect_paths()?;
+    tauri::async_runtime::spawn_blocking(move || mcp_quick_connect::targets(&home, &registry))
+        .await
+        .map_err(|_| "No se pudo revisar la configuración MCP.".to_string())?
+}
+
+#[command]
+pub async fn mcp_quick_connect_write(
+    app: AppHandle,
+    target_id: String,
+    enabled: bool,
+    expected_revision: String,
+) -> Result<Vec<mcp_quick_connect::Target>, String> {
+    let sidecar = mcp::sidecar_path(&app).unwrap_or_default();
+    if enabled && sidecar.is_empty() {
+        return Err("No se encontró el auxiliar MCP junto al launcher.".into());
+    }
+    let (home, registry) = quick_connect_paths()?;
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        mcp_quick_connect::write(
+            &home,
+            &registry,
+            &target_id,
+            enabled,
+            &expected_revision,
+            std::path::Path::new(&sidecar),
+        )
+    })
+    .await
+    .map_err(|_| "No se pudo actualizar la configuración MCP.".to_string())??;
+    let _ = app.emit("mcp-quick-connect-changed", ());
+    Ok(result)
 }

@@ -3,27 +3,24 @@
 	import { react } from '$lib/scenes/reactions.svelte';
 	import { openSettingsAt } from '$lib/state/uiState.svelte';
 	import { tr } from '$lib/i18n/experience';
-	import { ArrowUpRight } from 'lucide-svelte';
+	import { Pencil } from 'lucide-svelte';
 	import { visual } from '$lib/visual/preferences.svelte';
-	import { vr } from '$lib/i18n/refresh';
-	import { navigate } from '$lib/visual/navigation.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
-	import { Button, ConfirmDialog } from '$lib/components/ui';
+	import { ConfirmDialog, Tooltip } from '$lib/components/ui';
 	import HomeEmptyState from '$lib/components/home/HomeEmptyState.svelte';
 	import InstanceHero from '$lib/components/home/InstanceHero.svelte';
 	import FavoriteServersPanel from '$lib/components/home/FavoriteServersPanel.svelte';
 	import RecentActivityPanel from '$lib/components/home/RecentActivityPanel.svelte';
 	import SystemStatusPanel from '$lib/components/home/SystemStatusPanel.svelte';
-	import InstanceCarousel from '$lib/components/home/InstanceCarousel.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { openModal } from '$lib/state/uiState.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import { gameSession } from '$lib/state/gameSession.svelte';
-	import { selectInstance, iconVersions } from '$lib/state/instanceState.svelte';
+	import { iconVersions } from '$lib/state/instanceState.svelte';
 	import { multiInstanceWarningKind } from '$lib/state/launch';
 	import {
 		launchInstance,
-		getMojangProfile,
+		getCharacterProfile,
 		getInstanceIconPath,
 		updateSettings,
 		getFavoriteServers,
@@ -37,7 +34,6 @@
 		ActivityEntry,
 		SystemStatus
 	} from '$lib/types/types';
-	import { Plus, Sparkles } from 'lucide-svelte';
 
 	/**
 	 * Home — Entrega C. Este archivo queda como ORQUESTADOR (sección 1/17
@@ -78,7 +74,6 @@
 		[...clientInstances].sort((a, b) => b.last_played - a.last_played)
 	);
 	const featured: InstanceData | null = $derived(sortedByRecent[0] ?? null);
-	const others = $derived(sortedByRecent.slice(1, 4));
 
 	const playTimeLabel = $derived.by(() => {
 		const secs = featured?.play_time_secs ?? 0;
@@ -97,7 +92,7 @@
 	let iconUrls = $state<Record<string, string | null>>({});
 	const iconLoaded: Record<string, string> = {};
 	$effect(() => {
-		const candidates = [featured, ...others].filter((i): i is InstanceData => i !== null);
+		const candidates = [featured].filter((i): i is InstanceData => i !== null);
 		for (const inst of candidates) {
 			const version = iconVersions[inst.name] ?? 0;
 			const key = `${inst.name}:${version}`;
@@ -190,21 +185,23 @@
 	const isPremium = $derived(
 		appState.currentUser !== null && appState.currentUser.user_type !== 'Cracked'
 	);
-	let profile = $state<MojangProfile | null>(null);
+	let loadedProfile = $state<{ uuid: string; profile: MojangProfile } | null>(null);
+	// Identity is checked during rendering too: effects run after the DOM update,
+	// so merely clearing the old profile in an effect can show the wrong skin.
+	const profile = $derived(
+		loadedProfile?.uuid === appState.currentUser?.uuid ? (loadedProfile?.profile ?? null) : null
+	);
 	$effect(() => {
-		void appState.currentUser?.uuid;
+		const account = appState.currentUser;
 		let stale = false;
-		profile = null;
-		if (!isPremium) {
-			profile = null;
-			return;
-		}
-		getMojangProfile()
+		loadedProfile = null;
+		if (!account) return;
+		getCharacterProfile(account.uuid)
 			.then((p) => {
-				if (!stale) profile = p;
+				if (!stale) loadedProfile = { uuid: account.uuid, profile: p };
 			})
 			.catch(() => {
-				if (!stale) profile = null;
+				if (!stale) loadedProfile = null;
 			});
 		return () => {
 			stale = true;
@@ -270,110 +267,79 @@
 	}
 </script>
 
-{#if clientInstances.length === 0}
-	<HomeEmptyState
-		onCreateInstance={() => openModal('createChooser')}
-		onExploreTflSelection={() => navigate('discover')}
-	/>
-{:else}
-	<div class="home-rich vr-stagger">
-		<header class="home-greeting">
-			<span>{vr('welcome')}, <strong>{appState.currentUser?.username ?? 'TFL'}</strong>.</span
-			><button onclick={() => navigate('library')}
-				>{vr('library')} <ArrowUpRight size={15} /></button
-			>
-		</header>
-		{#if featured}
-			<InstanceHero
-				{featured}
-				iconUrl={iconUrls[featured.uuid] ?? null}
-				{lastPlayedLabel}
-				{playTimeLabel}
-				isRunning={featuredIsRunning}
-				{launching}
-				{launchError}
-				onPlay={handlePlay}
-				{isPremium}
-				accountUuid={appState.currentUser?.uuid ?? null}
-				{profile}
-				onOpenSkinManager={() => openModal('skinManager')}
+<div class="home-shell">
+	{#if clientInstances.length === 0}
+		<HomeEmptyState />
+	{:else}
+		<div class="home-rich vr-stagger">
+			{#if featured}
+				<InstanceHero
+					{featured}
+					iconUrl={iconUrls[featured.uuid] ?? null}
+					{lastPlayedLabel}
+					{playTimeLabel}
+					isRunning={featuredIsRunning}
+					{launching}
+					{launchError}
+					onPlay={handlePlay}
+					{isPremium}
+					accountUuid={appState.currentUser?.uuid ?? null}
+					{profile}
+					onOpenSkinManager={() => openModal('skinManager')}
+				/>
+			{/if}
+
+			<div class="dash-grid">
+				{#if visual.home.servers}<FavoriteServersPanel
+						{servers}
+						onSeeAll={() => openModal('joinServer')}
+					/>{/if}
+				{#if visual.home.activity}<RecentActivityPanel
+						{activity}
+						iconUrls={activityIconUrls}
+						{relativeDayLabel}
+						{durationLabel}
+					/>{/if}
+				{#if visual.home.system}<SystemStatusPanel
+						status={systemStatus}
+						loading={systemStatusLoading}
+						onRetry={loadSystemStatus}
+					/>{/if}
+			</div>
+		</div>
+
+		{#if showMultiInstanceConfirm}
+			<ConfirmDialog
+				title={t('instanceDetail.multiInstanceTitle')}
+				message={multiInstanceWarningKind(otherRunning, appState.currentUser?.uuid) ===
+				'same-account'
+					? t('instanceDetail.multiInstanceSameAccount')
+					: t('instanceDetail.multiInstanceDifferentAccount')}
+				confirmLabel={t('instanceDetail.multiInstanceProceed')}
+				checkboxLabel={t('instanceDetail.multiInstanceDontAskAgain')}
+				bind:checked={multiInstanceDontAskAgain}
+				onConfirm={confirmMultiInstance}
+				onCancel={() => (showMultiInstanceConfirm = false)}
 			/>
 		{/if}
-
-		<div class="dash-grid">
-			{#if visual.home.servers}<FavoriteServersPanel
-					{servers}
-					onSeeAll={() => openModal('joinServer')}
-				/>{/if}
-			{#if visual.home.activity}<RecentActivityPanel
-					{activity}
-					iconUrls={activityIconUrls}
-					{relativeDayLabel}
-					{durationLabel}
-				/>{/if}
-			{#if visual.home.system}<SystemStatusPanel
-					status={systemStatus}
-					loading={systemStatusLoading}
-					onRetry={loadSystemStatus}
-				/>{/if}
-		</div>
-
-		{#if visual.home.recent && others.length > 0}
-			<InstanceCarousel instances={others} {iconUrls} onSelect={selectInstance} />
-		{/if}
-
-		<div class="quick-actions">
-			<Button variant="secondary" onclick={() => openModal('createChooser')}>
-				{#snippet icon()}<Plus size={15} strokeWidth={2.5} />{/snippet}
-				{t('home.createInstance')}
-			</Button>
-			<Button variant="secondary" onclick={() => openModal('tflSelection')}>
-				{#snippet icon()}<Sparkles size={15} />{/snippet}
-				{t('home.exploreTflSelection')}
-			</Button>
-		</div>
-	</div>
-
-	{#if showMultiInstanceConfirm}
-		<ConfirmDialog
-			title={t('instanceDetail.multiInstanceTitle')}
-			message={multiInstanceWarningKind(otherRunning, appState.currentUser?.uuid) === 'same-account'
-				? t('instanceDetail.multiInstanceSameAccount')
-				: t('instanceDetail.multiInstanceDifferentAccount')}
-			confirmLabel={t('instanceDetail.multiInstanceProceed')}
-			checkboxLabel={t('instanceDetail.multiInstanceDontAskAgain')}
-			bind:checked={multiInstanceDontAskAgain}
-			onConfirm={confirmMultiInstance}
-			onCancel={() => (showMultiInstanceConfirm = false)}
-		/>
 	{/if}
-{/if}
 
-<div class="home-customize">
-	<button type="button" class="vr-control" onclick={() => openSettingsAt('home')}
-		>{tr('Personalizar Inicio', 'Customize Home')}</button
-	>
+	<div class="home-customize">
+		<Tooltip content={tr('Personalizar Inicio', 'Customize Home')} position="left">
+			<button
+				type="button"
+				class="vr-control"
+				aria-label={tr('Personalizar Inicio', 'Customize Home')}
+				onclick={() => openSettingsAt('home')}><Pencil size={16} /></button
+			>
+		</Tooltip>
+	</div>
 </div>
 
 <style>
-	.home-greeting {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		color: var(--text-secondary);
-		font-size: var(--text-small);
-		margin-bottom: 4px;
-		gap: 16px;
-	}
-	.home-greeting strong {
-		color: var(--text-primary);
-	}
-	.home-greeting button {
-		background: none;
-		border: 0;
-		color: var(--text-secondary);
-		font-size: var(--text-small);
-		padding: 8px;
+	.home-shell {
+		position: relative;
+		min-height: 100%;
 	}
 	/* Home rediseñada (con instancias) — hero unificado (instancia +
 	   personaje + Play, ver InstanceHero.svelte) arriba, paneles
@@ -396,17 +362,6 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 		gap: 14px;
-	}
-
-	.quick-actions {
-		display: flex;
-		gap: 10px;
-	}
-
-	@media (max-width: 640px) {
-		.quick-actions {
-			flex-direction: column;
-		}
 	}
 
 	/* Entrega D, sección 5.3: "transiciones de navegación, aparición... de
@@ -447,11 +402,20 @@
 		}
 	}
 	.home-customize {
-		padding: 0 28px 24px;
-		display: flex;
-		justify-content: flex-end;
+		position: absolute;
+		top: 10px;
+		right: 12px;
+		z-index: 2;
 	}
 	.home-customize button {
-		font-size: 11px;
+		width: 34px;
+		height: 34px;
+		padding: 8px;
+		background: var(--surface-card);
+		box-shadow: var(--shadow-sm);
+	}
+	.home-customize button:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 3px;
 	}
 </style>

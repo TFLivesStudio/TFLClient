@@ -115,6 +115,12 @@ pub fn run() {
         .setup(|app| {
             core::event_bus::init(app.handle().clone());
             services::mcp::restore(app.handle().clone());
+            tauri::async_runtime::spawn(async {
+                services::server_tasks::recover_after_restart().await;
+                if let Err(error) = commands::settings::clear_temp_cache().await {
+                    tracing::warn!(%error, "No se pudo depurar la caché temporal");
+                }
+            });
             #[cfg(desktop)]
             {
                 app.handle()
@@ -184,6 +190,25 @@ pub fn run() {
             commands::auth::switch_user,
             commands::auth::remove_user,
             commands::settings::get_settings,
+            commands::settings::patch_settings,
+            commands::servers::list_server_tasks,
+            commands::servers::cancel_server_task,
+            commands::servers::retry_server_task,
+            commands::servers::accept_server_eula,
+            commands::worlds::list_instance_worlds,
+            commands::worlds::rename_instance_world,
+            commands::worlds::delete_instance_world,
+            commands::worlds::backup_instance_world,
+            commands::worlds::list_instance_world_backups,
+            commands::worlds::restore_instance_world,
+            commands::worlds::list_world_datapacks,
+            commands::worlds::install_world_datapack,
+            commands::worlds::change_world_datapack,
+            commands::worlds::search_world_datapacks,
+            commands::worlds::download_world_datapack,
+            commands::mcp::mcp_quick_connect_targets,
+            commands::mcp::mcp_quick_connect_write,
+            commands::mojang_profile::get_character_profile,
             commands::settings::update_settings,
             commands::settings::set_quality_profile,
             commands::settings::get_recommended_ram,
@@ -202,6 +227,8 @@ pub fn run() {
             commands::instance::stop_running_instance,
             commands::instance::get_running_instances,
             commands::instance::get_running_instance_stats,
+            commands::instance::get_console_metrics,
+            commands::instance::backup_instance,
             commands::scene_media::pick_scene_video_file,
             commands::scene_media::list_scene_media,
             commands::scene_media::import_scene_video,
@@ -259,6 +286,7 @@ pub fn run() {
             commands::import_mrpack::import_mrpack_file,
             commands::favorite_servers::get_favorite_servers,
             commands::favorite_servers::add_favorite_server,
+            commands::favorite_servers::update_favorite_server,
             commands::favorite_servers::remove_favorite_server,
             commands::favorite_servers::ping_server,
             commands::world_backups::get_world_backups,
@@ -301,6 +329,11 @@ pub fn run() {
             commands::servers::get_server_versions,
             commands::servers::get_server_connection_info,
             commands::servers::create_server_instance,
+            commands::servers::export_server,
+            commands::import_sources::inspect_instance_source,
+            commands::import_sources::import_instance_source,
+            commands::import_sources::cancel_instance_import,
+            commands::import_sources::pick_import_directory,
             commands::servers::launch_server,
             commands::servers::stop_server,
             commands::servers::send_server_command,

@@ -5,6 +5,13 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.4': [
+		'Inicio reúne tu personaje, tus instancias recientes y el estado de tu equipo. El botón del lápiz abre la personalización.',
+		'Cambia entre Simple y Avanzado en la cabecera de Ajustes. Modern incorpora superficies translúcidas y Pixel conserva su estilo.',
+		'Gestiona mundos y datapacks desde el detalle, revisa qué trae una importación y sigue la preparación de servidores desde Actividades.',
+		'La consola distingue las métricas de la instancia de las del equipo. Los datos disponibles dependen del sistema y del hardware.',
+		'Instala idiomas mediante Addons y configura el acceso MCP local desde Integraciones.'
+	],
 	'0.15.4-beta.3': [
 		'Beta de prueba: los paisajes avanzan automáticamente hacia la derecha con capas a distintas velocidades, sin seguir el cursor.',
 		'Pixel reduce marcos y relieves; el modo claro conserva los colores del paisaje y protege la lectura con superficies locales.',

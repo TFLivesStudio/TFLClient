@@ -756,6 +756,10 @@ async fn install_target_inner(
         loader_version: Some(loader_ver.to_string()),
         launch_version_id: launch_id,
         last_played: previous.as_ref().map_or(0, |i| i.last_played),
+        last_activity: previous
+            .as_ref()
+            .map_or(0, |i| i.last_activity.max(i.last_played)),
+        preparation: None,
         play_time_secs: previous.as_ref().map_or(0, |i| i.play_time_secs),
         min_memory: previous.as_ref().map_or(Some(2048), |i| i.min_memory),
         max_memory: previous.as_ref().map_or(Some(4096), |i| i.max_memory),

@@ -10,7 +10,7 @@ use tauri::{AppHandle, Manager};
 /// empaquetado aparenta estar rota en toda sesión de desarrollo aunque
 /// funcione en un build real — ya pasó una vez con los íconos de
 /// instancia, este helper evita repetir ese mismo bug en cada feature
-/// nueva que necesite lo mismo (ej. los jars de mp-guard).
+/// nueva que necesite lo mismo.
 pub fn bundled_resource_dir(app: &AppHandle, subdir: &str) -> Result<std::path::PathBuf, String> {
     if let Ok(d) = app.path().resource_dir() {
         let candidate = d.join(subdir);

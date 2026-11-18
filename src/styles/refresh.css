@@ -919,3 +919,92 @@ html[data-theme='light'] .panel-title svg {
 html[data-theme] :is(.ptab.active, .detail-workspace .tab-btn.active) {
 	color: var(--text-accent);
 }
+/* Modern layers keep controls legible over high contrast scenes and video. */
+html[data-visual='modern'] {
+	--modern-chrome: rgb(13 20 32 / 94%);
+	--modern-panel: rgb(18 28 45 / 93%);
+	--modern-field: #0c1320;
+	--modern-line: rgb(169 197 242 / 32%);
+	--modern-interaction-line: #778eaf;
+	--modern-sheen: rgb(190 217 255 / 9%);
+	--modern-focus: #83c0ff;
+	--modern-overlay: rgb(3 9 19 / 71%);
+	--modern-solid: #141e30;
+	--modern-depth: 0 18px 55px rgb(0 5 18 / 34%), inset 0 1px var(--modern-sheen);
+	--text-muted: #a7b7cc;
+	--bg-overlay: var(--modern-overlay);
+}
+
+html[data-visual='modern'][data-theme='light'] {
+	--modern-chrome: rgb(233 241 252 / 95%);
+	--modern-panel: rgb(246 250 255 / 95%);
+	--modern-field: #fbfdff;
+	--modern-line: rgb(36 64 111 / 29%);
+	--modern-interaction-line: #637895;
+	--modern-sheen: rgb(255 255 255 / 79%);
+	--modern-focus: #154a95;
+	--modern-overlay: rgb(18 34 57 / 45%);
+	--modern-solid: #eef4fd;
+	--modern-depth: 0 18px 55px rgb(35 59 92 / 18%), inset 0 1px var(--modern-sheen);
+	--text-muted: #50647e;
+}
+
+html[data-visual='modern']:is([data-material='matte'], [data-no-blur], [data-quality='lite']) {
+	--modern-panel: var(--modern-solid);
+	--modern-chrome: var(--modern-solid);
+}
+
+html[data-visual='modern'] :is(.titlebar, .sidebar) {
+	background: var(--modern-chrome);
+	border-color: var(--modern-line);
+}
+
+html[data-visual='modern']
+	:is(
+		[role='dialog'],
+		[role='menu'],
+		.context-menu,
+		.vr-library-row,
+		.vr-editorial,
+		.server-dashboard
+	) {
+	background: var(--modern-panel);
+	border-color: var(--modern-line);
+	box-shadow: var(--modern-depth);
+}
+
+html[data-visual='modern']:not([data-no-blur], [data-quality='lite'], [data-material='matte'])
+	:is([role='dialog'], [role='menu'], .context-menu) {
+	backdrop-filter: blur(12px) saturate(125%);
+}
+
+html[data-visual='modern']
+	:is(input:not([type='range'], [type='checkbox'], [type='radio']), textarea, select) {
+	background-color: var(--modern-field);
+	border-color: var(--modern-interaction-line);
+	color: var(--text-primary);
+}
+
+html[data-visual='modern']
+	:is(.vr-control, .instance-item, .choice):not(
+		.primary,
+		.active,
+		[aria-pressed='true'],
+		:disabled
+	):hover {
+	background-color: color-mix(in srgb, var(--accent) 13%, var(--modern-panel));
+	border-color: var(--modern-interaction-line);
+}
+
+html[data-visual='modern'] :is(.vr-control, .instance-item, .choice):not(:disabled):active {
+	box-shadow: inset 0 1px 4px rgb(0 0 0 / 20%);
+}
+
+html[data-visual='modern'] :is(button, a, input, select, textarea, [tabindex]):focus-visible {
+	outline: 2px solid var(--modern-focus);
+	outline-offset: 2px;
+}
+
+html[data-visual='modern'] :is(button, input, select, textarea):disabled {
+	cursor: not-allowed;
+}

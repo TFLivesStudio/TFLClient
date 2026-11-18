@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Activities from '$lib/components/library/Activities.svelte';
 	import CreateInstanceModal from '$lib/components/library/CreateInstanceModal.svelte';
 	import CreateInstanceChooser from '$lib/components/library/CreateInstanceChooser.svelte';
 	import CreateServerModal from '$lib/components/library/CreateServerModal.svelte';
@@ -28,6 +29,8 @@
 		ui
 	} from '$lib/state/uiState.svelte';
 </script>
+
+{#if modals.activities}<Activities onClose={() => closeModal('activities')} />{/if}
 
 <!-- El orden del DOM es el de apilado entre modales del mismo z-index: no reordenar. -->
 

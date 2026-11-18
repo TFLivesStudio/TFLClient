@@ -52,12 +52,6 @@
 	let busy = $state<string | null>(null);
 	let error = $state<string | null>(null);
 
-	// Subir imagen propia usa el diálogo nativo de archivos, que crashea el
-	// launcher entero en macOS con la firma ad-hoc del build (ver
-	// docs/history/legacy/CHANGELOG_macos-dialog-crash-java26.txt) — por eso queda detrás del
-	// modo global "Automático/Manual" (Ajustes), no de la plataforma.
-	let dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');
-
 	onMount(async () => {
 		try {
 			presets = await invoke<IconPreset[]>('list_instance_icon_presets');
@@ -90,7 +84,6 @@
 	}
 
 	async function uploadOwn() {
-		if (dialogsBlocked) return;
 		busy = 'upload';
 		error = null;
 		try {
@@ -136,16 +129,12 @@
 			data-pixel-control
 			type="button"
 			class="upload-btn"
-			disabled={busy === 'upload' || dialogsBlocked}
-			title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
+			disabled={busy !== null}
 			onclick={uploadOwn}
 		>
 			{#if busy === 'upload'}<Loader2 size={14} class="spin" />{:else}<Upload size={14} />{/if}
 			{t('instanceIconPicker.uploadOwn')}
 		</button>
-		{#if dialogsBlocked}
-			<p class="mac-notice">{t('instanceIconPicker.autoModeNotice')}</p>
-		{/if}
 
 		{#if error}<p class="error">{error}</p>{/if}
 
@@ -277,11 +266,6 @@
 	.error {
 		color: var(--color-error);
 		font-size: 0.78rem;
-	}
-
-	.mac-notice {
-		color: var(--text-secondary, #888);
-		font-size: 0.72rem;
 	}
 
 	.loading-row {

@@ -19,7 +19,8 @@ async function open(options = {}) {
 	const page = await context.newPage();
 	page.setDefaultTimeout(12000);
 	page.on('pageerror', (e) => errors.push(e.message));
-	await page.addInitScript(installFixture, options);
+	// Preserve coverage of advanced settings, including update-channel diagnostics.
+	await page.addInitScript(installFixture, { mode: 'advanced', ...options });
 	await page.addInitScript(
 		({ style }) => localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style })),
 		{ style: options.style || 'pixel' }

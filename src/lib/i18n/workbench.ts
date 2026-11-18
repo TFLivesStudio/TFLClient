@@ -1,4 +1,4 @@
-import { i18nState } from './index.svelte';
+import { translateMessage } from './index.svelte';
 const words = {
 	general: ['General', 'General'],
 	generalHint: [
@@ -17,8 +17,8 @@ const words = {
 	],
 	accounts: ['Cuentas', 'Accounts'],
 	accountsHint: [
-		'Sesiones de Microsoft, cuentas sin conexión y mascotas.',
-		'Microsoft sessions, offline accounts and mascots.'
+		'Sesiones de Microsoft, cuentas offline y skins.',
+		'Microsoft sessions, offline accounts and skins.'
 	],
 	console: ['Consola', 'Console'],
 	consoleHint: [
@@ -95,4 +95,5 @@ const words = {
 	]
 } as const;
 export type WorkbenchKey = keyof typeof words;
-export const w = (key: WorkbenchKey) => words[key][i18nState.locale === 'en' ? 1 : 0];
+export const w = (key: WorkbenchKey) =>
+	translateMessage(`workbench.${key}`, words[key][0], words[key][1]);

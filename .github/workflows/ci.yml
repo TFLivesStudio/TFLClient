@@ -7,6 +7,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
   workflow_call:
 
 permissions:
@@ -154,8 +155,64 @@ jobs:
       - name: cargo audit
         run: cargo audit
 
+  native-platform:
+    name: Native acceptance (${{ matrix.platform }})
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-rust
+      - name: Run native feature tests with an isolated profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build artifacts/native "$RUNNER_TEMP/tfl-native"
+          export TFL_DATA_DIR="$RUNNER_TEMP/tfl-native/profile"
+          mkdir -p "$TFL_DATA_DIR"
+          touch "$TFL_DATA_DIR/TEST_PROFILE"
+          cargo test --locked -p tflclient --lib --no-run --message-format=json > "$RUNNER_TEMP/tfl-native/cargo.jsonl"
+          executable="$(jq -rs '[.[] | select(.reason == "compiler-artifact" and .profile.test and .executable != null)] | last | .executable // empty' "$RUNNER_TEMP/tfl-native/cargo.jsonl")"
+          test -n "$executable"
+          if [[ "$RUNNER_OS" == Windows ]]; then
+            # Cargo's libtest binary does not inherit the app's activation
+            # context. WebView2 needs TaskDialogIndirect from Common Controls 6.
+            cat > "$executable.manifest" <<'MANIFEST'
+          <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+          <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+            <dependency>
+              <dependentAssembly>
+                <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*" />
+              </dependentAssembly>
+            </dependency>
+          </assembly>
+          MANIFEST
+          fi
+          "$executable" --list > artifacts/native/tests.txt
+          grep -Eq '^services::worlds::.*: test$' artifacts/native/tests.txt
+          grep -Eq '^services::mcp_quick_connect::.*: test$' artifacts/native/tests.txt
+          grep -Eq '^commands::instance::console_metrics::.*: test$' artifacts/native/tests.txt
+          "$executable" --nocapture --test-threads=1 \
+            services::worlds:: services::world_backup:: services::server_ports:: \
+            services::server_tasks:: services::instance_archive:: services::settings_manager:: \
+            services::mcp_quick_connect:: commands::import_sources:: commands::settings:: \
+            commands::instance::console_metrics:: commands::instance::tests:: \
+            2>&1 | tee artifacts/native/results.txt
+      - name: Upload native feature evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-acceptance-${{ matrix.platform }}
+          path: artifacts/native/
+          if-no-files-found: warn
+
   visual:
-    name: Beta UI (Chromium)
+    name: UI regression (Chromium)
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     steps:
@@ -181,7 +238,7 @@ jobs:
           echo '{"private":true}' > package.json
           bun add --exact playwright@1.57.0
           ./node_modules/.bin/playwright install --with-deps chromium
-      - name: Verify beta UI against production build (simulated IPC)
+      - name: Verify UI against production build (simulated IPC)
         shell: bash
         env:
           VISUAL_URL: http://localhost:1423
@@ -215,6 +272,9 @@ jobs:
           node tests/visual/addons.mjs
           ADDONS_UI_FULL_THEME=1 ADDONS_UI_CASE=pixel/dark,pixel/light ADDONS_OUTPUT=artifacts/beta3-addon-full-theme node tests/visual/addons.mjs
           node tests/visual/scene-motion.mjs
+          node tests/visual/release-154-home.mjs
+          node tests/visual/release-154-settings.mjs
+          node tests/visual/release-154-character.mjs
       - name: Upload visual review evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

@@ -81,7 +81,20 @@ pub fn get_settings() -> SettingsManager {
 }
 
 #[command]
+pub async fn patch_settings(
+    app: tauri::AppHandle,
+    patch: serde_json::Value,
+    expected_revision: u64,
+) -> Result<SettingsManager, String> {
+    use tauri::Emitter;
+    let settings = SettingsManager::patch(patch, expected_revision).await?;
+    let _ = app.emit("settings-changed", settings.settings_revision);
+    Ok(settings)
+}
+
+#[command]
 pub async fn update_settings(mut new_settings: SettingsManager) -> Result<(), String> {
+    new_settings.validate()?;
     if new_settings.min_memory == 0 {
         new_settings.min_memory = 1024;
     }
@@ -113,43 +126,102 @@ pub async fn set_quality_profile(profile: QualityProfile) -> Result<SettingsMana
     Ok(SettingsManager::snapshot())
 }
 
-fn dir_size_blocking(path: &std::path::Path) -> u64 {
-    let Ok(entries) = std::fs::read_dir(path) else {
-        return 0;
-    };
-    let mut total = 0u64;
-    for entry in entries.flatten() {
-        let Ok(meta) = entry.metadata() else { continue };
-        if meta.is_dir() {
-            total += dir_size_blocking(&entry.path());
-        } else {
-            total += meta.len();
+// Only discard old TFL download scratch. Never remove the shared directory or
+// unrelated content, and do not traverse links or junctions.
+fn stale_cache_size(
+    path: &std::path::Path,
+    cutoff: std::time::SystemTime,
+    budget: &mut usize,
+    depth: usize,
+) -> Option<u64> {
+    if depth >= 64 {
+        return None;
+    }
+    *budget = budget.checked_sub(1)?;
+    let metadata = std::fs::symlink_metadata(path).ok()?;
+    if metadata.file_type().is_symlink() || metadata.modified().ok()? >= cutoff {
+        return None;
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        if metadata.file_attributes() & 0x400 != 0 {
+            return None;
         }
     }
-    total
+    if metadata.is_file() {
+        return Some(metadata.len());
+    }
+    if !metadata.is_dir() {
+        return None;
+    }
+    let mut bytes = 0u64;
+    for entry in std::fs::read_dir(path).ok()? {
+        bytes = bytes.checked_add(stale_cache_size(
+            &entry.ok()?.path(),
+            cutoff,
+            budget,
+            depth + 1,
+        )?)?;
+    }
+    Some(bytes)
 }
 
-/// Borra `shared_dir/temp` — SOLO scratch de descargas/instalaciones a
-/// medio terminar (mrpacks, procesadores de Forge, etc), nunca las
-/// librerías/assets/versions ya bajadas — eso obligaría a re-bajar todo
-/// de nuevo, no es lo que pide "limpiar caché". Devuelve cuánto se
-/// liberó para mostrarlo en la UI.
 #[command]
 pub async fn clear_temp_cache() -> Result<u64, String> {
-    let temp_dir = PathManager::get().get_shared_dir().join("temp");
-    let freed_bytes = tokio::task::spawn_blocking({
-        let temp_dir = temp_dir.clone();
-        move || dir_size_blocking(&temp_dir)
+    if crate::services::progress::has_active_downloads() {
+        return Ok(0);
+    }
+    let root = PathManager::get().get_shared_dir().join("temp");
+    tokio::task::spawn_blocking(move || {
+        let entries = match std::fs::read_dir(&root) {
+            Ok(entries) => entries,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(0),
+            Err(e) => return Err(e.to_string()),
+        };
+        let root_meta = std::fs::symlink_metadata(&root).map_err(|e| e.to_string())?;
+        if root_meta.file_type().is_symlink() {
+            return Ok(0);
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt;
+            if root_meta.file_attributes() & 0x400 != 0 {
+                return Ok(0);
+            }
+        }
+        let cutoff = std::time::SystemTime::now() - std::time::Duration::from_secs(30 * 86_400);
+        let mut freed = 0u64;
+        let mut budget = 20_000;
+        for entry in entries.take(512).flatten() {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if !["forge-", "neoforge-", "mrpack-", "natives-"]
+                .iter()
+                .any(|p| name.starts_with(p))
+            {
+                continue;
+            }
+            let path = entry.path();
+            let Some(bytes) = stale_cache_size(&path, cutoff, &mut budget, 0) else {
+                continue;
+            };
+            if crate::services::progress::has_active_downloads() {
+                break;
+            }
+            let result = if path.is_dir() {
+                std::fs::remove_dir_all(&path)
+            } else {
+                std::fs::remove_file(&path)
+            };
+            if result.is_ok() {
+                freed = freed.saturating_add(bytes);
+            }
+        }
+        Ok(freed)
     })
     .await
-    .map_err(|e| e.to_string())?;
-
-    if temp_dir.exists() {
-        tokio::fs::remove_dir_all(&temp_dir)
-            .await
-            .map_err(|e| e.to_string())?;
-    }
-    Ok(freed_bytes)
+    .map_err(|_| "No se pudo revisar el almacenamiento temporal".to_string())?
 }
 
 const WALLPAPER_EXTENSIONS: [&str; 4] = ["png", "jpg", "jpeg", "webp"];
@@ -170,7 +242,7 @@ pub async fn set_custom_wallpaper(source_path: String) -> Result<String, String>
         .and_then(|e| e.to_str())
         .map(|e| e.to_lowercase())
         .filter(|e| WALLPAPER_EXTENSIONS.contains(&e.as_str()))
-        .ok_or("Formato de imagen no soportado (usá PNG, JPG o WEBP)")?;
+        .ok_or("Formato de imagen no soportado (usa PNG, JPG o WEBP)")?;
 
     let dir = wallpaper_dir();
     tokio::fs::create_dir_all(&dir)

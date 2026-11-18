@@ -2,7 +2,7 @@ import { transitionToInstance } from '$lib/visual/transition';
 import { getInstances } from '$lib/api';
 import { navigate } from '$lib/visual/navigation.svelte';
 import { appState } from '$lib/state/state.svelte';
-import { closeModal, openModal } from '$lib/state/uiState.svelte';
+import { closeModal } from '$lib/state/uiState.svelte';
 import type { InstanceData } from '$lib/types/types';
 
 // Navegación pedida desde fuera de InstanceDetail (menú contextual de la
@@ -68,9 +68,6 @@ export async function handleServerCreated(instance: InstanceData) {
 	closeModal('createServer');
 	await refreshInstances();
 	appState.selectedInstance = instance;
-	if (appState.settings?.server_connection_info_shown !== true) {
-		openModal('serverConnectionInfo');
-	}
 }
 
 export async function handleInstanceChanged(instance: InstanceData | null) {

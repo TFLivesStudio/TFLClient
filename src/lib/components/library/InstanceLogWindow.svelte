@@ -4,9 +4,8 @@
 	import { getCurrentWindow } from '@tauri-apps/api/window';
 	import { invoke } from '@tauri-apps/api/core';
 	import { t, type TranslationKey } from '$lib/i18n/index.svelte';
-	import { diagnoseCrash, setModEnabled, rollbackModUpdate } from '$lib/api';
+	import { diagnoseCrash, setModEnabled, rollbackModUpdate, getConsoleMetrics } from '$lib/api';
 	import type { CrashSuspect } from '$lib/types/types';
-	import type { ProcessStats } from '$lib/console/model';
 	import ConsoleView from '$lib/components/console/ConsoleView.svelte';
 	import { Square, X, Loader2 } from 'lucide-svelte';
 
@@ -20,7 +19,7 @@
 
 	const MAX_LINES = 5000;
 	function readStats() {
-		return invoke<ProcessStats | null>('get_running_instance_stats', { instanceName });
+		return getConsoleMetrics(instanceName);
 	}
 
 	let lines = $state<LogLine[]>([]);

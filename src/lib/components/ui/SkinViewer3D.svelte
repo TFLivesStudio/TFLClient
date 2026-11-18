@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { subscribeFrame } from '$lib/scenes/frameClock';
 	import { untrack } from 'svelte';
-	import { CharacterController } from '$lib/visual/character';
+	import { CharacterController, applyCharacterPose } from '$lib/visual/character';
 	import { scenes } from '$lib/scenes/preferences.svelte';
 	import { reaction } from '$lib/scenes/reactions.svelte';
 	import type { SkinViewer } from 'skinview3d';
@@ -12,6 +12,7 @@
 	let {
 		skinUrl = null,
 		capeUrl = null,
+		model = 'auto-detect',
 		width,
 		height,
 		zoom = 0.9,
@@ -23,6 +24,7 @@
 	}: {
 		skinUrl?: string | null;
 		capeUrl?: string | null;
+		model?: 'default' | 'slim' | 'auto-detect';
 		width: number;
 		height: number;
 		zoom?: number;
@@ -37,7 +39,8 @@
 		viewer = $state.raw<SkinViewer | null>(null);
 	let manual = $state(false),
 		intersecting = $state(true),
-		failed = $state(false);
+		failed = $state(false),
+		legacySkin = $state(false);
 	const character = new CharacterController();
 	let dragPointer: number | null = null,
 		dragX = 0,
@@ -54,6 +57,27 @@
 		void skinUrl;
 		failed = false;
 		character.resetView();
+	});
+	$effect(() => {
+		const url = skinUrl;
+		legacySkin = url === '/skins/steve.png';
+		if (!url) return;
+		let disposed = false;
+		const image = new Image();
+		image.onload = () => {
+			if (!disposed) legacySkin = image.naturalHeight === 32;
+		};
+		image.onerror = () => {
+			if (!disposed) {
+				failed = true;
+				onSkinError?.(new Error('Skin image unavailable'));
+			}
+		};
+		image.src = url;
+		return () => {
+			disposed = true;
+			image.onload = image.onerror = null;
+		};
 	});
 	$effect(() => {
 		if (!container) return;
@@ -119,7 +143,7 @@
 			url = skinUrl;
 		if (!current) return;
 		let stale = false;
-		Promise.resolve(url ? current.loadSkin(url) : current.loadSkin(null))
+		Promise.resolve(url ? current.loadSkin(url, { model }) : current.loadSkin(null))
 			.then(() => {
 				if (!stale) current.render();
 			})
@@ -179,21 +203,7 @@
 		character.setEvent(launching || kind === 'launch' ? 'launch' : working ? 'prepare' : kind);
 	});
 	function applyPose(current: SkinViewer) {
-		const p = character.pose,
-			player = current.playerObject,
-			skin = player.skin;
-		skin.head.rotation.set(p.headX, p.headY, 0);
-		skin.body.rotation.set(p.bodyX, p.bodyY, p.bodyZ);
-		skin.leftArm.rotation.set(p.leftArmX, 0, p.leftArmZ);
-		skin.rightArm.rotation.set(p.rightArmX, 0, p.rightArmZ);
-		skin.leftLeg.rotation.x = p.leftLegX;
-		skin.rightLeg.rotation.x = p.rightLegX;
-		player.position.y = p.lift;
-		current.playerWrapper.rotation.y = character.yaw;
-		if (player.cape.visible) {
-			player.cape.rotation.x = character.cape?.pitch.value ?? 0.19;
-			player.cape.rotation.z = character.cape?.roll.value ?? 0;
-		}
+		applyCharacterPose(current, character);
 	}
 	function look(e: PointerEvent) {
 		if (dragPointer === e.pointerId) {
@@ -273,7 +283,7 @@
 			onpointerenter={() => {
 				if (effects.current.animateViewer) character.hover();
 			}}
-			onpointerleave={() => character.look(0, 0)}
+			onpointerleave={() => character.releaseLook()}
 			onkeydown={key}
 			style:height={`${height}px`}
 		></canvas>
@@ -283,10 +293,18 @@
 			role="img"
 			aria-label={skinUrl ? vr('skinStatic') : vr('noSkin')}
 		>
-			{#if skinUrl}<div class="pixel-person" style={`--skin:url("${skinUrl}")`}>
-					<span class="head"></span><span class="body"></span><span class="arm left"></span><span
-						class="arm right"
-					></span><span class="leg left"></span><span class="leg right"></span>
+			{#if skinUrl}<div
+					class="pixel-person"
+					class:slim={model === 'slim'}
+					class:legacy={legacySkin}
+					style={`--skin:url("${skinUrl}")`}
+				>
+					<span class="head"></span><span class="head outer"></span>
+					<span class="body"></span><span class="body outer"></span>
+					<span class="arm left"></span><span class="arm left outer"></span>
+					<span class="arm right"></span><span class="arm right outer"></span>
+					<span class="leg left"></span><span class="leg left outer"></span>
+					<span class="leg right"></span><span class="leg right outer"></span>
 				</div>{:else}<UserRound size={64} strokeWidth={1} />{/if}
 		</div>{/if}
 	{#if !effects.current.viewer && skinUrl}<button
@@ -389,12 +407,18 @@
 		top: 0;
 		background-position: -64px -64px;
 	}
+	.head.outer {
+		background-position: -320px -64px;
+	}
 	.body {
 		width: 64px;
 		height: 96px;
 		left: 32px;
 		top: 64px;
 		background-position: -160px -160px;
+	}
+	.body.outer {
+		background-position: -160px -288px;
 	}
 	.arm {
 		width: 32px;
@@ -405,9 +429,18 @@
 	.arm.left {
 		left: 0;
 	}
+	.arm.left.outer {
+		background-position: -352px -288px;
+	}
 	.arm.right {
 		right: 0;
-		transform: scaleX(-1);
+		background-position: -288px -416px;
+	}
+	.arm.right.outer {
+		background-position: -416px -416px;
+	}
+	.pixel-person.slim .arm {
+		width: 24px;
 	}
 	.leg {
 		width: 32px;
@@ -418,8 +451,27 @@
 	.leg.left {
 		left: 32px;
 	}
+	.leg.left.outer {
+		background-position: -32px -288px;
+	}
 	.leg.right {
 		left: 64px;
+		background-position: -160px -416px;
+	}
+	.leg.right.outer {
+		background-position: -32px -416px;
+	}
+	.legacy .body.outer,
+	.legacy .arm.outer,
+	.legacy .leg.outer {
+		display: none;
+	}
+	.legacy .arm.right {
+		background-position: -352px -160px;
+		transform: scaleX(-1);
+	}
+	.legacy .leg.right {
+		background-position: -32px -160px;
 		transform: scaleX(-1);
 	}
 </style>

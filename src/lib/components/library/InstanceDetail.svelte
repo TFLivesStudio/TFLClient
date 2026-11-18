@@ -9,6 +9,11 @@
 	import { resolveBanner } from '$lib/visual/banners';
 	import InstanceAppearance from '$lib/components/refresh/InstanceAppearance.svelte';
 	import ServerDashboard from '$lib/components/refresh/ServerDashboard.svelte';
+	import { acceptServerEula, exportServer } from '$lib/api/servers';
+	import { invoke } from '$lib/api/invoke';
+	import { openModal } from '$lib/state/uiState.svelte';
+	import { tr } from '$lib/i18n/experience';
+	import { experience } from '$lib/state/experience.svelte';
 	import { instanceVisual } from '$lib/visual/preferences.svelte';
 
 	import { navigate } from '$lib/visual/navigation.svelte';
@@ -116,6 +121,11 @@
 	const otherRunning = $derived(gameSession.running.filter((r) => r.name !== instance.name));
 	const isServer = $derived(!!instance.server_type);
 	const managed = $derived(isSelectionInstance(instance));
+	const supportsPlugins = $derived(
+		instance.server_type === 'paper' || instance.server_type === 'purpur'
+	);
+	const preparation = $derived(instance.preparation ?? null);
+	const advanced = $derived(experience.mode === 'advanced');
 	const shaderCompatible = $derived(!managed || instance.selection?.shader_support === true);
 	const banner = $derived(
 		resolveBanner(instance.mc_version, instanceVisual(instance.uuid).artwork)
@@ -141,7 +151,10 @@
 	$effect(() => {
 		if (
 			(managed && ['mods', 'modpacks', 'plugins', 'files'].includes(tab)) ||
-			(tab === 'shaders' && !shaderCompatible)
+			(tab === 'shaders' && !shaderCompatible) ||
+			(isServer && ['mods', 'modpacks', 'resourcepacks', 'screenshots', 'shaders'].includes(tab)) ||
+			(tab === 'plugins' && !supportsPlugins) ||
+			(tab === 'files' && !isServer)
 		)
 			tab = 'details';
 	});
@@ -316,14 +329,43 @@
 	}
 
 	let serverToggling = $state(false);
+	let showEula = $state(false);
+	let backingUp = $state(false);
+	let backupPath = $state('');
+	async function backupInstance() {
+		error = null;
+		backupPath = '';
+		backingUp = true;
+		try {
+			backupPath = await invoke<string>('backup_instance', { name: instance.name });
+		} catch (e) {
+			error = String(e);
+		} finally {
+			backingUp = false;
+		}
+	}
+	async function acceptEula() {
+		showEula = false;
+		try {
+			await acceptServerEula(instance.name);
+			await handleServerToggle();
+		} catch (e) {
+			error = String(e);
+		}
+	}
 	async function handleServerToggle() {
+		if (preparation) {
+			openModal('activities');
+			return;
+		}
 		serverToggling = true;
 		error = null;
 		try {
 			if (serverRunning) await stopServer(instance.name);
 			else await launchServer(instance.name);
 		} catch (e) {
-			error = String(e);
+			if (String(e).includes('EULA_REQUIRED')) showEula = true;
+			else error = String(e);
 		} finally {
 			serverToggling = false;
 		}
@@ -386,7 +428,9 @@
 		error = null;
 		exportedPath = null;
 		try {
-			exportedPath = await exportInstanceAsMrpack(instance.name);
+			exportedPath = await (isServer
+				? exportServer(instance.name)
+				: exportInstanceAsMrpack(instance.name));
 		} catch (e) {
 			error = String(e);
 		} finally {
@@ -560,8 +604,12 @@
 							class="icon-btn"
 							disabled={exporting}
 							onclick={handleExport}
-							aria-label={t('instanceDetail.exportMrpack')}
-							title={t('instanceDetail.exportMrpack')}
+							aria-label={isServer
+								? tr('Exportar servidor', 'Export server')
+								: t('instanceDetail.exportMrpack')}
+							title={isServer
+								? tr('Exportar servidor', 'Export server')
+								: t('instanceDetail.exportMrpack')}
 						>
 							{#if exporting}<Loader2 size={13} class="spin" />{:else}<FileOutput size={13} />{/if}
 						</button>{/if}
@@ -589,6 +637,9 @@
 				{#if exportedPath}
 					<p class="hint">{t('instanceDetail.exported', { path: exportedPath })}</p>
 				{/if}
+				{#if backupPath}<p class="hint" role="status">
+						{tr('Respaldo creado', 'Backup created')} · {backupPath}
+					</p>{/if}
 				{#if integrityIssues !== null}
 					{#if integrityIssues.length === 0}
 						<p class="hint">{t('instanceDetail.integrityOk')}</p>
@@ -605,6 +656,9 @@
 			{/if}
 
 			<div class="stat-chips">
+				<span class="stat-chip"
+					>{isServer ? tr('Servidor', 'Server') : tr('Cliente', 'Client')}</span
+				>
 				<span class="loader-badge" style="--loader-color: {loaderMeta.color}"
 					>{instanceEdition(instance)}</span
 				>
@@ -735,14 +789,14 @@
 				{t('instanceDetail.tabs.details')}
 			</button>
 			{#if isServer}
-				<button
-					type="button"
-					class="tab-btn"
-					class:active={tab === 'plugins'}
-					onclick={() => (tab = 'plugins')}
-				>
-					{t('serverInstance.tabPlugins')}
-				</button>
+				{#if supportsPlugins}<button
+						type="button"
+						class="tab-btn"
+						class:active={tab === 'plugins'}
+						onclick={() => (tab = 'plugins')}
+					>
+						{t('serverInstance.tabPlugins')}
+					</button>{/if}
 				<button
 					type="button"
 					class="tab-btn"
@@ -809,18 +863,18 @@
 					{t('instanceDetail.tabs.screenshots')}
 				</button>
 			{/if}
-			{#if managed}<button
+			{#if !isServer}<button
 					type="button"
 					class="tab-btn"
 					class:active={tab === 'worlds'}
 					onclick={() => (tab = 'worlds')}>{t('serverInstance.tabWorlds')}</button
 				>{/if}
-			{#if !isServer}<button
-					type="button"
-					class="tab-btn"
-					class:active={tab === 'backups'}
-					onclick={() => (tab = 'backups')}>{vr('backups')}</button
-				>{/if}
+			<button
+				type="button"
+				class="tab-btn"
+				class:active={tab === 'backups'}
+				onclick={() => (tab = 'backups')}>{vr('backups')}</button
+			>
 		</nav>
 
 		<div class="tab-content">
@@ -924,50 +978,80 @@
 						{/if}
 					</section>
 				{/if}
-				<section class="ram-section">
-					<span class="section-label">{t('instanceDetail.ram.sectionLabel')}</span>
-					<p class="hint">
-						{t('instanceDetail.ram.hint', {
-							recommended: ramRecommended
-								? t('instanceDetail.ram.recommendedSuffix', { mb: ramRecommended })
-								: ''
-						})}
+				{#if preparation}<p role="status" class="hint">
+						{tr(
+							'Instancia en preparación. Consulta Actividades para ver el estado.',
+							'Instance is being prepared. Check Activities for its status.'
+						)}
 					</p>
-					<div class="ram-row">
-						<label>
-							{t('settings.ram.min')}
-							<input
-								type="number"
-								value={instance.min_memory ?? ''}
-								placeholder={t('instanceDetail.ram.globalPlaceholder')}
-								min="512"
-								step="256"
-								onchange={(e) => {
-									const v = e.currentTarget.valueAsNumber;
-									setMemory(Number.isNaN(v) ? null : v, instance.max_memory);
-								}}
-							/>
-						</label>
-						<label>
-							{t('settings.ram.max')}
-							<input
-								type="number"
-								value={instance.max_memory ?? ''}
-								placeholder={t('instanceDetail.ram.globalPlaceholder')}
-								min="512"
-								step="256"
-								onchange={(e) => {
-									const v = e.currentTarget.valueAsNumber;
-									setMemory(instance.min_memory, Number.isNaN(v) ? null : v);
-								}}
-							/>
-						</label>
-					</div>
-				</section>
+					<button type="button" class="vr-control" onclick={() => openModal('activities')}
+						>{tr('Ver Actividades', 'View Activities')}</button
+					>{/if}
+				{#if advanced}<section class="ram-section">
+						<span class="section-label">{t('instanceDetail.ram.sectionLabel')}</span>
+						<p class="hint">
+							{t('instanceDetail.ram.hint', {
+								recommended: ramRecommended
+									? t('instanceDetail.ram.recommendedSuffix', { mb: ramRecommended })
+									: ''
+							})}
+						</p>
+						<div class="ram-row">
+							<label>
+								{t('settings.ram.min')}
+								<input
+									type="number"
+									value={instance.min_memory ?? ''}
+									placeholder={t('instanceDetail.ram.globalPlaceholder')}
+									min="512"
+									step="256"
+									onchange={(e) => {
+										const v = e.currentTarget.valueAsNumber;
+										setMemory(Number.isNaN(v) ? null : v, instance.max_memory);
+									}}
+								/>
+							</label>
+							<label>
+								{t('settings.ram.max')}
+								<input
+									type="number"
+									value={instance.max_memory ?? ''}
+									placeholder={t('instanceDetail.ram.globalPlaceholder')}
+									min="512"
+									step="256"
+									onchange={(e) => {
+										const v = e.currentTarget.valueAsNumber;
+										setMemory(instance.min_memory, Number.isNaN(v) ? null : v);
+									}}
+								/>
+							</label>
+						</div>
+					</section>{/if}
 
 				<InstanceAppearance id={instance.uuid} />
 			{:else if tab === 'backups'}
-				<WorldBackups {instance} />
+				<section class="ram-section">
+					<h3>{tr('Respaldo de la instancia', 'Instance backup')}</h3>
+					<p class="hint">
+						{tr(
+							'Guarda una copia privada de la instancia y sus archivos locales.',
+							'Keep a private copy of this instance and its local files.'
+						)}
+					</p>
+					<button
+						type="button"
+						class="vr-control"
+						disabled={backingUp ||
+							!!preparation ||
+							serverRunning ||
+							gameSession.running.some((r) => r.name === instance.name)}
+						onclick={backupInstance}
+						>{backingUp
+							? tr('Creando respaldo…', 'Creating backup…')
+							: tr('Crear respaldo de instancia', 'Back up instance')}</button
+					>
+				</section>
+				{#if !isServer}<WorldBackups {instance} />{/if}
 			{:else if tab === 'mods' && !managed}
 				<ModsPanel {instance} />
 			{:else if tab === 'shaders' && shaderCompatible}
@@ -990,6 +1074,19 @@
 		</div>
 	</div>
 </div>
+
+{#if showEula}
+	<ConfirmDialog
+		title={tr('EULA de Minecraft', 'Minecraft EULA')}
+		message={tr(
+			'Lee los términos en minecraft.net/eula. Acepta solo si estás de acuerdo en cumplirlos para este servidor.',
+			'Read the terms at minecraft.net/eula. Accept only if you agree to follow them for this server.'
+		)}
+		confirmLabel={tr('Acepto la EULA', 'I accept the EULA')}
+		onConfirm={acceptEula}
+		onCancel={() => (showEula = false)}
+	/>
+{/if}
 
 {#if showDeleteConfirm}
 	<ConfirmDialog

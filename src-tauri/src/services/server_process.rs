@@ -32,6 +32,10 @@ pub fn is_server_running(instance_name: &str) -> bool {
     RUNNING_SERVERS.lock().unwrap().contains_key(instance_name)
 }
 
+pub fn any_server_running() -> bool {
+    !RUNNING_SERVERS.lock().unwrap().is_empty()
+}
+
 pub fn running_server_pid(instance_name: &str) -> Option<u32> {
     RUNNING_SERVERS
         .lock()
@@ -51,28 +55,34 @@ pub fn is_port_forwarded(instance_name: &str) -> bool {
         .is_some_and(|r| r.port_forwarded.load(Ordering::Relaxed))
 }
 
-/// Minecraft requiere aceptar el EULA para que el server arranque —
-/// escribirlo a mano cada vez sería un paso manual más, así que se genera
-/// solo la primera vez (no pisa uno que el usuario ya haya editado).
+/// Reading this file never changes the user's legal choice.
 async fn ensure_eula(instance_dir: &std::path::Path) -> Result<(), String> {
-    let eula_path = instance_dir.join("eula.txt");
-    if eula_path.exists() {
-        return Ok(());
+    let content = tokio::fs::read_to_string(instance_dir.join("eula.txt"))
+        .await
+        .unwrap_or_default();
+    if crate::services::server_ports::properties(&content)?
+        .get("eula")
+        .is_some_and(|v| v.eq_ignore_ascii_case("true"))
+    {
+        Ok(())
+    } else {
+        Err(
+            "EULA_REQUIRED: Lee y acepta la EULA de Minecraft antes de iniciar este servidor"
+                .into(),
+        )
     }
-    tokio::fs::write(
-        &eula_path,
-        "# Aceptado automáticamente por TFL Client al crear el servidor.\neula=true\n",
-    )
-    .await
-    .map_err(|e| e.to_string())
 }
 
 pub async fn launch_server(instance_name: String) -> Result<(), String> {
+    let mutation_guard = crate::services::content::mutation_lock(&instance_name).await;
     if is_server_running(&instance_name) {
         return Err(format!("El servidor \"{instance_name}\" ya está corriendo"));
     }
 
     let data = instance_manager::get_instance(&instance_name).await?;
+    if data.preparation.is_some() {
+        return Err("La instancia aún no está lista. Revisa su preparación en Actividades".into());
+    }
     let server_type = data
         .server_type
         .ok_or_else(|| "Esta instancia no es un servidor".to_string())?;
@@ -82,13 +92,14 @@ pub async fn launch_server(instance_name: String) -> Result<(), String> {
         .ok_or_else(|| "Esta instancia no tiene jar de servidor instalado".to_string())?;
 
     let instance_dir = data.dir();
-    let jar_path = instance_dir.join(&jar_name);
+    let jar_path = aqua::path_security::safe_join(&instance_dir, &jar_name)?;
     if !jar_path.exists() {
         return Err(format!(
-            "No se encuentra {jar_name} en la carpeta de la instancia — reinstalá el servidor"
+            "No se encuentra {jar_name} en la carpeta de la instancia. Reinstala el servidor."
         ));
     }
 
+    ensure_eula(&instance_dir).await?;
     let java_major = aqua::infer_java_version(&data.mc_version);
     let java_path = java_manager::ensure_java(java_major, &data.mc_version)
         .await
@@ -98,7 +109,8 @@ pub async fn launch_server(instance_name: String) -> Result<(), String> {
             );
         })?;
 
-    ensure_eula(&instance_dir).await?;
+    let port_guard = crate::services::server_ports::CREATION.lock().await;
+    crate::services::server_ports::check_start(&instance_dir, &instance_name).await?;
 
     let min_mem = data.min_memory.unwrap_or(1024);
     let max_mem = data.max_memory.unwrap_or(2048);
@@ -136,6 +148,9 @@ pub async fn launch_server(instance_name: String) -> Result<(), String> {
         },
     );
 
+    drop(port_guard);
+    drop(mutation_guard);
+    let _ = instance_manager::mark_activity(&instance_name).await;
     emit(AppEvent::InstanceStatusChanged {
         name: instance_name.clone(),
         status: "running".into(),
@@ -198,6 +213,7 @@ pub async fn launch_server(instance_name: String) -> Result<(), String> {
     tokio::spawn(async move {
         let code = child.wait().await.ok().and_then(|s| s.code());
         RUNNING_SERVERS.lock().unwrap().remove(&instance_name);
+        let _ = instance_manager::mark_activity(&instance_name).await;
         emit(AppEvent::InstanceExited {
             instance: instance_name.clone(),
             code,

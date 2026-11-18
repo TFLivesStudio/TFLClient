@@ -33,9 +33,9 @@ export const en: Dictionary = {
 		microsoftTitle: 'Microsoft account',
 		microsoftSub: 'Full access, multiplayer included',
 		offlineTitle: 'Offline account',
-		offlineSub: 'Singleplayer only',
+		offlineSub: 'Offline account',
 		usernameLabel: 'Username',
-		offlineHint: 'Offline accounts can only play singleplayer.',
+		offlineHint: 'Access depends on server authentication.',
 		fetchingCode: 'Getting code...',
 		goTo: 'Go to',
 		enterCode: 'and enter the code:',
@@ -87,12 +87,6 @@ export const en: Dictionary = {
 			hint: "If you open an instance while another is already running, you'll get a heads-up first (same account can break multiplayer; different accounts only affect performance). You can turn this warning off here.",
 			on: 'Warn: On',
 			off: 'Warn: Off'
-		},
-		dialogs: {
-			label: 'Native file dialogs',
-			auto: 'Automatic',
-			manual: 'Manual',
-			hint: 'Automatic (recommended): uploading your own icon/wallpaper or adding mods from a file stays disabled — no need, everything installs itself. Manual: enables it, but in some cases it can close the launcher abruptly (native file dialog).'
 		},
 		updates: {
 			betaEnabled: 'Beta versions: On',
@@ -154,8 +148,6 @@ export const en: Dictionary = {
 			yourImage: 'Your image',
 			change: 'Change your image',
 			upload: 'Upload your image',
-			uploadDisabledTitle: 'Enable Manual mode (below) to use this',
-			autoModeDisabled: 'Disabled in Automatic mode — enable "Manual" in the section below.',
 			items: {
 				none: 'None',
 				voidNight: 'Void night',
@@ -244,7 +236,7 @@ export const en: Dictionary = {
 		noInstancesYet: "You haven't created any instance yet",
 		createFirst: 'Create the first one',
 		noResultsFor: 'No results for "{{query}}"',
-		offlineAccountType: 'Offline — singleplayer only',
+		offlineAccountType: 'Offline account',
 		openSettings: 'Settings',
 		logout: 'Log out',
 		joinServer: 'Join server',
@@ -271,15 +263,13 @@ export const en: Dictionary = {
 			'Creates (or reuses) a Vanilla instance with that version and connects you straight in, skipping the Multiplayer menu.',
 		quickPlayUnsupported:
 			"This version is older than 1.20.2 and doesn't support direct connect — the game will open normally, connect manually from the Multiplayer menu.",
-		crackedBlocked:
-			'Offline accounts can only play singleplayer — sign in with a Microsoft account to join a server.',
+		crackedBlocked: 'Select an account to attempt a server connection.',
 		join: 'Join',
 		joining: 'Connecting…'
 	},
 	createInstance: {
 		importTitle: 'Import from another launcher',
-		importDesc:
-			'Bring your instances from Prism, MultiMC or CurseForge with their mods and worlds.',
+		importDesc: 'See the supported formats and what you can bring over.',
 		title: 'New instance',
 		chooserSubtitle: 'How do you want to build it?',
 		customTitle: 'Custom',
@@ -337,7 +327,6 @@ export const en: Dictionary = {
 		importing: 'Importing…',
 		orDivider: 'or',
 		mrpackButton: 'Import .mrpack file',
-		mrpackDialogsBlocked: 'Enable Manual mode in Settings to pick a .mrpack file.',
 		mrpackPreviewTitle: 'Confirm modpack',
 		mrpackFileCount: '{{count}} files',
 		mrpackConfirm: 'Import modpack',
@@ -350,12 +339,9 @@ export const en: Dictionary = {
 		categories: 'Categories',
 		selectNone: 'None',
 		selectAll: 'Select all',
-		manualModeRequired: 'Enable Manual mode in Settings to use this',
 		addByFile: 'Add from file',
 		checkUpdates: 'Check for updates',
 		remove: 'Remove',
-		autoModeDisablesAddByFile:
-			'Add from file is disabled in Automatic mode — enable "Manual" in Settings.',
 		allUpToDate: 'Everything up to date — no updates.',
 		noChangelogNotes: 'No changelog notes.',
 		changelogLoadFailed: 'Could not load: {{error}}',
@@ -454,8 +440,7 @@ export const en: Dictionary = {
 	},
 	instanceIconPicker: {
 		title: 'Instance icon',
-		uploadOwn: 'Upload my own image',
-		autoModeNotice: 'Disabled in Automatic mode — enable "Manual" in Settings to use it.'
+		uploadOwn: 'Upload my own image'
 	},
 	instanceLogWindow: {
 		suspectsTitle: 'Possible culprit mods',
@@ -500,17 +485,6 @@ export const en: Dictionary = {
 			'The game closed abruptly without warning — usually the operating system cutting off the process due to lack of RAM. Try raising the maximum memory in Settings.',
 		exitOtherCode:
 			'The game closed with code {{code}} without a recognizable error in the log — with several mods installed, this is usually a lack of RAM. Try raising the maximum memory in Settings.'
-	},
-	nativeDialogModePrompt: {
-		title: 'How do you want to install your own content?',
-		lead: 'This determines whether you can upload your own icon/wallpaper or add mods from a file by hand. You can change it anytime from Settings.',
-		autoRecommended: 'Automatic (recommended)',
-		autoSub: 'Everything installs itself — no file dialogs, no crash risk.',
-		manualSub:
-			'Enables uploading your own icon/wallpaper and mods from a file — in some cases it can close the launcher abruptly.',
-		bannerSub: 'Automatic: no file dialogs. Manual: enables them, with crash risk.',
-		dismissAriaLabel: 'Close without choosing yet',
-		dismissTitle: 'Close without choosing — you will be asked again next time'
 	},
 	screenshotsPanel: {
 		hint: "Screenshots for this instance (F2 in-game saves them here). The launcher doesn't take screenshots on its own, it only shows and manages them.",

@@ -13,6 +13,7 @@
 	} from '$lib/settings/catalog';
 	import { settingsIntent, openModal } from '$lib/state/uiState.svelte';
 	import SettingGroup from './SettingGroup.svelte';
+	import LanguagePicker from './LanguagePicker.svelte';
 	import AppearanceSettings from './AppearanceSettings.svelte';
 	import SceneSettings from './SceneSettings.svelte';
 	import AddonSettings from './AddonSettings.svelte';
@@ -32,11 +33,12 @@
 		retryUpdate
 	} from '$lib/state/updateState.svelte';
 	import { canStartCheck, progressPercent } from '$lib/state/updateMachine';
-	import { t, i18nState, setLocale } from '$lib/i18n/index.svelte';
-	import Mascot from '$lib/components/ui/Mascot.svelte';
-	import { MASCOTS, getMascotFor, setMascotFor, type MascotId } from '$lib/mascots';
+	import { t, i18nState } from '$lib/i18n/index.svelte';
+	import { experience, experienceStatus, setExperienceMode } from '$lib/state/experience.svelte';
+	import { settingsSaveStatus } from '$lib/state/settingsSave.svelte';
+	import { isSettingVisible } from '$lib/settings/catalog';
 	import {
-		updateSettings,
+		patchSettings,
 		setQualityProfile,
 		getRecommendedRam,
 		clearTempCache,
@@ -89,9 +91,17 @@
 	let settingsQuery = $state(''),
 		returnQuery = $state(''),
 		highlighted = $state<SettingId | null>(null);
-	const locale = $derived(i18nState.locale === 'en' ? 1 : 0);
+	const locale = $derived(i18nState.locale.startsWith('en') ? 1 : 0);
 	const currentPage = $derived(PAGES.find((p) => p.id === tab)!);
-	const results = $derived(searchSettings(settingsQuery, i18nState.locale));
+	const results = $derived(
+		searchSettings(settingsQuery, i18nState.locale.startsWith('en') ? 'en' : 'es').filter((s) =>
+			isSettingVisible(s.id, experience.mode)
+		)
+	);
+	const pages = $derived(PAGES.filter((p) => experience.mode === 'advanced' || p.id !== 'updates'));
+	$effect(() => {
+		if (experience.mode === 'simple' && tab === 'updates') tab = 'general';
+	});
 	let highlightTimer: ReturnType<typeof setTimeout> | undefined;
 	async function jump(id: SettingId) {
 		returnQuery = settingsQuery || returnQuery;
@@ -155,13 +165,6 @@
 	let customWallpaperBusy = $state(false);
 	let customWallpaperError = $state<string | null>(null);
 
-	// Subir imagen propia usa el diálogo nativo de archivos, que crashea el
-	// launcher entero en macOS con la firma ad-hoc del build (ver
-	// docs/history/legacy/CHANGELOG_macos-dialog-crash-java26.txt) — por eso queda detrás del
-	// modo global "Automático/Manual" definido más abajo, no de la
-	// plataforma.
-	let dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');
-
 	let ramTotal = $state<number | null>(null);
 	let minRam = $state(appState.settings?.min_memory ?? 1024);
 	let maxRam = $state(appState.settings?.max_memory ?? 2048);
@@ -173,7 +176,6 @@
 	let showMicrosoft = $state(false);
 	let reauthUuid = $state<string | undefined>();
 	let sessionStates = $state<Record<string, string>>({});
-	let mascotTick = $state(0);
 
 	let javaStatuses = $state<JavaStatus[]>([]);
 
@@ -207,7 +209,7 @@
 
 	function applyAccent(id: string) {
 		localStorage.setItem('tfl-accent', id);
-		if (id === 'orange') {
+		if (id === 'blue') {
 			document.documentElement.removeAttribute('data-accent');
 		} else {
 			document.documentElement.setAttribute('data-accent', id);
@@ -257,7 +259,6 @@
 	}
 
 	async function pickCustomWallpaper() {
-		if (dialogsBlocked) return;
 		customWallpaperError = null;
 		customWallpaperBusy = true;
 		try {
@@ -284,9 +285,7 @@
 	async function savePatch(patch: Partial<Settings>) {
 		if (!appState.settings) return false;
 		try {
-			const next = { ...appState.settings, ...patch };
-			await updateSettings(next);
-			appState.settings = next;
+			await patchSettings(patch);
 			settingsError = '';
 			return true;
 		} catch (e) {
@@ -312,24 +311,17 @@
 			showBetaWarning = true;
 			return;
 		}
-		appState.settings.beta_updates = false;
-		await updateSettings(appState.settings);
+		await savePatch({ beta_updates: false });
 	}
 
 	async function confirmBetaUpdates() {
 		showBetaWarning = false;
 		if (!appState.settings) return;
-		appState.settings.beta_updates = true;
-		await updateSettings(appState.settings);
-		// Para que se vea enseguida si ya hay una beta disponible.
-		handleCheckForUpdate();
+		if (await savePatch({ beta_updates: true })) handleCheckForUpdate();
 	}
 
 	async function toggleAutoUpdates() {
 		await savePatch({ auto_updates: !appState.settings?.auto_updates });
-	}
-	async function setNativeDialogMode(mode: 'auto' | 'manual') {
-		await savePatch({ native_dialog_mode: mode, native_dialog_mode_prompted: true });
 	}
 	async function toggleMultiInstanceWarning() {
 		await savePatch({
@@ -348,11 +340,21 @@
 		}
 	}
 
-	function changeMascot(uuid: string, id: MascotId) {
-		setMascotFor(uuid, id);
-		mascotTick++;
+	let ramTimer: ReturnType<typeof setTimeout> | undefined;
+	function scheduleRam() {
+		if (experience.mode !== 'simple') return;
+		clearTimeout(ramTimer);
+		ramTimer = setTimeout(() => {
+			ramTimer = undefined;
+			void saveRam();
+		}, 450);
 	}
-
+	onMount(() => () => {
+		if (ramTimer) {
+			clearTimeout(ramTimer);
+			void saveRam();
+		}
+	});
 	async function saveRam() {
 		if (!appState.settings) return;
 		if (
@@ -372,9 +374,7 @@
 		settingsError = '';
 		ramMessage = '';
 		try {
-			const next = { ...appState.settings, min_memory: minRam, max_memory: maxRam };
-			await updateSettings(next);
-			appState.settings = next;
+			await patchSettings({ min_memory: minRam, max_memory: maxRam });
 			ramMessage = tr('Memoria guardada', 'Memory saved');
 		} catch (e) {
 			settingsError = String(e);
@@ -493,6 +493,19 @@
 	>
 		<div class="panel-header">
 			<h2>{t('settings.title')}</h2>
+			<div
+				class="experience-switch"
+				role="group"
+				aria-label={tr('Modo del launcher', 'Launcher mode')}
+			>
+				{#each ['simple', 'advanced'] as mode}<button
+						type="button"
+						aria-pressed={experience.mode === mode}
+						disabled={experienceStatus.saving}
+						onclick={() => setExperienceMode(mode as 'simple' | 'advanced')}
+						>{mode === 'simple' ? 'Simple' : tr('Avanzado', 'Advanced')}</button
+					>{/each}
+			</div>
 			<button type="button" class="close-btn" onclick={onClose} aria-label={t('settings.close')}>
 				<X size={16} />
 			</button>
@@ -507,7 +520,7 @@
 					aria-label={tr('Buscar ajustes', 'Search settings')}
 				/></label
 			>
-			{#each PAGES as page (page.id)}{@const Icon = icons[page.id]}<button
+			{#each pages as page (page.id)}{@const Icon = icons[page.id]}<button
 					type="button"
 					class="ptab"
 					class:active={tab === page.id && !settingsQuery.trim()}
@@ -520,6 +533,11 @@
 				>{/each}
 		</nav>
 		<div class="panel-body">
+			{#if experienceStatus.error || settingsSaveStatus.error}<p role="alert">
+					{experienceStatus.error || settingsSaveStatus.error}
+				</p>{:else if settingsSaveStatus.pending}<p class="hint" role="status">
+					{tr('Guardando…', 'Saving…')}
+				</p>{/if}
 			{#if settingsQuery.trim()}
 				<header class="settings-page-heading">
 					<h3>{tr('Resultados de búsqueda', 'Search results')}</h3>
@@ -558,49 +576,7 @@
 					<h3>{currentPage.label[locale]}</h3>
 					<p>{currentPage.description[locale]}</p>
 				</header>
-				{#if tab === 'general'}<SettingGroup id="language"
-						><section>
-							<span class="section-label">{t('settings.language')}</span>
-							<div class="row">
-								<button
-									type="button"
-									class="choice"
-									class:active={i18nState.locale === 'es'}
-									onclick={() => setLocale('es')}>Español</button
-								>
-								<button
-									type="button"
-									class="choice"
-									class:active={i18nState.locale === 'en'}
-									onclick={() => setLocale('en')}>English</button
-								>
-							</div>
-						</section></SettingGroup
-					><SettingGroup id="files"
-						><section>
-							<span class="section-label">
-								{t('settings.dialogs.label')}
-								<InfoTooltip text={t('settings.dialogs.hint')} />
-							</span>
-							<div class="row">
-								<button
-									type="button"
-									class="choice"
-									class:active={(appState.settings?.native_dialog_mode ?? 'auto') === 'auto'}
-									onclick={() => setNativeDialogMode('auto')}
-								>
-									{t('settings.dialogs.auto')}
-								</button>
-								<button
-									type="button"
-									class="choice"
-									class:active={appState.settings?.native_dialog_mode === 'manual'}
-									onclick={() => setNativeDialogMode('manual')}
-								>
-									{t('settings.dialogs.manual')}
-								</button>
-							</div>
-						</section></SettingGroup
+				{#if tab === 'general'}<SettingGroup id="language"><LanguagePicker /></SettingGroup
 					><SettingGroup id="storage"
 						><section>
 							<span class="section-label">{t('settings.storage.label')}</span>
@@ -637,7 +613,6 @@
 							{customWallpaperUrl}
 							{customWallpaperBusy}
 							{customWallpaperError}
-							{dialogsBlocked}
 							{applyAmbience}
 							{applyWallpaper}
 							{selectCustomWallpaper}
@@ -656,11 +631,23 @@
 							<div class="ram-row">
 								<label>
 									{t('settings.ram.min')}
-									<input type="number" bind:value={minRam} min="512" step="256" />
+									<input
+										type="number"
+										bind:value={minRam}
+										oninput={scheduleRam}
+										min="512"
+										step="256"
+									/>
 								</label>
 								<label>
 									{t('settings.ram.max')}
-									<input type="number" bind:value={maxRam} min="512" step="256" />
+									<input
+										type="number"
+										bind:value={maxRam}
+										oninput={scheduleRam}
+										min="512"
+										step="256"
+									/>
 								</label>
 							</div>
 							<p class="hint">
@@ -676,16 +663,19 @@
 									max={Math.max(ramTotal ?? 16384, maxRam)}
 									step="256"
 									bind:value={maxRam}
+									oninput={scheduleRam}
 								/><output>{maxRam} MB</output></label
-							>{#if ramMessage}<p role="status" class="hint">{ramMessage}</p>{/if}<button
-								type="button"
-								class="save-btn"
-								disabled={savingRam}
-								onclick={saveRam}
-							>
-								<Check size={13} />
-								{t('settings.ram.save')}
-							</button>
+							>{#if ramMessage}<p role="status" class="hint">
+									{ramMessage}
+								</p>{/if}{#if experience.mode === 'advanced'}<button
+									type="button"
+									class="save-btn"
+									disabled={savingRam}
+									onclick={saveRam}
+								>
+									<Check size={13} />
+									{t('settings.ram.save')}
+								</button>{/if}
 						</section></SettingGroup
 					><SettingGroup id="multi-instance"
 						><section>
@@ -713,17 +703,12 @@
 							<div class="accounts-list">
 								{#each users as u (u.uuid)}
 									<div class="account-row" class:active={appState.currentUser?.uuid === u.uuid}>
-										{#if u.user_type === 'Cracked'}
-											<span class="account-avatar">
-												{#key mascotTick}
-													<Mascot id={getMascotFor(u.uuid)} size={24} />
-												{/key}
-											</span>
-										{/if}
 										<div class="account-info">
 											<span class="account-name">{u.username}</span>
 											<span class="account-type"
-												>{u.user_type}{#if u.user_type === 'Microsoft'}
+												>{u.user_type === 'Cracked'
+													? tr('Cuenta offline', 'Offline account')
+													: u.user_type}{#if u.user_type === 'Microsoft'}
 													· {sessionStates[u.uuid] === 'memory'
 														? authText('Sesión temporal', 'Temporary session')
 														: sessionStates[u.uuid] === 'protected'
@@ -760,24 +745,6 @@
 											<Trash2 size={13} />
 										</button>
 									</div>
-									{#if u.user_type === 'Cracked' && appState.currentUser?.uuid === u.uuid}
-										<div class="mascot-picker">
-											{#key mascotTick}
-												{#each MASCOTS as m (m.id)}
-													<button
-														type="button"
-														class="mascot-swatch"
-														class:active={getMascotFor(u.uuid) === m.id}
-														onclick={() => changeMascot(u.uuid, m.id)}
-														aria-label={m.label}
-														title={m.label}
-													>
-														<Mascot id={m.id} size={26} />
-													</button>
-												{/each}
-											{/key}
-										</div>
-									{/if}
 								{/each}
 							</div>
 						</section></SettingGroup
@@ -820,8 +787,8 @@
 					><SettingGroup
 						id="account-skin"
 						hint={tr(
-							'Abre el estudio para gestionar la skin de tu cuenta activa. Las mascotas de cuentas sin conexión se eligen en la lista de cuentas.',
-							'Open the studio to manage your active account skin. Choose offline mascots in the account list.'
+							'Abre el estudio para ver la skin de tu cuenta activa y gestionar las opciones disponibles.',
+							'Open the studio to view your active account skin and manage available options.'
 						)}
 						><button
 							type="button"
@@ -934,6 +901,30 @@
 {/if}
 
 <style>
+	.experience-switch {
+		display: flex;
+		gap: 2px;
+		margin-inline-start: auto;
+		padding: 3px;
+		border: 1px solid var(--border);
+		border-radius: var(--border-radius-sm);
+	}
+	.experience-switch button {
+		padding: 6px 9px;
+		color: var(--text-secondary);
+		border: 0;
+		border-radius: 4px;
+		background: transparent;
+		font-size: 12px;
+	}
+	.experience-switch button[aria-pressed='true'] {
+		background: var(--accent);
+		color: var(--accent-text);
+	}
+	.experience-switch button:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 3px;
+	}
 	.settings-search {
 		display: flex;
 		align-items: center;
@@ -1176,41 +1167,6 @@
 	}
 
 	.account-row.active {
-		border-color: var(--accent);
-	}
-
-	.account-avatar {
-		flex-shrink: 0;
-		display: flex;
-		border-radius: var(--border-radius-sm);
-		overflow: hidden;
-	}
-
-	.mascot-picker {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
-		padding: 8px 10px 2px;
-	}
-
-	.mascot-swatch {
-		display: flex;
-		border-radius: var(--border-radius-sm);
-		border: 2px solid transparent;
-		cursor: pointer;
-		overflow: hidden;
-		opacity: 0.7;
-		transition:
-			opacity 0.15s,
-			border-color 0.15s;
-	}
-
-	.mascot-swatch:hover {
-		opacity: 1;
-	}
-
-	.mascot-swatch.active {
-		opacity: 1;
 		border-color: var(--accent);
 	}
 

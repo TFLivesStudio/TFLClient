@@ -101,7 +101,14 @@ test('canonical settings support beginner/intermediate/expert deep tasks in both
 });
 test('beta 4 circular charts migrate and independent per-metric choices survive validation', () => {
 	const old = parseConsole({ chartStyle: 'gauge', seconds: 180 });
-	assert.deepEqual(old.metricStyles, { cpu: 'gauge', ram: 'gauge', disk: 'gauge' });
+	for (const metric of ['cpu', 'ram', 'disk', 'storage', 'network', 'gpu']) {
+		assert.equal(
+			old.metricStyles[metric],
+			'gauge',
+			`${metric} inherits the chosen historical style`
+		);
+		assert.equal(old.metricSeconds[metric], 180, `${metric} inherits the chosen time window`);
+	}
 	assert.equal(old.metricSeconds.ram, 180);
 	const current = parseConsole({
 		...old,

@@ -79,7 +79,7 @@ pub async fn create_instance_shortcut(instance_name: String) -> Result<String, S
     // entero. En vez de duplicar esa lógica para un caso de uso que el
     // cliente no pidió, se bloquea acá con un mensaje claro.
     if instance.server_type.is_some() {
-        return Err("Los accesos directos son para instancias de juego — para el servidor usá el botón Iniciar.".into());
+        return Err("Los accesos directos son para instancias de juego — para el servidor usa el botón Iniciar.".into());
     }
 
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;

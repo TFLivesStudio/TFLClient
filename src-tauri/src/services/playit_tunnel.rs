@@ -237,7 +237,7 @@ pub async fn ensure_tunnel_address(local_port: u16) -> Result<String, String> {
     }
 
     Err(
-        "playit.gg no terminó de asignar la dirección del túnel — probá de nuevo en un momento"
+        "playit.gg no terminó de asignar la dirección del túnel — prueba de nuevo en un momento"
             .into(),
     )
 }

@@ -3,13 +3,15 @@
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 	import { Settings2, Copy, X } from 'lucide-svelte';
 	import { w } from '$lib/i18n/workbench';
-	import { severity, type ProcessStats, type Severity } from '$lib/console/model';
+	import { severity, type ConsoleReading, type Severity } from '$lib/console/model';
 	import { consolePrefs as p, watchConsole } from '$lib/console/preferences.svelte';
 	import ProcessCharts from './ProcessCharts.svelte';
 	import ConsoleSettings from './ConsoleSettings.svelte';
 	import ConsoleLayout from './ConsoleLayout.svelte';
 	import LogBlock from './LogBlock.svelte';
 	import { modalFocus } from '$lib/visual/modalFocus';
+	import { experience, type ExperienceMode } from '$lib/state/experience.svelte';
+	import { appState } from '$lib/state/state.svelte';
 	let {
 		instanceName,
 		readStats,
@@ -18,7 +20,7 @@
 		empty
 	}: {
 		instanceName: string;
-		readStats: () => Promise<ProcessStats | null>;
+		readStats: () => Promise<ConsoleReading | null>;
 		running?: boolean;
 		lines: { stream: string; line: string }[];
 		empty: string;
@@ -27,6 +29,8 @@
 		level = $state('all'),
 		customize = $state(false),
 		copyState = $state<'copy' | 'copied' | 'copyFailed'>('copy');
+	let observedMode = $state<ExperienceMode | null>(null);
+	const mode = $derived(appState.settings ? experience.mode : (observedMode ?? experience.mode));
 	let logEl = $state<HTMLDivElement>();
 	let follow = $derived(p.follow);
 	let copyTimer: ReturnType<typeof setTimeout> | undefined;
@@ -94,6 +98,8 @@
 				{instanceName}
 				{readStats}
 				{running}
+				{mode}
+				onMode={(value) => (observedMode = value)}
 			/>{/snippet}{#snippet log()}
 			<LogBlock {p} {shown} total={lines.length} {empty} bind:element={logEl} onScroll={scroll} />
 			<label class="follow"
@@ -132,7 +138,7 @@
 					><X size={18} /></button
 				>
 			</header>
-			<div class="config-body"><ConsoleSettings /></div>
+			<div class="config-body"><ConsoleSettings {mode} /></div>
 		</div>
 	</div>
 {/if}

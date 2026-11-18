@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { ListTodo } from 'lucide-svelte';
+	import { openModal } from '$lib/state/uiState.svelte';
+	import { serverTasks } from '$lib/state/serverTasks.svelte';
+	import { tr } from '$lib/i18n/experience';
 	import NotificationCenter from '$lib/components/refresh/NotificationCenter.svelte';
 	import { vr } from '$lib/i18n/refresh';
 	import { navigation } from '$lib/visual/navigation.svelte';
@@ -61,6 +65,18 @@
 		><Search size={15} /><kbd>⌘ / Ctrl K</kbd></button
 	>
 	<NotificationCenter />
+	<button
+		type="button"
+		class="titlebar-search"
+		aria-label={tr('Actividades', 'Activities')}
+		title={tr('Actividades', 'Activities')}
+		onclick={() => openModal('activities')}
+		><ListTodo
+			size={17}
+		/>{#if serverTasks.items.some((t) => ['preparing', 'downloading'].includes(t.status))}<span
+				aria-label={tr('Tareas en curso', 'Tasks in progress')}>●</span
+			>{/if}</button
+	>
 
 	<div class="titlebar-controls">
 		<button

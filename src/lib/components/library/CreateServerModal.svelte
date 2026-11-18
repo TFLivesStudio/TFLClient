@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { experience } from '$lib/state/experience.svelte';
+	import { tr } from '$lib/i18n/experience';
+	import { openExternalUrl } from '$lib/api/system';
 	import { modalFocus } from '$lib/visual/modalFocus';
 	import { getServerVersions, createServerInstance } from '$lib/api';
 	import type { InstanceData, ServerType } from '$lib/types/types';
@@ -30,17 +33,24 @@
 	let loadingVersions = $state(true);
 	let creating = $state(false);
 	let error = $state<string | null>(null);
+	let port = $state<number | undefined>(undefined),
+		acceptEula = $state(false);
+	let versionRequest = 0;
 
 	async function loadVersions() {
+		const request = ++versionRequest;
 		loadingVersions = true;
 		try {
-			versions = await getServerVersions(selectedType);
+			const result = await getServerVersions(selectedType);
+			if (request !== versionRequest) return;
+			versions = result;
 			selectedVersion = versions[0] ?? '';
 		} catch (e) {
+			if (request !== versionRequest) return;
 			error = String(e);
 			versions = [];
 		} finally {
-			loadingVersions = false;
+			if (request === versionRequest) loadingVersions = false;
 		}
 	}
 
@@ -54,7 +64,13 @@
 		creating = true;
 		error = null;
 		try {
-			const instance = await createServerInstance(name.trim(), selectedVersion, selectedType);
+			const instance = await createServerInstance(
+				name.trim(),
+				selectedVersion,
+				selectedType,
+				port ?? null,
+				acceptEula
+			);
 			onCreated(instance);
 		} catch (e) {
 			error = String(e);
@@ -83,6 +99,12 @@
 		tabindex="-1"
 	>
 		<h2>{t('createServer.title')}</h2>
+		<p class="hint">
+			{tr(
+				'La descarga continuará en Actividades. Puedes seguir usando el launcher.',
+				'The download will continue in Activities. You can keep using the launcher.'
+			)}
+		</p>
 
 		<label for="server-name">{t('createInstance.nameLabel')}</label>
 		<input
@@ -127,6 +149,26 @@
 			</select>
 		{/if}
 
+		{#if experience.mode === 'advanced'}<label for="server-port"
+				>{tr(
+					'Puerto TCP (vacío: elegir uno libre)',
+					'TCP port (empty: choose an available port)'
+				)}</label
+			><input id="server-port" type="number" min="1" max="65535" bind:value={port} />{/if}
+		<label class="eula-choice"
+			><input type="checkbox" bind:checked={acceptEula} /><span
+				>{tr(
+					'He leído y acepto la EULA de Minecraft para este servidor.',
+					'I have read and accept the Minecraft EULA for this server.'
+				)}</span
+			></label
+		>
+		<button
+			class="eula-link"
+			type="button"
+			onclick={() => openExternalUrl('https://www.minecraft.net/eula')}
+			>{tr('Leer EULA', 'Read EULA')}</button
+		>
 		{#if error}
 			<p class="error">{error}</p>
 		{/if}
@@ -150,6 +192,27 @@
 </div>
 
 <style>
+	.eula-choice {
+		display: flex;
+		align-items: flex-start;
+		gap: 9px;
+		margin-top: 12px;
+		font-size: 12px;
+		line-height: 1.5;
+	}
+	.eula-choice input {
+		width: auto;
+		margin-top: 3px;
+	}
+	.eula-link {
+		background: transparent;
+		color: var(--accent);
+		border: 0;
+		text-align: start;
+		padding: 4px 0;
+		font-size: 12px;
+		text-decoration: underline;
+	}
 	.overlay {
 		position: fixed;
 		inset: 0;

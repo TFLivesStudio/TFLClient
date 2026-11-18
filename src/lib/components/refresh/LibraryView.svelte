@@ -12,6 +12,9 @@
 		ChevronRight
 	} from 'lucide-svelte';
 	import { appState } from '$lib/state/state.svelte';
+	import { experience } from '$lib/state/experience.svelte';
+	import { orderByActivity } from '$lib/state/instanceOrder';
+	import { tr } from '$lib/i18n/experience';
 	import { selectInstance } from '$lib/state/instanceState.svelte';
 	import { openModal, openInstanceContextMenu } from '$lib/state/uiState.svelte';
 	import { gameSession } from '$lib/state/gameSession.svelte';
@@ -39,21 +42,21 @@
 		filter = $state('all'),
 		groupName = $state(''),
 		creating = $state(false);
+	const advanced = $derived(experience.mode === 'advanced');
+	const selection = $derived(!advanced && filter.startsWith('group:') ? 'all' : filter);
 	const filtered = $derived(
-		[...appState.instances]
-			.filter((i) => {
-				const meta = instanceVisual(i.uuid);
-				return (
-					`${instanceDisplayName(i)} ${i.mc_version} ${instanceEdition(i)}`
-						.toLowerCase()
-						.includes(query.toLowerCase().trim()) &&
-					(filter === 'all' ||
-						(filter === 'recent' && i.last_played > 0) ||
-						(filter === 'favorites' && meta.favorite) ||
-						(filter.startsWith('group:') && meta.group === filter.slice(6)))
-				);
-			})
-			.sort((a, b) => b.last_played - a.last_played || a.name.localeCompare(b.name))
+		orderByActivity(appState.instances, running).filter((i) => {
+			const meta = instanceVisual(i.uuid);
+			return (
+				`${instanceDisplayName(i)} ${i.mc_version} ${instanceEdition(i)}`
+					.toLowerCase()
+					.includes(query.toLowerCase().trim()) &&
+				(selection === 'all' ||
+					(selection === 'recent' && (i.last_activity ?? i.last_played) > 0) ||
+					(selection === 'favorites' && meta.favorite) ||
+					(selection.startsWith('group:') && meta.group === selection.slice(6)))
+			);
+		})
 	);
 	function running(i: InstanceData) {
 		return i.server_type
@@ -88,45 +91,45 @@
 				bind:value={query}
 			/></label
 		>
-		<div class="view-switch">
-			<button
-				class="vr-control"
-				aria-label={vr('list')}
-				aria-pressed={visual.libraryView === 'list'}
-				onclick={() => setVisual('libraryView', 'list')}><List size={18} /></button
-			><button
-				class="vr-control"
-				aria-label={vr('grid')}
-				aria-pressed={visual.libraryView === 'grid'}
-				onclick={() => setVisual('libraryView', 'grid')}><Grid2X2 size={18} /></button
-			>
-		</div>
+		{#if advanced}<div class="view-switch">
+				<button
+					class="vr-control"
+					aria-label={vr('list')}
+					aria-pressed={visual.libraryView === 'list'}
+					onclick={() => setVisual('libraryView', 'list')}><List size={18} /></button
+				><button
+					class="vr-control"
+					aria-label={vr('grid')}
+					aria-pressed={visual.libraryView === 'grid'}
+					onclick={() => setVisual('libraryView', 'grid')}><Grid2X2 size={18} /></button
+				>
+			</div>{/if}
 	</div>
 	<nav class="library-filters" aria-label={vr('groups')}>
 		{#each ['all', 'recent', 'favorites'] as key (key)}<button
 				class="vr-control"
-				aria-pressed={filter === key}
+				aria-pressed={selection === key}
 				onclick={() => (filter = key)}>{vr(key as 'all' | 'recent' | 'favorites')}</button
 			>{/each}
-		{#each visual.groups as group (group)}<div class="group-filter">
-				<button
-					class="vr-control"
-					aria-pressed={filter === `group:${group}`}
-					onclick={() => (filter = `group:${group}`)}><Folder size={14} />{group}</button
-				><button
-					class="delete-group"
-					aria-label={`${vr('collectionDelete')}: ${group}`}
-					onclick={() => {
-						removeGroup(group);
-						if (filter === `group:${group}`) filter = 'all';
-					}}><X size={12} /></button
-				>
-			</div>{/each}
-		<button class="vr-control" aria-expanded={creating} onclick={() => (creating = !creating)}
-			><Plus size={15} />{vr('newGroup')}</button
-		>
+		{#if advanced}{#each visual.groups as group (group)}<div class="group-filter">
+					<button
+						class="vr-control"
+						aria-pressed={filter === `group:${group}`}
+						onclick={() => (filter = `group:${group}`)}><Folder size={14} />{group}</button
+					><button
+						class="delete-group"
+						aria-label={`${vr('collectionDelete')}: ${group}`}
+						onclick={() => {
+							removeGroup(group);
+							if (filter === `group:${group}`) filter = 'all';
+						}}><X size={12} /></button
+					>
+				</div>{/each}
+			<button class="vr-control" aria-expanded={creating} onclick={() => (creating = !creating)}
+				><Plus size={15} />{vr('newGroup')}</button
+			>{/if}
 	</nav>
-	{#if creating}<form
+	{#if advanced && creating}<form
 			class="group-form"
 			onsubmit={(e) => {
 				e.preventDefault();
@@ -143,7 +146,7 @@
 	<div class="library-count vr-muted">
 		{filtered.length} / {appState.instances.length} · {vr('library')}
 	</div>
-	<div class="library-items vr-stagger" class:grid={visual.libraryView === 'grid'}>
+	<div class="library-items vr-stagger" class:grid={advanced && visual.libraryView === 'grid'}>
 		{#each filtered as instance (instance.uuid)}
 			{@const meta = instanceVisual(instance.uuid)}
 			{@const thumb = sceneThumb(instance)}
@@ -163,25 +166,27 @@
 				>
 				<div class="instance-session">
 					<span class="status" class:online={running(instance)}
-						>{running(instance)
-							? vr('running')
-							: instance.server_type
-								? vr('stopped')
-								: vr('ready')}</span
-					><small
-						>{instance.last_played
-							? new Date(instance.last_played * 1000).toLocaleDateString(i18nState.locale)
-							: vr('never')}</small
-					>
+						>{instance.preparation
+							? tr('En preparación', 'Preparing')
+							: running(instance)
+								? vr('running')
+								: instance.server_type
+									? vr('stopped')
+									: vr('ready')}</span
+					>{#if advanced}<small
+							>{instance.last_played
+								? new Date(instance.last_played * 1000).toLocaleDateString(i18nState.locale)
+								: vr('never')}</small
+						>{/if}
 				</div>
-				<select
-					aria-label={`${vr('group')}: ${instanceDisplayName(instance)}`}
-					value={meta.group}
-					onchange={(e) => setInstanceVisual(instance.uuid, { group: e.currentTarget.value })}
-					><option value="">{vr('ungrouped')}</option>{#each visual.groups as group (group)}<option
-							value={group}>{group}</option
-						>{/each}</select
-				>
+				{#if advanced}<select
+						aria-label={`${vr('group')}: ${instanceDisplayName(instance)}`}
+						value={meta.group}
+						onchange={(e) => setInstanceVisual(instance.uuid, { group: e.currentTarget.value })}
+						><option value="">{vr('ungrouped')}</option
+						>{#each visual.groups as group (group)}<option value={group}>{group}</option
+							>{/each}</select
+					>{/if}
 				<div class="row-actions">
 					<button
 						class="favorite"

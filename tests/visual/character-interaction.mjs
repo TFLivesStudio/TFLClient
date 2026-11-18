@@ -35,7 +35,7 @@ async function open(quality = 'Experience', reduced = false, cape = true) {
 			const invoke = window.__TAURI_INTERNALS__.invoke;
 			window.__TAURI_INTERNALS__.invoke = async (cmd, args) => {
 				const result = await invoke(cmd, args);
-				if (cmd === 'get_mojang_profile' && cape)
+				if ((cmd === 'get_mojang_profile' || cmd === 'get_character_profile') && cape)
 					result.capes = [{ id: 'synthetic-cape', state: 'ACTIVE', url: capeUrl }];
 				return result;
 			};

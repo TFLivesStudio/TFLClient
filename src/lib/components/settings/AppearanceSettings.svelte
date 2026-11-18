@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Monitor, Moon, Sun, Sparkles, Check } from 'lucide-svelte';
 	import { appState } from '$lib/state/state.svelte';
-	import { updateSettings } from '$lib/api';
+	import { patchSettings } from '$lib/api';
 	import { applyQualityVisuals } from '$lib/state/appearanceState.svelte';
 	import { visual, setVisual, preferenceStatus } from '$lib/visual/preferences.svelte';
 	import { vr } from '$lib/i18n/refresh';
@@ -42,9 +42,8 @@
 	) {
 		if (!appState.settings) return;
 		try {
-			const next = { ...appState.settings, [key]: value };
-			await updateSettings(next);
-			appState.settings = next;
+			await patchSettings({ [key]: value });
+			// Committed by the settings API.
 			applyQualityVisuals(next);
 			error = '';
 		} catch (e) {
@@ -114,7 +113,7 @@
 				>{/each}
 		</div></SettingGroup
 	>
-	<SettingGroup id="accent"><AccentPalette onReset={() => onAccent('orange')} /></SettingGroup>
+	<SettingGroup id="accent"><AccentPalette onReset={() => onAccent('blue')} /></SettingGroup>
 	{#if addonThemes().length || addonState.theme}
 		<div class="addon-theme-picker">
 			<label class="field"

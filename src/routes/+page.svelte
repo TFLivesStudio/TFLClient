@@ -7,12 +7,11 @@
 	import InstanceLogWindow from '$lib/components/library/InstanceLogWindow.svelte';
 	import CommandPalette from '$lib/components/layout/CommandPalette.svelte';
 	import WhatsNewTips from '$lib/components/onboarding/WhatsNewTips.svelte';
-	import NativeDialogModePrompt from '$lib/components/onboarding/NativeDialogModePrompt.svelte';
 	import DownloadProgressBar from '$lib/components/library/DownloadProgressBar.svelte';
 	import UpdateBadge from '$lib/components/library/UpdateBadge.svelte';
 	import { appState } from '$lib/state/state.svelte';
 	import { selectInstance } from '$lib/state/instanceState.svelte';
-	import { flow, isCommandPaletteBlocked, openModal, ui } from '$lib/state/uiState.svelte';
+	import { flow, isCommandPaletteBlocked, openModal } from '$lib/state/uiState.svelte';
 
 	// Composición: la secuencia de arranque vive en $lib/app/bootstrap, el
 	// layout en AppShell y los modales en ModalHost (abiertos vía uiState).
@@ -45,10 +44,6 @@
 
 {#if !isLogWindow && !flow.needsOnboarding}
 	<WhatsNewTips />
-{/if}
-
-{#if !isLogWindow && !flow.needsOnboarding && !ui.justOnboarded && flow.needsDialogModePrompt}
-	<NativeDialogModePrompt variant="banner" onDismiss={() => (ui.dialogPromptDismissed = true)} />
 {/if}
 
 <DownloadProgressBar />

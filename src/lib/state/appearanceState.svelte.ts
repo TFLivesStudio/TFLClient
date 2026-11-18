@@ -64,7 +64,7 @@ export function observeAppearance(): MutationObserver {
 export async function restoreAppearance() {
 	const root = document.documentElement;
 	const preferences = [
-		['tfl-accent', 'data-accent', 'orange'],
+		['tfl-accent', 'data-accent', 'blue'],
 		['tfl-surface', 'data-surface', 'obsidian'],
 		['tfl-ambience', 'data-ambience', 'aurora'],
 		['tfl-density', 'data-density', 'comfortable'],

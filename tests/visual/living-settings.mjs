@@ -20,7 +20,7 @@ async function open({
 	const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
 	const page = await context.newPage();
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.addInitScript(installFixture, { quality });
+	await page.addInitScript(installFixture, { quality, mode: 'advanced' });
 	await page.addInitScript(
 		({ scope, style, instances }) => {
 			localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style }));

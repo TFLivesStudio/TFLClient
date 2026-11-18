@@ -3,6 +3,9 @@ import { invoke } from './invoke';
 import type { MojangProfile } from '$lib/types/types';
 
 export const getMojangProfile = () => invoke<MojangProfile>('get_mojang_profile');
+/** Cosmetic data only: never refreshes a session or grants account ownership. */
+export const getCharacterProfile = (accountUuid: string) =>
+	invoke<MojangProfile>('get_character_profile', { accountUuid });
 export const setSkinFromFile = (path: string, variant: 'classic' | 'slim') =>
 	invoke<void>('set_skin_from_file', { path, variant });
 export const resetSkin = () => invoke<void>('reset_skin');

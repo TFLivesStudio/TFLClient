@@ -1,4 +1,4 @@
-import { i18nState } from './index.svelte';
+import { translateMessage } from './index.svelte';
 const es = {
 	backups: 'Mundos y backups',
 	console: 'Consola',
@@ -92,7 +92,7 @@ const es = {
 	account: 'Cuenta',
 	wardrobe: 'Tu identidad, en primer plano.',
 	wardrobeHint: 'Skins y capas de tu cuenta, con las mismas herramientas de siempre.',
-	offlineSkin: 'Las cuentas offline usan su mascota de TFL.',
+	offlineSkin: 'Las cuentas offline muestran su skin por nombre; Steve se usa como respaldo.',
 	session: 'Centro de control',
 	serverHint: 'Consola, conexión y archivos de tu servidor.',
 	status: 'Estado',
@@ -211,7 +211,7 @@ const en: Record<keyof typeof es, string> = {
 	account: 'Account',
 	wardrobe: 'Your identity, center stage.',
 	wardrobeHint: 'Your account skins and capes, with all your familiar tools.',
-	offlineSkin: 'Offline accounts use their TFL mascot.',
+	offlineSkin: 'Offline accounts show their skin by name; Steve is the fallback.',
 	session: 'Control center',
 	serverHint: 'Console, connection and files for your server.',
 	status: 'Status',
@@ -238,5 +238,5 @@ const en: Record<keyof typeof es, string> = {
 	nativeOnly: 'Available in the desktop client'
 };
 export function vr(key: keyof typeof es): string {
-	return (i18nState.locale === 'en' ? en : es)[key];
+	return translateMessage(`refresh.${key}`, es[key], en[key]);
 }

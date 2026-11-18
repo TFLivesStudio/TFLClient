@@ -4,6 +4,7 @@ use tauri::{AppHandle, Emitter};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
 pub enum AppEvent {
+    ServerTasksChanged {},
     AuthSessionNotice {
         reason: String,
     },

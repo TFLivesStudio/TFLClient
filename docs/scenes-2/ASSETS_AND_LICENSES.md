@@ -31,4 +31,4 @@ measurement. OGL/tsParticles/Pixi have no new code included by this change.
 The MCP packaging overlay also bundles original license files for rmcp and its newly
 introduced code-generation/schema dependencies under `mcp-licenses/`. Source copies
 are retained at `src-tauri/resources/mcp-licenses/`, including Apache-2.0 and MIT terms.
-The resource mapping merges with the existing icon and mp-guard mappings.
+The resource mapping merges with the existing icon mappings.

@@ -1,10 +1,17 @@
 // Browser-only IPC fixture. Never imported by production code.
+export function withFixture(options, extend, args) {
+	return {
+		content: `(${installFixture})(${JSON.stringify(options)});(${extend})(${JSON.stringify(args)});`
+	};
+}
+
 export function installFixture({
 	quality = 'Balanced',
 	appVersion = '0.15.4-beta.3',
 	empty = false,
 	language = 'es',
 	theme = 'dark',
+	mode = 'simple',
 	premium = false,
 	skin = false,
 	username = 'Alex',
@@ -22,7 +29,7 @@ export function installFixture({
 	const user = {
 		username,
 		uuid: 'fixture-account',
-		user_type: premium ? 'Premium' : 'Cracked'
+		user_type: premium ? 'Microsoft' : 'Cracked'
 	};
 	const instance = (name, id, loader = 'fabric', server = null) => ({
 		uuid: id,
@@ -80,6 +87,10 @@ export function installFixture({
 			instance('Personal Ornithe', 'normal-ornithe', 'ornithe-gen2')
 		);
 	let settings = {
+		schema_version: 1,
+		settings_revision: 0,
+		ui_mode: mode,
+		preference_origins: {},
 		user: [user],
 		active_user_idx: 0,
 		min_memory: 2048,
@@ -150,6 +161,70 @@ export function installFixture({
 			if (cmd === 'plugin:event|unlisten') {
 				listeners.delete(args.eventId);
 				return null;
+			}
+			if (cmd === 'get_console_metrics') {
+				samples++;
+				const available = telemetry && window.__fixtureStatsMode !== 'missing';
+				return {
+					ui_mode: settings.ui_mode,
+					process: available
+						? {
+								cpu_core_percent: 360 + samples * 4,
+								cpu_percent: (360 + samples * 4) / 8,
+								logical_cores: 8,
+								memory_mb: 2304 + samples * 8,
+								disk_bytes_delta: 2097152,
+								sampled_at_ms: Date.now(),
+								sample_interval_ms: 2000,
+								ready: samples > 1,
+								process_count: 2,
+								scope: 'process_tree'
+							}
+						: null,
+					running: telemetry,
+					sampled_at_ms: Date.now(),
+					interval_ms: samples > 1 ? 2000 : 0,
+					memory_total_mb: 16384,
+					network: {
+						scope: 'machine_interfaces',
+						provider: 'Synthetic browser fixture',
+						received_bytes_per_sec: samples > 1 ? 320 : null,
+						transmitted_bytes_per_sec: samples > 1 ? 80 : null,
+						total_received_bytes: 65536 + samples * 640,
+						total_transmitted_bytes: 8192 + samples * 160,
+						interval_ms: samples > 1 ? 2000 : 0,
+						total_period: 'interface_uptime'
+					},
+					storage: {
+						scope: 'instance_volume',
+						provider: 'Synthetic browser fixture',
+						used_bytes: 128 * 1073741824,
+						total_bytes: 512 * 1073741824
+					},
+					io: available
+						? {
+								scope: 'machine_disks',
+								provider: 'Synthetic browser fixture',
+								read_bytes_per_sec: 1048576,
+								write_bytes_per_sec: 262144,
+								total_read_bytes: null,
+								total_write_bytes: null,
+								total_period: 'unavailable'
+							}
+						: null,
+					gpus: available
+						? [
+								{
+									name: 'Synthetic GPU',
+									scope: 'machine_adapter',
+									provider: 'Synthetic browser fixture',
+									utilization_percent: 24,
+									vram_used_bytes: 1073741824,
+									vram_total_bytes: 8589934592
+								}
+							]
+						: []
+				};
 			}
 			if (cmd === 'get_running_instance_stats' || cmd === 'get_running_server_stats') {
 				if (!telemetry || window.__fixtureStatsMode === 'missing') return null;
@@ -251,6 +326,16 @@ export function installFixture({
 				return [...installedContent.values()];
 			if (cmd === 'get_skin_texture_url') return skin ? skinUrl : null;
 			if (cmd === 'get_settings') return settings;
+			if (cmd === 'patch_settings') {
+				if (args.expectedRevision !== settings.settings_revision)
+					throw new Error('SETTINGS_CONFLICT');
+				settings = {
+					...settings,
+					...args.patch,
+					settings_revision: settings.settings_revision + 1
+				};
+				return settings;
+			}
 			if (cmd === 'update_settings') {
 				settings = args.newSettings;
 				return null;
@@ -266,9 +351,12 @@ export function installFixture({
 			if (cmd === 'get_instances') return instances;
 			if (cmd === 'get_system_status')
 				return {
-					java_major: 21,
+					cpu_model: 'Synthetic test CPU',
+					gpu_adapters: [{ name: 'Synthetic test GPU', provider: 'Fixture', vram_bytes: null }],
+					hardware_error: null,
 					ram_assigned_mb: 4096,
 					ram_total_mb: 16384,
+					ram_available_mb: 8192,
 					disk_free_gb: 120,
 					disk_total_gb: 500,
 					instances_dir: '/fixture/instances'
@@ -288,7 +376,7 @@ export function installFixture({
 				];
 			if (cmd === 'get_favorite_servers')
 				return [{ id: 'fav-1', name: 'Nuestra comunidad', address: 'play.example.test' }];
-			if (cmd === 'get_mojang_profile')
+			if (cmd === 'get_mojang_profile' || cmd === 'get_character_profile')
 				return {
 					skins: skin
 						? [{ id: 'fixture-skin', state: 'ACTIVE', url: skinUrl, variant: 'CLASSIC' }]

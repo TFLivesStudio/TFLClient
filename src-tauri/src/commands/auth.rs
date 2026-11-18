@@ -155,8 +155,7 @@ pub async fn get_skin_texture_url(uuid: String) -> Option<String> {
         })
 }
 
-/// Cuentas offline/cracked solo pueden jugar en singleplayer (regla de
-/// producto de TFL Client). Ver `crate::core::allows_multiplayer`.
+/// El launcher permite intentar conectarse; el servidor decide el acceso.
 #[command]
 pub fn account_allows_multiplayer() -> bool {
     crate::core::allows_multiplayer(SettingsManager::read().get_user().user_type)

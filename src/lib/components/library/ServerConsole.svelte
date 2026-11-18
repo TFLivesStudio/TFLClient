@@ -2,11 +2,11 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import type { InstanceData } from '$lib/types/types';
-	import { sendServerCommand } from '$lib/api';
+	import { sendServerCommand, getConsoleMetrics } from '$lib/api';
 	import { serverSessions } from '$lib/state/serverSessions.svelte';
 	import { t } from '$lib/i18n/index.svelte';
-	import { invoke } from '@tauri-apps/api/core';
-	import type { ProcessStats } from '$lib/console/model';
+	import { gameSession } from '$lib/state/gameSession.svelte';
+	import { tr } from '$lib/i18n/experience';
 	import ConsoleView from '$lib/components/console/ConsoleView.svelte';
 	import { Send } from 'lucide-svelte';
 
@@ -17,10 +17,14 @@
 	let command = $state('');
 	let disposed = false;
 	function readStats() {
-		return invoke<ProcessStats | null>('get_running_server_stats', { instanceName: instance.name });
+		return getConsoleMetrics(instance.name);
 	}
 
-	const running = $derived(serverSessions.running.has(instance.name));
+	const running = $derived(
+		instance.server_type
+			? serverSessions.running.has(instance.name)
+			: gameSession.running.some((item) => item.name === instance.name)
+	);
 
 	let unlisten: UnlistenFn | undefined;
 	onMount(async () => {
@@ -63,31 +67,42 @@
 		{readStats}
 		{running}
 		{lines}
-		empty={running ? t('serverConsole.waitingOutput') : t('serverConsole.notRunning')}
+		empty={running
+			? t('serverConsole.waitingOutput')
+			: instance.server_type
+				? t('serverConsole.notRunning')
+				: tr(
+						'La instancia está detenida. Iníciala para ver su registro.',
+						'The instance is stopped. Launch it to view its log.'
+					)}
 	/>
-	<form
-		class="command-row"
-		onsubmit={(e) => {
-			e.preventDefault();
-			handleSend();
-		}}
-	>
-		<input
-			type="text"
-			bind:value={command}
-			disabled={!running}
-			placeholder={running ? t('serverConsole.commandPlaceholder') : t('serverConsole.notRunning')}
-			autocomplete="off"
-		/>
-		<button
-			type="submit"
-			class="send-btn"
-			disabled={!running || !command.trim()}
-			aria-label={t('serverConsole.send')}
+	{#if instance.server_type}
+		<form
+			class="command-row"
+			onsubmit={(e) => {
+				e.preventDefault();
+				handleSend();
+			}}
 		>
-			<Send size={14} />
-		</button>
-	</form>
+			<input
+				type="text"
+				bind:value={command}
+				disabled={!running}
+				placeholder={running
+					? t('serverConsole.commandPlaceholder')
+					: t('serverConsole.notRunning')}
+				autocomplete="off"
+			/>
+			<button
+				type="submit"
+				class="send-btn"
+				disabled={!running || !command.trim()}
+				aria-label={t('serverConsole.send')}
+			>
+				<Send size={14} />
+			</button>
+		</form>
+	{/if}
 </div>
 
 <style>

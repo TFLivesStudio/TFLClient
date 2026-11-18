@@ -107,7 +107,12 @@ try {
 		for (const theme of ['light', 'dark']) {
 			const { page, context } = await open(style, theme);
 			await shot(page, `home-${style}-${theme}`);
-			for (const selector of ['.sidebar', '.home-greeting', '.panel']) {
+			// Greeting was removed intentionally; retain contrast coverage on real Home surfaces.
+			for (const selector of ['.sidebar', '.home-rich .dash-grid .panel']) {
+				assert.ok(
+					await page.locator(selector).count(),
+					`${style}/${theme}: reading surface exists: ${selector}`
+				);
 				for (const sample of await readingContrast(page, selector))
 					assert.ok(
 						sample.ratio >= 4.5,

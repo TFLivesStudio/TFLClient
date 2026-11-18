@@ -1,5 +1,5 @@
-import { i18nState } from './index.svelte';
-export const authText = (es: string, en: string) => (i18nState.locale === 'en' ? en : es);
+import { localizePhrase } from './index.svelte';
+export const authText = localizePhrase;
 const errors: Record<string, [string, string]> = {
 	AUTH_TEST_CONFIGURATION_REQUIRED: [
 		'Esta compilación de prueba necesita un Client ID y su activación explícita. Consulta la guía del propietario.',

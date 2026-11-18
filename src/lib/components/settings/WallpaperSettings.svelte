@@ -7,7 +7,6 @@
 		customWallpaperUrl,
 		customWallpaperBusy,
 		customWallpaperError,
-		dialogsBlocked,
 		applyAmbience,
 		applyWallpaper,
 		selectCustomWallpaper,
@@ -18,7 +17,6 @@
 		customWallpaperUrl: string | null;
 		customWallpaperBusy: boolean;
 		customWallpaperError: string | null;
-		dialogsBlocked: boolean;
 		applyAmbience: (id: string) => void;
 		applyWallpaper: (id: string) => void;
 		selectCustomWallpaper: () => void;
@@ -278,22 +276,15 @@
 				type="button"
 				class="wallpaper-swatch wallpaper-upload"
 				onclick={pickCustomWallpaper}
-				disabled={customWallpaperBusy || dialogsBlocked}
+				disabled={customWallpaperBusy}
 				aria-label={customWallpaperUrl
 					? t('settings.wallpaper.change')
 					: t('settings.wallpaper.upload')}
-				title={dialogsBlocked
-					? t('settings.wallpaper.uploadDisabledTitle')
-					: customWallpaperUrl
-						? t('settings.wallpaper.change')
-						: t('settings.wallpaper.upload')}
+				title={customWallpaperUrl ? t('settings.wallpaper.change') : t('settings.wallpaper.upload')}
 			>
 				<Upload size={13} />
 			</button>
 		</div>
-		{#if dialogsBlocked}<p class="mac-notice">
-				{t('settings.wallpaper.autoModeDisabled')}
-			</p>{/if}
 		{#if customWallpaperError}<p class="error-text">{customWallpaperError}</p>{/if}
 	</section>
 </div>
@@ -356,10 +347,5 @@
 	.error-text {
 		color: var(--color-error);
 		font-size: 12px;
-	}
-	.mac-notice {
-		font-size: 12px;
-		color: var(--text-secondary);
-		line-height: 1.6;
 	}
 </style>

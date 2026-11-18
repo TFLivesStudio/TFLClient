@@ -38,19 +38,6 @@ export const SETTINGS = [
 		reason: 'Primary: language belongs to application behavior.'
 	},
 	{
-		id: 'files',
-		page: 'general',
-		label: ['Archivos y diálogos', 'Files & dialogs'],
-		keywords: 'file carpeta dialogos seleccionar archivo importar manual automatico',
-		current: 'settings.native_dialog_mode',
-		default: 'auto',
-		control: 'segment',
-		storage: 'settings.json.native_dialog_mode',
-		profiles: 'All',
-		behavior: 'instant',
-		reason: 'Native integration; Manual enables local imports.'
-	},
-	{
 		id: 'storage',
 		page: 'general',
 		label: ['Almacenamiento temporal', 'Temporary storage'],
@@ -95,7 +82,7 @@ export const SETTINGS = [
 		label: ['Color de acento', 'Accent color'],
 		keywords: 'cambiar color colores accent custom personalizado hex paleta',
 		current: 'visual.customAccent / tfl-accent',
-		default: 'orange',
+		default: 'blue',
 		control: 'palette',
 		storage: 'tfl-visual-refresh-v1.customAccent + tfl-accent',
 		profiles: 'All',
@@ -378,12 +365,12 @@ export const SETTINGS = [
 	{
 		id: 'account-skin',
 		page: 'accounts',
-		label: ['Skins y mascotas', 'Skins & mascots'],
-		keywords: 'skin capa cape mascota nori perfil avatar character',
-		current: 'mascot UUID / skin studio',
-		default: 'deterministic mascot',
+		label: ['Skins y capas', 'Skins & capes'],
+		keywords: 'skin capa cape perfil avatar character',
+		current: 'skin studio',
+		default: 'Steve fallback',
 		control: 'context action',
-		storage: 'tfl-mascots + existing Mojang API',
+		storage: 'existing Mojang API',
 		profiles: 'Profile policy',
 		behavior: 'explicit',
 		reason: 'Open existing studio; do not change authentication.'
@@ -446,7 +433,7 @@ export const SETTINGS = [
 		label: ['Actualizaciones del launcher', 'Launcher updates'],
 		keywords: 'version beta canal actualizaciones update release buscar descargar instalar',
 		current: 'settings.auto_updates / beta_updates; updater state',
-		default: 'auto true / beta false',
+		default: 'auto true / beta true',
 		control: 'status + actions',
 		storage: 'settings.json + updater machine',
 		profiles: 'All',
@@ -455,6 +442,21 @@ export const SETTINGS = [
 	}
 ] as const;
 export type SettingId = (typeof SETTINGS)[number]['id'];
+const advancedSettings = new Set<SettingId>([
+	'storage',
+	'font',
+	'density',
+	'java',
+	'environment',
+	'multi-instance',
+	'scene-atmosphere',
+	'scene-playback',
+	'scene-instance',
+	'updates'
+]);
+export function isSettingVisible(id: SettingId, mode: 'simple' | 'advanced') {
+	return mode === 'advanced' || !advancedSettings.has(id);
+}
 export function setting(id: SettingId) {
 	return SETTINGS.find((s) => s.id === id)!;
 }
@@ -534,8 +536,8 @@ export const PAGES: { id: SettingsPage; label: [string, string]; description: [s
 			id: 'accounts',
 			label: ['Cuentas', 'Accounts'],
 			description: [
-				'Tus identidades, sesiones, skins y mascotas.',
-				'Your identities, sessions, skins and mascots.'
+				'Tus identidades, sesiones, skins y capas.',
+				'Your identities, sessions, skins and capes.'
 			]
 		},
 		{

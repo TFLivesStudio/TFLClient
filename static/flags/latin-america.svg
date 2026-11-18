@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="42" height="28" viewBox="0 0 42 28" role="img" aria-labelledby="title">
+  <title id="title">Latinoamérica: símbolo regional de TFL, sin código de país</title>
+  <rect width="42" height="28" rx="2" fill="#08739c"/>
+  <path d="M0 20h42v8H0z" fill="#169365"/>
+  <path d="M10 7l6 1 2 4 5 2 6 2-2 3-3 1-2 5-3-3-1-5-4-2-2-4-3-1z" fill="#fff"/>
+  <circle cx="32" cy="7" r="3" fill="#f5d65a"/>
+</svg>

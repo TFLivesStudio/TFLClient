@@ -468,8 +468,8 @@ pub async fn pick_content_files(
     app: AppHandle,
     extension: String,
     filter_label: String,
-) -> Vec<String> {
-    local_files::pick_files(&app, &extension, &filter_label)
+) -> Result<Vec<String>, String> {
+    crate::core::file_dialog::pick_files(app, &filter_label, &[&extension], true).await
 }
 
 #[command]

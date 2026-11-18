@@ -19,6 +19,7 @@
 	let message = $state<string | null>(null);
 	let error = $state<string | null>(null);
 	let confirmRestore = $state<WorldBackup | null>(null);
+	let confirmDelete = $state<WorldBackup | null>(null);
 
 	async function load() {
 		try {
@@ -139,7 +140,7 @@
 						type="button"
 						class="icon-btn"
 						disabled={busyId === b.id}
-						onclick={() => handleDelete(b)}
+						onclick={() => (confirmDelete = b)}
 						aria-label={t('worldBackups.delete')}
 						title={t('worldBackups.delete')}
 					>
@@ -159,6 +160,21 @@
 		danger
 		onConfirm={() => confirmRestore && doRestore(confirmRestore)}
 		onCancel={() => (confirmRestore = null)}
+	/>
+{/if}
+
+{#if confirmDelete}
+	<ConfirmDialog
+		title={t('worldBackups.delete')}
+		message={confirmDelete.id}
+		confirmLabel={t('worldBackups.delete')}
+		danger
+		onConfirm={() => {
+			const backup = confirmDelete;
+			confirmDelete = null;
+			if (backup) void handleDelete(backup);
+		}}
+		onCancel={() => (confirmDelete = null)}
 	/>
 {/if}
 

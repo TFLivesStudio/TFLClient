@@ -10,7 +10,7 @@ Este documento separa dos cosas: lo que **ya está implementado en el código** 
 | El release falla si el tag no coincide con esas cuatro versiones                  | `build.yml`, paso "Verificar versión"                |
 | Compuertas de calidad antes de construir (check, lint, fmt, clippy, tests, audit) | `.github/workflows/ci.yml`                           |
 | El release exige que las compuertas pasen (`needs: quality`)                      | `build.yml`                                          |
-| Permisos mínimos (`contents: read`) a nivel workflow y por job                    | `build.yml`, `ci.yml`, `mp-guard.yml`                |
+| Permisos mínimos (`contents: read`) a nivel workflow y por job                    | `build.yml`, `ci.yml`                                |
 | Todas las acciones de terceros fijadas a un commit SHA                            | todos los workflows y `.github/actions/`             |
 | `persist-credentials: false` en cada checkout                                     | todos los workflows                                  |
 | `concurrency`: dos builds del mismo tag no corren en paralelo                     | `build.yml`                                          |

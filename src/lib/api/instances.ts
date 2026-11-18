@@ -1,6 +1,19 @@
 // Instancias de cliente: CRUD, lanzamiento, iconos, integridad y accesos directos
 import { invoke } from './invoke';
 import type { InstanceData, Loader, RunningInstanceInfo, CrashDiagnosis } from '$lib/types/types';
+import type { ConsoleMetrics } from '$lib/console/model';
+
+export async function getConsoleMetrics(instanceName: string): Promise<ConsoleMetrics> {
+	const result = await invoke<ConsoleMetrics>('get_console_metrics', { instanceName });
+	if (
+		!result ||
+		typeof result !== 'object' ||
+		!('process' in result) ||
+		!Number.isFinite(result.sampled_at_ms)
+	)
+		throw new Error('MONITOR_RESPONSE_INVALID');
+	return result;
+}
 
 export const createInstance = (name: string, mcVersion: string, loader: Loader) =>
 	invoke<InstanceData>('create_instance', { name, mcVersion, loader });

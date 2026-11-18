@@ -3,7 +3,7 @@
 //! hacían antes de actualizar mods (`world_backup::backup_world_dir`) caen en la
 //! misma carpeta, así que aparecen acá también.
 
-use crate::services::{instance_manager, launcher, world_backup};
+use crate::services::{content, instance_manager, world_backup, worlds};
 use serde::Serialize;
 use std::path::Path;
 use tauri::command;
@@ -16,8 +16,17 @@ pub struct WorldBackup {
     pub size_bytes: u64,
 }
 
-fn backups_dir(instance: &instance_manager::InstanceData) -> std::path::PathBuf {
-    instance.dir().join(".tfl_backups")
+fn backups_dir(instance: &instance_manager::InstanceData) -> Result<std::path::PathBuf, String> {
+    let root = instance.dir();
+    worlds::no_link(&root)?;
+    let dir = root.join(".tfl_backups");
+    if dir
+        .try_exists()
+        .map_err(|e| format!("No se pudo consultar la carpeta de respaldos: {e}"))?
+    {
+        worlds::no_link(&dir)?;
+    }
+    Ok(dir)
 }
 
 /// Solo ids con la forma exacta que genera `backup_world_dir` — el id viene
@@ -36,7 +45,9 @@ fn parse_backup_id(id: &str) -> Option<i64> {
 
 async fn describe(dir: &Path, id: &str) -> Option<WorldBackup> {
     let created_at = parse_backup_id(id)?;
-    let meta = tokio::fs::metadata(dir.join(id)).await.ok()?;
+    let path = dir.join(id);
+    worlds::no_link(&path).ok()?;
+    let meta = tokio::fs::metadata(path).await.ok()?;
     Some(WorldBackup {
         id: id.to_string(),
         created_at,
@@ -47,9 +58,11 @@ async fn describe(dir: &Path, id: &str) -> Option<WorldBackup> {
 #[command]
 pub async fn get_world_backups(instance_name: String) -> Result<Vec<WorldBackup>, String> {
     let instance = instance_manager::get_instance(&instance_name).await?;
-    let dir = backups_dir(&instance);
-    let Ok(mut entries) = tokio::fs::read_dir(&dir).await else {
-        return Ok(Vec::new());
+    let dir = backups_dir(&instance)?;
+    let mut entries = match tokio::fs::read_dir(&dir).await {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => return Err(format!("No se pudo leer la carpeta de respaldos: {error}")),
     };
     let mut out = Vec::new();
     while let Ok(Some(entry)) = entries.next_entry().await {
@@ -84,6 +97,8 @@ async fn create_backup_impl(
     instance_name: String,
     preserve: bool,
 ) -> Result<Option<WorldBackup>, String> {
+    let _mutation = content::mutation_lock(&instance_name).await;
+    worlds::ensure_stopped(&instance_name)?;
     let instance = instance_manager::get_instance(&instance_name).await?;
     let path = if preserve {
         crate::services::world_backup::backup_world_dir_preserving(&instance.dir()).await?
@@ -98,14 +113,16 @@ async fn create_backup_impl(
         .and_then(|n| n.to_str())
         .map(String::from)
         .ok_or("No se pudo leer el nombre de la copia")?;
-    Ok(describe(&backups_dir(&instance), &id).await)
+    Ok(describe(&backups_dir(&instance)?, &id).await)
 }
 
 #[command]
 pub async fn delete_world_backup(instance_name: String, id: String) -> Result<(), String> {
     parse_backup_id(&id).ok_or("Copia inválida")?;
     let instance = instance_manager::get_instance(&instance_name).await?;
-    tokio::fs::remove_file(backups_dir(&instance).join(&id))
+    let path = backups_dir(&instance)?.join(&id);
+    worlds::no_link(&path)?;
+    tokio::fs::remove_file(path)
         .await
         .map_err(|e| e.to_string())
 }
@@ -117,20 +134,17 @@ pub async fn delete_world_backup(instance_name: String, id: String) -> Result<()
 #[command]
 pub async fn restore_world_backup(instance_name: String, id: String) -> Result<(), String> {
     parse_backup_id(&id).ok_or("Copia inválida")?;
-    if launcher::running_instances()
-        .iter()
-        .any(|(name, _)| name == &instance_name)
-    {
-        return Err("Cerrá el juego antes de restaurar una copia de los mundos".into());
-    }
+    let _mutation = content::mutation_lock(&instance_name).await;
+    worlds::ensure_stopped(&instance_name)?;
     let instance = instance_manager::get_instance(&instance_name).await?;
-    let zip_path = backups_dir(&instance).join(&id);
+    let zip_path = backups_dir(&instance)?.join(&id);
+    worlds::no_link(&zip_path)?;
     if !zip_path.is_file() {
         return Err("Esa copia ya no existe".into());
     }
 
     // Preserve the selected archive before creating/pruning the automatic safety copy.
-    let selected = backups_dir(&instance).join(format!("restore-{}.zip", uuid::Uuid::new_v4()));
+    let selected = backups_dir(&instance)?.join(format!("restore-{}.zip", uuid::Uuid::new_v4()));
     tokio::fs::copy(&zip_path, &selected)
         .await
         .map_err(|_| "Cannot stage selected backup")?;
@@ -139,7 +153,7 @@ pub async fn restore_world_backup(instance_name: String, id: String) -> Result<(
         let _ = tokio::fs::remove_file(&selected).await;
         return Err(e);
     }
-    let saves_dir = instance.dir().join("saves");
+    let saves_dir = worlds::worlds_root(&instance.dir(), false)?;
     let source = selected.clone();
     let result = tokio::task::spawn_blocking(move || replace_saves_from_zip(&source, &saves_dir))
         .await
@@ -148,76 +162,15 @@ pub async fn restore_world_backup(instance_name: String, id: String) -> Result<(
     result
 }
 
-/// Vacía `saves_dir` y extrae el zip adentro. Descarta cualquier entrada cuya
-/// ruta se escape de la carpeta (`..`, rutas absolutas): el zip es un archivo
-/// del disco del usuario, pero no por eso se confía en sus rutas.
+/// Fully validate and stage before replacing the saves directory.
 fn replace_saves_from_zip(zip_path: &Path, saves_dir: &Path) -> Result<(), String> {
-    let file = std::fs::File::open(zip_path).map_err(|e| e.to_string())?;
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
-    if archive.len() > 50000 {
-        return Err("Backup contains too many entries".into());
-    }
-    let parent = saves_dir.parent().ok_or("Invalid saves directory")?;
-    let staging = parent.join(format!(".tfl-restore-{}", uuid::Uuid::new_v4()));
-    std::fs::create_dir_all(&staging).map_err(|e| e.to_string())?;
-    // Fully decompress and verify the archive before replacing any live worlds.
-    let extraction = (|| -> Result<(), String> {
-        let mut extracted = 0u64;
-        for index in 0..archive.len() {
-            let mut entry = archive.by_index(index).map_err(|e| e.to_string())?;
-            let Some(rel) = entry.enclosed_name() else {
-                continue;
-            };
-            if entry.size() > 32 * 1024 * 1024 * 1024u64 - extracted {
-                return Err("Backup exceeds 32 GiB restore limit".into());
-            }
-            let out_path = staging.join(rel);
-            if entry.is_dir() {
-                std::fs::create_dir_all(&out_path).map_err(|e| e.to_string())?;
-                continue;
-            }
-            if let Some(parent) = out_path.parent() {
-                std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-            }
-            let mut out = std::fs::File::create(out_path).map_err(|e| e.to_string())?;
-            let remaining = 32 * 1024 * 1024 * 1024u64 - extracted;
-            let count = std::io::copy(
-                &mut std::io::Read::take(&mut entry, remaining + 1),
-                &mut out,
-            )
-            .map_err(|e| e.to_string())?;
-            if count > remaining {
-                return Err("Backup exceeds 32 GiB restore limit".into());
-            }
-            extracted += count;
-        }
-        Ok(())
-    })();
-    if let Err(e) = extraction {
-        let _ = std::fs::remove_dir_all(&staging);
-        return Err(e);
-    }
-    let old = parent.join(format!(".tfl-replaced-{}", uuid::Uuid::new_v4()));
-    let had_old = saves_dir.exists();
-    if had_old {
-        if let Err(e) = std::fs::rename(saves_dir, &old) {
-            let _ = std::fs::remove_dir_all(&staging);
-            return Err(e.to_string());
-        }
-    }
-    if let Err(e) = std::fs::rename(&staging, saves_dir) {
-        if had_old {
-            let _ = std::fs::rename(&old, saves_dir);
-        }
-        let _ = std::fs::remove_dir_all(&staging);
-        return Err(e.to_string());
-    }
-    if had_old {
-        let _ = std::fs::remove_dir_all(old);
-    }
-    Ok(())
+    let _sessions = if saves_dir.exists() {
+        worlds::lock_world_sessions(saves_dir)?
+    } else {
+        Vec::new()
+    };
+    worlds::restore_directory(zip_path, saves_dir)
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -281,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn restore_ignores_entries_that_escape_the_folder() {
+    fn restore_rejects_unsafe_archive_without_restoring_partial_worlds() {
         let base = temp_dir("zipslip");
         let zip_path = base.join("evil.zip");
         {
@@ -295,8 +248,8 @@ mod tests {
             zip.finish().unwrap();
         }
         let saves = base.join("saves");
-        replace_saves_from_zip(&zip_path, &saves).unwrap();
-        assert!(saves.join("World1").join("level.dat").exists());
+        assert!(replace_saves_from_zip(&zip_path, &saves).is_err());
+        assert!(!saves.exists());
         assert!(!base.join("escaped.txt").exists());
         let _ = std::fs::remove_dir_all(base);
     }

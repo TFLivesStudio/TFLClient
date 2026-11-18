@@ -1,3 +1,4 @@
+import type { AddonLanguage } from '$lib/i18n/language';
 export const THEME_TOKENS = [
 	'--bg-main',
 	'--bg-sidebar',
@@ -39,6 +40,7 @@ export interface AddonManifest {
 	permissions: string[];
 	themes: AddonTheme[];
 	scenes: AddonSceneDefinition[];
+	languages?: AddonLanguage[];
 }
 export interface InstalledAddon {
 	manifest: AddonManifest;

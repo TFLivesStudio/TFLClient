@@ -277,6 +277,7 @@ pub async fn launch(
     server_address: Option<String>,
 ) -> Result<(), String> {
     let account_uuid = SettingsManager::read().get_user().uuid;
+    let mutation_guard = crate::services::content::mutation_lock(&instance_name).await;
     {
         let mut guard = RUNNING.lock().unwrap();
         if guard.contains_key(&instance_name) {
@@ -294,41 +295,12 @@ pub async fn launch(
         );
     }
 
+    drop(mutation_guard);
     let result = launch_inner(app, instance_name.clone(), server_address).await;
     if result.is_err() {
         RUNNING.lock().unwrap().remove(&instance_name);
     }
     result
-}
-
-/// Copia el jar de TFL MP Guard a `instance_dir/mods` si existe uno para
-/// esta versión de Minecraft — enforcement real (no solo el aviso de
-/// texto) para cuentas cracked en instancias con loader. Falla soft: si
-/// no hay jar para esta combinación (versión no soportada todavía), no
-/// bloquea el lanzamiento, solo loguea — la restricción JVM de siempre
-/// (auth hosts falsos) sigue aplicando igual.
-async fn inject_mp_guard(app: &tauri::AppHandle, mc_version: &str, instance_dir: &std::path::Path) {
-    let Ok(base) = crate::core::bundled_resource_dir(app, "mp-guard") else {
-        tracing::debug!("mp-guard: recurso empaquetado no encontrado, se omite");
-        return;
-    };
-    let jar = base.join(mc_version).join("tfl-mp-guard.jar");
-    if !jar.exists() {
-        tracing::info!(
-            "mp-guard: sin jar para Minecraft {mc_version}, se omite (queda solo el bloqueo JVM)"
-        );
-        return;
-    }
-    let mods_dir = instance_dir.join("mods");
-    if let Err(e) = tokio::fs::create_dir_all(&mods_dir).await {
-        error!("mp-guard: no se pudo crear la carpeta mods: {e}");
-        return;
-    }
-    if let Err(e) = tokio::fs::copy(&jar, mods_dir.join("tfl-mp-guard.jar")).await {
-        error!("mp-guard: no se pudo copiar el jar: {e}");
-    } else {
-        info!("mp-guard: jar instalado para Minecraft {mc_version}");
-    }
 }
 
 async fn launch_inner(
@@ -339,6 +311,12 @@ async fn launch_inner(
     info!("Lanzando instancia \"{instance_name}\"");
     let _perf_total = crate::core::perf::span("launch.total");
     let data = instance_manager::get_instance(&instance_name).await?;
+    if data.server_type.is_some() {
+        return Err("Inicia esta instancia desde el panel de servidor".into());
+    }
+    if let Some(address) = server_address.as_deref() {
+        crate::commands::favorite_servers::parse_address(address)?;
+    }
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
 
     // Java se resuelve una vez acá: lo necesitan tanto el lanzamiento final
@@ -388,12 +366,6 @@ async fn launch_inner(
     let user = crate::services::mojang_auth::active_user_fresh().await?;
     drop(perf_auth);
 
-    if server_address.is_some() && !crate::core::allows_multiplayer(user.user_type) {
-        return Err(
-            "Las cuentas offline solo pueden jugar en singleplayer — conectate a un servidor con una cuenta Microsoft.".into(),
-        );
-    }
-
     // Si la instancia no tiene override explícito de RAM, antes se caía
     // directo al default global fijo (1024/2048 MB) sin importar cuántos
     // mods tenga — un modpack grande (80+ mods, frameworks pesados como
@@ -435,10 +407,7 @@ async fn launch_inner(
             } else {
                 "mojang"
             }),
-        // El flag lo lee TFL MP Guard (mod inyectado abajo) para saber si
-        // tiene que bloquear multijugador — sin este flag el mod no hace
-        // nada, ni siquiera si el jar está instalado.
-        AccountType::Cracked => builder.extra_jvm_args(vec!["-Dtflclient.cracked=true".into()]),
+        AccountType::Cracked => builder,
     };
 
     if let Some(address) = server_address {
@@ -446,14 +415,12 @@ async fn launch_inner(
     }
 
     let config = builder.build();
-    let instance_dir = data.dir();
+    let instance_dir = crate::services::worlds::resolve_game_dir(&data.dir(), false)?;
     tokio::fs::create_dir_all(&instance_dir)
         .await
         .map_err(|e| e.to_string())?;
 
-    if user.user_type == AccountType::Cracked && data.loader != LoaderKind::Vanilla {
-        inject_mp_guard(&app, &data.mc_version, &instance_dir).await;
-    }
+    crate::services::retired_resources::quarantine_retired_mod(&instance_dir).await?;
 
     let handle = LAUNCHWERK.prepare(manifest, config, instance_dir);
     let perf_spawn = crate::core::perf::span("launch.spawn");

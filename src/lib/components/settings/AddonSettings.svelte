@@ -5,6 +5,7 @@
 	import { addonState, refreshAddons, changeAddons } from '$lib/addons/state.svelte';
 	import type { AddonInspection } from '$lib/addons/model';
 	import { tr } from '$lib/i18n/experience';
+	import { experience } from '$lib/state/experience.svelte';
 	import SettingGroup from './SettingGroup.svelte';
 	let path = $state('');
 	let inspection = $state<AddonInspection | null>(null);
@@ -86,16 +87,16 @@
 				<h3>{tr('Personalización local', 'Local customization')}</h3>
 				<p>
 					{tr(
-						'Instala temas y escenas declarativos desde un archivo .tfl. Funcionan sin conexión y no son plugins de servidores Minecraft.',
-						'Install declarative themes and scenes from a .tfl file. They work offline and are separate from Minecraft server plugins.'
+						'Instala temas, escenas e idiomas desde un archivo .tfl. Funcionan sin conexión y no son plugins de servidores Minecraft.',
+						'Install themes, scenes and languages from a .tfl file. They work offline and are separate from Minecraft server plugins.'
 					)}
 				</p>
 			</div>
 		</div>
 		<p class="trust">
 			{tr(
-				'Esta beta no ejecuta código de addons. No concede acceso a cuentas, archivos arbitrarios, red ni procesos. El nombre del autor es declarado; la extensión y el hash no verifican su identidad.',
-				'This beta does not execute addon code. It grants no access to accounts, arbitrary files, network or processes. Author names are self-declared; the extension and hash do not verify identity.'
+				'Los addons no ejecutan código ni acceden a tus cuentas, archivos personales, red o procesos. Sus autores son declarados, no verificados.',
+				'Addons do not execute code or access your accounts, personal files, network or processes. Authors are self-declared, not verified.'
 			)}
 		</p>
 		<div class="import-row">
@@ -105,24 +106,24 @@
 				><RefreshCw size={15} />{tr('Actualizar lista', 'Refresh list')}</button
 			>
 		</div>
-		<label class="path-label"
-			>{tr(
-				'Ruta local (también permite selección manual)',
-				'Local path (also supports manual selection)'
-			)}<input
-				value={path}
-				oninput={(e) => {
-					path = e.currentTarget.value;
-					inspection = null;
-					consent = false;
-				}}
-				placeholder="C:\\…\\addon.tfl"
-				disabled={busy}
-			/></label
-		>
-		<button type="button" class="vr-control" disabled={busy || !path.trim()} onclick={inspect}
-			>{tr('Inspeccionar paquete', 'Inspect package')}</button
-		>
+		{#if experience.mode === 'advanced'}<label class="path-label"
+				>{tr(
+					'Ruta local (también permite selección manual)',
+					'Local path (also supports manual selection)'
+				)}<input
+					value={path}
+					oninput={(e) => {
+						path = e.currentTarget.value;
+						inspection = null;
+						consent = false;
+					}}
+					placeholder="C:\\…\\addon.tfl"
+					disabled={busy}
+				/></label
+			>
+			<button type="button" class="vr-control" disabled={busy || !path.trim()} onclick={inspect}
+				>{tr('Inspeccionar paquete', 'Inspect package')}</button
+			>{/if}
 		{#if inspection}
 			<section class="inspection" aria-label={tr('Inspección del addon', 'Addon inspection')}>
 				<h3>{inspection.manifest.name} <small>{inspection.manifest.version}</small></h3>
@@ -130,15 +131,16 @@
 				<dl>
 					<dt>{tr('Autor declarado', 'Declared author')}</dt>
 					<dd>{inspection.manifest.author}</dd>
-					<dt>ID</dt>
-					<dd>{inspection.manifest.id}</dd>
-					<dt>API / launcher</dt>
-					<dd>{inspection.manifest.apiVersion} / {inspection.manifest.launcherVersion}</dd>
 					<dt>{tr('Contribuciones', 'Contributions')}</dt>
 					<dd>
 						{inspection.manifest.themes
 							.map((t) => t.name)
 							.concat(inspection.manifest.scenes.map((s) => s.name))
+							.concat(
+								(inspection.manifest.languages ?? []).map(
+									(language) => `${language.name} (${language.locale})`
+								)
+							)
 							.join(' · ')}
 					</dd>
 					<dt>{tr('Permisos', 'Permissions')}</dt>
@@ -148,9 +150,28 @@
 							'None. Declarative resources and tokens only.'
 						)}
 					</dd>
-					<dt>SHA-256</dt>
-					<dd class="digest">{inspection.digest}</dd>
 				</dl>
+				{#if experience.mode === 'advanced'}<details>
+						<summary>{tr('Detalles del paquete', 'Package details')}</summary>
+						<dl>
+							<dt>ID</dt>
+							<dd>{inspection.manifest.id}</dd>
+							<dt>{tr('Esquema / API / launcher', 'Schema / API / launcher')}</dt>
+							<dd>
+								{inspection.manifest.schemaVersion} / {inspection.manifest.apiVersion} / {inspection
+									.manifest.launcherVersion}
+							</dd>
+							<dt>SHA-256</dt>
+							<dd class="digest">{inspection.digest}</dd>
+							<dt>{tr('Firma', 'Signature')}</dt>
+							<dd>
+								{tr(
+									'Sin firma verificable; el autor es declarado.',
+									'No verifiable signature; the author is self-declared.'
+								)}
+							</dd>
+						</dl>
+					</details>{/if}
 				{#if inspection.installedVersion}<p>
 						{tr('Actualización local desde', 'Local update from')}
 						{inspection.installedVersion}. {tr(
@@ -203,8 +224,8 @@
 		>
 		<p>
 			{tr(
-				'Suspende todas las contribuciones sin desinstalar los paquetes. La apariencia y las escenas activas vuelven a la opción predeterminada.',
-				'Suspends all contributions without uninstalling packages. Active addon themes and scenes return to their defaults.'
+				'Suspende las contribuciones sin desinstalar los paquetes. La apariencia, las escenas y el idioma activo usan una opción de respaldo.',
+				'Suspends contributions without uninstalling packages. Active appearance, scenes and language use fallback options.'
 			)}
 		</p>
 	</section>
@@ -229,7 +250,12 @@
 				<div class="addon-heading">
 					<div>
 						<h3>{addon.manifest.name} <small>{addon.manifest.version}</small></h3>
-						<p>{addon.manifest.author} · {addon.manifest.id}</p>
+						<p>
+							{tr('Autor declarado:', 'Self-declared author:')}
+							{addon.manifest.author}{experience.mode === 'advanced'
+								? ` · ${addon.manifest.id}`
+								: ''}
+						</p>
 					</div>
 					<label class="enabled"
 						><input
@@ -249,6 +275,14 @@
 					{addon.manifest.themes.length}
 					{tr('temas', 'themes')} · {addon.manifest.scenes.length}
 					{tr('escenas', 'scenes')} · {tr('sin código ejecutable', 'no executable code')}
+					{#if addon.manifest.languages?.length}
+						· {addon.manifest.languages.length} {tr('idiomas', 'languages')}{/if}
+				</p>
+				<p>
+					{tr(
+						'Permisos: ninguno; solo contribuciones declarativas.',
+						'Permissions: none; declarative contributions only.'
+					)}
 				</p>
 				<div class="import-row">
 					{#if addon.rollbackAvailable}<button
@@ -307,8 +341,8 @@
 			<h3>{tr('Desinstalar', 'Uninstall')} {removeTarget.manifest.name}?</h3>
 			<p>
 				{tr(
-					'Se revocan sus contribuciones y se desinstala el addon. Tus instancias y mundos se conservan; la apariencia activa vuelve al valor predeterminado. Pueden conservarse archivos temporales de recuperación hasta la siguiente limpieza.',
-					'Uninstalls the addon and revokes its contributions. Your instances and worlds are preserved; active appearance returns to defaults. Temporary recovery files may remain until the next cleanup.'
+					'Se desinstala el addon. Tus instancias y mundos se conservan; su apariencia e idioma activos usan una opción de respaldo. Pueden conservarse archivos temporales de recuperación hasta la siguiente limpieza.',
+					'Uninstalls the addon. Your instances and worlds are preserved; its active appearance and language use fallback options. Temporary recovery files may remain until the next cleanup.'
 				)}
 			</p>
 			<div class="import-row">

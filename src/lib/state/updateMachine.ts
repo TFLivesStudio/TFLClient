@@ -23,7 +23,7 @@ export interface UpdateSnapshot {
 	totalBytes: number | null;
 	/** Paso que falló + mensaje; solo con phase === 'error'. */
 	error: { stage: UpdateStage; message: string } | null;
-	/** El último chequeo terminó sin encontrar nada (para "ya tenés la última"). */
+	/** El último chequeo terminó sin encontrar nada (para "ya tienes la última"). */
 	upToDate: boolean;
 	/** El chequeo lo pidió el usuario (Ajustes), no el arranque automático. */
 	userInitiated: boolean;

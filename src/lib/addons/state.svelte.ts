@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import { applyVisualAttributes, VISUAL_APPLIED_EVENT } from '$lib/visual/preferences.svelte';
 import { scenes, persist } from '$lib/scenes/preferences.svelte';
 import { DEFAULT_SCENE } from '$lib/scenes/model';
+import { startLanguageLifecycle, syncAddonLanguages } from '$lib/i18n/index.svelte';
 import {
 	contributionId,
 	enabledAddons,
@@ -143,6 +144,7 @@ export function selectAddonTheme(id: string) {
 }
 export function acceptCatalog(catalog: AddonCatalog) {
 	addonState.catalog = catalog;
+	syncAddonLanguages(catalog);
 	addonState.loaded = true;
 	addonState.error = '';
 	if (addonState.theme && !findTheme(catalog, addonState.theme)) selectAddonTheme('');
@@ -210,6 +212,7 @@ export function resolveAddonScene(id: string) {
 }
 export function startAddons() {
 	lifecycle++;
+	const stopLanguage = startLanguageLifecycle();
 	let stopped = false;
 	let unlisten: (() => void) | undefined;
 	try {
@@ -268,6 +271,7 @@ export function startAddons() {
 	});
 	return () => {
 		stopped = true;
+		stopLanguage();
 		lifecycle++;
 		unlisten?.();
 		window.removeEventListener('storage', storage);

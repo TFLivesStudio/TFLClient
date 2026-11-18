@@ -1,0 +1,51 @@
+{
+	"schemaVersion": 1,
+	"id": "tfl.language-pt-br-example",
+	"name": "Português (Brasil) — exemplo parcial",
+	"author": "TFL Client contributors (autor declarado)",
+	"version": "1.0.0",
+	"description": "Paquete de ejemplo funcional con traducción parcial de controles, navegación y plurales. Las claves no traducidas usan English (United States). No representa una traducción completa del launcher.",
+	"apiVersion": "^1.0.0",
+	"launcherVersion": ">=0.15.4-beta.3",
+	"permissions": [],
+	"themes": [],
+	"scenes": [],
+	"languages": [
+		{
+			"schemaVersion": 1,
+			"locale": "pt-BR",
+			"name": "Português (Brasil)",
+			"flag": "assets/br.png",
+			"direction": "ltr",
+			"fallback": "en-US",
+			"messages": {
+				"common.back": "Voltar",
+				"common.cancel": "Cancelar",
+				"common.continue": "Continuar",
+				"common.copied": "Copiado",
+				"common.copy": "Copiar",
+				"common.install": "Instalar",
+				"home.play": "Jogar",
+				"home.recentActivity": "Atividade recente",
+				"home.systemStatus": "Estado do sistema",
+				"refresh.home": "Início",
+				"refresh.library": "Biblioteca",
+				"refresh.discover": "Explorar",
+				"refresh.backups": "Mundos e backups",
+				"refresh.console": "Console",
+				"refresh.play": "Jogar",
+				"refresh.cancel": "Cancelar",
+				"refresh.confirm": "Confirmar",
+				"workbench.general": "Geral",
+				"workbench.appearance": "Aparência",
+				"workbench.accounts": "Contas",
+				"workbench.console": "Console",
+				"workbench.copy": "Copiar registro visível",
+				"language.available": {
+					"one": "{{count}} idioma disponível",
+					"other": "{{count}} idiomas disponíveis"
+				}
+			}
+		}
+	]
+}

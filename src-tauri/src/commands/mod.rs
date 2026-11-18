@@ -6,6 +6,7 @@ pub mod crash_diagnosis;
 pub mod favorite_servers;
 pub mod import_launchers;
 pub mod import_mrpack;
+pub mod import_sources;
 pub mod instance;
 pub mod loaders;
 pub mod modpacks;
@@ -23,3 +24,4 @@ pub mod world_backups;
 pub mod scene_media;
 
 pub mod mcp;
+pub mod worlds;

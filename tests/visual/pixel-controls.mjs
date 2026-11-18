@@ -22,6 +22,7 @@ async function open(options) {
 	page.setDefaultTimeout(12000);
 	page.on('pageerror', (error) => errors.push(error.message));
 	await page.addInitScript(installFixture, {
+		mode: 'advanced',
 		premium: true,
 		appVersion,
 		quality: options.quality || 'Balanced',

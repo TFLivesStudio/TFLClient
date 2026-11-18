@@ -51,11 +51,24 @@ export async function startApp() {
 	initDragDropListener();
 	initGameSessionListener();
 	listen<{ type: string; data: { status?: string } }>('app-event', async (event) => {
-		if (event.payload.type !== 'InstanceStatusChanged' || event.payload.data.status !== 'stopped')
+		if (
+			event.payload.type !== 'InstanceStatusChanged' ||
+			!['running', 'stopped'].includes(event.payload.data.status ?? '')
+		)
 			return;
 		await refreshAfterInstanceStopped();
 	});
 	initServerSessionListener();
+	void listen('settings-changed', async () => {
+		try {
+			const settings = await getSettings();
+			document.documentElement.dataset.theme = settings.theme;
+			document.documentElement.dataset.mode = settings.ui_mode ?? 'simple';
+			applyQualityVisuals(settings);
+		} catch {
+			/* A closing window can reload its committed state next time. */
+		}
+	});
 	initNetworkListener();
 	void listen('mcp-library-changed', () => void refreshInstances());
 	void listen('accounts-changed', async () => {
@@ -64,6 +77,7 @@ export async function startApp() {
 			const [user, settings] = await Promise.all([getCurrentUser(), getSettings()]);
 			appState.currentUser = user;
 			appState.settings = settings;
+			document.documentElement.dataset.mode = settings.ui_mode ?? 'simple';
 			if (!wasOnboarded && settings.onboarded) ui.justOnboarded = true;
 		} catch {
 			/* The main window may be closing. Reopening reloads public account state. */

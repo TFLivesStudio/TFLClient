@@ -96,6 +96,11 @@ pub async fn duplicate_instance(name: String) -> Result<InstanceData, String> {
 }
 
 #[command]
+pub async fn backup_instance(name: String) -> Result<String, String> {
+    crate::services::instance_archive::create(name, false).await
+}
+
+#[command]
 pub async fn update_instance_memory(
     name: String,
     min_memory: Option<u32>,
@@ -176,6 +181,25 @@ pub fn get_running_instances() -> Vec<RunningInstanceInfo> {
 
 // One persistent sampler per PID. Coalesce simultaneous consumers so two windows
 // cannot reset each other's CPU/disk baselines. First sample has no CPU baseline.
+#[path = "console_metrics.rs"]
+mod console_metrics;
+pub use console_metrics::ConsoleMetrics;
+
+#[command]
+pub async fn get_console_metrics(instance_name: String) -> Result<ConsoleMetrics, String> {
+    let instance = instance_manager::get_instance(&instance_name)
+        .await
+        .map_err(|_| "La instancia ya no está disponible")?;
+    let pid = if instance.server_type.is_some() {
+        crate::services::server_process::running_server_pid(&instance_name)
+    } else {
+        launcher::running_instance_pid(&instance_name)
+    };
+    tokio::task::spawn_blocking(move || console_metrics::collect(pid, &instance.dir()))
+        .await
+        .map_err(|_| "No se pudieron consultar las métricas".to_string())?
+}
+
 struct ProcessSampler {
     system: sysinfo::System,
     at: std::time::Instant,
@@ -198,12 +222,20 @@ pub struct ProcessStats {
     pub sampled_at_ms: u64,
     pub sample_interval_ms: u64,
     pub ready: bool,
+    pub process_count: usize,
+    pub scope: &'static str,
+    pub disk_read_bytes_delta: u64,
+    pub disk_write_bytes_delta: u64,
+    pub disk_read_bytes_total: u64,
+    pub disk_write_bytes_total: u64,
 }
 
 fn process_stats(pid: u32) -> Option<ProcessStats> {
     let now = std::time::Instant::now();
     let mut monitors = PROCESS_MONITOR.lock().ok()?;
-    monitors.retain(|_, m| now.duration_since(m.at).as_secs() < 180);
+    // Returning to a console starts a fresh baseline instead of presenting a
+    // minutes-long suspended average as current two-second activity.
+    monitors.retain(|_, m| now.duration_since(m.at).as_secs() < 10);
     if let Some(m) = monitors.get(&pid) {
         if now.duration_since(m.at).as_millis() < 500 {
             return Some(m.sample.clone());
@@ -215,27 +247,49 @@ fn process_stats(pid: u32) -> Option<ProcessStats> {
         .map(|m| now.duration_since(m.at).as_millis() as u64);
     let mut sys = system.take().map(|m| m.system).unwrap_or_default();
     let sys_pid = sysinfo::Pid::from_u32(pid);
-    if !sys.refresh_process(sys_pid) {
+    sys.refresh_processes_specifics(
+        sysinfo::ProcessRefreshKind::new()
+            .with_cpu()
+            .with_memory()
+            .with_disk_usage(),
+    );
+    if sys.process(sys_pid).is_none() {
         return None;
     }
-    let process = sys.process(sys_pid)?;
+    let tree = process_tree(&sys, sys_pid);
     let cores = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(1);
-    let raw = core_cpu_percent(process.cpu_usage());
-    let disk = process.disk_usage();
+    let mut raw = 0.0;
+    let (mut memory, mut read, mut written, mut read_total, mut written_total) =
+        (0u64, 0u64, 0u64, 0u64, 0u64);
+    for process in tree.iter().filter_map(|pid| sys.process(*pid)) {
+        raw += core_cpu_percent(process.cpu_usage());
+        memory = memory.saturating_add(process.memory());
+        let disk = process.disk_usage();
+        read = read.saturating_add(disk.read_bytes);
+        written = written.saturating_add(disk.written_bytes);
+        read_total = read_total.saturating_add(disk.total_read_bytes);
+        written_total = written_total.saturating_add(disk.total_written_bytes);
+    }
     let sample = ProcessStats {
         cpu_percent: normalize_cpu_percent(raw, cores as f32),
         cpu_core_percent: raw,
         logical_cores: cores,
-        memory_mb: process.memory() / 1024 / 1024,
-        disk_bytes_delta: disk.read_bytes.saturating_add(disk.written_bytes),
+        memory_mb: memory / 1024 / 1024,
+        disk_bytes_delta: read.saturating_add(written),
         sampled_at_ms: std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .ok()?
             .as_millis() as u64,
         sample_interval_ms: interval.unwrap_or(0),
         ready: interval.is_some(),
+        process_count: tree.len(),
+        scope: "process_tree",
+        disk_read_bytes_delta: read,
+        disk_write_bytes_delta: written,
+        disk_read_bytes_total: read_total,
+        disk_write_bytes_total: written_total,
     };
     monitors.insert(
         pid,
@@ -246,6 +300,28 @@ fn process_stats(pid: u32) -> Option<ProcessStats> {
         },
     );
     Some(sample)
+}
+
+fn process_tree(
+    system: &sysinfo::System,
+    root: sysinfo::Pid,
+) -> std::collections::HashSet<sysinfo::Pid> {
+    let mut selected = std::collections::HashSet::from([root]);
+    loop {
+        let children: Vec<_> = system
+            .processes()
+            .iter()
+            .filter(|(pid, p)| {
+                !selected.contains(pid)
+                    && p.parent().is_some_and(|parent| selected.contains(&parent))
+            })
+            .map(|(pid, _)| *pid)
+            .collect();
+        if children.is_empty() {
+            return selected;
+        }
+        selected.extend(children);
+    }
 }
 
 #[command]
@@ -373,13 +449,13 @@ pub fn open_external_url(app: AppHandle, url: String) -> Result<(), String> {
 /// documentación de tauri-plugin-dialog — el diálogo necesita ese mismo
 /// hilo para mostrarse, así que queda esperándose a sí mismo en macOS).
 #[command]
-pub async fn pick_image_file(app: AppHandle) -> Option<String> {
-    app.dialog()
-        .file()
-        .add_filter("Imagen", &ICON_EXTENSIONS)
-        .blocking_pick_file()
-        .and_then(|f| f.into_path().ok())
-        .map(|p| p.to_string_lossy().to_string())
+pub async fn pick_image_file(app: AppHandle) -> Result<Option<String>, String> {
+    Ok(
+        crate::core::file_dialog::pick_files(app, "Imagen", &ICON_EXTENSIONS, false)
+            .await?
+            .into_iter()
+            .next(),
+    )
 }
 
 #[command]
@@ -390,7 +466,7 @@ pub async fn set_instance_icon(name: String, source_path: String) -> Result<Stri
         .and_then(|e| e.to_str())
         .map(|e| e.to_lowercase())
         .filter(|e| ICON_EXTENSIONS.contains(&e.as_str()))
-        .ok_or("Formato de imagen no soportado (usá PNG, JPG o WEBP)")?;
+        .ok_or("Formato de imagen no soportado (usa PNG, JPG o WEBP)")?;
 
     let instance = instance_manager::get_instance(&name).await?;
     let dir = instance.dir();

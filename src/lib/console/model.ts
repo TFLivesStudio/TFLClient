@@ -1,7 +1,8 @@
-export type Metric = 'cpu' | 'ram' | 'disk';
+export type Metric = 'cpu' | 'ram' | 'storage' | 'network' | 'disk' | 'gpu';
+export const METRICS: Metric[] = ['cpu', 'ram', 'storage', 'network', 'disk', 'gpu'];
 export type Severity = 'info' | 'warn' | 'error' | 'debug';
 export interface ConsolePreferences {
-	version: 1;
+	version: 2;
 	order: Metric[];
 	visible: Record<Metric, boolean>;
 	colors: Record<Metric | Severity, string>;
@@ -18,13 +19,16 @@ export interface ConsolePreferences {
 	follow: boolean;
 }
 export const DEFAULT_CONSOLE: ConsolePreferences = {
-	version: 1,
-	order: ['cpu', 'ram', 'disk'],
-	visible: { cpu: true, ram: true, disk: false },
+	version: 2,
+	order: [...METRICS],
+	visible: { cpu: true, ram: true, storage: true, network: true, disk: true, gpu: true },
 	colors: {
 		cpu: '#67e8a3',
 		ram: '#93c5fd',
 		disk: '#c4b5fd',
+		storage: '#b8c6d9',
+		network: '#7dd3fc',
+		gpu: '#93c5fd',
 		info: '#d4d4d8',
 		warn: '#facc15',
 		error: '#fda4af',
@@ -35,19 +39,28 @@ export const DEFAULT_CONSOLE: ConsolePreferences = {
 	seconds: 60,
 	cpuMode: 'cores',
 	chartStyle: 'lines',
-	metricStyles: { cpu: 'lines', ram: 'lines', disk: 'lines' },
-	metricSeconds: { cpu: 60, ram: 60, disk: 60 },
+	metricStyles: {
+		cpu: 'lines',
+		ram: 'lines',
+		disk: 'lines',
+		storage: 'lines',
+		network: 'lines',
+		gpu: 'lines'
+	},
+	metricSeconds: { cpu: 60, ram: 60, disk: 60, storage: 60, network: 60, gpu: 60 },
 	fontSize: 12,
 	wrap: true,
 	follow: true
 };
 export const CONSOLE_KEY = 'tfl-console-v1';
-const metrics: Metric[] = ['cpu', 'ram', 'disk'];
+const metrics = METRICS;
 export function parseConsole(input: unknown): ConsolePreferences {
 	const d = structuredClone(DEFAULT_CONSOLE);
 	if (!input || typeof input !== 'object') return d;
 	const p = input as Partial<ConsolePreferences>;
-	if (p.version !== undefined && p.version !== 1) return d;
+	// The storage key stays stable. Version 1 keeps its order/visibility/colors,
+	// then gains the new independent storage/network/GPU metrics deterministically.
+	if (p.version !== undefined && ![1, 2].includes(p.version)) return d;
 	if (Array.isArray(p.order))
 		d.order = [...new Set(p.order.filter((m) => metrics.includes(m))), ...metrics].filter(
 			(m, i, a) => a.indexOf(m) === i
@@ -98,6 +111,55 @@ export interface ProcessStats {
 	sampled_at_ms: number;
 	sample_interval_ms: number;
 	ready: boolean;
+	process_count?: number;
+	scope?: string;
+	disk_read_bytes_delta?: number;
+	disk_write_bytes_delta?: number;
+	disk_read_bytes_total?: number;
+	disk_write_bytes_total?: number;
+}
+export interface ConsoleMetrics {
+	ui_mode?: 'simple' | 'advanced';
+	process: ProcessStats | null;
+	running: boolean;
+	sampled_at_ms: number;
+	interval_ms: number;
+	memory_total_mb: number;
+	network: {
+		scope: string;
+		provider: string;
+		received_bytes_per_sec: number | null;
+		transmitted_bytes_per_sec: number | null;
+		total_received_bytes: number;
+		total_transmitted_bytes: number;
+		interval_ms: number;
+		total_period: string;
+	} | null;
+	storage: { scope: string; provider: string; used_bytes: number; total_bytes: number } | null;
+	io: {
+		scope: string;
+		provider: string;
+		read_bytes_per_sec: number | null;
+		write_bytes_per_sec: number | null;
+		total_read_bytes: number | null;
+		total_write_bytes: number | null;
+		total_period: string;
+	} | null;
+	gpus: {
+		name: string;
+		scope: string;
+		provider: string;
+		utilization_percent: number | null;
+		vram_used_bytes: number | null;
+		vram_total_bytes: number | null;
+	}[];
+}
+export type ConsoleReading = ProcessStats | ConsoleMetrics;
+export function monitorOf(reading: ConsoleReading | null): ConsoleMetrics | null {
+	return reading && 'process' in reading ? reading : null;
+}
+export function processOf(reading: ConsoleReading | null): ProcessStats | null {
+	return reading && 'process' in reading ? reading.process : reading;
 }
 export interface Sample {
 	time: number;
@@ -105,18 +167,38 @@ export interface Sample {
 	total: number | null;
 	ram: number | null;
 	disk: number | null;
+	storage?: number | null;
+	network?: number | null;
+	gpu?: number | null;
 }
-export function sampleStats(s: ProcessStats | null, time = Date.now()): Sample {
-	const valid = (n: number) => (Number.isFinite(n) && n >= 0 ? n : null);
+export function sampleStats(reading: ConsoleReading | null, time = Date.now()): Sample {
+	const valid = (n: number | null | undefined) =>
+		typeof n === 'number' && Number.isFinite(n) && n >= 0 ? n : null;
+	const s = processOf(reading),
+		monitor = monitorOf(reading);
+	const rateSum = (a: number | null | undefined, b: number | null | undefined) =>
+		valid(a) !== null && valid(b) !== null ? a! + b! : null;
+	const ioRate = monitor?.io
+		? rateSum(monitor.io.read_bytes_per_sec, monitor.io.write_bytes_per_sec)
+		: null;
 	return {
-		time: s?.sampled_at_ms ?? time,
+		time: monitor?.sampled_at_ms ?? s?.sampled_at_ms ?? time,
 		cpu: s?.ready ? valid(s.cpu_core_percent) : null,
 		total: s?.ready ? valid(s.cpu_percent) : null,
 		ram: s ? valid(s.memory_mb) : null,
-		disk:
-			s?.ready && s.sample_interval_ms > 0
-				? valid((s.disk_bytes_delta * 1000) / s.sample_interval_ms / 1048576)
+		disk: monitor
+			? ioRate !== null
+				? ioRate / 1048576
 				: null
+			: s?.ready && s.sample_interval_ms > 0
+				? valid((s.disk_bytes_delta * 1000) / s.sample_interval_ms / 1048576)
+				: null,
+		storage: valid(monitor?.storage?.used_bytes),
+		network: rateSum(
+			monitor?.network?.received_bytes_per_sec,
+			monitor?.network?.transmitted_bytes_per_sec
+		),
+		gpu: valid(monitor?.gpus?.[0]?.utilization_percent)
 	};
 }
 export function appendSample(history: Sample[], sample: Sample): Sample[] {
@@ -134,13 +216,17 @@ export function chartPath(
 	let path = '';
 	let previous: number | null = null;
 	for (const s of samples) {
-		const value = metric === 'cpu' ? (cpuMode === 'cores' ? s.cpu : s.total) : s[metric];
+		const value = metric === 'cpu' ? (cpuMode === 'cores' ? s.cpu : s.total) : (s[metric] ?? null);
 		if (s.time < now - seconds * 1000 || s.time > now || value === null) {
 			previous = null;
 			continue;
 		}
 		const x = ((s.time - (now - seconds * 1000)) / (seconds * 1000)) * 400;
-		const y = 90 - Math.min(value / ceiling, 1) * 80;
+		if (!Number.isFinite(value) || !Number.isFinite(ceiling) || ceiling <= 0) {
+			previous = null;
+			continue;
+		}
+		const y = 98 - Math.min(value / ceiling, 1) * 88;
 		path += `${previous !== null && s.time - previous < 3500 ? 'L' : 'M'}${x.toFixed(2)},${y.toFixed(2)} `;
 		previous = s.time;
 	}

@@ -3,8 +3,11 @@
 	import { ArrowUp, ArrowDown, Undo2, RotateCcw, Check } from 'lucide-svelte';
 	import { w } from '$lib/i18n/workbench';
 	import { tr } from '$lib/i18n/experience';
+	import { experience, type ExperienceMode } from '$lib/state/experience.svelte';
+	import { metricLabel } from '$lib/console/labels';
 	import {
 		DEFAULT_CONSOLE,
+		METRICS,
 		parseConsole,
 		type ConsolePreferences,
 		type Metric,
@@ -16,22 +19,29 @@
 		saveConsole,
 		watchConsole
 	} from '$lib/console/preferences.svelte';
-	import { DEMO_HISTORY, DEMO_LINES } from '$lib/console/demo';
+	import { DEMO_HISTORY, DEMO_LINES, DEMO_CURRENT } from '$lib/console/demo';
 	import MetricCards from './MetricCards.svelte';
 	import ConsoleLayout from './ConsoleLayout.svelte';
 	import LogBlock from './LogBlock.svelte';
 	import SettingGroup from '$lib/components/settings/SettingGroup.svelte';
+	let { mode }: { mode?: ExperienceMode } = $props();
 	let draft = $state<ConsolePreferences>(structuredClone(DEFAULT_CONSOLE)),
 		selected = $state<Metric | 'log'>('cpu'),
 		undo = $state<ConsolePreferences[]>([]),
 		saved = $state(false);
 	let hasDraft = $state(false);
 	const levels: Severity[] = ['info', 'warn', 'error', 'debug'];
-	const metrics: Metric[] = ['cpu', 'ram', 'disk'];
+	const metrics = METRICS;
+	const advanced = $derived((mode ?? experience.mode) === 'advanced');
+	let saveTimer: ReturnType<typeof setTimeout> | undefined;
 	onMount(() => {
 		const stop = watchConsole();
 		draft = structuredClone($state.snapshot(live));
-		return stop;
+		return () => {
+			clearTimeout(saveTimer);
+			if (!advanced && hasDraft) apply();
+			stop();
+		};
 	});
 	$effect(() => {
 		const current = JSON.stringify(live);
@@ -40,18 +50,26 @@
 	const dirty = $derived(JSON.stringify(draft) !== JSON.stringify(live));
 	function patch(value: Partial<ConsolePreferences>) {
 		if (value.chartStyle && !value.metricStyles)
-			value.metricStyles = { cpu: value.chartStyle, ram: value.chartStyle, disk: value.chartStyle };
+			value.metricStyles = Object.fromEntries(
+				metrics.map((metric) => [metric, value.chartStyle])
+			) as ConsolePreferences['metricStyles'];
 		if (value.seconds && !value.metricSeconds)
-			value.metricSeconds = { cpu: value.seconds, ram: value.seconds, disk: value.seconds };
+			value.metricSeconds = Object.fromEntries(
+				metrics.map((metric) => [metric, value.seconds])
+			) as ConsolePreferences['metricSeconds'];
 		undo = [...undo.slice(-19), structuredClone($state.snapshot(draft))];
 		draft = parseConsole({ ...$state.snapshot(draft), ...value });
 		hasDraft = true;
 		saved = false;
+		if (!advanced) {
+			clearTimeout(saveTimer);
+			saveTimer = setTimeout(apply, 300);
+		}
 	}
 	function move(metric: Metric, delta: number) {
 		const order = [...draft.order],
 			from = order.indexOf(metric),
-			to = Math.max(0, Math.min(2, from + delta));
+			to = Math.max(0, Math.min(order.length - 1, from + delta));
 		order.splice(from, 1);
 		order.splice(to, 0, metric);
 		patch({ order });
@@ -60,9 +78,10 @@
 		move(from, draft.order.indexOf(to) - draft.order.indexOf(from));
 	}
 	function apply() {
-		saveConsole($state.snapshot(draft));
-		hasDraft = false;
-		saved = !consoleStorage.error;
+		clearTimeout(saveTimer);
+		const accepted = saveConsole($state.snapshot(draft));
+		hasDraft = !accepted;
+		saved = accepted;
 	}
 	function cancel() {
 		draft = structuredClone($state.snapshot(live));
@@ -77,16 +96,28 @@
 			undo = undo.slice(0, -1);
 			hasDraft = true;
 			saved = false;
+			if (!advanced) {
+				clearTimeout(saveTimer);
+				saveTimer = setTimeout(apply, 300);
+			}
 		}
 	}
 	function preset(id: string) {
-		if (id === 'classic') patch({ dock: 'top', visible: { cpu: false, ram: false, disk: false } });
+		if (id === 'classic')
+			patch({
+				dock: 'top',
+				visible: Object.fromEntries(
+					metrics.map((metric) => [metric, false])
+				) as ConsolePreferences['visible']
+			});
 		else if (id === 'compact')
 			patch({
 				dock: 'top',
 				columns: 3,
 				chartStyle: 'gauge',
-				visible: { cpu: true, ram: true, disk: true },
+				visible: Object.fromEntries(
+					metrics.map((metric) => [metric, true])
+				) as ConsolePreferences['visible'],
 				fontSize: 11
 			});
 		else
@@ -101,10 +132,15 @@
 <div class="console-designer">
 	<SettingGroup
 		id="console-layout"
-		hint={tr(
-			'Arrastra las asas de las tarjetas o usa sus flechas. Las posiciones respetan estos moldes. Los cambios se guardan al pulsar Aplicar.',
-			'Drag card handles or use their arrows. Positions stay inside these layouts. Changes save when you press Apply.'
-		)}
+		hint={advanced
+			? tr(
+					'Arrastra las asas de las tarjetas o usa sus flechas. Revisa la vista previa y aplica los cambios.',
+					'Drag card handles or use their arrows. Review the preview and apply changes.'
+				)
+			: tr(
+					'Elige cómo ver el registro. Los cambios se guardan automáticamente.',
+					'Choose how to view the log. Changes save automatically.'
+				)}
 	>
 		<div class="molds">
 			{#each [['classic', tr('Clásica', 'Classic')], ['top', tr('Superior', 'Top')], ['bottom', tr('Inferior', 'Bottom')], ['side', tr('Lateral', 'Side')], ['compact', tr('Compacta', 'Compact')]] as [id, label] (id)}<button
@@ -127,6 +163,7 @@
 			<ConsoleLayout dock={draft.dock}>
 				{#snippet charts()}<MetricCards
 						history={DEMO_HISTORY}
+						current={DEMO_CURRENT}
 						p={draft}
 						selected={selected === 'log' ? null : selected}
 						onMove={move}
@@ -148,15 +185,16 @@
 			</ConsoleLayout>
 		</div>
 		<div class="actions">
-			<button
-				data-pixel-control="primary"
-				type="button"
-				class="vr-control primary"
-				disabled={!dirty}
-				onclick={apply}><Check size={14} />{tr('Aplicar', 'Apply')}</button
-			><button type="button" class="vr-control" disabled={!dirty} onclick={cancel}
-				>{tr('Cancelar', 'Cancel')}</button
-			><button type="button" class="vr-control" disabled={!undo.length} onclick={undoLast}
+			{#if advanced}
+				<button
+					data-pixel-control="primary"
+					type="button"
+					class="vr-control primary"
+					disabled={!dirty}
+					onclick={apply}><Check size={14} />{tr('Aplicar', 'Apply')}</button
+				><button type="button" class="vr-control" disabled={!dirty} onclick={cancel}
+					>{tr('Cancelar', 'Cancel')}</button
+				>{/if}<button type="button" class="vr-control" disabled={!undo.length} onclick={undoLast}
 				><Undo2 size={14} />{tr('Deshacer', 'Undo')}</button
 			><button
 				type="button"
@@ -172,121 +210,122 @@
 				)}
 			</p>{/if}
 	</SettingGroup>
-	<SettingGroup
-		id="console-metrics"
-		hint={tr(
-			'Selecciona una tarjeta para personalizarla. CPU por núcleo puede superar 100%; RAM muestra memoria residente, no solo el heap de Java.',
-			'Select a card to customize it. Per-core CPU can exceed 100%; RAM shows resident memory, not only Java heap.'
-		)}
-	>
-		<div class="metric-tabs">
-			{#each metrics as metric (metric)}<button
-					type="button"
-					class="vr-control"
-					aria-pressed={selected === metric}
-					onclick={() => (selected = metric)}>{w(metric)}</button
-				>{/each}
-		</div>
-		{#if selected !== 'log'}<div class="inspector">
-				<h4>{w(selected)}</h4>
+	{#if advanced}<SettingGroup
+			id="console-metrics"
+			hint={tr(
+				'Selecciona una tarjeta para personalizarla. CPU por núcleo puede superar 100%; RAM muestra memoria residente, no solo el heap de Java.',
+				'Select a card to customize it. Per-core CPU can exceed 100%; RAM shows resident memory, not only Java heap.'
+			)}
+		>
+			<div class="metric-tabs">
+				{#each metrics as metric (metric)}<button
+						type="button"
+						class="vr-control"
+						aria-pressed={selected === metric}
+						onclick={() => (selected = metric)}>{metricLabel(metric)}</button
+					>{/each}
+			</div>
+			{#if selected !== 'log'}<div class="inspector">
+					<h4>{metricLabel(selected)}</h4>
+					<label
+						>{w('chartStyle')}<select
+							value={draft.metricStyles[selected]}
+							onchange={(e) => {
+								if (selected !== 'log')
+									patch({
+										metricStyles: {
+											...draft.metricStyles,
+											[selected]: e.currentTarget.value as 'lines' | 'gauge'
+										}
+									});
+							}}
+							><option value="lines">{w('styleLines')}</option><option value="gauge"
+								>{w('styleGauge')}</option
+							></select
+						></label
+					><label
+						>{w('window')}<select
+							value={draft.metricSeconds[selected]}
+							onchange={(e) => {
+								if (selected !== 'log')
+									patch({
+										metricSeconds: {
+											...draft.metricSeconds,
+											[selected]: Number(e.currentTarget.value) as 30 | 60 | 180
+										}
+									});
+							}}
+							>{#each [30, 60, 180] as n (n)}<option value={n}>{n} s</option>{/each}</select
+						></label
+					><label
+						>{w('show')}<input
+							type="checkbox"
+							checked={draft.visible[selected]}
+							onchange={(e) =>
+								patch({ visible: { ...draft.visible, [selected]: e.currentTarget.checked } })}
+						/></label
+					><label
+						>{w('colors')}<input
+							type="color"
+							value={draft.colors[selected]}
+							oninput={(e) =>
+								patch({ colors: { ...draft.colors, [selected]: e.currentTarget.value } })}
+						/></label
+					>
+					<div class="actions">
+						<button
+							type="button"
+							class="vr-control"
+							aria-label={`${w('up')} · ${metricLabel(selected)}`}
+							disabled={draft.order.indexOf(selected) === 0}
+							onclick={() => {
+								if (selected !== 'log') move(selected, -1);
+							}}><ArrowUp size={14} />{w('up')}</button
+						><button
+							type="button"
+							class="vr-control"
+							aria-label={`${w('down')} · ${metricLabel(selected)}`}
+							disabled={draft.order.indexOf(selected) === draft.order.length - 1}
+							onclick={() => {
+								if (selected !== 'log') move(selected, 1);
+							}}><ArrowDown size={14} />{w('down')}</button
+						>
+					</div>
+				</div>{/if}
+			<div class="fields">
 				<label
-					>{w('chartStyle')}<select
-						value={draft.metricStyles[selected]}
-						onchange={(e) => {
-							if (selected !== 'log')
-								patch({
-									metricStyles: {
-										...draft.metricStyles,
-										[selected]: e.currentTarget.value as 'lines' | 'gauge'
-									}
-								});
-						}}
-						><option value="lines">{w('styleLines')}</option><option value="gauge"
-							>{w('styleGauge')}</option
-						></select
+					>{w('columns')}<select
+						value={draft.columns}
+						onchange={(e) => patch({ columns: Number(e.currentTarget.value) as 1 | 2 | 3 })}
+						>{#each [1, 2, 3] as n (n)}<option value={n}>{n}</option>{/each}</select
 					></label
 				><label
 					>{w('window')}<select
-						value={draft.metricSeconds[selected]}
-						onchange={(e) => {
-							if (selected !== 'log')
-								patch({
-									metricSeconds: {
-										...draft.metricSeconds,
-										[selected]: Number(e.currentTarget.value) as 30 | 60 | 180
-									}
-								});
-						}}
+						value={draft.seconds}
+						onchange={(e) => patch({ seconds: Number(e.currentTarget.value) as 30 | 60 | 180 })}
 						>{#each [30, 60, 180] as n (n)}<option value={n}>{n} s</option>{/each}</select
 					></label
-				><label
-					>{w('show')}<input
-						type="checkbox"
-						checked={draft.visible[selected]}
-						onchange={(e) =>
-							patch({ visible: { ...draft.visible, [selected]: e.currentTarget.checked } })}
-					/></label
-				><label
-					>{w('colors')}<input
-						type="color"
-						value={draft.colors[selected]}
-						oninput={(e) =>
-							patch({ colors: { ...draft.colors, [selected]: e.currentTarget.value } })}
-					/></label
 				>
-				<div class="actions">
-					<button
-						type="button"
-						class="vr-control"
-						aria-label={`${w('up')} · ${w(selected)}`}
-						disabled={draft.order.indexOf(selected) === 0}
-						onclick={() => {
-							if (selected !== 'log') move(selected, -1);
-						}}><ArrowUp size={14} />{w('up')}</button
-					><button
-						type="button"
-						class="vr-control"
-						aria-label={`${w('down')} · ${w(selected)}`}
-						disabled={draft.order.indexOf(selected) === 2}
-						onclick={() => {
-							if (selected !== 'log') move(selected, 1);
-						}}><ArrowDown size={14} />{w('down')}</button
-					>
-				</div>
-			</div>{/if}
-		<div class="fields">
+			</div>
 			<label
-				>{w('columns')}<select
-					value={draft.columns}
-					onchange={(e) => patch({ columns: Number(e.currentTarget.value) as 1 | 2 | 3 })}
-					>{#each [1, 2, 3] as n (n)}<option value={n}>{n}</option>{/each}</select
-				></label
-			><label
-				>{w('window')}<select
-					value={draft.seconds}
-					onchange={(e) => patch({ seconds: Number(e.currentTarget.value) as 30 | 60 | 180 })}
-					>{#each [30, 60, 180] as n (n)}<option value={n}>{n} s</option>{/each}</select
+				>{w('cpuMode')}<select
+					value={draft.cpuMode}
+					onchange={(e) => patch({ cpuMode: e.currentTarget.value as 'cores' | 'total' })}
+					><option value="cores">{w('cores')}</option><option value="total">{w('total')}</option
+					></select
 				></label
 			>
-		</div>
-		<label
-			>{w('cpuMode')}<select
-				value={draft.cpuMode}
-				onchange={(e) => patch({ cpuMode: e.currentTarget.value as 'cores' | 'total' })}
-				><option value="cores">{w('cores')}</option><option value="total">{w('total')}</option
-				></select
-			></label
-		>
-		<label
-			>{w('chartStyle')}<select
-				value={draft.chartStyle}
-				onchange={(e) => patch({ chartStyle: e.currentTarget.value as 'lines' | 'gauge' })}
-				><option value="lines">{w('styleLines')}</option><option value="gauge"
-					>{w('styleGauge')}</option
-				></select
-			></label
-		>
-	</SettingGroup>
+			<label
+				>{w('chartStyle')}<select
+					value={draft.chartStyle}
+					onchange={(e) => patch({ chartStyle: e.currentTarget.value as 'lines' | 'gauge' })}
+					><option value="lines">{w('styleLines')}</option><option value="gauge"
+						>{w('styleGauge')}</option
+					></select
+				></label
+			>
+		</SettingGroup>
+	{/if}
 	<SettingGroup
 		id="console-log"
 		hint={tr(
@@ -326,7 +365,7 @@
 			/></label
 		>
 	</SettingGroup>
-	{#if dirty}<div class="pending">
+	{#if advanced && dirty}<div class="pending">
 			<span>{tr('Cambios sin aplicar', 'Unapplied changes')}</span><button
 				data-pixel-control="primary"
 				type="button"

@@ -3,11 +3,26 @@
 //! restaurar / borrar a mano viven en `commands::world_backups`.
 
 use crate::services::instance_manager;
-use crate::services::zip_util::zip_dir;
+use crate::services::worlds;
 
 /// Cuántas copias de mundos se guardan por instancia — cada una es un zip
 /// completo de saves/, sin tope se comerían el disco en silencio.
 const MAX_WORLD_BACKUPS: usize = 10;
+
+fn is_managed_archive(name: &str) -> bool {
+    let Some(raw) = name
+        .strip_prefix("saves-")
+        .and_then(|raw| raw.strip_suffix(".zip"))
+    else {
+        return false;
+    };
+    match raw.split_once('-') {
+        Some((timestamp, suffix)) => {
+            timestamp.parse::<u64>().is_ok() && uuid::Uuid::parse_str(suffix).is_ok()
+        }
+        None => raw.parse::<u64>().is_ok(),
+    }
+}
 
 async fn prune_world_backups(dir: &std::path::Path) {
     let Ok(mut entries) = tokio::fs::read_dir(dir).await else {
@@ -16,8 +31,7 @@ async fn prune_world_backups(dir: &std::path::Path) {
     let mut names = Vec::new();
     while let Ok(Some(entry)) = entries.next_entry().await {
         if let Some(name) = entry.file_name().to_str()
-            && name.starts_with("saves-")
-            && name.ends_with(".zip")
+            && is_managed_archive(name)
         {
             names.push(name.to_string());
         }
@@ -61,13 +75,21 @@ async fn backup_world_dir_policy(
     static BACKUPS: std::sync::LazyLock<tokio::sync::Mutex<()>> =
         std::sync::LazyLock::new(|| tokio::sync::Mutex::new(()));
     let _backup_lock = BACKUPS.lock().await;
+    worlds::no_link(instance_dir)?;
+    let managed_backups = instance_dir.join(".tfl_backups");
+    if managed_backups
+        .try_exists()
+        .map_err(|e| format!("No se pudo consultar la carpeta de respaldos: {e}"))?
+    {
+        worlds::no_link(&managed_backups)?;
+    }
     if !prune {
         let mut count = 0;
         if let Ok(mut entries) = tokio::fs::read_dir(instance_dir.join(".tfl_backups")).await {
             while let Ok(Some(entry)) = entries.next_entry().await {
                 let name = entry.file_name();
                 let name = name.to_string_lossy();
-                if name.starts_with("saves-") && name.ends_with(".zip") {
+                if is_managed_archive(&name) {
                     count += 1;
                 }
             }
@@ -78,8 +100,11 @@ async fn backup_world_dir_policy(
             );
         }
     }
-    let saves_dir = instance_dir.join("saves");
-    if !saves_dir.is_dir() {
+    let saves_dir = worlds::worlds_root(instance_dir, false)?;
+    if !saves_dir
+        .try_exists()
+        .map_err(|e| format!("No se pudo consultar la carpeta de mundos: {e}"))?
+    {
         return Ok(None);
     }
     let ts = std::time::SystemTime::now()
@@ -90,10 +115,12 @@ async fn backup_world_dir_policy(
         .join(".tfl_backups")
         .join(format!("saves-{ts}-{}.zip", uuid::Uuid::new_v4().simple()));
     let backup_path_clone = backup_path.clone();
-    tokio::task::spawn_blocking(move || zip_dir(&saves_dir, &backup_path_clone))
-        .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())?;
+    tokio::task::spawn_blocking(move || {
+        let _sessions = worlds::lock_world_sessions(&saves_dir)?;
+        worlds::archive_directory(&saves_dir, &backup_path_clone)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
     if prune {
         prune_world_backups(&instance_dir.join(".tfl_backups")).await;
     }
@@ -104,13 +131,26 @@ async fn backup_world_dir_policy(
 pub async fn list_world_backup_names(instance_name: &str) -> Result<Vec<String>, String> {
     let instance = instance_manager::get_instance(instance_name).await?;
     let backups_dir = instance.dir().join(".tfl_backups");
-    let Ok(mut entries) = tokio::fs::read_dir(&backups_dir).await else {
-        return Ok(Vec::new());
+    if backups_dir.exists() {
+        worlds::no_link(&backups_dir)?;
+    }
+    let mut entries = match tokio::fs::read_dir(&backups_dir).await {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => return Err(format!("No se pudo leer la carpeta de respaldos: {error}")),
     };
     let mut out = Vec::new();
     while let Ok(Some(entry)) = entries.next_entry().await {
         if let Some(name) = entry.file_name().to_str() {
-            out.push(name.to_string());
+            if is_managed_archive(name)
+                && entry
+                    .file_type()
+                    .await
+                    .map_err(|e| format!("No se pudo consultar el respaldo: {e}"))?
+                    .is_file()
+            {
+                out.push(name.to_string());
+            }
         }
     }
     out.sort();

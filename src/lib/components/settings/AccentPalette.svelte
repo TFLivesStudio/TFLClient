@@ -6,7 +6,8 @@
 	import { selectAddonTheme } from '$lib/addons/state.svelte';
 	let { onReset }: { onReset: () => void } = $props();
 	const colors = [
-		['TFL', '#ff7a2e'],
+		['TFL Blue', '#3b82f6'],
+		['Orange', '#ff7a2e'],
 		['Apricot', '#fb923c'],
 		['Ruby', '#ef4444'],
 		['Coral', '#fb7185'],
@@ -17,7 +18,7 @@
 		['Violet', '#8b5cf6'],
 		['Iris', '#5b5bd6'],
 		['Indigo', '#6366f1'],
-		['Cobalt', '#3b82f6'],
+
 		['Sky', '#38bdf8'],
 		['Cyan', '#00a2c7'],
 		['Teal', '#14b8a6'],
@@ -32,7 +33,7 @@
 		['Graphite', '#6b7280']
 	];
 	let custom = $state(false),
-		hex = $state(visual.customAccent || '#ff7a2e');
+		hex = $state(visual.customAccent || '#3b82f6');
 
 	let legacy = $state(getLegacy());
 	const active = $derived(visual.customAccent || legacy);
@@ -52,7 +53,7 @@
 			grass: '#46a758',
 			plum: '#ab4aba'
 		};
-		return map[key ?? 'orange'] ?? '#ff7a2e';
+		return map[key || 'blue'] ?? '#3b82f6';
 	}
 	function apply(value: string) {
 		hex = value;
@@ -116,9 +117,9 @@
 		onReset();
 		legacy = getLegacy();
 		setVisual('customAccent', '');
-		hex = '#ff7a2e';
+		hex = '#3b82f6';
 		custom = false;
-	}}><RotateCcw size={13} />{tr('Restaurar naranja TFL', 'Restore TFL orange')}</button
+	}}><RotateCcw size={13} />{tr('Restaurar azul TFL', 'Restore TFL blue')}</button
 >
 
 <style>

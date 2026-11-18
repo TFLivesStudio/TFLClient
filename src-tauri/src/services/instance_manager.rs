@@ -91,6 +91,11 @@ pub struct InstanceData {
     pub launch_version_id: String,
     #[serde(default)]
     pub last_played: i64,
+    /// Launch, successful foreground use or close; never a resource sample.
+    #[serde(default)]
+    pub last_activity: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preparation: Option<String>,
     /// Segundos acumulados con el juego abierto (suma de todas las sesiones
     /// terminadas). Instancias anteriores a este campo arrancan en 0.
     #[serde(default)]
@@ -133,7 +138,13 @@ impl InstanceData {
     pub async fn save(&self) -> std::io::Result<()> {
         tokio::fs::create_dir_all(self.dir()).await?;
         let json = serde_json::to_string_pretty(self)?;
-        tokio::fs::write(self.manifest_path(), json).await
+        let tmp = self.dir().join(format!(".instance-{}.tmp", Uuid::new_v4()));
+        tokio::fs::write(&tmp, json).await?;
+        if let Err(e) = tokio::fs::rename(&tmp, self.manifest_path()).await {
+            let _ = tokio::fs::remove_file(tmp).await;
+            return Err(e);
+        }
+        Ok(())
     }
 }
 
@@ -197,6 +208,8 @@ pub async fn create_instance_full(
         loader_version,
         launch_version_id,
         last_played: 0,
+        last_activity: 0,
+        preparation: None,
         play_time_secs: 0,
         min_memory: None,
         max_memory: None,
@@ -208,6 +221,9 @@ pub async fn create_instance_full(
     if data.dir().exists() {
         return Err("Ya existe una instancia con ese nombre".into());
     }
+    tokio::fs::create_dir(data.dir())
+        .await
+        .map_err(|e| format!("No se pudo reservar la carpeta de instancia: {e}"))?;
     data.save().await.map_err(|e| e.to_string())?;
     Ok(data)
 }
@@ -226,7 +242,12 @@ pub async fn list_instances() -> Vec<InstanceData> {
             data.selection =
                 crate::services::selection::installer::identity_from_lock(&entry.path())
                     .or(data.selection);
-            out.push(data);
+            if entry.file_name().to_string_lossy() == data.name
+                && valid_instance_name(&data.name).is_ok()
+            {
+                data.last_activity = data.last_activity.max(data.last_played);
+                out.push(data);
+            }
         }
     }
     out
@@ -242,12 +263,26 @@ pub async fn get_instance(name: &str) -> Result<InstanceData, String> {
         .await
         .map_err(|_| "Instancia no encontrada".to_string())?;
     let mut data: InstanceData = serde_json::from_str(&raw).map_err(|e| e.to_string())?;
+    if data.name != name {
+        return Err("El nombre del manifiesto no coincide con la carpeta de instancia".into());
+    }
+    data.last_activity = data.last_activity.max(data.last_played);
     data.selection =
         crate::services::selection::installer::identity_from_lock(&data.dir()).or(data.selection);
     Ok(data)
 }
 
 pub async fn delete_instance(name: &str) -> Result<(), String> {
+    let _guard = crate::services::content::mutation_lock(name).await;
+    crate::services::worlds::ensure_stopped(name)?;
+    if get_instance(name)
+        .await?
+        .preparation
+        .as_deref()
+        .is_some_and(|s| matches!(s, "preparing" | "downloading"))
+    {
+        return Err("Cancela la preparación en Actividades antes de eliminar la instancia".into());
+    }
     valid_instance_name(name)?;
     let dir = PathManager::get().get_instance_dir().join(name);
     tokio::fs::remove_dir_all(&dir)
@@ -256,8 +291,19 @@ pub async fn delete_instance(name: &str) -> Result<(), String> {
 }
 
 pub async fn rename_instance(old_name: &str, new_name: String) -> Result<InstanceData, String> {
+    let _guard = crate::services::content::mutation_lock(old_name).await;
+    crate::services::worlds::ensure_stopped(old_name)?;
     valid_instance_name(&new_name)?;
     let mut data = get_instance(old_name).await?;
+    if data
+        .preparation
+        .as_deref()
+        .is_some_and(|s| matches!(s, "preparing" | "downloading"))
+    {
+        return Err(
+            "Espera o cancela la preparación en Actividades antes de renombrar la instancia".into(),
+        );
+    }
     if old_name == new_name {
         return Ok(data);
     }
@@ -354,6 +400,13 @@ pub async fn update_instance_memory(
 pub async fn mark_last_played(name: &str) -> Result<(), String> {
     let mut data = get_instance(name).await?;
     data.last_played = now_secs();
+    data.last_activity = data.last_played;
+    data.save().await.map_err(|e| e.to_string())
+}
+
+pub async fn mark_activity(name: &str) -> Result<(), String> {
+    let mut data = get_instance(name).await?;
+    data.last_activity = now_secs();
     data.save().await.map_err(|e| e.to_string())
 }
 
@@ -366,6 +419,7 @@ pub async fn add_play_time(name: &str, secs: u64) -> Result<(), String> {
     }
     let mut data = get_instance(name).await?;
     data.play_time_secs = data.play_time_secs.saturating_add(secs);
+    data.last_activity = now_secs();
     data.save().await.map_err(|e| e.to_string())
 }
 

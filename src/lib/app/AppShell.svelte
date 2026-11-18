@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { startServerTasks } from '$lib/state/serverTasks.svelte';
 	import { contentExplorer } from '$lib/state/uiState.svelte';
 	import { reveal } from '$lib/visual/motion';
 	import { startNotifications } from '$lib/visual/notifications.svelte';
@@ -15,7 +16,6 @@
 	import TitleBar from '$lib/components/layout/TitleBar/TitleBar.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar/Sidebar.svelte';
 	import Onboarding from '$lib/components/onboarding/Onboarding.svelte';
-	import NativeDialogModePrompt from '$lib/components/onboarding/NativeDialogModePrompt.svelte';
 	import InstanceDetail from '$lib/components/library/InstanceDetail.svelte';
 	import ParticlesBackground from '$lib/components/layout/ParticlesBackground.svelte';
 	import WelcomeState from '$lib/app/WelcomeState.svelte';
@@ -47,6 +47,7 @@
 	// dos lo consumen), en vez de en bootstrap.ts (fuera del alcance de esta
 	// entrega) — es idempotente, no pasa nada si se llama de más.
 	onMount(() => {
+		const stopTasks = startServerTasks();
 		const stopViewport = initViewportListener();
 		restoreVisualPreferences();
 		const stopScenes = watchScenes();
@@ -54,6 +55,7 @@
 		const stopVisual = startVisualRuntime();
 		const stopNotifications = startNotifications();
 		return () => {
+			stopTasks();
 			stopViewport?.();
 			stopVisual();
 			stopScenes();
@@ -72,8 +74,6 @@
 		</div>
 	{:else if flow.needsOnboarding}
 		<Onboarding onDone={handleOnboardingDone} />
-	{:else if ui.justOnboarded && flow.needsDialogModePrompt}
-		<NativeDialogModePrompt variant="modal" onDone={() => (ui.justOnboarded = false)} />
 	{:else}
 		<div class="app-body">
 			<div class="window-scene" aria-hidden="true">

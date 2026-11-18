@@ -4,14 +4,15 @@
 	import type { ImportCandidate, InstanceData, MrpackPreview } from '$lib/types/types';
 	import {
 		detectImportableInstances,
-		importExternalInstance,
 		inspectMrpack,
 		importMrpackFile,
 		pickContentFiles
 	} from '$lib/api';
-	import { appState } from '$lib/state/state.svelte';
 	import { mrpackDropIntent } from '$lib/state/uiState.svelte';
 	import { t } from '$lib/i18n/index.svelte';
+	import { tr } from '$lib/i18n/experience';
+	import { pickImportDirectory } from '$lib/api/importSources';
+	import ImportSourceReview from './ImportSourceReview.svelte';
 	import { Loader2, Download, FolderInput } from 'lucide-svelte';
 
 	let {
@@ -22,14 +23,14 @@
 	let candidates = $state<ImportCandidate[]>([]);
 	let loading = $state(true);
 	let selectedPath = $state<string | null>(null);
-	let nameInput = $state('');
 	let importing = $state(false);
 	let error = $state<string | null>(null);
 
-	const SOURCE_LABEL: Record<ImportCandidate['source'], string> = {
+	const SOURCE_LABEL: Record<string, string> = {
 		prism: 'Prism Launcher',
 		multimc: 'MultiMC',
 		polymc: 'PolyMC',
+		freesm: 'Freesm Launcher',
 		curseforge: 'CurseForge',
 		modrinth_app: 'Modrinth App'
 	};
@@ -39,17 +40,12 @@
 	// de arriba, que solo detecta instalaciones de OTROS launchers en el
 	// equipo. Mismo modal porque las dos terminan en lo mismo: una
 	// instancia nueva vía `onImported`.
-	let view = $state<'list' | 'mrpack'>('list');
+	let view = $state<'list' | 'mrpack' | 'source'>('list');
 	let mrpackPath = $state<string | null>(null);
 	let mrpackPreview = $state<MrpackPreview | null>(null);
 	let mrpackName = $state('');
 	let mrpackBusy = $state<'pick' | 'inspect' | 'import' | null>(null);
 	let mrpackError = $state<string | null>(null);
-
-	// El diálogo nativo de archivos crashea el launcher en macOS con la
-	// firma ad-hoc del build (ver docs/history/legacy/CHANGELOG_macos-dialog-crash-java26.txt) —
-	// mismo gate que `pick_content_files` en ContentManager/InstanceIconPicker.
-	let dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');
 
 	const LOADER_LABEL: Record<MrpackPreview['loader'], string> = {
 		vanilla: 'Vanilla',
@@ -79,15 +75,17 @@
 	}
 
 	async function pickMrpack() {
-		if (dialogsBlocked || mrpackBusy) return;
+		if (mrpackBusy) return;
 		mrpackError = null;
 		mrpackBusy = 'pick';
-		const paths = await pickContentFiles('mrpack', 'Modpack (.mrpack)');
-		if (paths.length === 0) {
+		try {
+			const [path] = await pickContentFiles('mrpack', 'Modpack (.mrpack)');
+			if (path) await inspectAndShow(path);
+		} catch (error) {
+			mrpackError = String(error);
+		} finally {
 			mrpackBusy = null;
-			return;
 		}
-		await inspectAndShow(paths[0]);
 	}
 
 	async function confirmMrpackImport() {
@@ -134,23 +132,24 @@
 	});
 
 	function select(c: ImportCandidate) {
-		if (!c.mc_version || importing) return;
+		if (importing) return;
 		selectedPath = c.path;
-		nameInput = c.name;
+		view = 'source';
 		error = null;
 	}
 
-	async function handleImport() {
-		const name = nameInput.trim();
-		if (!selectedPath || !name) return;
-		importing = true;
+	async function pickSource(directory: boolean) {
 		error = null;
 		try {
-			const instance = await importExternalInstance(selectedPath, name);
-			onImported(instance);
+			const path = directory
+				? await pickImportDirectory()
+				: (await pickContentFiles('zip', 'MultiMC / TFL Server ZIP'))[0];
+			if (path) {
+				selectedPath = path;
+				view = 'source';
+			}
 		} catch (e) {
 			error = String(e);
-			importing = false;
 		}
 	}
 </script>
@@ -198,7 +197,7 @@
 							class="candidate"
 							data-pixel-control
 							class:selected={selectedPath === c.path}
-							disabled={!c.mc_version}
+							disabled={importing}
 							onclick={() => select(c)}
 						>
 							<span class="c-main">
@@ -212,30 +211,49 @@
 									)}
 								</span>
 							</span>
-							<span class="c-source">{SOURCE_LABEL[c.source]}</span>
+							<span class="c-source">{SOURCE_LABEL[c.source] ?? c.source}</span>
 						</button>
 					{/each}
 				</div>
 			{/if}
 
-			{#if selectedPath}
-				<label class="name-field">
-					{t('importInstance.nameLabel')}
-					<input type="text" bind:value={nameInput} disabled={importing} maxlength="60" />
-				</label>
-				<p class="hint">{t('importInstance.hint')}</p>
-			{/if}
-
 			{#if error}<p class="error">{error}</p>{/if}
 
 			<div class="divider"><span>{t('importInstance.orDivider')}</span></div>
+			<button
+				data-pixel-control
+				type="button"
+				class="mrpack-btn"
+				disabled={importing}
+				onclick={() => pickSource(true)}
+				><FolderInput size={14} />{tr(
+					'Seleccionar carpeta de instancia',
+					'Choose instance folder'
+				)}</button
+			>
+			<button
+				data-pixel-control
+				type="button"
+				class="mrpack-btn"
+				disabled={importing}
+				onclick={() => pickSource(false)}
+				><FolderInput size={14} />{tr(
+					'Seleccionar ZIP MultiMC o servidor TFL',
+					'Choose MultiMC or TFL server ZIP'
+				)}</button
+			>
+			<p class="hint">
+				{tr(
+					'Prism, MultiMC, PolyMC y Freesm comparten una familia de formato. Otros forks se inspeccionan por su estructura; los formatos desconocidos no se importan.',
+					'Prism, MultiMC, PolyMC and Freesm share a format family. Other forks are inspected by structure; unknown formats are not imported.'
+				)}
+			</p>
 
 			<button
 				data-pixel-control
 				type="button"
 				class="mrpack-btn"
-				disabled={dialogsBlocked || !!mrpackBusy}
-				title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
+				disabled={!!mrpackBusy}
 				onclick={pickMrpack}
 			>
 				{#if mrpackBusy === 'pick' || mrpackBusy === 'inspect'}
@@ -245,9 +263,6 @@
 				{/if}
 				{t('importInstance.mrpackButton')}
 			</button>
-			{#if dialogsBlocked}
-				<p class="hint">{t('importInstance.mrpackDialogsBlocked')}</p>
-			{/if}
 			{#if mrpackError}<p class="error">{mrpackError}</p>{/if}
 
 			<div class="actions">
@@ -260,18 +275,17 @@
 				>
 					{t('common.cancel')}
 				</button>
-				<button
-					data-pixel-control="primary"
-					type="button"
-					class="primary"
-					disabled={!selectedPath || !nameInput.trim() || importing}
-					onclick={handleImport}
-				>
-					{#if importing}<Loader2 size={14} class="spin" />{t(
-							'importInstance.importing'
-						)}{:else}<Download size={14} />{t('importInstance.import')}{/if}
-				</button>
 			</div>
+		{:else if view === 'source' && selectedPath}
+			<ImportSourceReview
+				path={selectedPath}
+				{onImported}
+				onBack={() => {
+					view = 'list';
+					selectedPath = null;
+				}}
+				onBusyChange={(busy) => (importing = busy)}
+			/>
 		{:else if mrpackPreview}
 			<h2>{t('importInstance.mrpackPreviewTitle')}</h2>
 			<p class="subtitle">

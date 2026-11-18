@@ -10,9 +10,10 @@
 	} from '$lib/selection-identity';
 	import { invoke } from '@tauri-apps/api/core';
 	import { convertFileSrc } from '@tauri-apps/api/core';
-	import Mascot from '$lib/components/ui/Mascot.svelte';
+	import { gameSession } from '$lib/state/gameSession.svelte';
+	import { serverSessions } from '$lib/state/serverSessions.svelte';
+	import { orderByActivity } from '$lib/state/instanceOrder';
 	import { IconButton, Tooltip } from '$lib/components/ui';
-	import { getMascotFor } from '$lib/mascots';
 	import { network } from '$lib/state/network.svelte';
 	import { iconVersions, goHome } from '$lib/state/instanceState.svelte';
 	import { appState } from '$lib/state/state.svelte';
@@ -135,7 +136,12 @@
 		};
 	});
 
-	const sorted = $derived([...instances].sort((a, b) => b.last_played - a.last_played));
+	function running(i: InstanceData) {
+		return i.server_type
+			? serverSessions.running.has(i.name)
+			: gameSession.running.some((r) => r.name === i.name);
+	}
+	const sorted = $derived(orderByActivity(instances, running));
 	const filtered = $derived(
 		query.trim()
 			? sorted.filter((i) => i.name.toLowerCase().includes(query.trim().toLowerCase()))
@@ -287,7 +293,7 @@
 								style="--loader-color: {isSelectionInstance(instance)
 									? 'var(--accent)'
 									: (LOADER_COLOR[instance.loader] ?? 'var(--text-secondary)')}"
-								aria-label={instanceDisplayName(instance)}
+								aria-label={`${instanceDisplayName(instance)}${running(instance) ? ` · ${tr('En ejecución', 'Running')}` : ''}`}
 								onclick={() => onSelect(instance)}
 								oncontextmenu={(e) => {
 									e.preventDefault();
@@ -308,6 +314,7 @@
 								}}
 							>
 								<span class="instance-avatar">
+									{#if running(instance)}<span class="running-dot" aria-hidden="true"></span>{/if}
 									{#if iconUrls[instance.uuid] || selectionFallbackIcon(instance.selection)}
 										<img
 											src={iconUrls[instance.uuid] ??
@@ -348,20 +355,12 @@
 					onclick={user.user_type === 'Cracked' ? onOpenSettings : onOpenSkinManager}
 				>
 					<span class="user-head">
-						{#if user.user_type === 'Cracked'}
-							<!-- Cuentas offline no tienen skin real — mascota simple en
-						 vez del Steve genérico que devolvería Crafatar por
-						 defecto. Elegida al azar (determinística por UUID) al
-						 crear la cuenta, cambiable desde Ajustes. -->
-							<Mascot id={getMascotFor(user.uuid)} size={32} />
-						{:else}
-							<img class="face-fallback" src="/images/player-face.svg" alt="" />
-							{#if skinUrl}
-								<span class="skin-head">
-									<span class="skin-layer base" style="background-image: url({skinUrl})"></span>
-									<span class="skin-layer overlay" style="background-image: url({skinUrl})"></span>
-								</span>
-							{/if}
+						<img class="face-fallback" src="/images/player-face.svg" alt="" />
+						{#if skinUrl}
+							<span class="skin-head">
+								<span class="skin-layer base" style="background-image: url({skinUrl})"></span>
+								<span class="skin-layer overlay" style="background-image: url({skinUrl})"></span>
+							</span>
 						{/if}
 					</span>
 					{#if !collapsed}
@@ -571,6 +570,8 @@
 		display: none;
 	}
 	.instance-list {
+		direction: ltr;
+		scrollbar-gutter: stable;
 		display: flex;
 		flex-direction: column;
 		flex: 1;
@@ -597,6 +598,16 @@
 		color: var(--text-primary);
 		text-align: left;
 		cursor: pointer;
+	}
+	.running-dot {
+		position: absolute;
+		inset-inline-end: 4px;
+		top: 4px;
+		width: 8px;
+		height: 8px;
+		background: #4ade80;
+		border: 2px solid var(--bg-sidebar);
+		border-radius: 50%;
 	}
 	.instance-item:hover {
 		background: var(--surface-interactive);

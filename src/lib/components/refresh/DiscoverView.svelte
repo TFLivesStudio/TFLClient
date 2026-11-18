@@ -2,6 +2,8 @@
 	import { Compass, ArrowUpRight, Box } from 'lucide-svelte';
 	import { vr } from '$lib/i18n/refresh';
 	import { appState } from '$lib/state/state.svelte';
+	import { experience } from '$lib/state/experience.svelte';
+	import { tr } from '$lib/i18n/experience';
 	import { openModal, openContentExplorer } from '$lib/state/uiState.svelte';
 	import InstanceMark from './InstanceMark.svelte';
 	import Tfl from '$lib/icons/Tfl.svelte';
@@ -29,25 +31,31 @@
 		<div class="editorial-mark" aria-hidden="true"><Tfl width="100%" height="100%" /></div>
 	</article>
 	<div class="discover-context">
-		<h2>{vr('contextual')}</h2>
-		<p class="vr-muted">{vr('contextualHint')}</p>
-		<div class="context-list">
-			{#each clients as instance (instance.uuid)}<button
-					onclick={() =>
-						openContentExplorer({
-							instance,
-							kind: instance.loader === 'vanilla' ? 'resourcepack' : 'mod'
-						})}
-					><InstanceMark {instance} /><span
-						><strong>{instance.name}</strong><small>{instance.mc_version} · {instance.loader}</small
-						></span
-					><ArrowUpRight size={18} /></button
-				>{:else}<div class="vr-muted">
-					<Box size={22} />
-					<p>{vr('noExplore')}</p>
-				</div>{/each}
-		</div>
+		<button type="button" class="vr-control" onclick={() => openModal('importInstance')}
+			><Box size={17} />{tr('Importar una instancia', 'Import an instance')}</button
+		>
 	</div>
+	{#if experience.mode === 'advanced'}<div class="discover-context">
+			<h2>{vr('contextual')}</h2>
+			<p class="vr-muted">{vr('contextualHint')}</p>
+			<div class="context-list">
+				{#each clients as instance (instance.uuid)}<button
+						onclick={() =>
+							openContentExplorer({
+								instance,
+								kind: instance.loader === 'vanilla' ? 'resourcepack' : 'mod'
+							})}
+						><InstanceMark {instance} /><span
+							><strong>{instance.name}</strong><small
+								>{instance.mc_version} · {instance.loader}</small
+							></span
+						><ArrowUpRight size={18} /></button
+					>{:else}<div class="vr-muted">
+						<Box size={22} />
+						<p>{vr('noExplore')}</p>
+					</div>{/each}
+			</div>
+		</div>{/if}
 </section>
 
 <style>

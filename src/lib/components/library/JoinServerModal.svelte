@@ -6,6 +6,7 @@
 		launchInstance,
 		getFavoriteServers,
 		addFavoriteServer,
+		updateFavoriteServer,
 		removeFavoriteServer,
 		pingServer
 	} from '$lib/api';
@@ -17,7 +18,8 @@
 		ServerStatus
 	} from '$lib/types/types';
 	import { t } from '$lib/i18n/index.svelte';
-	import { Loader2, Star, Trash2, Play } from 'lucide-svelte';
+	import { tr } from '$lib/i18n/experience';
+	import { Loader2, Star, Trash2, Play, Pencil } from 'lucide-svelte';
 
 	let {
 		instances,
@@ -31,11 +33,7 @@
 		onLaunched: () => void;
 	} = $props();
 
-	// Unirse a un servidor es multijugador — las cuentas offline/cracked no
-	// pueden (ver [[project_gameplay_rules]] / account_policy.rs, misma
-	// regla ya aplicada del lado del backend, esto es solo para no dejar
-	// ni intentarlo desde acá).
-	const blocked = $derived(currentUser?.user_type === 'Cracked');
+	const blocked = $derived(!currentUser);
 
 	// Solo instancias de cliente — una instancia de servidor no tiene
 	// sentido "unirla" a otro servidor.
@@ -99,6 +97,7 @@
 	let savingFavorite = $state(false);
 	let favoriteName = $state('');
 	let favoriteError = $state<string | null>(null);
+	let editingFavorite = $state<string | null>(null);
 
 	async function refreshStatus(fav: FavoriteServer) {
 		statuses[fav.id] = 'loading';
@@ -133,9 +132,14 @@
 	async function handleSaveFavorite() {
 		favoriteError = null;
 		try {
-			const added = await addFavoriteServer(favoriteName, address.trim());
-			favorites = [...favorites, added];
+			const added = editingFavorite
+				? await updateFavoriteServer(editingFavorite, favoriteName, address.trim())
+				: await addFavoriteServer(favoriteName, address.trim());
+			favorites = editingFavorite
+				? favorites.map((f) => (f.id === added.id ? added : f))
+				: [...favorites, added];
 			savingFavorite = false;
+			editingFavorite = null;
 			favoriteName = '';
 			void refreshStatus(added);
 		} catch (e) {
@@ -258,6 +262,22 @@
 							</button>
 							<button
 								type="button"
+								class="fav-icon"
+								disabled={joining}
+								aria-label={tr('Editar favorito', 'Edit favorite')}
+								title={tr('Editar favorito', 'Edit favorite')}
+								onclick={() => {
+									address = fav.address;
+									favoriteName = fav.name;
+									editingFavorite = fav.id;
+									savingFavorite = true;
+									favoriteError = null;
+								}}
+							>
+								<Pencil size={13} />
+							</button>
+							<button
+								type="button"
 								class="fav-icon danger"
 								disabled={joining}
 								onclick={() => handleRemoveFavorite(fav)}
@@ -288,12 +308,16 @@
 					disabled={joining || !address.trim() || alreadyFavorite}
 					title={alreadyFavorite ? t('joinServer.alreadyFavorite') : t('joinServer.saveFavorite')}
 					aria-label={t('joinServer.saveFavorite')}
-					onclick={() => (savingFavorite = !savingFavorite)}
+					onclick={() => {
+						editingFavorite = null;
+						favoriteName = '';
+						savingFavorite = !savingFavorite;
+					}}
 				>
 					<Star size={15} fill={alreadyFavorite ? 'currentColor' : 'none'} />
 				</button>
 			</div>
-			{#if savingFavorite && !alreadyFavorite}
+			{#if savingFavorite && (editingFavorite || !alreadyFavorite)}
 				<div class="address-row">
 					<input
 						type="text"
@@ -302,9 +326,25 @@
 						maxlength="40"
 						onkeydown={(e) => e.key === 'Enter' && handleSaveFavorite()}
 					/>
-					<button data-pixel-control type="button" class="btn" onclick={handleSaveFavorite}
-						>{t('joinServer.saveFavoriteConfirm')}</button
+					<button
+						data-pixel-control
+						type="button"
+						class="btn"
+						disabled={!address.trim()}
+						onclick={handleSaveFavorite}
+						>{editingFavorite
+							? tr('Actualizar favorito', 'Update favorite')
+							: t('joinServer.saveFavoriteConfirm')}</button
 					>
+					{#if editingFavorite}<button
+							type="button"
+							class="btn"
+							onclick={() => {
+								editingFavorite = null;
+								savingFavorite = false;
+								favoriteError = null;
+							}}>{t('common.cancel')}</button
+						>{/if}
 				</div>
 			{/if}
 			{#if favoriteError}<p class="error">{favoriteError}</p>{/if}

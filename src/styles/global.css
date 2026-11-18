@@ -107,10 +107,10 @@
 	--text-secondary: #a1a1aa;
 	--text-muted: #71717a;
 
-	--accent: #ff7a2e;
-	--accent-rgb: 255, 122, 46;
-	--accent-hover: #ff9152;
-	--accent-text: #0c0c0c;
+	--accent: #3b82f6;
+	--accent-rgb: 59, 130, 246;
+	--accent-hover: #60a5fa;
+	--accent-text: #071b35;
 
 	--bg-overlay: rgba(0, 0, 0, 0.7);
 	--border-radius: 10px;
@@ -270,9 +270,9 @@
 	--text-secondary: #5b5b5e;
 	--text-muted: #86868a;
 
-	--accent: #e05a00;
-	--accent-rgb: 224, 90, 0;
-	--accent-hover: #c94e00;
+	--accent: #3b82f6;
+	--accent-rgb: 59, 130, 246;
+	--accent-hover: #2563eb;
 	--accent-text: #ffffff;
 
 	--bg-overlay: rgba(0, 0, 0, 0.4);
@@ -317,7 +317,14 @@
 	--accent: #3b82f6;
 	--accent-rgb: 59, 130, 246;
 	--accent-hover: #60a5fa;
-	--accent-text: #ffffff;
+	--accent-text: #071b35;
+}
+
+:root[data-accent='orange'] {
+	--accent: #ff7a2e;
+	--accent-rgb: 255, 122, 46;
+	--accent-hover: #ff9152;
+	--accent-text: #0c0c0c;
 }
 
 :root[data-accent='rose'] {
@@ -473,7 +480,6 @@ select,
 .swatch,
 .wallpaper-swatch,
 .icon-swatch,
-.mascot-swatch,
 .ptab,
 .instance-item,
 .mod-card,

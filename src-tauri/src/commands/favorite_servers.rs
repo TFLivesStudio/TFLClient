@@ -16,6 +16,7 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(4);
 const IO_TIMEOUT: Duration = Duration::from_secs(4);
 const MAX_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 const MAX_FAVORITES: usize = 50;
+static MUTATION: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FavoriteServer {
@@ -39,16 +40,49 @@ async fn load_favorites() -> Vec<FavoriteServer> {
 
 async fn save_favorites(list: &[FavoriteServer]) -> Result<(), String> {
     let json = serde_json::to_string_pretty(list).map_err(|e| e.to_string())?;
-    tokio::fs::write(favorites_path(), json)
+    let path = favorites_path();
+    let tmp = path.with_extension("tmp");
+    tokio::fs::write(&tmp, json)
+        .await
+        .map_err(|e| e.to_string())?;
+    tokio::fs::rename(tmp, path)
         .await
         .map_err(|e| e.to_string())
+}
+
+async fn load_for_mutation() -> Result<Vec<FavoriteServer>, String> {
+    match tokio::fs::read_to_string(favorites_path()).await {
+        Ok(raw) => serde_json::from_str(&raw)
+            .map_err(|_| "No se pudo leer la lista de favoritos. El archivo se conservó.".into()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(vec![]),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 /// `host` o `host:puerto` → (host, puerto). Solo caracteres de nombre de
 /// host: la dirección termina en una conexión TCP saliente, no debe poder
 /// llevar nada raro.
-fn parse_address(address: &str) -> Result<(String, u16), String> {
+pub(crate) fn parse_address(address: &str) -> Result<(String, u16), String> {
     let address = address.trim();
+    if let Ok(ip) = address.parse::<std::net::Ipv6Addr>() {
+        return Ok((ip.to_string(), DEFAULT_PORT));
+    }
+    if let Some(rest) = address.strip_prefix('[') {
+        let (host, suffix) = rest.split_once(']').ok_or("Dirección IPv6 inválida")?;
+        let ip = host
+            .parse::<std::net::Ipv6Addr>()
+            .map_err(|_| "Dirección IPv6 inválida")?;
+        let port = if suffix.is_empty() {
+            DEFAULT_PORT
+        } else {
+            suffix
+                .strip_prefix(':')
+                .and_then(|p| p.parse::<u16>().ok())
+                .filter(|p| *p > 0)
+                .ok_or("El puerto de la dirección no es válido")?
+        };
+        return Ok((ip.to_string(), port));
+    }
     let (host, port) = match address.rsplit_once(':') {
         Some((h, p)) => (
             h,
@@ -68,6 +102,18 @@ fn parse_address(address: &str) -> Result<(String, u16), String> {
     Ok((host.to_string(), port))
 }
 
+fn normalize_address(address: &str) -> Result<(String, String), String> {
+    let (host, port) = parse_address(address)?;
+    let address = if host.contains(':') {
+        format!("[{host}]:{port}")
+    } else if port == DEFAULT_PORT {
+        host.clone()
+    } else {
+        format!("{host}:{port}")
+    };
+    Ok((host, address))
+}
+
 #[command]
 pub async fn get_favorite_servers() -> Vec<FavoriteServer> {
     load_favorites().await
@@ -75,17 +121,13 @@ pub async fn get_favorite_servers() -> Vec<FavoriteServer> {
 
 #[command]
 pub async fn add_favorite_server(name: String, address: String) -> Result<FavoriteServer, String> {
-    let (host, port) = parse_address(&address)?;
-    let normalized = if port == DEFAULT_PORT {
-        host.clone()
-    } else {
-        format!("{host}:{port}")
-    };
+    let _guard = MUTATION.lock().await;
+    let (host, normalized) = normalize_address(&address)?;
     let name = name.trim();
     let name = if name.is_empty() { host.as_str() } else { name };
     let name: String = name.chars().take(40).collect();
 
-    let mut list = load_favorites().await;
+    let mut list = load_for_mutation().await?;
     if list
         .iter()
         .any(|f| f.address.eq_ignore_ascii_case(&normalized))
@@ -106,8 +148,39 @@ pub async fn add_favorite_server(name: String, address: String) -> Result<Favori
 }
 
 #[command]
+pub async fn update_favorite_server(
+    id: String,
+    name: String,
+    address: String,
+) -> Result<FavoriteServer, String> {
+    let _guard = MUTATION.lock().await;
+    let (host, address) = normalize_address(&address)?;
+    let mut list = load_for_mutation().await?;
+    if list
+        .iter()
+        .any(|f| f.id != id && f.address.eq_ignore_ascii_case(&address))
+    {
+        return Err("Ese servidor ya está en favoritos".into());
+    }
+    let entry = list
+        .iter_mut()
+        .find(|f| f.id == id)
+        .ok_or("No se encontró ese favorito")?;
+    entry.address = address;
+    entry.name = if name.trim().is_empty() {
+        host
+    } else {
+        name.trim().chars().take(40).collect()
+    };
+    let saved = entry.clone();
+    save_favorites(&list).await?;
+    Ok(saved)
+}
+
+#[command]
 pub async fn remove_favorite_server(id: String) -> Result<(), String> {
-    let mut list = load_favorites().await;
+    let _guard = MUTATION.lock().await;
+    let mut list = load_for_mutation().await?;
     list.retain(|f| f.id != id);
     save_favorites(&list).await
 }

@@ -2,6 +2,7 @@ pub mod account_policy;
 pub mod bundled_resources;
 pub mod errors;
 pub mod event_bus;
+pub mod file_dialog;
 pub mod http_client;
 pub mod path_manager;
 pub mod perf;

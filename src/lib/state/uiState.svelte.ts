@@ -18,17 +18,16 @@ export const ui = $state<{
 	/** Se acaba de completar el onboarding de cuenta en esta sesión. */
 	justOnboarded: boolean;
 	/** El banner de modo de diálogos se cerró con la X (solo por esta sesión). */
-	dialogPromptDismissed: boolean;
 	/** Menú contextual abierto sobre una instancia de la barra lateral. */
 	contextMenu: ContextMenuState | null;
 }>({
 	loading: true,
 	justOnboarded: false,
-	dialogPromptDismissed: false,
 	contextMenu: null
 });
 
 export const modals = $state({
+	activities: false,
 	createChooser: false,
 	create: false,
 	createServer: false,
@@ -113,23 +112,6 @@ export function isCommandPaletteBlocked(): boolean {
 export const flow = {
 	get needsOnboarding(): boolean {
 		return appState.settings?.onboarded !== true;
-	},
-	// Instalación nueva: se pregunta el modo automático/manual como modal
-	// bloqueante justo después del onboarding de cuenta (ver `justOnboarded`).
-	// Usuario existente que actualiza a una versión con este campo (nunca
-	// pasó por `justOnboarded` en esta sesión): mismo aviso pero como banner
-	// no bloqueante — ver NativeDialogModePrompt.svelte. Ambos casos dejan
-	// de mostrarse apenas se elige un modo (marca `native_dialog_mode_prompted`).
-	// Cerrar el banner con la X sin elegir nada (`dialogPromptDismissed`) NO
-	// persiste ningún modo — solo lo oculta por esta sesión; la próxima vez
-	// que se abra el launcher se vuelve a preguntar, en vez de fijar
-	// "Automático" en silencio como pasaba antes.
-	get needsDialogModePrompt(): boolean {
-		return (
-			appState.settings?.onboarded === true &&
-			appState.settings?.native_dialog_mode_prompted !== true &&
-			!ui.dialogPromptDismissed
-		);
 	}
 };
 

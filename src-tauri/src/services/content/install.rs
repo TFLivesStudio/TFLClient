@@ -56,7 +56,7 @@ impl<P: ContentProvider> ContentService<P> {
                     .clone()
                     .unwrap_or_else(|| conflict.filename.clone());
                 return Err(format!(
-                    "Este mod no es compatible con \"{conflict_name}\", que ya tenés instalado — son motores de renderizado alternativos, no pueden convivir. Sacá uno de los dos antes de instalar el otro."
+                    "Este mod no es compatible con \"{conflict_name}\", que ya tienes instalado — son motores de renderizado alternativos, no pueden convivir. Retira uno de los dos antes de instalar el otro."
                 ));
             }
             super::installed::projects_from_info(&already_installed)

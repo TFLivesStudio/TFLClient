@@ -1,19 +1,18 @@
-//! Importar instancias que el usuario ya tiene en otros launchers (Prism /
-//! MultiMC / PolyMC y la app de CurseForge) — así quien se pasa a TFL Client
-//! no rearma a mano cada instancia. Se detectan solas en las carpetas
-//! estándar de cada launcher: no hace falta ningún diálogo de archivos
-//! (que en modo Automático está deshabilitado a propósito).
+//! Bounded discovery adapters for the MultiMC family, CurseForge installed
+//! instances and Modrinth's documented SQLite schema. Import/copy and manual
+//! source preview are implemented by import_sources, never by brand names.
 
 use crate::services::instance_manager;
 use directories::BaseDirs;
 use serde::Serialize;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, command};
 
 /// Qué se copia de la carpeta de juego de la instancia original. Lo demás
 /// (logs, crash-reports, versions, libraries, assets…) lo regenera el
 /// launcher o no sirve fuera de su launcher de origen.
-const COPY_ENTRIES: &[&str] = &[
+pub(super) const COPY_ENTRIES: &[&str] = &[
     "mods",
     "config",
     "defaultconfigs",
@@ -25,25 +24,27 @@ const COPY_ENTRIES: &[&str] = &[
     "options.txt",
     "optionsshaders.txt",
     "servers.dat",
+    "screenshots",
+    "texturepacks",
+    "optionsof.txt",
 ];
 
 #[derive(Debug, Serialize, Clone)]
 pub struct ImportCandidate {
-    /// "prism" | "multimc" | "polymc" | "curseforge"
+    /// Origin label for discovery. The preview selects the format adapter.
     pub source: String,
     pub name: String,
-    /// Carpeta raíz de la instancia en su launcher de origen — identifica al
-    /// candidato (el import la vuelve a buscar entre los detectados, nunca
-    /// copia de una ruta arbitraria).
+    /// Carpeta raíz de la instancia en su launcher de origen.
     pub path: String,
     pub mc_version: Option<String>,
     pub loader: String,
     pub mod_count: u32,
+    pub loader_version: Option<String>,
 }
 
-struct Detected {
-    candidate: ImportCandidate,
-    game_dir: PathBuf,
+pub(super) struct Detected {
+    pub candidate: ImportCandidate,
+    pub game_dir: PathBuf,
 }
 
 fn launcher_roots() -> Vec<(&'static str, PathBuf)> {
@@ -62,6 +63,15 @@ fn launcher_roots() -> Vec<(&'static str, PathBuf)> {
         ("multimc", data.join("multimc").join("instances")),
         ("polymc", data.join("PolyMC").join("instances")),
         ("polymc", data.join("polymc").join("instances")),
+        ("freesm", data.join("FreesmLauncher").join("instances")),
+        (
+            "freesm",
+            home.join(".var/app/org.freesmlauncher.FreesmLauncher/data/FreesmLauncher/instances"),
+        ),
+        (
+            "polymc",
+            home.join(".var/app/org.polymc.PolyMC/data/PolyMC/instances"),
+        ),
         (
             "curseforge",
             home.join("curseforge").join("minecraft").join("Instances"),
@@ -79,7 +89,8 @@ fn launcher_roots() -> Vec<(&'static str, PathBuf)> {
 fn count_mods(game_dir: &Path) -> u32 {
     std::fs::read_dir(game_dir.join("mods"))
         .map(|rd| {
-            rd.flatten()
+            rd.take(50_000)
+                .flatten()
                 .filter(|e| {
                     e.path()
                         .extension()
@@ -91,36 +102,61 @@ fn count_mods(game_dir: &Path) -> u32 {
         .unwrap_or(0)
 }
 
+fn read_small(path: &Path) -> Option<String> {
+    const LIMIT: u64 = 2 * 1024 * 1024;
+    crate::services::worlds::no_link(path).ok()?;
+    let file = std::fs::File::open(path).ok()?;
+    let meta = file.metadata().ok()?;
+    if !meta.is_file() || meta.len() > LIMIT {
+        return None;
+    }
+    let mut data = String::new();
+    file.take(LIMIT + 1).read_to_string(&mut data).ok()?;
+    (data.len() as u64 <= LIMIT).then_some(data)
+}
+
 /// Prism/MultiMC/PolyMC: `mmc-pack.json` lista los componentes (Minecraft +
 /// loader) y `instance.cfg` el nombre. La carpeta de juego es `minecraft/`
 /// o `.minecraft/` según la versión del launcher.
-fn detect_mmc_style(source: &str, dir: &Path) -> Option<Detected> {
-    let pack_raw = std::fs::read_to_string(dir.join("mmc-pack.json")).ok()?;
+pub(super) fn detect_mmc_style(source: &str, dir: &Path) -> Option<Detected> {
+    let pack_raw = read_small(&dir.join("mmc-pack.json"))?;
     let pack: serde_json::Value = serde_json::from_str(&pack_raw).ok()?;
     let components = pack.get("components")?.as_array()?;
 
     let mut mc_version = None;
     let mut loader = "vanilla";
+    let mut loader_version = None;
     for c in components {
         let uid = c.get("uid").and_then(|u| u.as_str()).unwrap_or("");
         let version = c.get("version").and_then(|v| v.as_str());
         match uid {
             "net.minecraft" => mc_version = version.map(String::from),
-            "net.fabricmc.fabric-loader" => loader = "fabric",
-            "org.quiltmc.quilt-loader" => loader = "quilt",
-            "net.neoforged" => loader = "neoforge",
-            "net.minecraftforge" => loader = "forge",
+            "net.fabricmc.fabric-loader" => {
+                loader = "fabric";
+                loader_version = version.map(String::from);
+            }
+            "org.quiltmc.quilt-loader" => {
+                loader = "quilt";
+                loader_version = version.map(String::from);
+            }
+            "net.neoforged" => {
+                loader = "neoforge";
+                loader_version = version.map(String::from);
+            }
+            "net.minecraftforge" => {
+                loader = "forge";
+                loader_version = version.map(String::from);
+            }
             _ => {}
         }
     }
 
-    let game_dir = ["minecraft", ".minecraft"]
+    let game_dir = [".minecraft", "minecraft"]
         .iter()
         .map(|d| dir.join(d))
         .find(|d| d.is_dir())?;
 
-    let name = std::fs::read_to_string(dir.join("instance.cfg"))
-        .ok()
+    let name = read_small(&dir.join("instance.cfg"))
         .and_then(|cfg| {
             cfg.lines()
                 .find_map(|l| l.strip_prefix("name=").map(|n| n.trim().to_string()))
@@ -136,6 +172,7 @@ fn detect_mmc_style(source: &str, dir: &Path) -> Option<Detected> {
             mc_version,
             loader: loader.into(),
             mod_count: count_mods(&game_dir),
+            loader_version,
         },
         game_dir,
     })
@@ -144,8 +181,8 @@ fn detect_mmc_style(source: &str, dir: &Path) -> Option<Detected> {
 /// App de CurseForge: `minecraftinstance.json` con `gameVersion` y
 /// `baseModLoader.name` ("forge-47.2.0", "fabric-0.15.11-1.20.1"…). La
 /// carpeta de juego es la propia carpeta de la instancia.
-fn detect_curseforge(dir: &Path) -> Option<Detected> {
-    let raw = std::fs::read_to_string(dir.join("minecraftinstance.json")).ok()?;
+pub(super) fn detect_curseforge(dir: &Path) -> Option<Detected> {
+    let raw = read_small(&dir.join("minecraftinstance.json"))?;
     let json: serde_json::Value = serde_json::from_str(&raw).ok()?;
     let mc_version = json
         .get("gameVersion")
@@ -158,16 +195,18 @@ fn detect_curseforge(dir: &Path) -> Option<Detected> {
         .to_ascii_lowercase();
     // "neoforge" antes que "forge": "neoforge-…" no empieza con "forge-"
     // pero conviene que el orden no dependa de eso.
-    let loader = if loader_name.starts_with("neoforge") {
+    let loader = if loader_name.starts_with("neoforge-") {
         "neoforge"
-    } else if loader_name.starts_with("forge") {
+    } else if loader_name.starts_with("forge-") {
         "forge"
-    } else if loader_name.starts_with("fabric") {
+    } else if loader_name.starts_with("fabric-") {
         "fabric"
-    } else if loader_name.starts_with("quilt") {
+    } else if loader_name.starts_with("quilt-") {
         "quilt"
-    } else {
+    } else if loader_name.is_empty() || loader_name == "vanilla" {
         "vanilla"
+    } else {
+        &loader_name
     };
     let name = json
         .get("name")
@@ -175,6 +214,17 @@ fn detect_curseforge(dir: &Path) -> Option<Detected> {
         .map(String::from)
         .or_else(|| dir.file_name().and_then(|n| n.to_str()).map(String::from))?;
 
+    let loader_version = loader_name
+        .strip_prefix(&format!("{loader}-"))
+        .map(|value| {
+            let value = value
+                .strip_suffix(&format!("-{}", mc_version.as_deref().unwrap_or("")))
+                .unwrap_or(value);
+            value
+                .strip_prefix(&format!("{}-", mc_version.as_deref().unwrap_or("")))
+                .unwrap_or(value)
+                .to_string()
+        });
     Some(Detected {
         candidate: ImportCandidate {
             source: "curseforge".into(),
@@ -183,6 +233,7 @@ fn detect_curseforge(dir: &Path) -> Option<Detected> {
             mc_version,
             loader: loader.into(),
             mod_count: count_mods(dir),
+            loader_version,
         },
         game_dir: dir.to_path_buf(),
     })
@@ -224,31 +275,71 @@ fn detect_modrinth_app() -> Vec<Detected> {
     }
 }
 
-fn query_modrinth_app_db(settings_dir: &Path, db_path: &Path) -> rusqlite::Result<Vec<Detected>> {
+pub(super) fn query_modrinth_app_db(
+    settings_dir: &Path,
+    db_path: &Path,
+) -> rusqlite::Result<Vec<Detected>> {
+    if crate::services::worlds::no_link(db_path).is_err() {
+        return Err(rusqlite::Error::InvalidQuery);
+    }
     let flags =
         rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX;
     let conn = rusqlite::Connection::open_with_flags(db_path, flags)?;
+    conn.pragma_update(None, "query_only", true)?;
+    conn.pragma_update(None, "trusted_schema", false)?;
+    conn.pragma_update(None, "cache_size", -1024)?;
     // Si la app de Modrinth tiene el archivo con un lock de escritura en
     // este instante, no nos quedamos colgados esperando.
     conn.busy_timeout(std::time::Duration::from_millis(500))?;
-    let mut stmt = conn.prepare(
-        "SELECT i.name, i.path, cs.game_version, cs.loader \
+    let has_loader_version = {
+        let mut columns = conn.prepare("PRAGMA table_info(instance_content_sets)")?;
+        columns
+            .query_map([], |row| row.get::<_, String>(1))?
+            .filter_map(Result::ok)
+            .any(|name| name == "loader_version")
+    };
+    let loader_version_column = if has_loader_version {
+        "cs.loader_version"
+    } else {
+        "NULL"
+    };
+    let mut stmt = conn.prepare(&format!(
+        "SELECT i.name, i.path, cs.game_version, cs.loader, {loader_version_column} \
          FROM instances i \
-         LEFT JOIN instance_content_sets cs ON cs.id = i.applied_content_set_id",
-    )?;
+         LEFT JOIN instance_content_sets cs ON cs.id = i.applied_content_set_id LIMIT 1000"
+    ))?;
     let rows = stmt.query_map([], |row| {
         Ok((
             row.get::<_, String>(0)?,
             row.get::<_, String>(1)?,
             row.get::<_, Option<String>>(2)?,
             row.get::<_, Option<String>>(3)?,
+            row.get::<_, Option<String>>(4)?,
         ))
     })?;
 
-    let profiles_dir = settings_dir.join("profiles");
+    let custom_dir = conn
+        .query_row("SELECT custom_dir FROM settings LIMIT 1", [], |row| {
+            row.get::<_, Option<String>>(0)
+        })
+        .ok()
+        .flatten()
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute());
+    let profiles_dir = custom_dir
+        .unwrap_or_else(|| settings_dir.to_path_buf())
+        .join("profiles");
     let mut out = Vec::new();
     for row in rows.flatten() {
-        let (name, rel_path, mc_version, loader) = row;
+        let (name, rel_path, mc_version, loader, loader_version) = row;
+        if rel_path.is_empty()
+            || rel_path.contains('\\')
+            || rel_path
+                .split('/')
+                .any(|part| crate::services::worlds::valid_name(part).is_err())
+        {
+            continue;
+        }
         let game_dir = profiles_dir.join(&rel_path);
         if !game_dir.is_dir() {
             // Fila vieja de una instancia que ya se borró — la carpeta no
@@ -263,6 +354,7 @@ fn query_modrinth_app_db(settings_dir: &Path, db_path: &Path) -> rusqlite::Resul
                 mc_version,
                 loader: loader.unwrap_or_else(|| "vanilla".into()),
                 mod_count: count_mods(&game_dir),
+                loader_version,
             },
             game_dir,
         });
@@ -270,15 +362,15 @@ fn query_modrinth_app_db(settings_dir: &Path, db_path: &Path) -> rusqlite::Resul
     Ok(out)
 }
 
-fn detect_all() -> Vec<Detected> {
+pub(super) fn detect_all() -> Vec<Detected> {
     let mut out: Vec<Detected> = detect_modrinth_app();
     for (source, root) in launcher_roots() {
         let Ok(entries) = std::fs::read_dir(&root) else {
             continue;
         };
-        for entry in entries.flatten() {
+        for entry in entries.take(1000).flatten() {
             let dir = entry.path();
-            if !dir.is_dir() {
+            if !dir.is_dir() || crate::services::worlds::no_link(&dir).is_err() {
                 continue;
             }
             let found = if source == "curseforge" {
@@ -311,76 +403,15 @@ pub async fn detect_importable_instances() -> Result<Vec<ImportCandidate>, Strin
         .map_err(|e| e.to_string())
 }
 
-fn copy_recursive(from: &Path, to: &Path) -> std::io::Result<()> {
-    if from.is_dir() {
-        std::fs::create_dir_all(to)?;
-        for entry in std::fs::read_dir(from)?.flatten() {
-            copy_recursive(&entry.path(), &to.join(entry.file_name()))?;
-        }
-        Ok(())
-    } else {
-        if let Some(parent) = to.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        std::fs::copy(from, to).map(|_| ())
-    }
-}
-
-/// Crea una instancia nueva con la versión y loader de la original y le
-/// copia mods, configs, mundos, packs y opciones. La original no se toca.
-/// El loader se instala en su última versión para esa versión de
-/// Minecraft (no se replica la versión exacta del launcher de origen).
+/// Compatibility route; manual and discovered sources use one verified copier.
 #[command]
 pub async fn import_external_instance(
     app: AppHandle,
     path: String,
     new_name: String,
 ) -> Result<instance_manager::InstanceData, String> {
-    let detected = tokio::task::spawn_blocking(detect_all)
-        .await
-        .map_err(|e| e.to_string())?;
-    let found = detected
-        .into_iter()
-        .find(|d| d.candidate.path == path)
-        .ok_or("Esa instancia ya no está disponible en su launcher de origen")?;
-    let mc_version = found
-        .candidate
-        .mc_version
-        .clone()
-        .ok_or("No se pudo detectar la versión de Minecraft de esa instancia")?;
-
-    let created = crate::commands::instance::create_instance(
-        app,
-        new_name,
-        mc_version,
-        found.candidate.loader.clone(),
-    )
-    .await?;
-
-    let dest = created.dir();
-    let game_dir = found.game_dir;
-    let copy_result = tokio::task::spawn_blocking(move || -> std::io::Result<()> {
-        for entry in COPY_ENTRIES {
-            let from = game_dir.join(entry);
-            if from.exists() {
-                copy_recursive(&from, &dest.join(entry))?;
-            }
-        }
-        Ok(())
-    })
-    .await
-    .map_err(|e| e.to_string())?;
-
-    if let Err(e) = copy_result {
-        // Mejor no dejar una instancia a medio copiar como si estuviera bien.
-        let _ = instance_manager::delete_instance(&created.name).await;
-        return Err(format!(
-            "No se pudo copiar el contenido de la instancia: {e}"
-        ));
-    }
-    Ok(created)
+    super::import_sources::import_instance_source(app, path, new_name, None, None).await
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;

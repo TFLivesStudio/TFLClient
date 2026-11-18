@@ -230,6 +230,14 @@ pub async fn update_download(app: AppHandle) -> Result<(), String> {
 /// launcher por su cuenta; en el resto devuelve OK y el frontend reinicia.
 #[command]
 pub async fn update_install() -> Result<(), String> {
+    if !crate::services::launcher::running_instances().is_empty()
+        || crate::services::server_process::any_server_running()
+        || crate::services::server_tasks::active_tasks().await
+        || crate::commands::import_sources::any_critical_import()
+        || crate::services::progress::has_active_downloads()
+    {
+        return Err("Cierra las partidas y espera a que terminen las actividades antes de instalar la actualización.".into());
+    }
     let (update, bytes) = {
         let mut guard = PENDING.lock();
         let pending = guard
@@ -241,10 +249,17 @@ pub async fn update_install() -> Result<(), String> {
             .ok_or("La actualización todavía no se descargó")?;
         (pending.update.clone(), bytes)
     };
-    tauri::async_runtime::spawn_blocking(move || update.install(bytes))
-        .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(move || {
+        if let Err(e) = update.install(&bytes) {
+            if let Some(pending) = PENDING.lock().as_mut() {
+                pending.bytes = Some(bytes);
+            }
+            return Err(e.to_string());
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[cfg(test)]

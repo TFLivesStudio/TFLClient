@@ -357,7 +357,7 @@ pub fn validate_manifest(
         Some(min) if catalog::valid_release(min) => {
             if !launcher_meets(min, launcher_version) {
                 return Err(ManifestError::LauncherUpdateRequired(format!(
-                    "requiere TFL Client {min} o superior (tenés {launcher_version})"
+                    "requiere TFL Client {min} o superior (tienes {launcher_version})"
                 )));
             }
         }

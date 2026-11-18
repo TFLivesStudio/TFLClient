@@ -1,13 +1,13 @@
 <script lang="ts">
 	import StudioAccounts from '$lib/components/refresh/StudioAccounts.svelte';
 	import { vr } from '$lib/i18n/refresh';
-	import Mascot from '$lib/components/ui/Mascot.svelte';
-	import { getMascotFor } from '$lib/mascots';
+	import { tr } from '$lib/i18n/experience';
 
 	import { modalFocus } from '$lib/visual/modalFocus';
 	import { onMount } from 'svelte';
 	import {
 		getMojangProfile,
+		getCharacterProfile,
 		setSkinFromFile,
 		resetSkin,
 		setActiveCape,
@@ -22,7 +22,13 @@
 
 	let { onClose }: { onClose: () => void } = $props();
 
-	let profile = $state<MojangProfile | null>(null);
+	let loadedProfile = $state<{ uuid: string; profile: MojangProfile } | null>(null);
+	const profile = $derived(
+		loadedProfile?.uuid === appState.currentUser?.uuid ? (loadedProfile?.profile ?? null) : null
+	);
+	let editableUuid = $state<string | null>(null);
+	const canEdit = $derived(!!editableUuid && editableUuid === appState.currentUser?.uuid);
+	let requestSequence = 0;
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let busy = $state<string | null>(null);
@@ -41,7 +47,6 @@
 
 	// Subir skin usa el diálogo nativo de archivos, mismo riesgo conocido que
 	// ícono/wallpaper propio (ver InstanceIconPicker.svelte) — mismo gate.
-	const dialogsBlocked = $derived(appState.settings?.native_dialog_mode !== 'manual');
 	const activeSkin = $derived(profile?.skins.find((s) => s.state === 'ACTIVE') ?? null);
 	const activeCape = $derived(profile?.capes.find((c) => c.state === 'ACTIVE') ?? null);
 
@@ -52,9 +57,12 @@
 		skinLoadError = false;
 	});
 
-	async function load() {
-		profile = null;
-		if (!appState.currentUser || appState.currentUser.user_type === 'Cracked') {
+	async function load(authorize = false) {
+		const account = appState.currentUser;
+		const sequence = ++requestSequence;
+		loadedProfile = null;
+		editableUuid = null;
+		if (!account) {
 			loading = false;
 			error = null;
 			return;
@@ -62,26 +70,42 @@
 		loading = true;
 		error = null;
 		try {
-			profile = await getMojangProfile();
-			const current = profile.skins.find((s) => s.state === 'ACTIVE');
+			const cosmetic = await getCharacterProfile(account.uuid);
+			if (sequence !== requestSequence || account.uuid !== appState.currentUser?.uuid) return;
+			loadedProfile = { uuid: account.uuid, profile: cosmetic };
+			// Merely viewing a cached character must never renew authentication.
+			// Access to owned skins/capes is requested explicitly by the user.
+			if (authorize && account.user_type === 'Microsoft') {
+				const owned = await getMojangProfile();
+				if (sequence !== requestSequence || account.uuid !== appState.currentUser?.uuid) return;
+				loadedProfile = { uuid: account.uuid, profile: owned };
+				editableUuid = account.uuid;
+			}
+			const current = loadedProfile.profile.skins.find((s) => s.state === 'ACTIVE');
 			if (current) variant = current.variant.toLowerCase() as 'classic' | 'slim';
 		} catch (e) {
-			error = String(e);
+			if (sequence === requestSequence) error = String(e);
 		} finally {
-			loading = false;
+			if (sequence === requestSequence) loading = false;
 		}
 	}
-	onMount(load);
+	onMount(() => {
+		void load();
+		return () => {
+			requestSequence++;
+		};
+	});
 
 	async function uploadSkin() {
-		if (dialogsBlocked) return;
+		if (!canEdit) return;
+		const accountUuid = appState.currentUser?.uuid;
 		const path = await pickImageFile();
-		if (!path) return;
+		if (!path || accountUuid !== appState.currentUser?.uuid) return;
 		busy = 'upload';
 		error = null;
 		try {
 			await setSkinFromFile(path, variant);
-			await load();
+			await load(true);
 		} catch (e) {
 			error = String(e);
 		} finally {
@@ -90,11 +114,12 @@
 	}
 
 	async function doResetSkin() {
+		if (!canEdit) return;
 		busy = 'reset';
 		error = null;
 		try {
 			await resetSkin();
-			await load();
+			await load(true);
 		} catch (e) {
 			error = String(e);
 		} finally {
@@ -103,11 +128,12 @@
 	}
 
 	async function chooseCape(capeId: string) {
+		if (!canEdit) return;
 		busy = capeId;
 		error = null;
 		try {
 			await setActiveCape(capeId);
-			await load();
+			await load(true);
 		} catch (e) {
 			error = String(e);
 		} finally {
@@ -116,11 +142,12 @@
 	}
 
 	async function removeCape() {
+		if (!canEdit) return;
 		busy = 'none';
 		error = null;
 		try {
 			await hideCape();
-			await load();
+			await load(true);
 		} catch (e) {
 			error = String(e);
 		} finally {
@@ -156,18 +183,24 @@
 
 		<div class="studio-layout">
 			<div class="viewer-row">
-				<div class="viewer-wrap">
-					{#if appState.currentUser?.user_type === 'Cracked'}
-						<Mascot id={getMascotFor(appState.currentUser.uuid)} size={180} />
-					{:else if !loading}
-						<SkinViewer3D
-							width={280}
-							height={360}
-							zoom={0.85}
-							skinUrl={activeSkin?.url ?? null}
-							capeUrl={activeCape?.url ?? null}
-							onSkinError={() => (skinLoadError = true)}
-						/>
+				<div
+					class="viewer-wrap"
+					class:account-offline={appState.currentUser?.user_type === 'Cracked'}
+				>
+					{#if appState.currentUser}
+						{#key appState.currentUser.uuid}
+							<SkinViewer3D
+								width={280}
+								height={360}
+								zoom={0.85}
+								skinUrl={skinLoadError
+									? '/skins/steve.png'
+									: (activeSkin?.url ?? '/skins/steve.png')}
+								model={!skinLoadError && activeSkin?.variant === 'SLIM' ? 'slim' : 'default'}
+								capeUrl={activeCape?.url ?? null}
+								onSkinError={() => (skinLoadError = true)}
+							/>
+						{/key}
 					{/if}
 					{#if loading}
 						<div class="viewer-loading"><Loader2 size={20} class="spin" /></div>
@@ -184,10 +217,28 @@
 				<span class="vr-eyebrow">TFL / {vr('account')}</span>
 				<h3 class="studio-title">{vr('wardrobe')}</h3>
 				<p class="vr-muted">{vr('wardrobeHint')}</p>
-				<StudioAccounts onChange={load} />
-				{#if appState.currentUser?.user_type === 'Cracked'}<p class="vr-muted">
-						{vr('offlineSkin')}
-					</p>{:else}
+				<StudioAccounts onChange={() => load()} />
+				{#if error}<p class="error" role="alert">{error}</p>{/if}
+				{#if !canEdit}
+					<p class="vr-muted">
+						{appState.currentUser?.user_type === 'Cracked'
+							? tr(
+									'Cuenta offline. La skin por nombre es solo una vista cosmética; no cambia el acceso a servidores.',
+									'Offline account. A name-based skin is a cosmetic preview; it does not change server access.'
+								)
+							: tr(
+									'La vista del personaje es independiente de tu sesión.',
+									'The character preview is independent of your session.'
+								)}
+					</p>
+					{#if appState.currentUser?.user_type === 'Microsoft'}<button
+							type="button"
+							class="action-btn"
+							disabled={loading}
+							onclick={() => load(true)}
+							>{tr('Administrar skin y capa oficiales', 'Manage official skin and cape')}</button
+						>{/if}
+				{:else}
 					<div class="tabs">
 						<button
 							type="button"
@@ -206,8 +257,6 @@
 							{t('skinManager.tabCape')}
 						</button>
 					</div>
-
-					{#if error}<p class="error">{error}</p>{/if}
 
 					{#if !loading}
 						{#if tab === 'skin'}
@@ -236,8 +285,7 @@
 									data-pixel-control="primary"
 									type="button"
 									class="action-btn primary"
-									disabled={busy === 'upload' || dialogsBlocked}
-									title={dialogsBlocked ? t('contentManager.manualModeRequired') : undefined}
+									disabled={busy === 'upload'}
 									onclick={uploadSkin}
 								>
 									{#if busy === 'upload'}<Loader2 size={14} class="spin" />{:else}<Upload
@@ -257,9 +305,6 @@
 										/>{/if}
 									{t('skinManager.resetSkin')}
 								</button>
-								{#if dialogsBlocked}
-									<p class="hint">{t('instanceIconPicker.autoModeNotice')}</p>
-								{/if}
 							</div>
 						{:else if profile && profile.capes.length === 0}
 							<p class="hint">{t('skinManager.noCapes')}</p>
@@ -303,6 +348,10 @@
 </div>
 
 <style>
+	.account-offline :global(canvas),
+	.account-offline :global(.pixel-person) {
+		filter: grayscale(1);
+	}
 	.overlay {
 		position: fixed;
 		inset: 0;

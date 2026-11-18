@@ -5,6 +5,8 @@
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 	import { tr } from '$lib/i18n/experience';
 	import { appState } from '$lib/state/state.svelte';
+	import { experience } from '$lib/state/experience.svelte';
+	import McpQuickConnect from './McpQuickConnect.svelte';
 	import {
 		ShieldCheck,
 		PlugZap,
@@ -124,8 +126,15 @@
 	onMount(() => {
 		void load();
 		let dispose = () => {};
-		void listen('mcp-changed', () => void load()).then((fn) => (dispose = fn));
-		return () => dispose();
+		let disposed = false;
+		void listen('mcp-changed', () => void load()).then((fn) => {
+			if (disposed) fn();
+			else dispose = fn;
+		});
+		return () => {
+			disposed = true;
+			dispose();
+		};
 	});
 </script>
 
@@ -144,87 +153,95 @@
 		<span class:enabled={status?.enabled} class="status">{connection}</span>
 	</div>
 	{#if error}<p role="alert" class="error">{error}</p>{/if}
-	<section>
-		<div class="section-heading">
-			<div>
-				<h4>{tr('Permitir control mediante IA', 'Allow control through AI')}</h4>
-				<p>
-					{tr(
-						'MCP local por stdio. Requiere el launcher abierto y una aprobación por cada sesión.',
-						'Local MCP over stdio. Requires the launcher to be open and approval for each session.'
-					)}
-				</p>
+	<McpQuickConnect
+		enabled={status?.enabled ?? false}
+		busy={busy || !status}
+		helperAvailable={!!status?.sidecar_path}
+		onEnable={() => action(() => invoke('mcp_enable', { enabled: !status?.enabled }))}
+	/>
+	{#if experience.mode === 'advanced'}
+		<section>
+			<div class="section-heading">
+				<div>
+					<h4>{tr('Permitir control mediante IA', 'Allow control through AI')}</h4>
+					<p>
+						{tr(
+							'MCP local por stdio. Requiere el launcher abierto y una aprobación por cada sesión.',
+							'Local MCP over stdio. Requires the launcher to be open and approval for each session.'
+						)}
+					</p>
+				</div>
+				<button
+					data-pixel-control="primary"
+					class="primary"
+					disabled={busy || !status}
+					onclick={() => action(() => invoke('mcp_enable', { enabled: !status?.enabled }))}
+					>{status?.enabled
+						? tr('Desactivar y revocar', 'Disable & revoke')
+						: tr('Activar MCP', 'Enable MCP')}</button
+				>
 			</div>
-			<button
-				data-pixel-control="primary"
-				class="primary"
-				disabled={busy || !status}
-				onclick={() => action(() => invoke('mcp_enable', { enabled: !status?.enabled }))}
-				>{status?.enabled
-					? tr('Desactivar y revocar', 'Disable & revoke')
-					: tr('Activar MCP', 'Enable MCP')}</button
-			>
-		</div>
-		<p class="security">
-			<LockKeyhole size={15} />{tr(
-				'Sin servidor HTTP ni acceso remoto. Tus cuentas y tokens nunca se comparten.',
-				'No HTTP server or remote access. Your accounts and tokens are never shared.'
-			)}
-		</p>
-	</section>
-	<section>
-		<div class="section-heading">
-			<h4>{tr('Conectar un asistente', 'Connect an assistant')}</h4>
-			<button
-				disabled={busy}
-				onclick={() =>
-					action(async () => {
-						await invoke('mcp_probe');
-						diagnostic = tr(
-							'Enlace autenticado correcto. Las consultas sin aprobación fueron rechazadas.',
-							'Authenticated connection verified. Unapproved queries were denied.'
-						);
-					})}><RefreshCw size={14} />{tr('Probar enlace local', 'Test local connection')}</button
-			>
-		</div>
-		<p>
-			{tr(
-				'1. Activa MCP. 2. Copia la configuración en tu cliente. 3. Inicia la conexión y aprueba la sesión aquí.',
-				'1. Enable MCP. 2. Copy the configuration into your client. 3. Start the connection and approve the session here.'
-			)}
-		</p>
-		{#if diagnostic}<p role="status" class="security">{diagnostic}</p>{/if}
-		<div class="client-tabs">
-			{#each [['codex', 'Codex'], ['opencode', 'OpenCode'], ['claude', 'Claude Code']] as [id, label] (id)}<button
-					class:selected={clientKind === id}
-					onclick={() => (clientKind = id)}>{label}</button
-				>{/each}
-		</div>
-		{#if status?.sidecar_path}<label class="config-label" for="mcp-config"
-				>{clientKind === 'codex'
-					? '~/.codex/config.toml'
-					: clientKind === 'opencode'
-						? 'opencode.json'
-						: tr(
-								'Configuración MCP del proyecto (.mcp.json)',
-								'Project MCP configuration (.mcp.json)'
-							)}</label
-			><textarea id="mcp-config" readonly value={snippet} rows={7} spellcheck="false"
-			></textarea><button onclick={copy}
-				><Copy size={14} />{copied || tr('Copiar configuración', 'Copy configuration')}</button
-			>{:else}<p class="notice">
-				{tr(
-					'El auxiliar MCP no está instalado junto al launcher. Usa un instalador que incluya esta integración; en desarrollo ejecuta el script de empaquetado del auxiliar.',
-					'The MCP helper is not installed beside the launcher. Use an installer that includes this integration; in development run the helper packaging script.'
+			<p class="security">
+				<LockKeyhole size={15} />{tr(
+					'Sin servidor HTTP ni acceso remoto. Tus cuentas y tokens nunca se comparten.',
+					'No HTTP server or remote access. Your accounts and tokens are never shared.'
 				)}
-			</p>{/if}
-		<p class="caption">
-			{tr(
-				'ChatGPT en la nube no puede acceder a este stdio local. No hay integración remota certificada. Consulta docs/mcp/CLIENTS.md para rutas y comandos por sistema.',
-				'Cloud ChatGPT cannot access this local stdio. No remote integration is certified. See docs/mcp/CLIENTS.md for platform paths and commands.'
-			)}
-		</p>
-	</section>
+			</p>
+		</section>
+		<section>
+			<div class="section-heading">
+				<h4>{tr('Conectar un asistente', 'Connect an assistant')}</h4>
+				<button
+					disabled={busy}
+					onclick={() =>
+						action(async () => {
+							await invoke('mcp_probe');
+							diagnostic = tr(
+								'Enlace autenticado correcto. Las consultas sin aprobación fueron rechazadas.',
+								'Authenticated connection verified. Unapproved queries were denied.'
+							);
+						})}><RefreshCw size={14} />{tr('Probar enlace local', 'Test local connection')}</button
+				>
+			</div>
+			<p>
+				{tr(
+					'1. Activa MCP. 2. Copia la configuración en tu cliente. 3. Inicia la conexión y aprueba la sesión aquí.',
+					'1. Enable MCP. 2. Copy the configuration into your client. 3. Start the connection and approve the session here.'
+				)}
+			</p>
+			{#if diagnostic}<p role="status" class="security">{diagnostic}</p>{/if}
+			<div class="client-tabs">
+				{#each [['codex', 'Codex'], ['opencode', 'OpenCode'], ['claude', 'Claude Code']] as [id, label] (id)}<button
+						class:selected={clientKind === id}
+						onclick={() => (clientKind = id)}>{label}</button
+					>{/each}
+			</div>
+			{#if status?.sidecar_path}<label class="config-label" for="mcp-config"
+					>{clientKind === 'codex'
+						? '~/.codex/config.toml'
+						: clientKind === 'opencode'
+							? 'opencode.json'
+							: tr(
+									'Configuración MCP del proyecto (.mcp.json)',
+									'Project MCP configuration (.mcp.json)'
+								)}</label
+				><textarea id="mcp-config" readonly value={snippet} rows={7} spellcheck="false"
+				></textarea><button onclick={copy}
+					><Copy size={14} />{copied || tr('Copiar configuración', 'Copy configuration')}</button
+				>{:else}<p class="notice">
+					{tr(
+						'El auxiliar MCP no está instalado junto al launcher. Usa un instalador que incluya esta integración; en desarrollo ejecuta el script de empaquetado del auxiliar.',
+						'The MCP helper is not installed beside the launcher. Use an installer that includes this integration; in development run the helper packaging script.'
+					)}
+				</p>{/if}
+			<p class="caption">
+				{tr(
+					'ChatGPT en la nube no puede acceder a este stdio local. No hay integración remota certificada. Consulta docs/mcp/CLIENTS.md para rutas y comandos por sistema.',
+					'Cloud ChatGPT cannot access this local stdio. No remote integration is certified. See docs/mcp/CLIENTS.md for platform paths and commands.'
+				)}
+			</p>
+		</section>
+	{/if}
 	<section>
 		<div class="section-heading">
 			<h4><ShieldCheck size={17} />{tr('Sesiones y permisos', 'Sessions & permissions')}</h4>
@@ -253,15 +270,17 @@
 								: tr('Espera tu permiso', 'Needs your approval')}</span
 					>
 				</div>
-				{#if client.connected && !client.approved}<div class="permissions">
-						{#each Object.entries(permissionLabels) as [id, label] (id)}<label
-								><input
-									type="checkbox"
-									checked={(grants[client.id] ?? ['read']).includes(id)}
-									onchange={() => toggle(client.id, id)}
-								/>{tr(...label)}</label
-							>{/each}
-					</div>
+				{#if client.connected && !client.approved}
+					{#if experience.mode === 'advanced'}<div class="permissions">
+							{#each Object.entries(permissionLabels) as [id, label] (id)}<label
+									><input
+										type="checkbox"
+										checked={(grants[client.id] ?? ['read']).includes(id)}
+										onchange={() => toggle(client.id, id)}
+									/>{tr(...label)}</label
+								>{/each}
+						</div>
+					{/if}
 					<details>
 						<summary
 							>{tr(
@@ -284,10 +303,14 @@
 							action(() =>
 								invoke('mcp_grant', {
 									clientId: client.id,
-									permissions: grants[client.id] ?? ['read'],
+									permissions:
+										experience.mode === 'simple' ? ['read'] : (grants[client.id] ?? ['read']),
 									instances: scopes[client.id] ?? []
 								})
-							)}><Check size={14} />{tr('Autorizar esta sesión', 'Approve this session')}</button
+							)}
+						><Check size={14} />{experience.mode === 'simple'
+							? tr('Autorizar lectura', 'Approve read access')
+							: tr('Autorizar esta sesión', 'Approve this session')}</button
 					>{/if}{#if client.connected}<button
 						disabled={busy}
 						onclick={() => action(() => invoke('mcp_revoke', { clientId: client.id }))}
@@ -332,26 +355,26 @@
 				{tr('No hay acciones pendientes.', 'No pending actions.')}
 			</p>{/each}
 	</section>
-	<section>
-		<div class="section-heading">
-			<h4><Terminal size={17} />{tr('Historial local', 'Local history')}</h4>
-			<button onclick={() => action(() => invoke('mcp_clear_audit'))}
-				>{tr('Limpiar historial', 'Clear history')}</button
-			>
-		</div>
-		<p class="caption">
-			{tr(
-				'Hasta 300 decisiones. Sin tokens, logs del juego ni parámetros sensibles.',
-				'Up to 300 decisions. No tokens, game logs or sensitive parameters.'
-			)}
-		</p>
-		<div class="audit">
-			{#each [...(status?.audit ?? [])].reverse().slice(0, 30) as entry, index (index)}<div>
-					<time>{new Date(entry.at * 1000).toLocaleTimeString()}</time><code>{entry.action}</code
-					><span>{entry.decision}</span>
-				</div>{/each}
-		</div>
-	</section>
+	{#if experience.mode === 'advanced'}<section>
+			<div class="section-heading">
+				<h4><Terminal size={17} />{tr('Historial local', 'Local history')}</h4>
+				<button onclick={() => action(() => invoke('mcp_clear_audit'))}
+					>{tr('Limpiar historial', 'Clear history')}</button
+				>
+			</div>
+			<p class="caption">
+				{tr(
+					'Hasta 300 decisiones. Sin tokens, logs del juego ni parámetros sensibles.',
+					'Up to 300 decisions. No tokens, game logs or sensitive parameters.'
+				)}
+			</p>
+			<div class="audit">
+				{#each [...(status?.audit ?? [])].reverse().slice(0, 30) as entry, index (index)}<div>
+						<time>{new Date(entry.at * 1000).toLocaleTimeString()}</time><code>{entry.action}</code
+						><span>{entry.decision}</span>
+					</div>{/each}
+			</div>
+		</section>{/if}
 </div>
 
 <style>

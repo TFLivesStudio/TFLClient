@@ -21,4 +21,10 @@ pub mod mcp_policy;
 pub mod mcp_preferences;
 pub mod mcp_tools;
 
+pub mod instance_archive;
+pub mod mcp_quick_connect;
 pub mod microsoft_login;
+pub mod retired_resources;
+pub mod server_ports;
+pub mod server_tasks;
+pub mod worlds;

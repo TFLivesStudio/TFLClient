@@ -11,12 +11,11 @@ use std::{
     path::{Path, PathBuf},
 };
 use tauri::Emitter;
-use tauri_plugin_dialog::DialogExt;
 
 const MAX_PACKAGE: u64 = 12 * 1024 * 1024;
 const MAX_EXPANDED: u64 = 16 * 1024 * 1024;
 const MAX_RESOURCE: u64 = 4 * 1024 * 1024;
-const MAX_MANIFEST: u64 = 64 * 1024;
+const MAX_MANIFEST: u64 = 512 * 1024;
 const MAX_ENTRIES: usize = 25;
 const MAX_ADDONS: usize = 20;
 static MUTATION: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
@@ -37,6 +36,112 @@ pub struct Manifest {
     pub themes: Vec<Theme>,
     #[serde(default)]
     pub scenes: Vec<Scene>,
+    #[serde(default)]
+    pub languages: Vec<Language>,
+}
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Language {
+    pub schema_version: u32,
+    pub locale: String,
+    pub name: String,
+    pub flag: String,
+    pub direction: String,
+    pub fallback: String,
+    pub messages: BTreeMap<String, LanguageMessage>,
+}
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum LanguageMessage {
+    Text(String),
+    Plural(BTreeMap<String, String>),
+}
+#[derive(Deserialize)]
+struct SourceMessage {
+    source: String,
+    placeholders: Vec<String>,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LanguageContract {
+    schema_version: u32,
+    messages: BTreeMap<String, SourceMessage>,
+}
+static LANGUAGE_CONTRACT: std::sync::LazyLock<LanguageContract> = std::sync::LazyLock::new(|| {
+    serde_json::from_str(include_str!("../../../src/lib/i18n/catalog.v1.json"))
+        .expect("versioned first-party translation contract")
+});
+fn placeholders(value: &str) -> BTreeSet<String> {
+    static PLACEHOLDER: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}").unwrap()
+    });
+    PLACEHOLDER
+        .captures_iter(value)
+        .map(|capture| capture[1].to_string())
+        .collect()
+}
+fn valid_language_text(value: &str, expected: &BTreeSet<String>) -> bool {
+    static UNSAFE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"(?i)(javascript\s*:|expression\s*\(|url\s*\(|\$\{|[<>\x00-\x08\x0b\x0c\x0e-\x1f\x{202a}-\x{202e}\x{2066}-\x{2069}])").unwrap()
+    });
+    static PLACEHOLDER: std::sync::LazyLock<regex::Regex> =
+        std::sync::LazyLock::new(|| regex::Regex::new(r"\{\{[A-Za-z_][A-Za-z0-9_]*\}\}").unwrap());
+    let residual = PLACEHOLDER.replace_all(value, "");
+    !value.is_empty()
+        && value.chars().count() <= 4096
+        && !UNSAFE.is_match(value)
+        && &placeholders(value) == expected
+        && !residual.contains("{{")
+        && !residual.contains("}}")
+}
+fn validate_language(language: &Language) -> Result<(), String> {
+    static LOCALE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(
+            r"^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-[a-z0-9]{5,8})*$",
+        )
+        .unwrap()
+    });
+    if language.schema_version != 1
+        || LANGUAGE_CONTRACT.schema_version != 1
+        || language.locale.len() > 40
+        || !LOCALE.is_match(&language.locale)
+        || ["es", "es-419", "en", "en-US"].contains(&language.locale.as_str())
+        || !text(&language.name, 80)
+        || !resource_path(&language.flag)
+        || !["ltr", "rtl"].contains(&language.direction.as_str())
+        || !["es-419", "en-US"].contains(&language.fallback.as_str())
+        || language.messages.is_empty()
+        || language.messages.len() > 4000
+    {
+        return Err("Idioma inválido: revisa locale BCP47, nombre, bandera, dirección, fallback y esquema 1.".into());
+    }
+    for (key, message) in &language.messages {
+        let source = LANGUAGE_CONTRACT
+            .messages
+            .get(key)
+            .ok_or_else(|| format!("Clave de idioma no admitida: {key}"))?;
+        let expected = source.placeholders.iter().cloned().collect();
+        if placeholders(&source.source) != expected {
+            return Err("Contrato de idioma inconsistente.".into());
+        }
+        let valid = match message {
+            LanguageMessage::Text(value) => valid_language_text(value, &expected),
+            LanguageMessage::Plural(forms) => {
+                forms.contains_key("other")
+                    && forms.len() <= 6
+                    && forms.iter().all(|(form, value)| {
+                        ["zero", "one", "two", "few", "many", "other"].contains(&form.as_str())
+                            && valid_language_text(value, &expected)
+                    })
+            }
+        };
+        if !valid {
+            return Err(format!(
+                "Traducción inválida en {key}: texto plano, placeholders y plurales deben respetar el contrato."
+            ));
+        }
+    }
+    Ok(())
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -191,8 +296,7 @@ fn validate_manifest(m: &Manifest) -> Result<BTreeSet<String>, String> {
         || !m.permissions.is_empty()
     {
         return Err(
-            "Manifest inválido; esta beta sólo admite contribuciones declarativas sin permisos"
-                .into(),
+            "Manifest inválido; solo se admiten contribuciones declarativas sin permisos".into(),
         );
     }
     semver::Version::parse(&m.version).map_err(|_| "Versión del addon no es SemVer")?;
@@ -204,7 +308,11 @@ fn validate_manifest(m: &Manifest) -> Result<BTreeSet<String>, String> {
     {
         return Err("Addon incompatible con esta versión del launcher/API".into());
     }
-    if m.themes.len() > 8 || m.scenes.len() > 8 || m.themes.len() + m.scenes.len() == 0 {
+    if m.themes.len() > 8
+        || m.scenes.len() > 8
+        || m.languages.len() > 8
+        || m.themes.len() + m.scenes.len() + m.languages.len() == 0
+    {
         return Err("El addon necesita entre 1 y 8 contribuciones por clase".into());
     }
     let mut ids = BTreeSet::new();
@@ -221,6 +329,13 @@ fn validate_manifest(m: &Manifest) -> Result<BTreeSet<String>, String> {
         }
     }
     let mut resources = BTreeSet::new();
+    for language in &m.languages {
+        validate_language(language)?;
+        if !ids.insert(format!("language:{}", language.locale)) {
+            return Err("El paquete repite un locale de idioma.".into());
+        }
+        resources.insert(language.flag.clone());
+    }
     for s in &m.scenes {
         if !slug(&s.id)
             || !text(&s.name, 80)
@@ -684,9 +799,28 @@ fn install_at(root: &Path, source: &Path, digest: &str, replace: bool) -> Result
             .or_else(|| old.and_then(|r| r.previous.clone())),
     };
     state.addons.insert(p.manifest.id.clone(), record);
+    validate_active_languages(root, &state)?;
     commit(root, &state)?;
     prune(root, &state);
     catalog_at(root)
+}
+fn validate_active_languages(root: &Path, state: &Registry) -> Result<(), String> {
+    let mut owners = BTreeMap::new();
+    for (id, record) in &state.addons {
+        if !record.enabled {
+            continue;
+        }
+        let package = installed_package(root, &record.digest)?;
+        for language in package.manifest.languages {
+            if let Some(other) = owners.insert(language.locale.clone(), id.clone()) {
+                return Err(format!(
+                    "El idioma {} ya está activo desde {other}. Desactiva ese paquete antes de activar {id}.",
+                    language.locale
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 async fn blocking<T: Send + 'static>(
     operation: impl FnOnce() -> Result<T, String> + Send + 'static,
@@ -696,21 +830,13 @@ async fn blocking<T: Send + 'static>(
         .map_err(error)?
 }
 #[tauri::command]
-pub async fn addons_pick_file(app: tauri::AppHandle) -> Option<String> {
-    if crate::services::SettingsManager::read().native_dialog_mode != "manual" {
-        return None;
-    }
-    tokio::task::spawn_blocking(move || {
-        app.dialog()
-            .file()
-            .add_filter("TFL Addon", &["tfl"])
-            .blocking_pick_file()
-            .and_then(|f| f.into_path().ok())
-            .map(|p| p.to_string_lossy().into_owned())
-    })
-    .await
-    .ok()
-    .flatten()
+pub async fn addons_pick_file(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    Ok(
+        crate::core::file_dialog::pick_files(app, "TFL Addon", &["tfl"], false)
+            .await?
+            .into_iter()
+            .next(),
+    )
 }
 #[tauri::command]
 pub async fn addons_list() -> Result<Catalog, String> {
@@ -759,6 +885,7 @@ pub async fn addons_set_enabled(
         let r = state.addons.get_mut(&id).ok_or("Addon no instalado")?;
         installed_package(&root, &r.digest)?;
         r.enabled = enabled;
+        validate_active_languages(&root, &state)?;
         commit(&root, &state)?;
         prune(&root, &state);
         let _ = app.emit("addons-changed", ());
@@ -773,6 +900,9 @@ pub async fn addons_safe_mode(app: tauri::AppHandle, enabled: bool) -> Result<Ca
         let root = directory();
         let (mut state, _) = registry(&root)?;
         state.safe_mode = enabled;
+        if !enabled {
+            validate_active_languages(&root, &state)?;
+        }
         commit(&root, &state)?;
         prune(&root, &state);
         let _ = app.emit("addons-changed", ());
@@ -812,6 +942,7 @@ pub async fn addons_rollback(app: tauri::AppHandle, id: String) -> Result<Catalo
         }
         r.version = p.manifest.version;
         r.previous = Some(std::mem::replace(&mut r.digest, previous));
+        validate_active_languages(&root, &state)?;
         commit(&root, &state)?;
         prune(&root, &state);
         let _ = app.emit("addons-changed", ());
@@ -916,6 +1047,7 @@ mod tests {
                 tokens: BTreeMap::from([("--accent".into(), "#F97316".into())]),
             }],
             scenes: vec![],
+            languages: vec![],
         }
     }
     fn zip(entries: &[(&str, Vec<u8>)]) -> Vec<u8> {
@@ -947,6 +1079,141 @@ mod tests {
             .unwrap();
         assert_eq!(p.manifest.id, "tfl.orange-dunes");
         assert_eq!(p.resources.len(), 3);
+    }
+    fn language_manifest() -> Manifest {
+        serde_json::from_slice(include_bytes!(
+            "../../../examples/addons/portuguese-br/manifest.json"
+        ))
+        .unwrap()
+    }
+    fn language_source(temp: &Temp, m: &Manifest) -> (PathBuf, String) {
+        let bytes = zip(&[
+            ("manifest.json", serde_json::to_vec(m).unwrap()),
+            (
+                "assets/br.png",
+                include_bytes!("../../../examples/addons/portuguese-br/assets/br.png").to_vec(),
+            ),
+        ]);
+        let path = temp.0.join(format!("language-{}.tfl", m.version));
+        let digest = hex::encode(Sha256::digest(&bytes));
+        fs::write(&path, bytes).unwrap();
+        (path, digest)
+    }
+    #[test]
+    fn language_example_and_beta3_packages_remain_compatible() {
+        let p =
+            parse_package(include_bytes!("../../../examples/addons/portuguese-br.tfl").to_vec())
+                .unwrap();
+        assert_eq!(p.manifest.languages.len(), 1);
+        assert_eq!(p.manifest.languages[0].locale, "pt-BR");
+        assert_eq!(p.resources.len(), 1);
+        let legacy: serde_json::Value = serde_json::from_slice(include_bytes!(
+            "../../../examples/addons/orange-dunes/manifest.json"
+        ))
+        .unwrap();
+        assert!(legacy.get("languages").is_none());
+        assert!(
+            parse_package(include_bytes!("../../../examples/addons/orange-dunes.tfl").to_vec())
+                .unwrap()
+                .manifest
+                .languages
+                .is_empty()
+        );
+    }
+    #[test]
+    fn language_locales_placeholders_plurals_and_executable_content_are_checked() {
+        let valid = language_manifest().languages.remove(0);
+        validate_language(&valid).unwrap();
+        for locale in [
+            "LATAM", "es_419", "../../en", "en-US", "es-419", "PT-br", "pt-br",
+        ] {
+            let mut invalid = valid.clone();
+            invalid.locale = locale.into();
+            assert!(validate_language(&invalid).is_err(), "{locale}");
+        }
+        for value in [
+            "<script>IPC()</script>",
+            "javascript:alert(1)",
+            "url(file:///private)",
+            "${IPC()}",
+            "text\u{202e}",
+        ] {
+            let mut invalid = valid.clone();
+            invalid
+                .messages
+                .insert("common.back".into(), LanguageMessage::Text(value.into()));
+            assert!(validate_language(&invalid).is_err(), "{value}");
+        }
+        let mut invalid = valid.clone();
+        invalid.messages.insert(
+            "unknown.execute".into(),
+            LanguageMessage::Text("data".into()),
+        );
+        assert!(validate_language(&invalid).is_err());
+        for forms in [
+            BTreeMap::from([("one".into(), "{{count}}".into())]),
+            BTreeMap::from([("other".into(), "missing count".into())]),
+            BTreeMap::from([
+                ("other".into(), "{{count}}".into()),
+                ("execute".into(), "{{count}}".into()),
+            ]),
+        ] {
+            let mut invalid = valid.clone();
+            invalid
+                .messages
+                .insert("language.available".into(), LanguageMessage::Plural(forms));
+            assert!(validate_language(&invalid).is_err());
+        }
+        let mut invalid = valid.clone();
+        invalid.flag = "../private.png".into();
+        assert!(validate_language(&invalid).is_err());
+    }
+    #[test]
+    fn language_install_update_disable_and_duplicate_locale_activation_preserve_registry() {
+        let temp = Temp::new();
+        let root = temp.0.join("addons");
+        let mut m = language_manifest();
+        let (path, digest) = language_source(&temp, &m);
+        let installed = install_at(&root, &path, &digest, false).unwrap();
+        assert!(!installed.addons[0].enabled);
+        let mut state = registry(&root).unwrap().0;
+        state.addons.get_mut(&m.id).unwrap().enabled = true;
+        validate_active_languages(&root, &state).unwrap();
+        commit(&root, &state).unwrap();
+        m.version = "1.1.0".into();
+        m.languages[0].messages.insert(
+            "common.back".into(),
+            LanguageMessage::Text("Retornar".into()),
+        );
+        let (path, updated_digest) = language_source(&temp, &m);
+        let updated = install_at(&root, &path, &updated_digest, true).unwrap();
+        assert!(updated.addons[0].enabled && updated.addons[0].rollback_available);
+        let mut other = m.clone();
+        other.id = "test.other-language".into();
+        other.version = "2.0.0".into();
+        let (path, other_digest) = language_source(&temp, &other);
+        install_at(&root, &path, &other_digest, false).unwrap();
+        let mut state = registry(&root).unwrap().0;
+        state.addons.get_mut(&other.id).unwrap().enabled = true;
+        assert!(validate_active_languages(&root, &state).is_err());
+        assert!(!registry(&root).unwrap().0.addons[&other.id].enabled);
+        state.addons.get_mut(&m.id).unwrap().enabled = false;
+        validate_active_languages(&root, &state).unwrap();
+        commit(&root, &state).unwrap();
+        let disabled = catalog_at(&root).unwrap();
+        assert!(
+            !disabled
+                .addons
+                .iter()
+                .find(|a| a.manifest.id == m.id)
+                .unwrap()
+                .enabled
+        );
+        assert!(resource_package(&root, &m.id).is_err());
+        assert_eq!(
+            registry(&root).unwrap().0.addons[&m.id].digest,
+            updated_digest
+        );
     }
     #[test]
     fn traversal_absolute_windows_names_and_undeclared_files_are_rejected() {
