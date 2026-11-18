@@ -411,6 +411,11 @@ mod tests {
                 .write(true)
                 .open(&fixture)
                 .unwrap();
+            #[cfg(target_os = "macos")]
+            {
+                collect(Some(pid), &directory).unwrap();
+                std::thread::sleep(Duration::from_millis(550));
+            }
             let baseline = collect(Some(pid), &directory).unwrap();
             assert!(baseline.running);
             transfer_locally(&payload);

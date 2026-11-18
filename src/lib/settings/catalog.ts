@@ -466,27 +466,24 @@ export const normalized = (value: string) =>
 		.normalize('NFD')
 		.replace(/[\u0300-\u036f]/g, '')
 		.trim();
-export function searchSettings(query: string, locale: 'es' | 'en') {
+export function searchSettings(
+	query: string,
+	locale: 'es' | 'en' | ((spanish: string, english: string) => string)
+) {
 	const words = normalized(query).split(/\s+/).filter(Boolean);
 	if (!words.length) return [];
-	return SETTINGS.map((s) => ({
-		setting: s,
-		score: words.reduce(
-			(score, word) =>
-				score +
-				(normalized(s.label[locale === 'en' ? 1 : 0]).includes(word)
-					? 4
-					: normalized(`${s.keywords} ${s.label.join(' ')}`).includes(word)
-						? 1
-						: 0),
-			0
-		)
-	}))
-		.filter((r) =>
-			words.every((word) =>
-				normalized(`${r.setting.label.join(' ')} ${r.setting.keywords}`).includes(word)
-			)
-		)
+	return SETTINGS.flatMap((setting) => {
+		const label = normalized(
+			typeof locale === 'function'
+				? locale(...setting.label)
+				: setting.label[locale === 'en' ? 1 : 0]
+		);
+		const searchable = normalized(`${label} ${setting.label.join(' ')} ${setting.keywords}`);
+		if (!words.every((word) => searchable.includes(word))) return [];
+		return [
+			{ setting, score: words.reduce((score, word) => score + (label.includes(word) ? 4 : 1), 0) }
+		];
+	})
 		.sort((a, b) => b.score - a.score)
 		.map((r) => r.setting);
 }

@@ -857,6 +857,17 @@ pub async fn import_instance_source(
     preview_fingerprint: Option<String>,
     request_id: Option<String>,
 ) -> Result<InstanceData, String> {
+    let data = commit_instance_source(path, new_name, preview_fingerprint, request_id).await?;
+    super::instance::assign_random_icon(&app, &data).await;
+    Ok(data)
+}
+
+async fn commit_instance_source(
+    path: String,
+    new_name: String,
+    preview_fingerprint: Option<String>,
+    request_id: Option<String>,
+) -> Result<InstanceData, String> {
     let active = ActiveImport::register(request_id)?;
     instance_manager::valid_instance_name(&new_name)?;
     worlds::valid_name(&new_name)?;
@@ -974,7 +985,6 @@ pub async fn import_instance_source(
         return Err(reason);
     }
     drop(server_guard);
-    super::instance::assign_random_icon(&app, &data).await;
     Ok(data)
 }
 

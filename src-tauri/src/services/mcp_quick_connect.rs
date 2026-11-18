@@ -61,6 +61,22 @@ fn fingerprint(raw: &Option<String>) -> String {
 fn semantic_digest(value: &Value) -> String {
     digest(serde_json::to_string(value).expect("JSON value").as_bytes())
 }
+
+#[cfg(target_os = "macos")]
+fn macos_system_alias(path: &Path) -> bool {
+    let expected = match path.to_str() {
+        Some("/var") => Path::new("/private/var"),
+        Some("/tmp") => Path::new("/private/tmp"),
+        _ => return false,
+    };
+    // macOS exposes these root aliases even to unprivileged application
+    // profiles. No other symlink or redirected target is allowed.
+    fs::read_link(path).is_ok_and(|target| Path::new("/").join(target) == expected)
+        && [Path::new("/private"), expected]
+            .into_iter()
+            .all(|part| fs::symlink_metadata(part).is_ok_and(|metadata| metadata.is_dir()))
+}
+
 fn no_links(path: &Path) -> Result<(), String> {
     // A config file or parent symlink/junction can redirect an otherwise fixed destination.
     for part in path.ancestors() {
@@ -74,6 +90,10 @@ fn no_links(path: &Path) -> Result<(), String> {
                     }
                 }
                 if meta.file_type().is_symlink() {
+                    #[cfg(target_os = "macos")]
+                    if macos_system_alias(part) {
+                        continue;
+                    }
                     return Err(
                         "El destino contiene un enlace; usa la configuración manual.".into(),
                     );
@@ -1103,6 +1123,30 @@ mod tests {
             .is_err()
         );
         assert_eq!(fs::read_to_string(&path).unwrap(), "foreign edit");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_user_links_and_keeps_their_targets_unchanged() {
+        use std::os::unix::fs::symlink;
+
+        let root = std::env::temp_dir().join(format!("tfl-mcp-fixture-{}", uuid::Uuid::new_v4()));
+        let actual = root.join("actual");
+        fs::create_dir_all(&actual).unwrap();
+        let config = actual.join("config.toml");
+        fs::write(&config, "original").unwrap();
+        let linked_file = root.join("linked.toml");
+        let linked_parent = root.join("linked-directory");
+        symlink(&config, &linked_file).unwrap();
+        symlink(&actual, &linked_parent).unwrap();
+
+        assert_eq!(read_config(&config).unwrap().as_deref(), Some("original"));
+        for path in [&linked_file, &linked_parent.join("config.toml")] {
+            assert!(read_config(path).is_err());
+            assert!(atomic_write(path, b"replacement", false).is_err());
+        }
+        assert_eq!(fs::read_to_string(&config).unwrap(), "original");
         fs::remove_dir_all(root).unwrap();
     }
 }

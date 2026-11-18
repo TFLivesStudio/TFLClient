@@ -295,6 +295,11 @@ try {
 				await page.waitForFunction(() => document.documentElement.lang === 'pt-BR');
 				assert.match(await page.locator('.language-picker').innerText(), /3 idiomas disponíveis/);
 				await screenshot(page, `${style}-${theme}-language-addon`);
+				await tab(page, 'Backgrounds & scenes');
+				assert.equal(
+					await page.locator('.settings-page-heading h3').textContent(),
+					'Backgrounds & scenes'
+				);
 				await tab(page, 'Addons');
 				await page.locator('.installed-addon .enabled input').uncheck();
 				await page.waitForFunction(() => document.documentElement.lang === 'en-US');

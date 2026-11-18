@@ -362,12 +362,16 @@ fn nbt_string(value: Option<&Value>) -> Option<String> {
 
 pub fn world_version(world: &Path) -> Result<Option<String>, String> {
     let (value, _, _) = read_level(world)?;
-    Ok(compound(&value)
+    Ok(version_from_level(&value))
+}
+
+fn version_from_level(value: &Value) -> Option<String> {
+    compound(value)
         .and_then(|root| root.get("Data"))
         .and_then(compound)
         .and_then(|data| data.get("Version"))
         .and_then(compound)
-        .and_then(|version| nbt_string(version.get("Name"))))
+        .and_then(|version| nbt_string(version.get("Name")))
 }
 
 fn tree_files(root: &Path, max_bytes: u64) -> Result<Vec<(PathBuf, u64)>, String> {
@@ -550,12 +554,14 @@ fn session_guard(world: &Path) -> Result<Option<File>, String> {
         .write(true)
         .open(path)
         .map_err(|e| io_error("No se pudo comprobar si el mundo está en uso", e))?;
+    #[cfg(windows)]
     file.try_lock().map_err(|_| "El mundo está bloqueado por otro proceso. Cierra Minecraft o el servidor antes de continuar.")?;
     #[cfg(unix)]
     {
         use std::os::fd::AsRawFd;
-        // Java FileChannel locks use fcntl on Unix; flock alone (used by
-        // std::fs::File) does not conflict with them on Linux.
+        // Use Java FileChannel's POSIX record-lock mechanism. flock is a
+        // separate lock on Linux and can conflict with our own record lock on
+        // macOS, so taking both would reject even a closed world.
         // SAFETY: libc::flock consists solely of integer fields; zero is a
         // valid initial value. fcntl receives a live fd and a valid pointer.
         let mut lock: libc::flock = unsafe { std::mem::zeroed() };
@@ -614,8 +620,12 @@ pub fn rename_world(
         return Err("El mundo no contiene metadatos Data válidos.".into());
     };
     data.insert("LevelName".into(), Value::String(display_name.into()));
+    write_level(&world, &value, prefix, gzip)
+}
+
+fn write_level(world: &Path, value: &Value, prefix: Vec<u8>, gzip: bool) -> Result<(), String> {
     let encoded =
-        fastnbt::to_bytes(&value).map_err(|_| "No se pudieron escribir los metadatos NBT.")?;
+        fastnbt::to_bytes(value).map_err(|_| "No se pudieron escribir los metadatos NBT.")?;
     let mut raw = prefix;
     raw.extend_from_slice(encoded.get(3..).ok_or("NBT serializado inválido.")?);
     let bytes = if gzip {
@@ -629,7 +639,7 @@ pub fn rename_world(
     } else {
         raw
     };
-    let level = level_path(&world)?;
+    let level = level_path(world)?;
     atomic_replace_file(&level, &bytes)
 }
 
@@ -1202,16 +1212,69 @@ fn pack_compatibility(meta: &serde_json::Value, version: Option<&str>) -> &'stat
         None => "unknown",
     }
 }
+fn datapack_lists(root: &Value) -> Option<&std::collections::HashMap<String, Value>> {
+    let data = compound(root)?.get("Data").and_then(compound)?;
+    data.get("DataPacks").and_then(compound)
+}
+
+fn disabled_datapack(root: &Value, id: &str) -> bool {
+    let name = Value::String(format!("file/{id}"));
+    matches!(
+        datapack_lists(root).and_then(|data| data.get("Disabled")),
+        Some(Value::List(disabled)) if disabled.contains(&name)
+    )
+}
+
+fn update_datapack_status(root: &mut Value, id: &str, enable: bool) -> Result<(), String> {
+    let Value::Compound(root) = root else {
+        return Err("NBT raíz inválido.".into());
+    };
+    let Some(Value::Compound(data)) = root.get_mut("Data") else {
+        return Err("El mundo no contiene metadatos Data válidos.".into());
+    };
+    let packs = data.entry("DataPacks".into()).or_insert_with(|| {
+        Value::Compound(std::collections::HashMap::from([
+            (
+                "Enabled".into(),
+                Value::List(vec![Value::String("vanilla".into())]),
+            ),
+            ("Disabled".into(), Value::List(Vec::new())),
+        ]))
+    });
+    let Value::Compound(packs) = packs else {
+        return Err("El mundo no contiene una lista válida de datapacks.".into());
+    };
+    let name = Value::String(format!("file/{id}"));
+    for (field, include) in [("Enabled", enable), ("Disabled", !enable)] {
+        let Value::List(entries) = packs
+            .entry(field.into())
+            .or_insert_with(|| Value::List(Vec::new()))
+        else {
+            return Err("El mundo no contiene una lista válida de datapacks.".into());
+        };
+        if include {
+            if !entries.contains(&name) {
+                entries.push(name.clone());
+            }
+        } else {
+            entries.retain(|entry| entry != &name);
+        }
+    }
+    Ok(())
+}
+
 pub fn list_datapacks(root: &Path, server: bool, folder: &str) -> Result<Vec<Datapack>, String> {
     validate_world_id(folder, server)?;
     if !worlds_root(root, server)?.join(folder).exists() {
         return Ok(Vec::new());
     }
     let world = world_path(root, server, folder)?;
-    let version = world_version(&world).ok().flatten();
+    let level = read_level(&world).ok().map(|(value, _, _)| value);
+    let version = level.as_ref().and_then(version_from_level);
     let mut result = Vec::new();
-    for enabled in [true, false] {
-        let dir = datapack_root(&world, enabled)?;
+    let mut seen = HashSet::new();
+    for in_datapacks in [true, false] {
+        let dir = datapack_root(&world, in_datapacks)?;
         if !dir.exists() {
             continue;
         }
@@ -1223,8 +1286,15 @@ pub fn list_datapacks(root: &Path, server: bool, folder: &str) -> Result<Vec<Dat
             if id.starts_with('.') {
                 continue;
             }
+            if !seen.insert(id.to_lowercase()) {
+                return Err("Hay dos archivos con el mismo nombre de datapack.".into());
+            }
             let path = entry.path();
             no_link(&path)?;
+            let enabled = in_datapacks
+                && !level
+                    .as_ref()
+                    .is_some_and(|value| disabled_datapack(value, &id));
             let mut item = Datapack {
                 id,
                 enabled,
@@ -1301,11 +1371,22 @@ pub fn change_datapack(
     valid_name(id)?;
     let world = world_path(root, server, folder)?;
     let _session = session_guard(&world)?;
-    let source = datapack_root(&world, enabled)?.join(id);
-    no_link(&source)?;
+    let active = datapack_root(&world, true)?.join(id);
+    let parked = datapack_root(&world, false)?.join(id);
+    let active_exists = active
+        .try_exists()
+        .map_err(|e| io_error("No se pudo consultar el datapack", e))?;
+    let parked_exists = parked
+        .try_exists()
+        .map_err(|e| io_error("No se pudo consultar el datapack deshabilitado", e))?;
+    if active_exists && parked_exists {
+        return Err("Hay dos archivos con el mismo nombre de datapack.".into());
+    }
+    let source = if active_exists { &active } else { &parked };
+    no_link(source)?;
     // Refuse an unbounded traversal before recursive removal of a directory pack.
     if source.is_dir() {
-        tree_files(&source, MAX_PACK)?;
+        tree_files(source, MAX_PACK)?;
     }
     if remove {
         if source.is_dir() {
@@ -1315,14 +1396,25 @@ pub fn change_datapack(
         }
         .map_err(|e| io_error("No se pudo eliminar el datapack", e))
     } else {
-        let dest = datapack_root(&world, !enabled)?;
-        fs::create_dir_all(&dest)
-            .map_err(|e| io_error("No se pudo preparar el cambio del datapack", e))?;
-        if dest.join(id).exists() {
-            return Err("Ya existe ese datapack en el destino.".into());
+        let (mut level, prefix, gzip) = read_level(&world)?;
+        let current = active_exists && !disabled_datapack(&level, id);
+        if current != enabled {
+            return Err("El estado del datapack cambió. Actualiza la lista del mundo.".into());
         }
-        fs::rename(source, dest.join(id))
-            .map_err(|e| io_error("No se pudo cambiar el estado del datapack", e))
+        update_datapack_status(&mut level, id, !current)?;
+        if parked_exists {
+            let folder = active.parent().ok_or("Ruta de datapacks inválida.")?;
+            fs::create_dir_all(folder)
+                .map_err(|e| io_error("No se pudo preparar la carpeta de datapacks", e))?;
+            fs::rename(&parked, &active)
+                .map_err(|e| io_error("No se pudo recuperar el datapack deshabilitado", e))?;
+        }
+        let saved = write_level(&world, &level, prefix, gzip);
+        if saved.is_err() && parked_exists {
+            fs::rename(&active, &parked)
+                .map_err(|e| io_error("No se pudo revertir el movimiento del datapack", e))?;
+        }
+        saved
     }
 }
 
@@ -1652,6 +1744,12 @@ mod tests {
         assert!(install_datapack(&fixture.0, false, "new world", &source).is_err());
         change_datapack(&fixture.0, false, "new world", "pack.zip", true, false).unwrap();
         assert!(!list_datapacks(&fixture.0, false, "new world").unwrap()[0].enabled);
+        let world = fixture.0.join("saves/new world");
+        assert!(disabled_datapack(
+            &read_level(&world).unwrap().0,
+            "pack.zip"
+        ));
+        assert!(world.join("datapacks/pack.zip").exists());
         change_datapack(&fixture.0, false, "new world", "pack.zip", false, false).unwrap();
         assert!(list_datapacks(&fixture.0, false, "new world").unwrap()[0].enabled);
         change_datapack(&fixture.0, false, "new world", "pack.zip", true, true).unwrap();
@@ -1666,6 +1764,35 @@ mod tests {
         assert_eq!(
             list_datapacks(&fixture.0, false, "new world").unwrap()[0].compatibility,
             "incompatible"
+        );
+    }
+
+    #[test]
+    fn game_disabled_pack_and_legacy_parked_pack_can_both_be_enabled() {
+        let fixture = Fixture::new();
+        let world = fixture.world("saves/new world");
+        let active = datapack_root(&world, true).unwrap();
+        let parked = datapack_root(&world, false).unwrap();
+        fs::create_dir(&active).unwrap();
+        fs::create_dir(&parked).unwrap();
+        pack(&active.join("from-game.zip"), 61);
+        pack(&parked.join("from-launcher.zip"), 61);
+        let (mut level, prefix, gzip) = read_level(&world).unwrap();
+        update_datapack_status(&mut level, "from-game.zip", false).unwrap();
+        write_level(&world, &level, prefix, gzip).unwrap();
+        let packs = list_datapacks(&fixture.0, false, "new world").unwrap();
+        assert_eq!(packs.len(), 2);
+        assert!(packs.iter().all(|pack| !pack.enabled));
+        for id in ["from-game.zip", "from-launcher.zip"] {
+            change_datapack(&fixture.0, false, "new world", id, false, false).unwrap();
+        }
+        assert!(active.join("from-launcher.zip").exists());
+        assert!(!parked.join("from-launcher.zip").exists());
+        assert!(
+            list_datapacks(&fixture.0, false, "new world")
+                .unwrap()
+                .iter()
+                .all(|pack| pack.enabled)
         );
     }
 
@@ -1692,23 +1819,50 @@ mod tests {
 
     #[test]
     fn active_session_lock_blocks_rename_delete_backup_and_datapacks() {
+        use std::io::{BufRead, BufReader};
+        use std::process::{Command, Stdio};
+
         let fixture = Fixture::new();
         let world = fixture.world("saves/new world");
         fs::write(world.join("session.lock"), b"lock").unwrap();
-        let lock = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(world.join("session.lock"))
+        let mut holder = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "services::worlds::tests::hold_fixture_world_lock",
+                "--ignored",
+                "--nocapture",
+            ])
+            .env("TFL_TEST_WORLD_LOCK", &world)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
             .unwrap();
-        lock.try_lock().unwrap();
+        let reader = BufReader::new(holder.stdout.as_mut().unwrap());
+        assert!(
+            reader
+                .lines()
+                .map_while(Result::ok)
+                .any(|line| line.contains("TFL_FIXTURE_WORLD_LOCKED"))
+        );
         let source = fixture.0.join("pack.zip");
         pack(&source, 61);
         assert!(rename_world(&fixture.0, false, "new world", "changed").is_err());
         assert!(delete_world(&fixture.0, false, "new world").is_err());
         assert!(backup_world(&fixture.0, false, "new world").is_err());
         assert!(install_datapack(&fixture.0, false, "new world", &source).is_err());
-        drop(lock);
-        assert!(backup_world(&fixture.0, false, "new world").is_ok());
+        drop(holder.stdin.take());
+        assert!(holder.wait().unwrap().success());
+        backup_world(&fixture.0, false, "new world").unwrap();
+    }
+
+    #[test]
+    #[ignore = "child lock holder launched by active_session_lock_blocks_rename_delete_backup_and_datapacks"]
+    fn hold_fixture_world_lock() {
+        let world = PathBuf::from(std::env::var_os("TFL_TEST_WORLD_LOCK").expect("fixture path"));
+        let _session = session_guard(&world).unwrap().expect("fixture lock");
+        println!("TFL_FIXTURE_WORLD_LOCKED");
+        let mut keep_alive = String::new();
+        std::io::stdin().read_line(&mut keep_alive).unwrap();
     }
 
     #[test]

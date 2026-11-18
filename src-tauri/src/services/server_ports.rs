@@ -1,8 +1,9 @@
 //! Persistent reservations are the actual server.properties of every managed server.
 //! The caller holds CREATION while selecting/writing, including concurrent UI windows.
+use socket2::{Domain, Socket, Type};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    net::{TcpListener, UdpSocket},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
     path::Path,
 };
 pub static CREATION: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
@@ -130,19 +131,21 @@ pub fn configured(raw: &str) -> Result<Vec<Port>, String> {
     Ok(ports)
 }
 pub fn available(port: Port) -> bool {
-    let v4 = if port.udp {
-        UdpSocket::bind((std::net::Ipv4Addr::UNSPECIFIED, port.number)).map(|_| ())
-    } else {
-        TcpListener::bind((std::net::Ipv4Addr::UNSPECIFIED, port.number)).map(|_| ())
+    // std::net::TcpListener enables address reuse on Unix. For a reservation
+    // probe, an exclusive bind must conflict with an existing specific address.
+    let bind = |ip: IpAddr, domain| -> std::io::Result<()> {
+        let kind = if port.udp { Type::DGRAM } else { Type::STREAM };
+        let socket = Socket::new(domain, kind, None)?;
+        socket.bind(&SocketAddr::new(ip, port.number).into())?;
+        if !port.udp {
+            socket.listen(1)?;
+        }
+        Ok(())
     };
-    if v4.is_err() {
+    if bind(Ipv4Addr::UNSPECIFIED.into(), Domain::IPV4).is_err() {
         return false;
     }
-    let v6 = if port.udp {
-        UdpSocket::bind((std::net::Ipv6Addr::UNSPECIFIED, port.number)).map(|_| ())
-    } else {
-        TcpListener::bind((std::net::Ipv6Addr::UNSPECIFIED, port.number)).map(|_| ())
-    };
+    let v6 = bind(Ipv6Addr::UNSPECIFIED.into(), Domain::IPV6);
     v6.is_ok()
         || v6.is_err_and(|e| {
             matches!(
@@ -257,6 +260,7 @@ pub async fn check_reserved(name: &str, content: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::net::TcpListener;
     #[test]
     fn properties_follow_java_escapes_continuations_and_last_value() {
         let p = properties(

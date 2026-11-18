@@ -33,7 +33,7 @@
 		retryUpdate
 	} from '$lib/state/updateState.svelte';
 	import { canStartCheck, progressPercent } from '$lib/state/updateMachine';
-	import { t, i18nState } from '$lib/i18n/index.svelte';
+	import { t } from '$lib/i18n/index.svelte';
 	import { experience, experienceStatus, setExperienceMode } from '$lib/state/experience.svelte';
 	import { settingsSaveStatus } from '$lib/state/settingsSave.svelte';
 	import { isSettingVisible } from '$lib/settings/catalog';
@@ -91,12 +91,9 @@
 	let settingsQuery = $state(''),
 		returnQuery = $state(''),
 		highlighted = $state<SettingId | null>(null);
-	const locale = $derived(i18nState.locale.startsWith('en') ? 1 : 0);
 	const currentPage = $derived(PAGES.find((p) => p.id === tab)!);
 	const results = $derived(
-		searchSettings(settingsQuery, i18nState.locale.startsWith('en') ? 'en' : 'es').filter((s) =>
-			isSettingVisible(s.id, experience.mode)
-		)
+		searchSettings(settingsQuery, tr).filter((s) => isSettingVisible(s.id, experience.mode))
 	);
 	const pages = $derived(PAGES.filter((p) => experience.mode === 'advanced' || p.id !== 'updates'));
 	$effect(() => {
@@ -529,7 +526,7 @@
 						settingsQuery = '';
 						returnQuery = '';
 						selectTab(page.id);
-					}}><Icon size={16} />{page.label[locale]}</button
+					}}><Icon size={16} />{tr(...page.label)}</button
 				>{/each}
 		</nav>
 		<div class="panel-body">
@@ -553,8 +550,8 @@
 							type="button"
 							class="settings-result"
 							onclick={() => jump(result.id)}
-							><small>{PAGES.find((p) => p.id === result.page)!.label[locale]}</small><strong
-								>{result.label[locale]}</strong
+							><small>{tr(...PAGES.find((p) => p.id === result.page)!.label)}</small><strong
+								>{tr(...result.label)}</strong
 							><span>{tr('Abrir opción', 'Open setting')} →</span></button
 						>{:else}<p role="status">
 							{tr(
@@ -573,8 +570,8 @@
 						}}>← {tr('Volver a resultados', 'Back to results')} · {returnQuery}</button
 					>{/if}
 				<header class="settings-page-heading">
-					<h3>{currentPage.label[locale]}</h3>
-					<p>{currentPage.description[locale]}</p>
+					<h3>{tr(...currentPage.label)}</h3>
+					<p>{tr(...currentPage.description)}</p>
 				</header>
 				{#if tab === 'general'}<SettingGroup id="language"><LanguagePicker /></SettingGroup
 					><SettingGroup id="storage"

@@ -244,6 +244,15 @@ fn process_stats(pid: u32) -> Option<ProcessStats> {
     let interval = system
         .as_ref()
         .map(|m| now.duration_since(m.at).as_millis() as u64);
+    // sysinfo's macOS process discovery leaves CPU baselines uninitialized.
+    // The next refresh sets those baselines; only the third yields usage.
+    let ready = if cfg!(target_os = "macos") {
+        system
+            .as_ref()
+            .is_some_and(|m| m.sample.sample_interval_ms > 0)
+    } else {
+        interval.is_some()
+    };
     let mut sys = system.take().map(|m| m.system).unwrap_or_default();
     let sys_pid = sysinfo::Pid::from_u32(pid);
     sys.refresh_processes_specifics(
@@ -282,7 +291,7 @@ fn process_stats(pid: u32) -> Option<ProcessStats> {
             .ok()?
             .as_millis() as u64,
         sample_interval_ms: interval.unwrap_or(0),
-        ready: interval.is_some(),
+        ready,
         process_count: tree.len(),
         scope: "process_tree",
         disk_read_bytes_delta: read,
@@ -359,6 +368,11 @@ mod cpu_percent_tests {
         let cached = super::process_stats(pid).unwrap();
         assert_eq!(first.sampled_at_ms, cached.sampled_at_ms);
         std::thread::sleep(std::time::Duration::from_millis(550));
+        #[cfg(target_os = "macos")]
+        {
+            assert!(!super::process_stats(pid).unwrap().ready);
+            std::thread::sleep(std::time::Duration::from_millis(550));
+        }
         let next = super::process_stats(pid).unwrap();
         assert!(next.ready);
         assert!(next.sample_interval_ms >= 500);

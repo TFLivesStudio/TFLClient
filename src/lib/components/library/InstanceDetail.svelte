@@ -894,6 +894,13 @@
 					/>
 					<section class="connection-section">
 						<span class="section-label">{t('serverInstance.connectionLabel')}</span>
+						<button
+							type="button"
+							class="vr-control"
+							onclick={() => openModal('serverConnectionInfo')}
+						>
+							{tr('Cómo conectarse', 'How to connect')}
+						</button>
 						{#if connectionInfo?.tunnel_address}
 							<div class="connection-row">
 								<code class="connection-address">{connectionInfo.tunnel_address}</code>

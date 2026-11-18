@@ -48,11 +48,18 @@ try {
 			waitUntil: 'domcontentloaded'
 		});
 		await page.locator('.hero .character-actions').waitFor();
+		const canvas = page.locator('.hero .skin-view canvas');
+		await canvas.waitFor();
 		await page.mouse.move(10, 10);
 		await page.waitForTimeout(9500);
-		await page.screenshot({ path: `${output}/${model.toLowerCase()}-left-glance.png` });
+		const first = await canvas.screenshot({
+			path: `${output}/${model.toLowerCase()}-early-idle.png`
+		});
 		await page.waitForTimeout(15500);
-		await page.screenshot({ path: `${output}/${model.toLowerCase()}-right-glance.png` });
+		const second = await canvas.screenshot({
+			path: `${output}/${model.toLowerCase()}-late-idle.png`
+		});
+		assert.notDeepEqual(first, second, 'the rendered pose changes during active idle');
 		assert.equal(
 			await page.evaluate(() =>
 				window.__fixtureCommands.some((entry) => entry.cmd === 'get_mojang_profile')

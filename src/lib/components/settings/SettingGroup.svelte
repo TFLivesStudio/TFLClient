@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { setting, isSettingVisible, type SettingId } from '$lib/settings/catalog';
 	import { experience } from '$lib/state/experience.svelte';
-	import { i18nState } from '$lib/i18n/index.svelte';
+	import { tr } from '$lib/i18n/experience';
 	let { id, hint = '', children }: { id: SettingId; hint?: string; children: Snippet } = $props();
 	const item = $derived(setting(id));
 </script>
@@ -14,7 +14,7 @@
 		aria-labelledby={`setting-${id}`}
 	>
 		<header>
-			<h4 id={`setting-${id}`}>{item.label[i18nState.locale.startsWith('en') ? 1 : 0]}</h4>
+			<h4 id={`setting-${id}`}>{tr(...item.label)}</h4>
 			{#if hint}<p>{hint}</p>{/if}
 		</header>
 		<div class="setting-content">{@render children()}</div>

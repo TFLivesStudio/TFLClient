@@ -8,7 +8,6 @@
 		"core:event:allow-unlisten",
 		"core:window:allow-close",
 		"clipboard-manager:allow-write-text",
-		"allow-get-running-instance-stats",
 		"allow-get-console-metrics",
 		"allow-stop-running-instance",
 		"allow-get-crash-report",

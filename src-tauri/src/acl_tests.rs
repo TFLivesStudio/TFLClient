@@ -100,7 +100,6 @@ fn main_window_can_use_every_app_command_and_log_window_only_its_own() {
 
     // La de log: solo lo de la pantalla de log.
     for cmd in [
-        "get_running_instance_stats",
         "get_console_metrics",
         "stop_running_instance",
         "get_crash_report",
@@ -276,7 +275,7 @@ fn commands_used_by_log_window() -> Vec<String> {
     let mut api_text = String::new();
     read_all_ts(&src.join("lib").join("api"), &mut api_text);
     let api_fn = regex::Regex::new(
-        r#"export (?:const|function) (\w+)\b[^;]*?invoke(?:<[^;]*?>)?\(\s*['"]([a-z_]+)['"]"#,
+        r#"export (?:const|(?:async )?function) (\w+)\b[^;]*?invoke(?:<[^;]*?>)?\(\s*['"]([a-z_]+)['"]"#,
     )
     .unwrap();
     let mut fn_to_cmd = std::collections::HashMap::new();

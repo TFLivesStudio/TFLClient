@@ -16,7 +16,6 @@
 	import SceneStage from '$lib/scenes/SceneStage.svelte';
 	import SettingGroup from './SettingGroup.svelte';
 	import { tr } from '$lib/i18n/experience';
-	import { i18nState } from '$lib/i18n/index.svelte';
 	import { Play, Pause, Upload, Trash2, Check, RotateCcw } from 'lucide-svelte';
 	let { children }: { children: Snippet } = $props();
 	let previousScene = $state('');
@@ -37,7 +36,6 @@
 			(!draft.preset.startsWith('addon:') ||
 				new Set(addonLayers.map((layer) => layer.speed)).size > 1)
 	);
-	const locale = $derived(i18nState.locale.startsWith('en') ? 1 : 0);
 	$effect(() => {
 		const current = scenes.global;
 		draft = structuredClone($state.snapshot(current));
@@ -206,7 +204,7 @@
 								loading="lazy"
 								class:pixel-preview={isLandscape(scene.id)}
 							/>{/if}{#if draft.preset === scene.id}<b><Check size={14} /></b>{/if}</span
-					><strong>{scene.name[locale]}</strong><small>{scene.description[locale]}</small></button
+					><strong>{tr(...scene.name)}</strong><small>{tr(...scene.description)}</small></button
 				>{/each}
 		</div></SettingGroup
 	>

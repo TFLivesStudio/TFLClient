@@ -122,7 +122,6 @@ fn main() {
 /// `src/lib.rs` revisa que ambas listas coincidan.
 const LOG_WINDOW_COMMANDS: &[&str] = &[
     "get_console_metrics",
-    "get_running_instance_stats",
     "stop_running_instance",
     "get_crash_report",
     "diagnose_crash",

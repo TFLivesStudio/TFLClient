@@ -1,33 +1,20 @@
 <script lang="ts">
-	import { appState } from '$lib/state/state.svelte';
-	import { patchSettings } from '$lib/api';
+	import { modalFocus } from '$lib/visual/modalFocus';
 	import { Wifi, Globe } from 'lucide-svelte';
 	import { t } from '$lib/i18n/index.svelte';
 
 	let { onDone }: { onDone: () => void } = $props();
-
-	let busy = $state(false);
-	let error = $state<string | null>(null);
-
-	async function dismiss() {
-		if (!appState.settings) return;
-		busy = true;
-		error = null;
-		try {
-			await patchSettings({ server_connection_info_shown: true });
-			appState.settings.server_connection_info_shown = true;
-			onDone();
-		} catch (e) {
-			error = String(e);
-		} finally {
-			busy = false;
-		}
-	}
 </script>
 
 <div class="overlay">
-	<div class="card" role="dialog" aria-modal="true">
-		<h1>{t('serverConnectionInfo.title')}</h1>
+	<div
+		class="card"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="server-connection-help"
+		use:modalFocus={onDone}
+	>
+		<h1 id="server-connection-help">{t('serverConnectionInfo.title')}</h1>
 		<p class="lead">{t('serverConnectionInfo.lead')}</p>
 
 		<div class="rows">
@@ -47,9 +34,7 @@
 			</div>
 		</div>
 
-		{#if error}<p class="prompt-error">{error}</p>{/if}
-
-		<button data-pixel-control type="button" class="ok-btn" disabled={busy} onclick={dismiss}>
+		<button data-pixel-control type="button" class="ok-btn" onclick={onDone}>
 			{t('serverConnectionInfo.gotIt')}
 		</button>
 	</div>

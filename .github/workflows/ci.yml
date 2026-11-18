@@ -189,8 +189,13 @@ jobs:
           export TFL_DATA_DIR="$RUNNER_TEMP/tfl-native/profile"
           mkdir -p "$TFL_DATA_DIR"
           touch "$TFL_DATA_DIR/TEST_PROFILE"
-          cargo test --locked -p tflclient --lib --no-run --message-format=json > "$RUNNER_TEMP/tfl-native/cargo.jsonl"
-          executable="$(jq -rs '[.[] | select(.reason == "compiler-artifact" and .profile.test and .executable != null)] | last | .executable // empty' "$RUNNER_TEMP/tfl-native/cargo.jsonl")"
+          cargo_json="$RUNNER_TEMP/tfl-native/cargo.jsonl"
+          if ! cargo test --locked -p tflclient --lib --no-run --message-format=json > "$cargo_json"; then
+            jq -r 'select(.reason == "compiler-message") | .message.rendered // empty' \
+              "$cargo_json" | tee artifacts/native/compile-errors.txt
+            exit 1
+          fi
+          executable="$(jq -rs '[.[] | select(.reason == "compiler-artifact" and .profile.test and .executable != null)] | last | .executable // empty' "$cargo_json")"
           test -n "$executable"
           if [[ "$RUNNER_OS" == Windows ]]; then
             # Cargo's libtest binary does not inherit the app's activation

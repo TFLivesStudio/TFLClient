@@ -530,6 +530,14 @@ jobs:
             echo "::error::Updated AppImage did not show the launcher window"
             exit 1
           '
+      - name: Measure native launcher idle before and after
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/tfl-updater-smoke"
+          xvfb-run -a python3 tests/native/idle_appimage.py \
+            "$root/mirror/baseline.AppImage" "$root/profile/installed.AppImage" |
+            tee release-evidence/linux-idle.json
       - name: Upload native updater evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
