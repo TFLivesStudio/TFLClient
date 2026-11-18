@@ -600,7 +600,8 @@ mod tests {
             tokio::spawn(async move {
                 let (mut socket, _) = listener.accept().await.unwrap();
                 let mut request = [0u8; 1024];
-                socket.read(&mut request).await.unwrap();
+                let received = socket.read(&mut request).await.unwrap();
+                assert!(received > 0, "HTTP fixture received an empty request");
                 socket.write_all(response.as_bytes()).await.unwrap();
             });
             format!("http://{address}/exact-loader")

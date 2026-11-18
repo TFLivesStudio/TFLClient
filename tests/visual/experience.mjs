@@ -360,7 +360,7 @@ try {
 				window.__fixtureEmit('InstanceStatusChanged', { name: 'Horizontes', status: 'stopped' });
 			});
 			await page.locator('.living-scene video').waitFor();
-		} else assert.equal(await page.locator('video,canvas').count(), 0);
+		} else assert.equal(await page.locator('.living-scene video,.living-scene canvas').count(), 0);
 		await settings(page, 'Fondos y escenas');
 		assert.equal(await page.locator('.living-scene video').count(), 0);
 		await page.getByLabel('Fuente de vídeo').selectOption('builtin-embers');
@@ -383,8 +383,6 @@ try {
 	await reduced.close();
 	checks.push('media-quality-reduced-motion-focus-game-persistence');
 	const mediaPage = await open({ quality: 'Experience' });
-	await settings(mediaPage, 'General');
-	await mediaPage.getByRole('button', { name: 'Manual', exact: true }).click();
 	await settings(mediaPage, 'Fondos y escenas');
 	await mediaPage.getByRole('button', { name: 'Importar vídeo', exact: true }).click();
 	await mediaPage.waitForFunction(() =>

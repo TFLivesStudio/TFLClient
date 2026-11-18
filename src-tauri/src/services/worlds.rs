@@ -1622,7 +1622,7 @@ mod tests {
         );
         let os_denied = fs::read_dir(&saves)
             .err()
-            .is_some_and(|error| error.kind() == io::ErrorKind::PermissionDenied);
+            .is_some_and(|error| error.kind() == std::io::ErrorKind::PermissionDenied);
         let unreadable = list_worlds(&fixture.0, false);
         let restore = Command::new("icacls.exe")
             .arg(&saves)
