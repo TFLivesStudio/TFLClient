@@ -143,32 +143,17 @@ pub struct SettingsManager {
     /// `updateState.svelte.ts` en el frontend.
     #[serde(default = "default_true")]
     pub auto_updates: bool,
-    /// Canal de actualizaciones: `true` = también recibe las versiones beta
-    /// (y las estables). Se activa a propósito desde Ajustes, con un aviso de
-    /// que pueden traer errores — ver `commands/updater.rs`.
+    /// Incluye las versiones beta. El perfil nuevo la habilita y la migración
+    /// mantiene la elección de los perfiles existentes.
     #[serde(default = "default_true")]
     pub beta_updates: bool,
     /// Preferencia heredada de Beta 3. Se conserva para compatibilidad.
-    // "auto" (default) oculta/deshabilita en el frontend cualquier función
-    /// que dependa del diálogo nativo de archivos (subir ícono/wallpaper
-    /// propio, agregar mods/shaders/resourcepacks por archivo) — el diálogo
-    /// nativo es lo que rompe el launcher en macOS con hardened runtime +
-    /// firma ad-hoc (ver docs/history/legacy/CHANGELOG_macos-dialog-crash-java26.txt).
-    /// "manual" las habilita, a sabiendas del riesgo. No afecta Java/loader/mods por
-    /// Modrinth, que siguen siendo 100% automáticos siempre.
     #[serde(default = "default_dialog_mode")]
     pub native_dialog_mode: CompactString,
-    /// Si ya se le mostró al usuario la elección de modo (modal de
-    /// bienvenida en instalación nueva, banner una vez en actualización) —
-    /// evita volver a preguntar. No afecta el valor de `native_dialog_mode`
-    /// en sí, que sigue editable en Ajustes en cualquier momento.
+    /// Estado de la pantalla de diálogo de Beta 3, conservado al migrar.
     #[serde(default)]
     pub native_dialog_mode_prompted: bool,
-    /// Si ya se le mostró la explicación de "cómo se conectan los demás a
-    /// tu servidor" (UPnP automático vs. playit.gg como fallback manual) —
-    /// aparece como modal la primera vez que se crea una instancia de
-    /// servidor, para que no sea sorpresa si UPnP no coopera. Una sola vez
-    /// por instalación, igual que `native_dialog_mode_prompted`.
+    /// Estado de la introducción de conexión a servidores de Beta 3.
     #[serde(default)]
     pub server_connection_info_shown: bool,
     /// "No volver a preguntarme" del aviso de multi-instancia (abrir una

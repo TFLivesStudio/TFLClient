@@ -165,6 +165,7 @@
 						history={DEMO_HISTORY}
 						current={DEMO_CURRENT}
 						p={draft}
+						{mode}
 						selected={selected === 'log' ? null : selected}
 						onMove={move}
 						onDrop={drop}

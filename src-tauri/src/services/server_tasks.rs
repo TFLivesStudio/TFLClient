@@ -51,6 +51,7 @@ async fn persist(tasks: &[ServerTask]) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     file.write_all(&bytes).await.map_err(|e| e.to_string())?;
     file.sync_all().await.map_err(|e| e.to_string())?;
+    drop(file);
     tokio::fs::rename(tmp, path)
         .await
         .map_err(|e| e.to_string())
@@ -131,21 +132,6 @@ pub async fn create(
         None,
     )
     .await?;
-    data.preparation = Some("preparing".into());
-    data.save().await.map_err(|e| e.to_string())?;
-    if let Err(error) = server_ports::write_reservation(&data.dir(), port).await {
-        data.preparation = Some("failed".into());
-        data.save().await.map_err(|e| e.to_string())?;
-        return Err(error);
-    }
-    if accept_eula {
-        tokio::fs::write(
-            data.dir().join("eula.txt"),
-            "# Aceptación explícita del usuario en TFL Client\neula=true\n",
-        )
-        .await
-        .map_err(|e| e.to_string())?;
-    }
     let task = ServerTask {
         id: uuid::Uuid::new_v4().to_string(),
         instance_name: data.name.clone(),
@@ -156,17 +142,35 @@ pub async fn create(
         bytes_total: None,
         error: None,
     };
-    {
-        let mut tasks = TASKS.lock().await;
-        if tasks.len() >= 50 {
-            if let Some(idx) = tasks.iter().position(|t| !active(&t.status)) {
-                tasks.remove(idx);
-            } else {
-                return Err("Hay demasiadas preparaciones activas".into());
-            }
+    let result = async {
+        server_ports::write_reservation(&data.dir(), port).await?;
+        if accept_eula {
+            tokio::fs::write(
+                data.dir().join("eula.txt"),
+                "# Aceptación explícita del usuario en TFL Client\neula=true\n",
+            )
+            .await
+            .map_err(|e| e.to_string())?;
         }
-        tasks.push(task.clone());
-        persist(&tasks).await?;
+        let mut tasks = TASKS.lock().await;
+        let mut next = tasks.clone();
+        if next.len() >= 50
+            && let Some(index) = next.iter().position(|t| t.status == "ready")
+        {
+            next.remove(index);
+        }
+        next.push(task.clone());
+        persist(&next).await?;
+        *tasks = next;
+        Ok::<(), String>(())
+    }
+    .await;
+    if let Err(error) = result {
+        data.preparation = Some("failed".into());
+        if let Err(save_error) = data.save().await {
+            tracing::warn!(%save_error, "No se pudo registrar el fallo de preparación");
+        }
+        return Err(error);
     }
     crate::core::emit(crate::core::AppEvent::ServerTasksChanged {});
     spawn(task);

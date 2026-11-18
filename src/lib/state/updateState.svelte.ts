@@ -116,7 +116,11 @@ export async function checkAndDownloadUpdate(): Promise<void> {
 }
 
 export async function downloadUpdate(): Promise<void> {
-	if (!hasPendingUpdate) return;
+	if (
+		!hasPendingUpdate ||
+		(updateState.phase !== 'available' && retryStage(updateState) !== 'download')
+	)
+		return;
 	dispatch({ type: 'DOWNLOAD_START' });
 	if (updateState.phase !== 'downloading') return;
 
@@ -124,34 +128,39 @@ export async function downloadUpdate(): Promise<void> {
 	// "bytes de este tramo", así que se pasa la diferencia.
 	let lastDownloaded = 0;
 	let totalAnnounced = false;
-	const unlisten = await listen<{ downloaded: number; total: number | null }>(
-		'update-download-progress',
-		(event) => {
-			const { downloaded, total } = event.payload;
-			if (!totalAnnounced && total !== null) {
-				totalAnnounced = true;
-				dispatch({ type: 'DOWNLOAD_TOTAL', totalBytes: total });
-			}
-			if (downloaded > lastDownloaded) {
-				dispatch({ type: 'DOWNLOAD_PROGRESS', chunkBytes: downloaded - lastDownloaded });
-				lastDownloaded = downloaded;
-			}
-		}
-	);
+	let unlisten: (() => void) | undefined;
 	try {
+		unlisten = await listen<{ downloaded: number; total: number | null }>(
+			'update-download-progress',
+			(event) => {
+				const { downloaded, total } = event.payload;
+				if (!totalAnnounced && total !== null) {
+					totalAnnounced = true;
+					dispatch({ type: 'DOWNLOAD_TOTAL', totalBytes: total });
+				}
+				if (downloaded > lastDownloaded) {
+					dispatch({ type: 'DOWNLOAD_PROGRESS', chunkBytes: downloaded - lastDownloaded });
+					lastDownloaded = downloaded;
+				}
+			}
+		);
 		await updateDownload();
 		dispatch({ type: 'DOWNLOAD_DONE' });
 	} catch (e) {
 		console.error('Descarga de actualización falló:', e);
 		dispatch({ type: 'DOWNLOAD_FAILED', message: errorMessage(e) });
 	} finally {
-		unlisten();
+		unlisten?.();
 	}
 }
 
 /** Instala la actualización ya descargada y reinicia el launcher. */
 export async function installDownloadedUpdate(): Promise<void> {
-	if (!hasPendingUpdate) return;
+	if (
+		!hasPendingUpdate ||
+		(updateState.phase !== 'downloaded' && retryStage(updateState) !== 'install')
+	)
+		return;
 	dispatch({ type: 'INSTALL_START' });
 	if (updateState.phase !== 'installing') return;
 	try {

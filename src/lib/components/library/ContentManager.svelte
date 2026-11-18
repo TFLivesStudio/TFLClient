@@ -6,7 +6,6 @@
 		ModUpdateAvailable,
 		ModRollbackInfo
 	} from '$lib/types/types';
-	import { appState } from '$lib/state/state.svelte';
 	import {
 		getInstalledModsInfo,
 		checkModUpdates,

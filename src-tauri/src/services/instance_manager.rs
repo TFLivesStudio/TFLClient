@@ -209,7 +209,7 @@ pub async fn create_instance_full(
         launch_version_id,
         last_played: 0,
         last_activity: 0,
-        preparation: None,
+        preparation: (server_type.is_some() && server_jar.is_none()).then(|| "preparing".into()),
         play_time_secs: 0,
         min_memory: None,
         max_memory: None,
@@ -224,7 +224,11 @@ pub async fn create_instance_full(
     tokio::fs::create_dir(data.dir())
         .await
         .map_err(|e| format!("No se pudo reservar la carpeta de instancia: {e}"))?;
-    data.save().await.map_err(|e| e.to_string())?;
+    if let Err(error) = data.save().await {
+        // Only remove the fresh, empty reservation. It may already contain other files.
+        let _ = tokio::fs::remove_dir(data.dir()).await;
+        return Err(error.to_string());
+    }
     Ok(data)
 }
 

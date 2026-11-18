@@ -1,4 +1,4 @@
-import type { Metric } from './model';
+import { METRICS, type Metric } from './model';
 import { dropMetric } from './preferences.svelte';
 /** Pointer handles work with Tauri's native file-drop handler enabled on Windows.
  * HTML5 drag/drop remains available on cards in other webviews. */
@@ -37,8 +37,8 @@ export function reorderHandle(
 	};
 	const up = (e: PointerEvent) => {
 		if (e.pointerId !== id) return;
-		const to = target?.dataset.consoleMetric;
-		if (e.type === 'pointerup' && (to === 'cpu' || to === 'ram' || to === 'disk'))
+		const to = METRICS.find((metric) => metric === target?.dataset.consoleMetric);
+		if (e.type === 'pointerup' && to)
 			(typeof params === 'string' ? dropMetric : params.drop)(
 				typeof params === 'string' ? params : params.metric,
 				to

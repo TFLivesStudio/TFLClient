@@ -15,11 +15,12 @@ export function applyVisualAttributes(notify = true) {
 	const root = document.documentElement;
 	root.dataset.visual = visual.style;
 	if (visual.customAccent) {
+		const foreground = accentText(visual.customAccent);
 		root.style.setProperty('--accent', visual.customAccent);
-		root.style.setProperty('--accent-text', accentText(visual.customAccent));
+		root.style.setProperty('--accent-text', foreground);
 		root.style.setProperty(
 			'--accent-hover',
-			`color-mix(in srgb, ${visual.customAccent} 85%, white)`
+			`color-mix(in srgb, ${visual.customAccent} 85%, ${foreground === '#ffffff' ? 'black' : 'white'})`
 		);
 		root.style.setProperty(
 			'--accent-rgb',

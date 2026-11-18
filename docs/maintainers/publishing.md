@@ -202,9 +202,18 @@ ejecuta las compuertas de calidad, construye Windows/macOS/Linux, publica las
 notas y adjunta instaladores, firmas y metadatos del updater. El tag con sufijo
 beta se marca como prerelease.
 
-El workflow gestiona la creación de la release y sus notas. Espera a que termine
-la matriz completa: una release puede aparecer cuando una plataforma ha acabado,
-aunque otra siga construyéndose o haya fallado.
+El workflow de un tag estable construye las tres plataformas, verifica los
+paquetes y sus firmas de actualización, y prepara una release en borrador.
+Al concluir la matriz, comprueba el informe de aceptación y el actualizador
+desde la versión anterior con un perfil aislado. Publica el mismo borrador
+solo al terminar estas pruebas:
+
+```sh
+gh release edit v0.15.4 -R TFLivesStudio/TFLClient --draft=false --latest --verify-tag
+```
+
+Las betas conservan su flujo automático. Una prerelease puede aparecer antes de
+que todas sus plataformas hayan terminado.
 
 ## 8. Verificar la publicación y la web
 

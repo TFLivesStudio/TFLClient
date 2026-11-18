@@ -3,7 +3,6 @@
 	import { onMount } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
 	import { pickImageFile, setInstanceIcon } from '$lib/api';
-	import { appState } from '$lib/state/state.svelte';
 	import { t } from '$lib/i18n/index.svelte';
 	import { tr } from '$lib/i18n/experience';
 	import { normalized } from '$lib/settings/catalog';

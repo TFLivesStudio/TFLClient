@@ -498,7 +498,7 @@
 				role="group"
 				aria-label={tr('Modo del launcher', 'Launcher mode')}
 			>
-				{#each ['simple', 'advanced'] as mode}<button
+				{#each ['simple', 'advanced'] as mode (mode)}<button
 						type="button"
 						aria-pressed={experience.mode === mode}
 						disabled={experienceStatus.saving}

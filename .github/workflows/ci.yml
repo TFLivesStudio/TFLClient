@@ -266,29 +266,36 @@ jobs:
             if curl -fsS "$VISUAL_URL" > /dev/null; then break; fi
             sleep 1
           done
+          if ! curl -fsS "$VISUAL_URL" > /dev/null; then
+            cat /tmp/tfl-preview.log
+            exit 1
+          fi
           mkdir -p artifacts/visual-refresh
-          node tests/visual/beta2.mjs
-          node tests/visual/smoke.mjs
-          node tests/visual/workspaces.mjs
-          node tests/visual/lifecycle.mjs
-          node tests/visual/experience.mjs
-          node tests/visual/mcp-scenes.mjs
-          node tests/visual/auth.mjs
-          node tests/visual/pixel-controls.mjs
-          node tests/visual/living-settings.mjs
-          node tests/visual/landscapes.mjs
-          node tests/visual/background-banners.mjs
-          node tests/visual/sidebar-refinement.mjs
-          node tests/visual/character-interaction.mjs
-          node tests/visual/selection-experience.mjs
-          node tests/visual/beta3.mjs
-          node tests/visual/addons.mjs
-          ADDONS_UI_FULL_THEME=1 ADDONS_UI_CASE=pixel/dark,pixel/light ADDONS_OUTPUT=artifacts/beta3-addon-full-theme node tests/visual/addons.mjs
-          node tests/visual/scene-motion.mjs
-          node tests/visual/release-154-home.mjs
-          node tests/visual/release-154-settings.mjs
-          node tests/visual/release-154-console.mjs
-          node tests/visual/release-154-character.mjs
+          status=0
+          results=artifacts/visual-refresh/test-results.txt
+          run_visual() {
+            local name="$1"
+            shift
+            echo "::group::$name"
+            if "$@"; then
+              printf '%s PASS\n' "$name" | tee -a "$results"
+            else
+              status=1
+              printf '%s FAIL\n' "$name" | tee -a "$results"
+            fi
+            echo "::endgroup::"
+          }
+          for suite in beta2 smoke workspaces lifecycle experience mcp-scenes auth pixel-controls \
+            living-settings landscapes background-banners sidebar-refinement character-interaction \
+            selection-experience beta3 addons scene-motion release-154-home release-154-settings \
+            release-154-console release-154-character; do
+            run_visual "$suite" node "tests/visual/$suite.mjs"
+          done
+          run_visual addons-pixel-theme \
+            env ADDONS_UI_FULL_THEME=1 ADDONS_UI_CASE=pixel/dark,pixel/light \
+            ADDONS_OUTPUT=artifacts/beta3-addon-full-theme node tests/visual/addons.mjs
+          cat "$results"
+          exit "$status"
       - name: Upload visual review evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

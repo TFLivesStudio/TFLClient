@@ -1414,6 +1414,76 @@ mod tests {
     }
 
     #[test]
+    fn vanilla_save_is_discovered_renamed_and_restored_with_its_original_region() {
+        // A vanilla 26.1.2 save from Apoptosis. See the vendored provenance.
+        let level = include_bytes!("../../tests/fixtures/vanilla-26.1.2/level_26_1_2.dat");
+        let region = include_bytes!("../../tests/fixtures/vanilla-26.1.2/region_26_1_2.mca");
+        let fixture = Fixture::new();
+        let id = "new world – montaña";
+        let world = fixture.0.join(".minecraft/saves").join(id);
+        let region_relative = "dimensions/minecraft/overworld/region/r.-2.-1.mca";
+        let region_path = world.join(region_relative);
+        fs::create_dir_all(region_path.parent().unwrap()).unwrap();
+        fs::write(world.join("level.dat"), level).unwrap();
+        fs::write(&region_path, region).unwrap();
+
+        let detected = list_worlds(&fixture.0, false).unwrap();
+        assert_eq!(detected.len(), 1);
+        assert_eq!(detected[0].name, id);
+        assert_eq!(detected[0].data_version, Some(4790));
+        assert_eq!(detected[0].version.as_deref(), Some("26.1.2"));
+        assert_eq!(detected[0].metadata_error, None);
+
+        let backup = backup_world(&fixture.0, false, id).unwrap();
+        rename_world(&fixture.0, false, id, "Montaña «26.1.2»").unwrap();
+        assert_eq!(
+            list_worlds(&fixture.0, false).unwrap()[0].display_name,
+            "Montaña «26.1.2»"
+        );
+        assert_eq!(fs::read(&region_path).unwrap(), region.as_slice());
+        restore_world(&fixture.0, false, id, &backup.id).unwrap();
+        assert_eq!(fs::read(world.join("level.dat")).unwrap(), level.as_slice());
+        assert_eq!(fs::read(region_path).unwrap(), region.as_slice());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn unreadable_windows_saves_reports_permission_error() {
+        use std::process::Command;
+
+        let fixture = Fixture::new();
+        fixture.world("saves/new world");
+        let saves = fixture.0.join("saves");
+        let deny = Command::new("icacls.exe")
+            .arg(&saves)
+            .args(["/deny", "*S-1-1-0:(RD)"])
+            .output()
+            .unwrap();
+        assert!(
+            deny.status.success(),
+            "icacls failed: {}",
+            String::from_utf8_lossy(&deny.stderr)
+        );
+        let unreadable = list_worlds(&fixture.0, false);
+        let restore = Command::new("icacls.exe")
+            .arg(&saves)
+            .args(["/remove:d", "*S-1-1-0"])
+            .output()
+            .unwrap();
+        assert!(
+            restore.status.success(),
+            "could not undo temporary test ACL"
+        );
+        assert!(
+            unreadable
+                .unwrap_err()
+                .contains("No se pudo leer la carpeta de mundos"),
+            "the manager should report a read error for an inaccessible saves directory"
+        );
+        assert_eq!(list_worlds(&fixture.0, false).unwrap().len(), 1);
+    }
+
+    #[test]
     fn game_directory_is_bounded_consistent_and_ambiguity_is_not_empty_state() {
         let fixture = Fixture::new();
         fixture.world(".minecraft/saves/new world");

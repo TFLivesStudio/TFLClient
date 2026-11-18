@@ -1,6 +1,6 @@
 //! Actualizaciones del launcher con dos canales.
 //!
-//! - **Estable** (default): el endpoint de `tauri.conf.json`
+//! - **Estable**: el endpoint de `tauri.conf.json`
 //!   (`releases/latest/download/latest.json`). GitHub no cuenta las releases
 //!   marcadas como "prerelease" como "latest", así que una beta nunca le llega
 //!   a quien no la pidió.
@@ -41,6 +41,7 @@ struct Pending {
 }
 
 static PENDING: LazyLock<Mutex<Option<Pending>>> = LazyLock::new(|| Mutex::new(None));
+static UPDATE_OPERATION: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 #[derive(Debug, Serialize)]
 pub struct UpdateInfo {
@@ -140,6 +141,9 @@ async fn run_check(app: &AppHandle, endpoint: Option<url::Url>) -> Result<Option
 /// `update_download`/`update_install` y devuelve sus datos.
 #[command]
 pub async fn update_check(app: AppHandle, beta: bool) -> Result<Option<UpdateInfo>, String> {
+    let _operation = UPDATE_OPERATION
+        .try_lock()
+        .map_err(|_| "Ya hay una actualización en curso")?;
     let beta_url = if beta {
         beta_manifest_url().await
     } else {
@@ -188,11 +192,14 @@ pub async fn update_check(app: AppHandle, beta: bool) -> Result<Option<UpdateInf
 /// evento `update-download-progress`.
 #[command]
 pub async fn update_download(app: AppHandle) -> Result<(), String> {
+    let _operation = UPDATE_OPERATION
+        .try_lock()
+        .map_err(|_| "Ya hay una actualización en curso")?;
     let update = PENDING
         .lock()
         .as_ref()
         .map(|p| p.update.clone())
-        .ok_or("No hay ninguna actualización pendiente: buscala de nuevo")?;
+        .ok_or("No hay ninguna actualización pendiente. Comprueba si hay una versión nueva.")?;
 
     let mut downloaded: u64 = 0;
     let mut last_emit = Instant::now() - PROGRESS_MIN_INTERVAL;
@@ -230,6 +237,9 @@ pub async fn update_download(app: AppHandle) -> Result<(), String> {
 /// launcher por su cuenta; en el resto devuelve OK y el frontend reinicia.
 #[command]
 pub async fn update_install() -> Result<(), String> {
+    let _operation = UPDATE_OPERATION
+        .try_lock()
+        .map_err(|_| "Ya hay una actualización en curso")?;
     if !crate::services::launcher::running_instances().is_empty()
         || crate::services::server_process::any_server_running()
         || crate::services::server_tasks::active_tasks().await

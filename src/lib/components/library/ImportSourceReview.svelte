@@ -159,7 +159,7 @@
 		{#if preview.warnings.length}<div class="warnings" role="alert">
 				<AlertTriangle size={17} />
 				<div>
-					{#each preview.warnings as warning}<p>{warning}</p>{/each}
+					{#each preview.warnings as warning, index (`${index}-${warning}`)}<p>{warning}</p>{/each}
 				</div>
 			</div>{/if}
 		<details open={experience.mode === 'advanced'}>
@@ -170,7 +170,7 @@
 				)}</summary
 			>
 			<ul>
-				{#each preview.omitted as omitted}<li>{omitted}</li>{/each}
+				{#each preview.omitted as omitted (omitted)}<li>{omitted}</li>{/each}
 			</ul>
 			{#if experience.mode === 'advanced'}<p class="path">{path}</p>
 				<code>{preview.format}</code>{/if}
