@@ -104,7 +104,7 @@ pub async fn ensure_java(major: u8, mc_version: &str) -> Result<PathBuf, String>
         .await
         .map_err(|e| e.to_string())?;
 
-    let (tx, watcher) = progress::watch(&format!("java:{major}"));
+    let (tx, watcher) = progress::watch(&format!("java:{major}"))?;
     let result = handle
         .download_all(Some(tx))
         .await

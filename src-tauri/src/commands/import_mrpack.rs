@@ -352,7 +352,7 @@ pub async fn import_mrpack_file(
     })?;
 
     let shared_dir = PathManager::get().get_shared_dir().to_path_buf();
-    let (tx, watcher) = progress::watch(&format!("mrpack:{}", data.name));
+    let (tx, watcher) = progress::watch(&format!("mrpack:{}", data.name))?;
     let installed = mrpack::install_mrpack_cancellable(
         &path,
         &destination,

@@ -474,4 +474,76 @@ mod tests {
         assert_eq!(restored.ui_mode, UiMode::Simple);
         assert!(restored.preference_origins.is_empty());
     }
+
+    #[tokio::test]
+    #[ignore = "Runs separately with an isolated settings profile"]
+    async fn patches_reject_stale_windows_invalid_values_and_failed_commits() {
+        // The isolated harness runs this test in its own process.
+        assert!(std::env::var_os("TFL_SETTINGS_ACCEPTANCE").is_some());
+        assert!(
+            PathManager::get()
+                .get_settings_dir()
+                .parent()
+                .unwrap()
+                .join("TEST_PROFILE")
+                .is_file()
+        );
+        let original = SettingsManager::snapshot();
+        let changed = SettingsManager::patch(
+            serde_json::json!({"ui_mode":"advanced"}),
+            original.settings_revision,
+        )
+        .await
+        .unwrap();
+        assert_eq!(changed.ui_mode, UiMode::Advanced);
+        assert_eq!(changed.user.len(), original.user.len());
+        assert_eq!(changed.preference_origins["ui_mode"], "explicit");
+        assert!(
+            SettingsManager::patch(
+                serde_json::json!({"theme":"light"}),
+                original.settings_revision
+            )
+            .await
+            .unwrap_err()
+            .contains("SETTINGS_CONFLICT")
+        );
+        let path = SettingsManager::settings_path();
+        let bytes = std::fs::read(&path).unwrap();
+        assert!(
+            SettingsManager::patch(
+                serde_json::json!({"max_memory":1}),
+                changed.settings_revision
+            )
+            .await
+            .is_err()
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+        let temp = path.with_extension("tfl.patch.tmp");
+        std::fs::create_dir(&temp).unwrap();
+        assert!(
+            SettingsManager::patch(
+                serde_json::json!({"theme":"light"}),
+                changed.settings_revision
+            )
+            .await
+            .is_err()
+        );
+        std::fs::remove_dir(&temp).unwrap();
+        assert_eq!(
+            SettingsManager::snapshot().settings_revision,
+            changed.settings_revision
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+        let committed = SettingsManager::patch(
+            serde_json::json!({"theme":"light"}),
+            changed.settings_revision,
+        )
+        .await
+        .unwrap();
+        assert_eq!(committed.ui_mode, UiMode::Advanced);
+        assert_eq!(
+            SettingsManager::load().settings_revision,
+            committed.settings_revision
+        );
+    }
 }

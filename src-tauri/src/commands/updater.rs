@@ -237,6 +237,7 @@ pub async fn update_download(app: AppHandle) -> Result<(), String> {
 /// launcher por su cuenta; en el resto devuelve OK y el frontend reinicia.
 #[command]
 pub async fn update_install() -> Result<(), String> {
+    let maintenance = crate::services::maintenance::install()?;
     let _operation = UPDATE_OPERATION
         .try_lock()
         .map_err(|_| "Ya hay una actualización en curso")?;
@@ -260,6 +261,7 @@ pub async fn update_install() -> Result<(), String> {
         (pending.update.clone(), bytes)
     };
     tauri::async_runtime::spawn_blocking(move || {
+        let _maintenance = maintenance;
         if let Err(e) = update.install(&bytes) {
             if let Some(pending) = PENDING.lock().as_mut() {
                 pending.bytes = Some(bytes);

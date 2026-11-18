@@ -136,6 +136,8 @@ pub fn available(port: Port) -> bool {
     let bind = |ip: IpAddr, domain| -> std::io::Result<()> {
         let kind = if port.udp { Type::DGRAM } else { Type::STREAM };
         let socket = Socket::new(domain, kind, None)?;
+        #[cfg(windows)]
+        exclusive_bind(&socket)?;
         socket.bind(&SocketAddr::new(ip, port.number).into())?;
         if !port.udp {
             socket.listen(1)?;
@@ -153,6 +155,36 @@ pub fn available(port: Port) -> bool {
                 std::io::ErrorKind::AddrNotAvailable | std::io::ErrorKind::Unsupported
             ) || matches!(e.raw_os_error(), Some(47 | 97 | 10047))
         })
+}
+
+#[cfg(windows)]
+fn exclusive_bind(socket: &Socket) -> std::io::Result<()> {
+    use std::os::windows::io::AsRawSocket;
+    #[link(name = "ws2_32")]
+    unsafe extern "system" {
+        fn setsockopt(socket: usize, level: i32, option: i32, value: *const u8, length: i32)
+        -> i32;
+        fn WSAGetLastError() -> i32;
+    }
+    let enabled = 1i32;
+    // WinSock SO_EXCLUSIVEADDRUSE must be selected before binding. This
+    // prevents wildcard probes from succeeding over another program's bind.
+    let result = unsafe {
+        setsockopt(
+            socket.as_raw_socket() as usize,
+            65535,
+            -5,
+            (&enabled as *const i32).cast(),
+            std::mem::size_of_val(&enabled) as i32,
+        )
+    };
+    if result == 0 {
+        Ok(())
+    } else {
+        Err(std::io::Error::from_raw_os_error(unsafe {
+            WSAGetLastError()
+        }))
+    }
 }
 async fn reserved(except: &str) -> Result<BTreeSet<u16>, String> {
     let mut taken = BTreeSet::new();

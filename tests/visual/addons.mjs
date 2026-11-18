@@ -149,13 +149,8 @@ try {
 			page.on('pageerror', (e) => errors.push(e.message));
 			// Manual paths and package diagnostics remain an Advanced capability.
 			await page.addInitScript(
-				withFixture({
-					theme,
-					mode: 'advanced',
-					appVersion: '0.15.4-beta.3'
-				})
+				withFixture({ theme, mode: 'advanced' }, addonsFixture, fullThemeTokens)
 			);
-			await page.addInitScript(addonsFixture, fullThemeTokens);
 			await page.addInitScript(
 				(value) => localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style: value })),
 				style

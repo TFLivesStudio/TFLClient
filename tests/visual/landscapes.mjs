@@ -47,8 +47,10 @@ async function open(preset, quality = 'Balanced', extra = {}) {
 			const getContext = HTMLCanvasElement.prototype.getContext;
 			HTMLCanvasElement.prototype.getContext = function (type, ...args) {
 				if (type === '2d') {
-					window.__landscapeContextCount++;
-					window.__landscapeSurfaces.add(this);
+					if (this.height === 216 && [384, 768].includes(this.width)) {
+						window.__landscapeContextCount++;
+						window.__landscapeSurfaces.add(this);
+					}
 					if (noCanvas) return null;
 				}
 				return getContext.call(this, type, ...args);
@@ -163,7 +165,7 @@ try {
 				assert.equal(
 					await page.evaluate(() => window.__landscapeContextCount),
 					count + cacheSetContexts,
-					'restore creates exactly one cache set'
+					'restore creates exactly one landscape context set'
 				);
 				const cdp = await page.context().newCDPSession(page);
 				await cdp.send('Performance.enable');

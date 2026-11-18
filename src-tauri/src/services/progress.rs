@@ -16,6 +16,7 @@ fn stage_str(stage: &DownloadStage) -> String {
 }
 
 pub struct ProgressWatcher {
+    _maintenance: tokio::sync::OwnedRwLockReadGuard<()>,
     task: String,
     handle: JoinHandle<()>,
 }
@@ -63,7 +64,8 @@ pub fn mark_processing(tx: &ProgressSender, label: &str) {
 /// Arranca a escuchar un canal de progreso nuevo para `task`. Usar el
 /// `ProgressSender` devuelto con `handle.download_all(Some(tx))`, y llamar
 /// `watcher.finish(result)` con el resultado de esa descarga.
-pub fn watch(task: &str) -> (ProgressSender, ProgressWatcher) {
+pub fn watch(task: &str) -> Result<(ProgressSender, ProgressWatcher), String> {
+    let maintenance = super::maintenance::operation()?;
     ACTIVE.fetch_add(1, Ordering::AcqRel);
     let (tx, mut rx) = tokio::sync::watch::channel(DownloadProgress {
         stage: DownloadStage::Resolving,
@@ -92,11 +94,12 @@ pub fn watch(task: &str) -> (ProgressSender, ProgressWatcher) {
         }
     });
 
-    (
+    Ok((
         tx,
         ProgressWatcher {
+            _maintenance: maintenance,
             task: task.to_string(),
             handle,
         },
-    )
+    ))
 }

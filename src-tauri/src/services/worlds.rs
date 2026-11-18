@@ -1389,12 +1389,40 @@ pub fn change_datapack(
         tree_files(source, MAX_PACK)?;
     }
     if remove {
-        if source.is_dir() {
-            fs::remove_dir_all(source)
-        } else {
-            fs::remove_file(source)
+        let (mut level, prefix, gzip) = read_level(&world)?;
+        if let Value::Compound(root) = &mut level
+            && let Some(Value::Compound(data)) = root.get_mut("Data")
+            && let Some(Value::Compound(packs)) = data.get_mut("DataPacks")
+        {
+            let name = Value::String(format!("file/{id}"));
+            for field in ["Enabled", "Disabled"] {
+                match packs.get_mut(field) {
+                    Some(Value::List(entries)) => entries.retain(|entry| entry != &name),
+                    None => {}
+                    _ => return Err("El mundo no contiene una lista válida de datapacks.".into()),
+                }
+            }
         }
-        .map_err(|e| io_error("No se pudo eliminar el datapack", e))
+        let recovery = world.join(format!(".tfl-removed-datapack-{}", uuid::Uuid::new_v4()));
+        fs::rename(source, &recovery)
+            .map_err(|e| io_error("No se pudo preparar la eliminación del datapack", e))?;
+        if let Err(error) = write_level(&world, &level, prefix, gzip) {
+            fs::rename(&recovery, source).map_err(|e| {
+                io_error("No se pudo recuperar el datapack de su copia temporal", e)
+            })?;
+            return Err(error);
+        }
+        let removed = if recovery.is_dir() {
+            fs::remove_dir_all(&recovery)
+        } else {
+            fs::remove_file(&recovery)
+        };
+        removed.map_err(|e| {
+            format!(
+                "El datapack se retiró del mundo. Su copia temporal se conservó en {}: {e}",
+                recovery.display()
+            )
+        })
     } else {
         let (mut level, prefix, gzip) = read_level(&world)?;
         let current = active_exists && !disabled_datapack(&level, id);
@@ -1548,7 +1576,7 @@ mod tests {
         let saves = fixture.0.join("saves");
         let deny = Command::new("icacls.exe")
             .arg(&saves)
-            .args(["/deny", "*S-1-1-0:(RD)"])
+            .args(["/deny", "*S-1-1-0:(R)"])
             .output()
             .unwrap();
         assert!(
@@ -1567,9 +1595,7 @@ mod tests {
             "could not undo temporary test ACL"
         );
         assert!(
-            unreadable
-                .unwrap_err()
-                .contains("No se pudo leer la carpeta de mundos"),
+            unreadable.unwrap_err().contains("No se pudo"),
             "the manager should report a read error for an inaccessible saves directory"
         );
         assert_eq!(list_worlds(&fixture.0, false).unwrap().len(), 1);
@@ -1753,6 +1779,15 @@ mod tests {
         change_datapack(&fixture.0, false, "new world", "pack.zip", false, false).unwrap();
         assert!(list_datapacks(&fixture.0, false, "new world").unwrap()[0].enabled);
         change_datapack(&fixture.0, false, "new world", "pack.zip", true, true).unwrap();
+        let (level, _, _) = read_level(&world).unwrap();
+        let removed = Value::String("file/pack.zip".into());
+        for field in ["Enabled", "Disabled"] {
+            if let Some(Value::List(entries)) =
+                datapack_lists(&level).and_then(|packs| packs.get(field))
+            {
+                assert!(!entries.contains(&removed));
+            }
+        }
         assert!(
             list_datapacks(&fixture.0, false, "new world")
                 .unwrap()

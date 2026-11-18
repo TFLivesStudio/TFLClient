@@ -236,7 +236,7 @@ try {
 				await quick.locator('#mcp-local-toggle').check();
 				await page.getByRole('button', { name: 'Autorizar lectura', exact: true }).waitFor();
 				await page.evaluate(() => (window.__release154.failConfig = true));
-				await quick.locator('#mcp-connect-codex').check();
+				await quick.locator('#mcp-connect-codex').click();
 				await quick.getByRole('alert').filter({ hasText: 'MCP_CONFIG_WRITE_DENIED' }).waitFor();
 				assert.equal(
 					await quick.locator('#mcp-connect-codex').isChecked(),

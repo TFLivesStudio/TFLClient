@@ -30,6 +30,7 @@ pub async fn rename_instance_world(
     world_name: String,
     display_name: String,
 ) -> Result<(), String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     let _lock = content::mutation_lock(&instance_name).await;
     worlds::ensure_stopped(&instance_name)?;
     let data = instance(&instance_name).await?;
@@ -50,6 +51,7 @@ pub async fn delete_instance_world(
     instance_name: String,
     world_name: String,
 ) -> Result<(), String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     let _lock = content::mutation_lock(&instance_name).await;
     worlds::ensure_stopped(&instance_name)?;
     let data = instance(&instance_name).await?;
@@ -65,6 +67,7 @@ pub async fn backup_instance_world(
     instance_name: String,
     world_name: String,
 ) -> Result<worlds::WorldBackup, String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     let _lock = content::mutation_lock(&instance_name).await;
     worlds::ensure_stopped(&instance_name)?;
     let data = instance(&instance_name).await?;
@@ -92,6 +95,7 @@ pub async fn restore_instance_world(
     world_name: String,
     id: String,
 ) -> Result<(), String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     let _lock = content::mutation_lock(&instance_name).await;
     worlds::ensure_stopped(&instance_name)?;
     let data = instance(&instance_name).await?;
@@ -121,6 +125,7 @@ pub async fn install_world_datapack(
     world_name: String,
     path: String,
 ) -> Result<(), String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     let _lock = content::mutation_lock(&instance_name).await;
     worlds::ensure_stopped(&instance_name)?;
     let data = instance(&instance_name).await?;
@@ -144,6 +149,7 @@ pub async fn change_world_datapack(
     enabled: bool,
     remove: bool,
 ) -> Result<(), String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     let _lock = content::mutation_lock(&instance_name).await;
     worlds::ensure_stopped(&instance_name)?;
     let data = instance(&instance_name).await?;
@@ -238,6 +244,7 @@ pub async fn download_world_datapack(
     world_name: String,
     project_id: String,
 ) -> Result<(), String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     if project_id.is_empty()
         || project_id.len() > 128
         || !project_id

@@ -12,7 +12,7 @@ const p = await b.newPage({ viewport: { width: 800, height: 600 } });
 const errors = [];
 p.on('pageerror', (e) => errors.push(e.message));
 p.setDefaultTimeout(10000);
-await p.addInitScript(withFixture({ premium: true }));
+await p.addInitScript(withFixture({ premium: true, mode: 'advanced' }));
 const shot = async (name) => {
 	await p.waitForTimeout(200);
 	await p.screenshot({ path: `${output}/${name}.png` });

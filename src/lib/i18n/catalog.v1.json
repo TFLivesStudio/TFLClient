@@ -905,6 +905,7 @@
 			"source": "La detección automática de instancias para importar ahora también encuentra las de la app de Modrinth, además de Prism, MultiMC, PolyMC y CurseForge.",
 			"placeholders": []
 		},
+		"phrase.4463dd17": { "source": "Cancelling…", "placeholders": [] },
 		"phrase.44890b96": {
 			"source": "Some metadata could not be read. Files are preserved.",
 			"placeholders": []
@@ -1281,6 +1282,7 @@
 			"placeholders": []
 		},
 		"phrase.96a90eb4": { "source": "Signed in", "placeholders": [] },
+		"phrase.96c41bb4": { "source": "How to connect", "placeholders": [] },
 		"phrase.9744a19f": { "source": "Waiting for your authorization", "placeholders": [] },
 		"phrase.978ab3d2": {
 			"source": "Cloud ChatGPT cannot access this local stdio. No remote integration is certified. See docs/mcp/CLIENTS.md for platform paths and commands.",
@@ -1395,6 +1397,10 @@
 		"phrase.b0c117ab": { "source": "Auroras above an icy mountain lake.", "placeholders": [] },
 		"phrase.b105c012": {
 			"source": "The instance is stopped. Launch it to view its log.",
+			"placeholders": []
+		},
+		"phrase.b1c73f4a": {
+			"source": "Portable export includes the server, plugin JARs and filtered properties. To keep worlds and plugin settings, create a full instance backup.",
 			"placeholders": []
 		},
 		"phrase.b253c7c4": { "source": "Adapt to time of day", "placeholders": [] },

@@ -475,7 +475,7 @@ export function searchSettings(
 	return SETTINGS.flatMap((setting) => {
 		const label = normalized(
 			typeof locale === 'function'
-				? locale(...setting.label)
+				? locale(setting.label[0], setting.label[1])
 				: setting.label[locale === 'en' ? 1 : 0]
 		);
 		const searchable = normalized(`${label} ${setting.label.join(' ')} ${setting.keywords}`);

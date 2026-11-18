@@ -35,6 +35,7 @@ struct InstallContext<'a> {
 
 impl<P: ContentProvider> ContentService<P> {
     pub async fn install(&self, request: InstallRequest<'_>) -> Result<(), String> {
+        let _maintenance = crate::services::maintenance::operation()?;
         let _mutation = super::mutation_lock(request.instance_name).await;
         super::ensure_mutable(request.instance_name, request.kind).await?;
         let _perf = crate::core::perf::span("content.install");

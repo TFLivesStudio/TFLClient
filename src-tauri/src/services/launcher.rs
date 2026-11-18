@@ -108,7 +108,7 @@ async fn ensure_downloaded(
             );
             e.to_string()
         })?;
-        let (tx, watcher) = progress::watch(&format!("minecraft:{}", data.mc_version));
+        let (tx, watcher) = progress::watch(&format!("minecraft:{}", data.mc_version))?;
         let result = handle
             .download_all(Some(tx))
             .await
@@ -162,7 +162,7 @@ async fn ensure_downloaded(
                 .prepare_batch(Box::new(batch))
                 .await
                 .map_err(|e| e.to_string())?;
-            let (tx, watcher) = progress::watch(&format!("fabric:{}", data.mc_version));
+            let (tx, watcher) = progress::watch(&format!("fabric:{}", data.mc_version))?;
             let result = handle
                 .download_all(Some(tx))
                 .await
@@ -184,7 +184,7 @@ async fn ensure_downloaded(
                 .prepare_batch(Box::new(batch))
                 .await
                 .map_err(|e| e.to_string())?;
-            let (tx, watcher) = progress::watch(&format!("quilt:{}", data.mc_version));
+            let (tx, watcher) = progress::watch(&format!("quilt:{}", data.mc_version))?;
             let result = handle
                 .download_all(Some(tx))
                 .await
@@ -198,7 +198,7 @@ async fn ensure_downloaded(
             // ForgeBatch::install necesita Java (corre el instalador con
             // procesadores post-descarga) — se resuelve antes de entrar acá.
             let java_path = java_path_hint.ok_or("Forge necesita Java resuelto de antemano")?;
-            let (tx, watcher) = progress::watch(&format!("forge:{}", data.mc_version));
+            let (tx, watcher) = progress::watch(&format!("forge:{}", data.mc_version))?;
             progress::mark_processing(&tx, "Instalando Forge (esto puede tardar)…");
             let result = ForgeBatch::install(
                 &shared_dir,
@@ -216,7 +216,7 @@ async fn ensure_downloaded(
         }
         LoaderKind::NeoForge => {
             let java_path = java_path_hint.ok_or("NeoForge necesita Java resuelto de antemano")?;
-            let (tx, watcher) = progress::watch(&format!("neoforge:{}", data.mc_version));
+            let (tx, watcher) = progress::watch(&format!("neoforge:{}", data.mc_version))?;
             progress::mark_processing(&tx, "Instalando NeoForge (esto puede tardar)…");
             let result = NeoForgeBatch::install(
                 &shared_dir,
@@ -244,7 +244,7 @@ async fn ensure_downloaded(
                 .prepare_batch(Box::new(batch))
                 .await
                 .map_err(|e| e.to_string())?;
-            let (tx, watcher) = progress::watch(&format!("ornithe:{}", data.mc_version));
+            let (tx, watcher) = progress::watch(&format!("ornithe:{}", data.mc_version))?;
             let result = handle
                 .download_all(Some(tx))
                 .await
@@ -276,6 +276,7 @@ pub async fn launch(
     instance_name: String,
     server_address: Option<String>,
 ) -> Result<(), String> {
+    let maintenance = crate::services::maintenance::operation()?;
     let account_uuid = SettingsManager::read().get_user().uuid;
     let mutation_guard = crate::services::content::mutation_lock(&instance_name).await;
     {
@@ -296,6 +297,7 @@ pub async fn launch(
     }
 
     drop(mutation_guard);
+    drop(maintenance);
     let result = launch_inner(instance_name.clone(), server_address).await;
     if result.is_err() {
         RUNNING.lock().unwrap().remove(&instance_name);

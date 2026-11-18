@@ -246,6 +246,7 @@ fn archive(
 }
 
 pub async fn create(name: String, portable: bool) -> Result<String, String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     let _guard = super::content::mutation_lock(&name).await;
     worlds::ensure_stopped(&name)?;
     let data = instance_manager::get_instance(&name).await?;

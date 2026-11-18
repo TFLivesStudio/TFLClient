@@ -14,7 +14,7 @@
 		aria-labelledby={`setting-${id}`}
 	>
 		<header>
-			<h4 id={`setting-${id}`}>{tr(...item.label)}</h4>
+			<h4 id={`setting-${id}`}>{tr(item.label[0], item.label[1])}</h4>
 			{#if hint}<p>{hint}</p>{/if}
 		</header>
 		<div class="setting-content">{@render children()}</div>

@@ -105,8 +105,9 @@ async function open({
 	const page = await context.newPage();
 	page.setDefaultTimeout(10000);
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.addInitScript(withFixture({ quality: 'Lite', language }));
-	await page.addInitScript(authFixture, { style, onboarding, language });
+	await page.addInitScript(
+		withFixture({ quality: 'Lite', language }, authFixture, { style, onboarding, language })
+	);
 	await page.goto(process.env.VISUAL_URL || 'http://localhost:1436');
 	if (!onboarding) {
 		await page.locator('.hero').waitFor();

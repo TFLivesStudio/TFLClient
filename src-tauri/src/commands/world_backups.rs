@@ -91,6 +91,7 @@ pub async fn create_world_backup(instance_name: String) -> Result<Option<WorldBa
 pub async fn create_world_backup_preserving(
     instance_name: String,
 ) -> Result<Option<WorldBackup>, String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     create_backup_impl(instance_name, true).await
 }
 async fn create_backup_impl(
@@ -118,6 +119,7 @@ async fn create_backup_impl(
 
 #[command]
 pub async fn delete_world_backup(instance_name: String, id: String) -> Result<(), String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     parse_backup_id(&id).ok_or("Copia inválida")?;
     let instance = instance_manager::get_instance(&instance_name).await?;
     let path = backups_dir(&instance)?.join(&id);
@@ -133,6 +135,7 @@ pub async fn delete_world_backup(instance_name: String, id: String) -> Result<()
 /// mundos en uso y se corromperían.
 #[command]
 pub async fn restore_world_backup(instance_name: String, id: String) -> Result<(), String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     parse_backup_id(&id).ok_or("Copia inválida")?;
     let _mutation = content::mutation_lock(&instance_name).await;
     worlds::ensure_stopped(&instance_name)?;

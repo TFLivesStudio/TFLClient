@@ -110,6 +110,31 @@ jobs:
       - name: cargo test
         run: cargo test --workspace --lib --locked
 
+      - name: Round-trip official Paper through server export and import
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/tfl-paper/profile" artifacts/native-paper
+          touch "$RUNNER_TEMP/tfl-paper/profile/TEST_PROFILE"
+          export TFL_DATA_DIR="$RUNNER_TEMP/tfl-paper/profile"
+          export TFL_PAPER_TEST_JAR="$RUNNER_TEMP/tfl-paper/paper.jar"
+          export TFL_PAPER_TEST_SHA256=5ee4f542f628a14c644410b08c94ea42e772ef4d29fe92973636b6813d4eaffc
+          curl --fail --silent --show-error --location --retry 3 --max-time 180 \
+            --user-agent "TFLClient-Acceptance/0.15.4 (https://github.com/TFLivesStudio/TFLClient)" \
+            "https://fill-data.papermc.io/v1/objects/$TFL_PAPER_TEST_SHA256/paper-1.21.4-232.jar" \
+            --output "$TFL_PAPER_TEST_JAR"
+          printf '%s  %s\n' "$TFL_PAPER_TEST_SHA256" "$TFL_PAPER_TEST_JAR" | sha256sum --check
+          cargo test --locked -p tflclient --lib \
+            commands::import_sources::tests::official_paper_export_import_preserves_jar_and_auth_policy \
+            -- --exact --ignored --nocapture --test-threads=1 2>&1 | tee artifacts/native-paper/results.txt
+      - name: Upload Paper round-trip evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: paper-native-round-trip
+          path: artifacts/native-paper/
+          if-no-files-found: warn
+
       - name: Build native updater probe
         if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
         run: cargo build --locked -p tflclient --example updater_smoke
@@ -221,6 +246,11 @@ jobs:
             services::mcp_quick_connect:: commands::import_sources:: commands::settings:: \
             commands::instance::console_metrics:: commands::instance::tests:: commands::system_status:: \
             2>&1 | tee artifacts/native/results.txt
+          TFL_SETTINGS_ACCEPTANCE=1 "$executable" --ignored --exact \
+            services::settings_manager::tests::patches_reject_stale_windows_invalid_values_and_failed_commits \
+            --nocapture --test-threads=1 2>&1 | tee artifacts/native/settings-patches.txt
+          "$executable" --ignored --exact services::maintenance::tests::installation_and_new_operations_exclude_each_other \
+            --nocapture 2>&1 | tee artifacts/native/maintenance.txt
       - name: Upload native feature evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

@@ -18,7 +18,7 @@ async function open(options = {}) {
 		deviceScaleFactor: options.dpr || 1
 	});
 	page.on('pageerror', (e) => errors.push(e.message));
-	await page.addInitScript(withFixture(options));
+	await page.addInitScript(withFixture({ mode: 'advanced', ...options }));
 	await page.addInitScript(
 		({ style, theme, surface }) => {
 			if (!localStorage.getItem('tfl-visual-refresh-v1'))

@@ -892,6 +892,12 @@
 						onConsole={() => (tab = 'console')}
 						onFiles={() => (tab = 'files')}
 					/>
+					<p class="hint">
+						{tr(
+							'La exportación portable incluye el servidor, los plugins JAR y propiedades filtradas. Para conservar mundos y ajustes de plugins, crea un respaldo completo de la instancia.',
+							'Portable export includes the server, plugin JARs and filtered properties. To keep worlds and plugin settings, create a full instance backup.'
+						)}
+					</p>
 					<section class="connection-section">
 						<span class="section-label">{t('serverInstance.connectionLabel')}</span>
 						<button

@@ -33,11 +33,13 @@ pub fn any_critical_import() -> bool {
 }
 
 pub(super) struct ActiveImport {
+    _maintenance: tokio::sync::OwnedRwLockReadGuard<()>,
     id: String,
     pub(super) cancel: Arc<AtomicBool>,
 }
 impl ActiveImport {
     pub(super) fn register(request: Option<String>) -> Result<Self, String> {
+        let maintenance = crate::services::maintenance::operation()?;
         let id = request.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         uuid::Uuid::parse_str(&id).map_err(|_| "Identificador de importación inválido.")?;
         let mut active = IMPORTS.lock().unwrap();
@@ -46,7 +48,11 @@ impl ActiveImport {
         }
         let cancel = Arc::new(AtomicBool::new(false));
         active.insert(id.clone(), cancel.clone());
-        Ok(Self { id, cancel })
+        Ok(Self {
+            id,
+            cancel,
+            _maintenance: maintenance,
+        })
     }
 }
 impl Drop for ActiveImport {
@@ -885,12 +891,12 @@ async fn commit_instance_source(
         );
     }
     canceled(&active.cancel)?;
+    let _mutation = content::mutation_lock(&new_name).await;
     let server_guard = if plan.server.is_some() {
         Some(server_ports::CREATION.lock().await)
     } else {
         None
     };
-    let _mutation = content::mutation_lock(&new_name).await;
     let root = PathManager::get().get_instance_dir().to_path_buf();
     tokio::fs::create_dir_all(&root).await.map_err(error)?;
     worlds::no_link(&root)?;
@@ -1171,5 +1177,70 @@ mod tests {
         );
         assert!(plan.preview.omitted.contains(&"eula.txt".to_string()));
         assert!(plan.preview.omitted.contains(&"ops.json".to_string()));
+    }
+    #[tokio::test]
+    #[ignore = "requires official checksum-verified Paper fixture supplied by CI"]
+    async fn official_paper_export_import_preserves_jar_and_auth_policy() {
+        use sha2::{Digest, Sha256};
+        let profile = std::env::var_os("TFL_DATA_DIR")
+            .map(PathBuf::from)
+            .expect("isolated profile");
+        assert!(profile.join("TEST_PROFILE").is_file());
+        PathManager::ensure_dirs().unwrap();
+        let jar_path = std::env::var_os("TFL_PAPER_TEST_JAR")
+            .map(PathBuf::from)
+            .expect("Paper fixture");
+        let expected = std::env::var("TFL_PAPER_TEST_SHA256").expect("official SHA-256");
+        let jar = fs::read(&jar_path).unwrap();
+        assert_eq!(hex::encode(Sha256::digest(&jar)), expected);
+        let nonce = uuid::Uuid::new_v4();
+        let source_name = format!("Paper original {nonce}");
+        let imported_name = format!("Paper importado {nonce}");
+        let data = instance_manager::create_instance_full(
+            source_name.clone(),
+            "1.21.4".into(),
+            LoaderKind::Vanilla,
+            None,
+            "1.21.4".into(),
+            Some(ServerType::Paper),
+            Some("paper.jar".into()),
+            Some("232".into()),
+        )
+        .await
+        .unwrap();
+        fs::write(data.dir().join("paper.jar"), &jar).unwrap();
+        fs::write(
+            data.dir().join("server.properties"),
+            "online-mode=true\nrcon.password=private\nserver-ip=192.0.2.1\ndifficulty=hard\n",
+        )
+        .unwrap();
+        fs::write(data.dir().join("eula.txt"), "eula=false\n").unwrap();
+        let exported = crate::services::instance_archive::create(source_name, true)
+            .await
+            .unwrap();
+        let preview = inspect(Path::new(&exported)).unwrap().preview;
+        assert!(preview.importable);
+        let imported =
+            commit_instance_source(exported, imported_name, Some(preview.fingerprint), None)
+                .await
+                .unwrap();
+        let copied = fs::read(imported.dir().join("paper.jar")).unwrap();
+        assert_eq!(hex::encode(Sha256::digest(&copied)), expected);
+        assert_eq!(imported.server_type, Some(ServerType::Paper));
+        assert!(imported.preparation.is_none());
+        let properties = server_ports::read(&imported.dir()).await.unwrap();
+        let parsed = server_ports::properties(&properties).unwrap();
+        assert_eq!(parsed.get("online-mode").map(String::as_str), Some("true"));
+        assert_eq!(parsed.get("difficulty").map(String::as_str), Some("hard"));
+        assert!(!parsed.contains_key("rcon.password"));
+        assert!(!parsed.contains_key("server-ip"));
+        assert!(!imported.dir().join("eula.txt").exists());
+        assert_eq!(
+            fs::read_to_string(data.dir().join("eula.txt")).unwrap(),
+            "eula=false\n"
+        );
+        println!(
+            "Paper 1.21.4 build 232 retained SHA-256 {expected} through server export and import"
+        );
     }
 }

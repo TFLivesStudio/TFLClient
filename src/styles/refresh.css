@@ -38,7 +38,7 @@ html:not([data-font]) {
 	--font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
 }
 html[data-theme='light'] {
-	--text-accent: #a53c00;
+	--text-accent: color-mix(in srgb, var(--accent) 65%, #000);
 	--text-muted: #60616c;
 	--text-secondary: #4f505c;
 	--vr-ambient: #607cad;

@@ -29,6 +29,8 @@ async function open({
 	await page.addInitScript(
 		withFixture({
 			quality,
+			mode: 'advanced',
+			mode: 'advanced',
 			// Keep update notes out of this scene-lifecycle test; they deliberately pause Canvas.
 			appVersion: url === process.env.BASELINE_URL ? '0.15.4-beta.1' : appVersion
 		})

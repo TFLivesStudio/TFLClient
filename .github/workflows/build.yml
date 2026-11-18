@@ -262,9 +262,14 @@ jobs:
           $files = @(Get-ChildItem target/release/bundle/nsis/*-setup.exe)
           if ($files.Count -ne 1) { throw 'Expected exactly one NSIS installer' }
           $destination = Join-Path $env:RUNNER_TEMP 'tfl-install-smoke'
-          $install = Start-Process -FilePath $files[0].FullName -ArgumentList "/S /D=$destination" -PassThru -Wait
+          $install = Start-Process -FilePath $files[0].FullName -ArgumentList "/S /D=$destination" -WindowStyle Hidden -PassThru -Wait
           if ($install.ExitCode -ne 0) { throw "NSIS exited with $($install.ExitCode)" }
-          Get-Item (Join-Path $destination 'tflclient.exe') | Format-List Name, Length, VersionInfo
+          $installed = Get-Item (Join-Path $destination 'tflclient.exe')
+          $installed | Format-List Name, Length, VersionInfo
+          $expected = $env:GITHUB_REF_NAME.TrimStart('v')
+          if ($installed.VersionInfo.ProductVersion -ne $expected) {
+            throw "Installed product version differs from $expected"
+          }
           Get-AuthenticodeSignature -FilePath $files[0].FullName | Format-List Status, StatusMessage
 
       - name: Verify macOS disk image and app code signature

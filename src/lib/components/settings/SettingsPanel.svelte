@@ -551,7 +551,7 @@
 							class="settings-result"
 							onclick={() => jump(result.id)}
 							><small>{tr(...PAGES.find((p) => p.id === result.page)!.label)}</small><strong
-								>{tr(...result.label)}</strong
+								>{tr(result.label[0], result.label[1])}</strong
 							><span>{tr('Abrir opción', 'Open setting')} →</span></button
 						>{:else}<p role="status">
 							{tr(

@@ -74,6 +74,7 @@ async fn ensure_eula(instance_dir: &std::path::Path) -> Result<(), String> {
 }
 
 pub async fn launch_server(instance_name: String) -> Result<(), String> {
+    let _maintenance = crate::services::maintenance::operation()?;
     let mutation_guard = crate::services::content::mutation_lock(&instance_name).await;
     if is_server_running(&instance_name) {
         return Err(format!("El servidor \"{instance_name}\" ya está corriendo"));

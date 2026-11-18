@@ -24,83 +24,85 @@ async function open({
 	const page = await context.newPage();
 	page.on('pageerror', (e) => errors.push(e.message));
 	// This suite verifies the Advanced permission/manual-configuration interface.
-	await page.addInitScript(withFixture({ theme, quality, language, mode: 'advanced' }));
 	await page.addInitScript(
-		({ style, scene }) => {
-			localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style }));
-			localStorage.setItem(
-				'tfl-scenes-v1',
-				JSON.stringify({
-					version: 1,
-					global: { preset: scene, shader: true, motion: 'subtle' },
-					instances: {}
-				})
-			);
-			const base = window.__TAURI_INTERNALS__.invoke;
-			let enabled = false;
-			const client = {
-				id: 'client-test',
-				name: 'Codex (fixture)',
-				connected: true,
-				approved: false,
-				permissions: [],
-				instances: [],
-				expires: Date.now() / 1000 + 3600,
-				last_activity: Date.now() / 1000
-			};
-			const plan = {
-				id: 'plan-test',
-				client_id: 'client-test',
-				params: { instance_id: 'horizons', action: 'delete_instance' },
-				expires: Date.now() / 1000 + 120,
-				approved: false,
-				decided: false
-			};
-			window.__TAURI_INTERNALS__.invoke = async (cmd, args = {}) => {
-				const snapshot = () =>
-					structuredClone({
-						enabled,
-						sidecar_path: 'C:\\Program Files\\TFL Client\\tflclient-mcp.exe',
-						clients: enabled ? [client] : [],
-						plans: enabled ? [plan] : [],
-						audit: []
-					});
-				if (cmd === 'mcp_status') return snapshot();
-				if (cmd === 'mcp_enable') {
-					enabled = args.enabled;
-					return snapshot();
-				}
-				if (cmd === 'mcp_probe') {
-					if (!enabled) throw Error('MCP_DISABLED');
-					return { authenticated_ipc: true, unapproved_read_denied: true };
-				}
-				if (cmd === 'mcp_grant') {
-					client.approved = true;
-					client.permissions = args.permissions;
-					client.instances = args.instances;
-					return;
-				}
-				if (cmd === 'mcp_revoke') {
-					client.connected = false;
-					client.approved = false;
-					return;
-				}
-				if (cmd === 'mcp_decide') {
-					plan.decided = true;
-					plan.approved = args.approve;
-					return;
-				}
-				if (cmd === 'mcp_clear_audit') return;
-				return base(cmd, args);
-			};
-			window.__sceneContexts = 0;
-			const get = HTMLCanvasElement.prototype.getContext;
-			HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
-				if (type.startsWith('webgl')) window.__sceneContexts++;
-				return get.call(this, type, ...rest);
-			};
-		},
-		{ style, scene }
+		withFixture(
+			{ theme, quality, language, mode: 'advanced' },
+			({ style, scene }) => {
+				localStorage.setItem('tfl-visual-refresh-v1', JSON.stringify({ style }));
+				localStorage.setItem(
+					'tfl-scenes-v1',
+					JSON.stringify({
+						version: 1,
+						global: { preset: scene, shader: true, motion: 'subtle' },
+						instances: {}
+					})
+				);
+				const base = window.__TAURI_INTERNALS__.invoke;
+				let enabled = false;
+				const client = {
+					id: 'client-test',
+					name: 'Codex (fixture)',
+					connected: true,
+					approved: false,
+					permissions: [],
+					instances: [],
+					expires: Date.now() / 1000 + 3600,
+					last_activity: Date.now() / 1000
+				};
+				const plan = {
+					id: 'plan-test',
+					client_id: 'client-test',
+					params: { instance_id: 'horizons', action: 'delete_instance' },
+					expires: Date.now() / 1000 + 120,
+					approved: false,
+					decided: false
+				};
+				window.__TAURI_INTERNALS__.invoke = async (cmd, args = {}) => {
+					const snapshot = () =>
+						structuredClone({
+							enabled,
+							sidecar_path: 'C:\\Program Files\\TFL Client\\tflclient-mcp.exe',
+							clients: enabled ? [client] : [],
+							plans: enabled ? [plan] : [],
+							audit: []
+						});
+					if (cmd === 'mcp_status') return snapshot();
+					if (cmd === 'mcp_enable') {
+						enabled = args.enabled;
+						return snapshot();
+					}
+					if (cmd === 'mcp_probe') {
+						if (!enabled) throw Error('MCP_DISABLED');
+						return { authenticated_ipc: true, unapproved_read_denied: true };
+					}
+					if (cmd === 'mcp_grant') {
+						client.approved = true;
+						client.permissions = args.permissions;
+						client.instances = args.instances;
+						return;
+					}
+					if (cmd === 'mcp_revoke') {
+						client.connected = false;
+						client.approved = false;
+						return;
+					}
+					if (cmd === 'mcp_decide') {
+						plan.decided = true;
+						plan.approved = args.approve;
+						return;
+					}
+					if (cmd === 'mcp_clear_audit') return;
+					return base(cmd, args);
+				};
+				window.__sceneContexts = 0;
+				const get = HTMLCanvasElement.prototype.getContext;
+				HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+					if (type.startsWith('webgl')) window.__sceneContexts++;
+					return get.call(this, type, ...rest);
+				};
+			},
+			{ style, scene }
+		)
 	);
 	await page.goto(process.env.VISUAL_URL || 'http://localhost:1434');
 	await page.locator('.hero').waitFor();

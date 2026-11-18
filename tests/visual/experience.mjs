@@ -92,9 +92,9 @@ try {
 		await p.getByRole('button', { name: 'Violet', exact: true }).getAttribute('aria-pressed'),
 		'true'
 	);
-	await p.getByRole('button', { name: 'Restaurar naranja TFL', exact: true }).click();
+	await p.getByRole('button', { name: 'Restaurar azul TFL', exact: true }).click();
 	assert.equal(
-		await p.getByRole('button', { name: 'TFL', exact: true }).getAttribute('aria-pressed'),
+		await p.getByRole('button', { name: 'TFL Blue', exact: true }).getAttribute('aria-pressed'),
 		'true'
 	);
 	const seen = [];
