@@ -12,97 +12,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  linux:
-    name: Rebuild Linux packages for the tagged source
-    runs-on: ubuntu-22.04
-    environment: release
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          ref: c2f6814850875906cde833f380f25db6d5e64c49
-          persist-credentials: false
-      - name: Verify tagged sources
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "c2f6814850875906cde833f380f25db6d5e64c49"
-          node scripts/release-version.mjs --check --tag v0.15.4
-      - name: Instalar dependencias de sistema (Linux)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libssl-dev \
-            libxdo-dev \
-            xdg-utils
-
-      # Rust exacto de rust-toolchain.toml (igual que el job de calidad) + cache.
-      - name: Instalar Rust (versión fijada) y cache
-        uses: ./.github/actions/setup-rust
-
-      - name: Instalar Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: '1.4.2'
-
-      - name: Instalar dependencias del frontend
-        run: bun install --frozen-lockfile
-
-      - name: Build packaged MCP helper
-        run: bun scripts/build-mcp-sidecar.mjs
-
-      - name: Build + bundle (Tauri)
-        id: tauri
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2 (action-v0.6.2)
-        env:
-          # El GITHUB_TOKEN default de Actions es solo-lectura acá (política
-          # de la org) — no puede crear Releases. RELEASE_TOKEN es un PAT
-          # propio (scope Contents:RW, solo este repo) guardado como secret
-          # justo para esto.
-          GITHUB_TOKEN: ''
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          # Las betas se publican como antes. Un tag estable construye y firma
-          # una sola vez; stable-draft reúne los paquetes verificados.
-          tagName: ''
-          releaseName: ''
-          # Un tag con guion (v0.11.0-beta.1) es una BETA: se publica como
-          # prerelease, que GitHub NO cuenta como "latest". Eso es lo que evita
-          # que quien no activó las betas en Ajustes la reciba (el updater estable
-          # lee releases/latest/download/latest.json). Ver docs/CANAL_BETA.md.
-          releaseBody: ''
-          releaseDraft: false
-          prerelease: false
-          includeUpdaterJson: true
-          args: --config src-tauri/tauri.mcp.conf.json
-
-      - name: Stage signed stable packages
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir stable-packages
-          find target/release/bundle -type f \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' \
-            -o -name '*.app.tar.gz' -o -name '*.dmg' -o -name '*-setup.exe' -o -name '*.sig' \) \
-            -exec sh -c 'cp "$@" stable-packages/' sh '{}' +
-      - name: Upload signed stable packages
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: stable-ubuntu-22.04
-          path: stable-packages/
-          if-no-files-found: error
-
   stable-draft:
     name: Verify and stage stable release
-    needs: linux
     runs-on: ubuntu-24.04
     environment: release
     timeout-minutes: 30
@@ -123,6 +34,8 @@ jobs:
         with:
           name: stable-ubuntu-22.04
           path: stable-matrix/stable-ubuntu-22.04
+          run-id: 44435866728
+          github-token: ${{ github.token }}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: native-updater-probe
@@ -363,19 +276,20 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          release_id() {
-            gh api --paginate "repos/$REPO/releases?per_page=100" |
-              jq -sr --arg tag "$RELEASE_TAG" '.[][] | select(.tag_name == $tag) | .id'
-          }
-          id="$(release_id)"
-          if [[ -z "$id" ]]; then
-            gh release create "$RELEASE_TAG" --draft --verify-tag \
-              --title "TFL Client $RELEASE_TAG" --notes-file release-notes.md -R "$REPO"
-            id="$(release_id)"
-          fi
-          [[ "$id" =~ ^[0-9]+$ ]]
-          test "$(gh api "repos/$REPO/releases/$id" --jq '.draft')" = true
-          gh release upload "$RELEASE_TAG" release-assets/* --clobber -R "$REPO"
+          id=450771853
+          gh api "repos/$REPO/releases/$id" | jq -e --arg tag "$RELEASE_TAG" '.draft and .tag_name == $tag' > /dev/null
+          gh api "repos/$REPO/releases/$id/assets?per_page=100" > existing-assets.json
+          for file in release-assets/*; do
+            name="${file##*/}"
+            digest="$(sha256sum "$file" | cut -d " " -f 1)"
+            existing="$(jq -r --arg name "$name" '.[] | select(.name == $name) | .digest' existing-assets.json)"
+            if [[ -n "$existing" ]]; then
+              test "$existing" = "sha256:$digest"
+              continue
+            fi
+            encoded="$(jq -rn --arg name "$name" '$name|@uri')"
+            curl --silent --show-error --fail-with-body -H "Authorization: Bearer $GH_TOKEN" -H "Content-Type: application/octet-stream" --data-binary "@$file" "https://uploads.github.com/repos/$REPO/releases/$id/assets?name=$encoded" > /dev/null
+          done
           test "$(gh api "repos/$REPO/releases/$id" --jq '.draft')" = true
           gh api "repos/$REPO/releases/$id/assets?per_page=100" > draft-assets.json
           python3 <<'PY'
