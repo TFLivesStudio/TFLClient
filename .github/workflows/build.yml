@@ -1,88 +1,34 @@
-name: Build TFL Client
-
-# Cómo actualizar los pins de acciones (todas están fijadas a un commit SHA
-# completo, con la versión como comentario, para que un tag movido o
-# comprometido en el repo de la acción no pueda inyectar código en el build):
-#   1. Mirar la versión nueva:   gh api repos/<dueño>/<repo>/releases --jq '.[].tag_name' | head
-#   2. Resolver el SHA:          gh api repos/<dueño>/<repo>/git/ref/tags/<tag>
-#      Si `object.type` es "tag" (tag anotado), desreferenciar:
-#                                gh api repos/<dueño>/<repo>/git/tags/<object.sha> --jq .object.sha
-#   3. Reemplazar SHA y comentario `# vX.Y.Z` en TODOS los workflows y en
-#      .github/actions/ (buscar con: grep -rn "<dueño>/<repo>@" .github).
-#   4. Probar con un workflow_dispatch (no publica Release) antes de cortar tag.
-# Pins actuales: actions/checkout v4.4.0, actions/upload-artifact v4.6.2,
-# Swatinem/rust-cache v2.9.2, dtolnay/rust-toolchain (master 2026-10-01),
-# oven-sh/setup-bun v2.2.0, tauri-apps/tauri-action v0.6.2 (action-v0.6.2),
-# taiki-e/install-action v2.87.26, actions/download-artifact v4.3.0.
+name: Recover signed TFL Client 0.15.4
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
 
-# Mínimo por defecto; cada job declara el suyo. El Release lo crea tauri-action
-# con RELEASE_TOKEN (un PAT), no con el GITHUB_TOKEN del workflow, así que ningún
-# job necesita permisos de escritura.
 permissions:
+  actions: read
   contents: read
 
-# Dos builds del mismo tag/rama no corren en paralelo (pisarían el mismo
-# Release). El segundo espera; no se cancela uno en curso a mitad de publicar.
 concurrency:
-  group: build-${{ github.ref }}
+  group: recover-stable-v0.15.4
   cancel-in-progress: false
 
 jobs:
-  # Compuertas de calidad (frontend + rust + audit). Sin secrets a propósito.
-  quality:
-    name: Calidad
-    permissions:
-      contents: read
-    uses: ./.github/workflows/ci.yml
-
-  build:
-    needs: quality
-    permissions:
-      contents: read
-    # Environment "release": GitHub lo crea solo la primera vez. El dueño del
-    # repo puede moverle los secrets y exigir revisores (ver
-    # docs/RELEASE_SECURITY.md). Mientras no haya reglas, no cambia nada.
+  linux:
+    name: Rebuild Linux packages for the tagged source
+    runs-on: ubuntu-22.04
     environment: release
-    timeout-minutes: 120
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: macos-latest
-            args: ''
-          - platform: ubuntu-22.04
-            args: ''
-          - platform: windows-latest
-            args: ''
-
-    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          ref: c2f6814850875906cde833f380f25db6d5e64c49
           persist-credentials: false
-
-      # Antes de compilar nada: la versión de package.json, tauri.conf.json,
-      # src-tauri/Cargo.toml y Cargo.lock tiene que ser una sola, y en un tag
-      # vX.Y.Z tiene que coincidir con el tag. Si no, el updater publicaría
-      # metadatos de una versión distinta a la del instalador. En un
-      # workflow_dispatch (build de prueba) solo avisa.
-      - name: Verificar versión (archivos y tag)
+      - name: Verify tagged sources
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            node scripts/release-version.mjs --check --tag "$GITHUB_REF_NAME"
-          else
-            node scripts/release-version.mjs --check || echo "::warning::Las versiones de los archivos no coinciden (build de prueba, no bloquea)."
-          fi
-
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "c2f6814850875906cde833f380f25db6d5e64c49"
+          node scripts/release-version.mjs --check --tag v0.15.4
       - name: Instalar dependencias de sistema (Linux)
-        if: startsWith(matrix.platform, 'ubuntu')
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -110,62 +56,6 @@ jobs:
       - name: Instalar dependencias del frontend
         run: bun install --frozen-lockfile
 
-      # Para las betas, publica docs/releases/<tag>.md cuando existe. El job
-      # stable-draft prepara las notas de una estable después de toda la matriz.
-      # Conserva las notas breves
-      # in-app como alternativa compatible. Guía: docs/maintainers/release-notes.md.
-      - name: Generar notas del Release (Markdown revisado o notas in-app)
-        if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, '-')
-        id: notes
-        shell: bash
-        run: |
-          set -euo pipefail
-          BODY="$(bun run scripts/release-notes-body.mjs "$GITHUB_REF_NAME")"
-          {
-            echo "body<<RELEASE_NOTES_EOF"
-            echo "$BODY"
-            echo "RELEASE_NOTES_EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      # Firma/notarización de macOS: PLOMERÍA PREPARADA, sin efecto hoy.
-      # Tauri lee APPLE_* con var_os(): un secret inexistente llega como cadena
-      # VACÍA, y una cadena vacía cuenta como "definida" (intentaría importar un
-      # certificado vacío, y APPLE_SIGNING_IDENTITY="" pisaría la firma ad-hoc "-"
-      # de tauri.conf.json). Por eso este paso exporta cada variable a
-      # $GITHUB_ENV SOLO si el secret tiene contenido. Mientras no se carguen los
-      # secrets, no exporta nada y el build macOS queda exactamente como hoy.
-      # Ver "macOS: firma y notarización" en docs/RELEASE_SECURITY.md.
-      - name: Configurar firma de macOS (solo si hay credenciales)
-        if: matrix.platform == 'macos-latest'
-        shell: bash
-        env:
-          IN_APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          IN_APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          IN_APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          IN_APPLE_ID: ${{ secrets.APPLE_ID }}
-          IN_APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          IN_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          set -euo pipefail
-          exported=0
-          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
-            value="$(printenv "IN_$name" || true)"
-            if [ -n "$value" ]; then
-              delim="EOF_$(uuidgen)"
-              {
-                echo "$name<<$delim"
-                echo "$value"
-                echo "$delim"
-              } >> "$GITHUB_ENV"
-              exported=$((exported + 1))
-            fi
-          done
-          if [ "$exported" -eq 0 ]; then
-            echo "Sin credenciales de Apple: se mantiene la firma ad-hoc de tauri.conf.json."
-          else
-            echo "Se exportaron $exported variable(s) de firma de Apple."
-          fi
-
       - name: Build packaged MCP helper
         run: bun scripts/build-mcp-sidecar.mjs
 
@@ -177,142 +67,25 @@ jobs:
           # de la org) — no puede crear Releases. RELEASE_TOKEN es un PAT
           # propio (scope Contents:RW, solo este repo) guardado como secret
           # justo para esto.
-          GITHUB_TOKEN: ${{ startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, '-') && secrets.RELEASE_TOKEN || '' }}
+          GITHUB_TOKEN: ''
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           # Las betas se publican como antes. Un tag estable construye y firma
           # una sola vez; stable-draft reúne los paquetes verificados.
-          tagName: ${{ startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, '-') && github.ref_name || '' }}
-          releaseName: ${{ startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, '-') && format('TFL Client {0}', github.ref_name) || '' }}
+          tagName: ''
+          releaseName: ''
           # Un tag con guion (v0.11.0-beta.1) es una BETA: se publica como
           # prerelease, que GitHub NO cuenta como "latest". Eso es lo que evita
           # que quien no activó las betas en Ajustes la reciba (el updater estable
           # lee releases/latest/download/latest.json). Ver docs/CANAL_BETA.md.
-          releaseBody: ${{ steps.notes.outputs.body || '' }}
+          releaseBody: ''
           releaseDraft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          prerelease: false
           includeUpdaterJson: true
-          args: --config src-tauri/tauri.mcp.conf.json ${{ matrix.args }}
-
-      # Cinturón y tirantes: si por lo que sea el Release de una beta no quedó
-      # marcado como prerelease, las actualizaciones estables se la ofrecerían a
-      # todos. Este paso lo fuerza (y no toca los releases estables).
-      - name: Asegurar que las betas sean prerelease
-        if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, '-')
-        shell: bash
-        run: gh release edit "$REF_NAME" --prerelease -R "$REPO"
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          REF_NAME: ${{ github.ref_name }}
-          REPO: ${{ github.repository }}
-
-      - name: Subir copia con nombre fijo (link de descarga directa)
-        # Los archivos que sube tauri-action llevan la versión en el
-        # nombre (ej. tflclient_0.9.11_x64-setup.exe) — cambia en cada
-        # release, así que un link fijo en el README se rompería. Esta
-        # copia usa siempre el mismo nombre, así el link de "descarga
-        # directa" nunca hay que tocarlo a mano. Solo corre en release
-        # real (tag), no en workflow_dispatch de prueba.
-        if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref_name, '-')
-        shell: bash
-        run: |
-          set -e
-          if [ "$PLATFORM" = "macos-latest" ]; then
-            cp "$(find target/release/bundle/dmg -name '*.dmg' | head -1)" TFLClient-macOS.dmg
-            gh release upload "$REF_NAME" TFLClient-macOS.dmg --clobber -R "$REPO"
-          elif [ "$PLATFORM" = "windows-latest" ]; then
-            cp "$(find target/release/bundle/nsis -name '*.exe' | head -1)" TFLClient-Windows-Setup.exe
-            gh release upload "$REF_NAME" TFLClient-Windows-Setup.exe --clobber -R "$REPO"
-          else
-            # Nombres fijos para las tres variantes — install-linux.sh
-            # (ver ese script) elige la que corresponda según el sistema,
-            # sin depender del número de versión en el nombre real.
-            cp "$(find target/release/bundle/appimage -name '*.AppImage' | head -1)" TFLClient-Linux.AppImage
-            cp "$(find target/release/bundle/deb -name '*.deb' | head -1)" TFLClient-Linux.deb
-            cp "$(find target/release/bundle/rpm -name '*.rpm' | head -1)" TFLClient-Linux.rpm
-            gh release upload "$REF_NAME" TFLClient-Linux.AppImage TFLClient-Linux.deb TFLClient-Linux.rpm --clobber -R "$REPO"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          PLATFORM: ${{ matrix.platform }}
-          REF_NAME: ${{ github.ref_name }}
-          REPO: ${{ github.repository }}
-
-      - name: Subir instaladores como artifact
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') || contains(github.ref_name, '-') }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: tflclient-${{ matrix.platform }}
-          path: |
-            target/release/bundle/**/*.dmg
-            target/release/bundle/**/*.app.tar.gz
-            target/release/bundle/**/*.deb
-            target/release/bundle/**/*.rpm
-            target/release/bundle/**/*.AppImage
-            target/release/bundle/**/*.msi
-            target/release/bundle/**/*.exe
-          if-no-files-found: warn
-
-      - name: Verify Windows installer in an isolated directory
-        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') && runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $files = @(Get-ChildItem target/release/bundle/nsis/*-setup.exe)
-          if ($files.Count -ne 1) { throw 'Expected exactly one NSIS installer' }
-          $destination = Join-Path $env:RUNNER_TEMP 'tfl-install-smoke'
-          $install = Start-Process -FilePath $files[0].FullName -ArgumentList "/S /D=$destination" -WindowStyle Hidden -PassThru -Wait
-          if ($install.ExitCode -ne 0) { throw "NSIS exited with $($install.ExitCode)" }
-          $installed = Get-Item (Join-Path $destination 'tflclient.exe')
-          $installed | Format-List Name, Length, VersionInfo
-          $expected = $env:GITHUB_REF_NAME.TrimStart('v')
-          if ($installed.VersionInfo.ProductVersion -ne $expected) {
-            throw "Installed product version differs from $expected"
-          }
-          Get-AuthenticodeSignature -FilePath $files[0].FullName | Format-List Status, StatusMessage
-
-      - name: Verify macOS disk image and app code signature
-        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') && runner.os == 'macOS'
-        shell: bash
-        run: |
-          set -euo pipefail
-          images=(target/release/bundle/dmg/*.dmg)
-          test "${#images[@]}" -eq 1 && test -s "${images[0]}"
-          mount="$RUNNER_TEMP/tfl-dmg-smoke"
-          hdiutil attach -readonly -nobrowse -mountpoint "$mount" "${images[0]}"
-          trap 'hdiutil detach "$mount"' EXIT
-          apps=("$mount"/*.app)
-          test "${#apps[@]}" -eq 1 && test -d "${apps[0]}"
-          codesign --verify --deep --strict --verbose=2 "${apps[0]}"
-          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "${apps[0]}/Contents/Info.plist")" = "${GITHUB_REF_NAME#v}"
-
-      - name: Verify Linux packages
-        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') && runner.os == 'Linux'
-        shell: bash
-        run: |
-          set -euo pipefail
-          appimage=("$PWD"/target/release/bundle/appimage/*.AppImage)
-          deb=(target/release/bundle/deb/*.deb)
-          rpm=(target/release/bundle/rpm/*.rpm)
-          version="${GITHUB_REF_NAME#v}"
-          test "${#appimage[@]}" -eq 1 && test -s "${appimage[0]}"
-          test "${#deb[@]}" -eq 1 && test -s "${deb[0]}"
-          test "${#rpm[@]}" -eq 1 && test -s "${rpm[0]}"
-          test "$(dpkg-deb --field "${deb[0]}" Version)" = "$version"
-          dpkg-deb --contents "${deb[0]}" > "$RUNNER_TEMP/tfl-deb-files.txt"
-          grep -E '/usr/bin/tflclient$' "$RUNNER_TEMP/tfl-deb-files.txt"
-          sudo apt-get install -y rpm
-          test "$(rpm -qp --queryformat '%{VERSION}' "${rpm[0]}")" = "$version"
-          rpm -qpl "${rpm[0]}" > "$RUNNER_TEMP/tfl-rpm-files.txt"
-          grep -Fx '/usr/bin/tflclient' "$RUNNER_TEMP/tfl-rpm-files.txt"
-          mkdir "$RUNNER_TEMP/tfl-appimage-smoke"
-          cd "$RUNNER_TEMP/tfl-appimage-smoke"
-          "${appimage[0]}" --appimage-extract > extract.log
-          test -x squashfs-root/AppRun
+          args: --config src-tauri/tauri.mcp.conf.json
 
       - name: Stage signed stable packages
-        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
         shell: bash
         run: |
           set -euo pipefail
@@ -321,42 +94,75 @@ jobs:
             -o -name '*.app.tar.gz' -o -name '*.dmg' -o -name '*-setup.exe' -o -name '*.sig' \) \
             -exec sh -c 'cp "$@" stable-packages/' sh '{}' +
       - name: Upload signed stable packages
-        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: stable-${{ matrix.platform }}
+          name: stable-ubuntu-22.04
           path: stable-packages/
           if-no-files-found: error
 
   stable-draft:
     name: Verify and stage stable release
-    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
-    needs: build
+    needs: linux
     runs-on: ubuntu-24.04
     environment: release
-    timeout-minutes: 25
+    timeout-minutes: 30
+    env:
+      RELEASE_TAG: v0.15.4
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          ref: c2f6814850875906cde833f380f25db6d5e64c49
           persist-credentials: false
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: stable-*
           path: stable-matrix
+          run-id: 44381610229
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: stable-ubuntu-22.04
+          path: stable-matrix/stable-ubuntu-22.04
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: native-updater-probe
           path: updater-probe
+          run-id: 44381610229
+          github-token: ${{ github.token }}
       - name: Install signature verifier and native smoke dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y minisign libwebkit2gtk-4.1-0 libayatana-appindicator3-1 xvfb xauth xdotool
+          sudo apt-get install -y minisign libwebkit2gtk-4.1-0 libayatana-appindicator3-1 xvfb xauth xdotool rpm
+      - name: Verify recovered Linux packages
+        shell: bash
+        run: |
+          set -euxo pipefail
+          root="$PWD/stable-matrix/stable-ubuntu-22.04"
+          appimage=("$root"/*.AppImage)
+          deb=("$root"/*.deb)
+          rpm=("$root"/*.rpm)
+          version="${RELEASE_TAG#v}"
+          test "${#appimage[@]}" -eq 1 && test -s "${appimage[0]}"
+          test "${#deb[@]}" -eq 1 && test -s "${deb[0]}"
+          test "${#rpm[@]}" -eq 1 && test -s "${rpm[0]}"
+          deb_version="$(dpkg-deb --field "${deb[0]}" Version)"
+          dpkg --compare-versions "$deb_version" eq "$version"
+          dpkg-deb --extract "${deb[0]}" "$RUNNER_TEMP/tfl-deb-smoke"
+          test -x "$RUNNER_TEMP/tfl-deb-smoke/usr/bin/tflclient"
+          test "$(rpm -qp --queryformat '%{VERSION}' "${rpm[0]}")" = "$version"
+          rpm -qpl "${rpm[0]}" > "$RUNNER_TEMP/tfl-rpm-files.txt"
+          grep -E '^(/|\./)?usr/bin/tflclient$' "$RUNNER_TEMP/tfl-rpm-files.txt"
+          mkdir "$RUNNER_TEMP/tfl-appimage-smoke"
+          cd "$RUNNER_TEMP/tfl-appimage-smoke"
+          chmod +x "${appimage[0]}"
+          "${appimage[0]}" --appimage-extract > extract.log
+          test -x squashfs-root/AppRun
       - name: Verify updater signatures and generate a complete release manifest
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/release-version.mjs --check --tag "$GITHUB_REF_NAME"
-          node scripts/release-notes-body.mjs "$GITHUB_REF_NAME" > release-notes.md
+          node scripts/release-version.mjs --check --tag "$RELEASE_TAG"
+          node scripts/release-notes-body.mjs "$RELEASE_TAG" > release-notes.md
           mkdir release-assets
           python3 <<'PY'
           import base64
@@ -370,7 +176,7 @@ jobs:
 
           matrix = Path("stable-matrix")
           assets = Path("release-assets")
-          tag = os.environ["GITHUB_REF_NAME"]
+          tag = os.environ["RELEASE_TAG"]
           repository = os.environ["GITHUB_REPOSITORY"]
           config = json.loads(Path("src-tauri/tauri.conf.json").read_text(encoding="utf-8"))
           public_key = Path("updater.pub")
@@ -447,7 +253,7 @@ jobs:
           touch "$SMOKE_ROOT/profile/TEST_PROFILE"
           release_base="https://github.com/$GITHUB_REPOSITORY/releases"
           baseline_manifest="$release_base/latest/download/latest.json"
-          if [[ "$GITHUB_REF_NAME" == v0.15.4 ]]; then
+          if [[ "$RELEASE_TAG" == v0.15.4 ]]; then
             baseline_manifest="$release_base/download/v0.15.4-beta.3/latest.json"
           fi
           curl --fail --silent --show-error --location --retry 3 --max-time 180 \
@@ -559,17 +365,17 @@ jobs:
           set -euo pipefail
           release_id() {
             gh api --paginate "repos/$REPO/releases?per_page=100" |
-              jq -sr --arg tag "$GITHUB_REF_NAME" '.[][] | select(.tag_name == $tag) | .id'
+              jq -sr --arg tag "$RELEASE_TAG" '.[][] | select(.tag_name == $tag) | .id'
           }
           id="$(release_id)"
           if [[ -z "$id" ]]; then
-            gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
-              --title "TFL Client $GITHUB_REF_NAME" --notes-file release-notes.md -R "$REPO"
+            gh release create "$RELEASE_TAG" --draft --verify-tag \
+              --title "TFL Client $RELEASE_TAG" --notes-file release-notes.md -R "$REPO"
             id="$(release_id)"
           fi
           [[ "$id" =~ ^[0-9]+$ ]]
           test "$(gh api "repos/$REPO/releases/$id" --jq '.draft')" = true
-          gh release upload "$GITHUB_REF_NAME" release-assets/* --clobber -R "$REPO"
+          gh release upload "$RELEASE_TAG" release-assets/* --clobber -R "$REPO"
           test "$(gh api "repos/$REPO/releases/$id" --jq '.draft')" = true
           gh api "repos/$REPO/releases/$id/assets?per_page=100" > draft-assets.json
           python3 <<'PY'
