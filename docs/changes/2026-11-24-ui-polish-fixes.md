@@ -102,6 +102,43 @@ cubre toda la ventana en ambos casos ahora.
   `main`) para cargar la app sin backend Tauri y verificar los puntos 1, 3 y 4
   con datos e interacción reales en el navegador.
 
+## Bloqueo de CI: "Native MCP stdio acceptance" (job Rust)
+
+El job "Rust (fmt+clippy+tests+audit)" de este PR falló 4 veces consecutivas
+en el paso "Native MCP stdio acceptance (isolated profile)" con
+`McpError: MCP error -32000: Connection closed`. Investigación:
+
+- `tfl-mcp`/`tflclient-mcp` no depende del crate `tflclient` (donde viven los
+  3 fixes de este PR): confirmado leyendo `crates/tfl-mcp/Cargo.toml` y
+  `crates/tfl-mcp/src/lib.rs`. Los fixes no pueden tocar ese binario.
+- El único diff real de `Cargo.lock` contra `main` son `cookie` 0.18.3,
+  `form_urlencoded` 1.2.3 y `url` 2.5.9 (bump de seguridad, sin relación con
+  transporte stdio de MCP).
+- Reproducción completa de la secuencia de CI (build de `mcp_host` y
+  `tflclient-mcp`, lanzamiento bajo xvfb, `node tests/mcp/client.mjs`) en
+  local con el código exacto de esta rama: pasa limpio (35 tools, todos los
+  grupos de test en verde).
+- El log del job muestra que el cliente node corre ~27s (varios tool calls)
+  antes de que la conexión se cierre — no es un rechazo de conexión inicial,
+  es una desconexión a mitad de la batería de aceptación.
+- El propio paso de CI (`set -euo pipefail`) abortaba antes de imprimir
+  `/tmp/tfl-mcp-host.log`, así que el diagnóstico del lado servidor (el
+  proceso `mcp_host`) nunca se veía — y el artifact `mcp-native-acceptance`
+  salía vacío siempre ("No files were found"). Se corrigió esto en
+  `.github/workflows/ci.yml` (capturar el código de salida del cliente,
+  volcar el log de `mcp_host` siempre, y recién después re-lanzar el error)
+  para poder ver evidencia real en el próximo intento.
+- No se pudo reproducir en un entorno Linux+xvfb real fuera de CI: Docker no
+  tiene daemon corriendo en esta máquina y Docker Desktop no está instalado
+  (confirmado, no solo "no corriendo").
+
+Conclusión de momento: evidencia fuerte de que no es causado por los 3 fixes
+de este PR ni por el bump de `cookie`/`url`; probablemente específico del
+runner Linux de CI (xvfb/webkitgtk) bajo la batería completa de 35
+herramientas. Pendiente: leer el log de `mcp_host` que el fix de CI ahora
+expone, para confirmar la causa exacta antes de decidir si se reintenta o se
+avanza con el merge de todas formas.
+
 ## Aparte: segundo lote de avisos de `cargo audit`
 
 Independiente de lo anterior: `cargo audit` volvió a fallar por dos avisos
