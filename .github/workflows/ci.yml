@@ -169,9 +169,17 @@ jobs:
             if [ -f "$TFL_DATA_DIR/status.json" ]; then break; fi
             sleep 1
           done
-          node tests/mcp/client.mjs
           mkdir -p artifacts/mcp
-          cp "$TFL_DATA_DIR/acceptance.json" artifacts/mcp/
+          set +e
+          node tests/mcp/client.mjs
+          client_status=$?
+          set -e
+          echo "=== mcp_host log ==="
+          cat /tmp/tfl-mcp-host.log || true
+          if [ -f "$TFL_DATA_DIR/acceptance.json" ]; then
+            cp "$TFL_DATA_DIR/acceptance.json" artifacts/mcp/
+          fi
+          exit "$client_status"
       - name: Upload native MCP evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
