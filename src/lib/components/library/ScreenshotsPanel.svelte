@@ -70,6 +70,19 @@
 		if (!ms) return '';
 		return new Date(ms).toLocaleString();
 	}
+
+	/** `.main-content` es `position: relative` con su propio z-index (ver
+	 * AppShell.svelte): eso arma su propio stacking context, así que
+	 * CUALQUIER z-index de un hijo suyo — por más alto que sea — queda
+	 * atrapado por debajo de hermanos de `.main-content` con z-index mayor,
+	 * como el Sidebar. El lightbox vivía anidado ahí (ScreenshotsPanel se
+	 * monta dentro de InstanceDetail, dentro de `.main-content`), por eso
+	 * con la barra lateral expandida tapaba la vista de pantalla completa
+	 * en vez de quedar por encima. Se saca del árbol al `<body>` apenas se
+	 * monta, mismo patrón que ya usa Tooltip.svelte para este problema. */
+	function portalToBody(node: HTMLElement) {
+		document.body.appendChild(node);
+	}
 </script>
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (preview = null)} />
@@ -142,6 +155,7 @@
 {#if preview}
 	<div
 		class="lightbox"
+		use:portalToBody
 		onclick={() => (preview = null)}
 		onkeydown={(e) => e.key === 'Escape' && (preview = null)}
 		role="button"

@@ -74,9 +74,39 @@ fn profile_root(base: &Path, test_identity: Option<&str>) -> PathBuf {
         Some(client) => base
             .join(".tflclient-auth-tests")
             .join(client)
-            .join(".tflclient"),
-        None => base.join(".tflclient"),
+            .join(".TFLClient"),
+        None => production_profile_root(base),
     }
+}
+
+/// Carpeta de perfil real del jugador (instancias, ajustes, temas, skins).
+/// Se renombró de `.tflclient` (todo minúscula) a `.TFLClient` para que
+/// coincida con el nombre de marca que ya se muestra en toda la app.
+///
+/// En Windows y macOS (sistema de archivos insensible a mayúsculas) ambas
+/// rutas apuntan a la misma carpeta real: no hace falta mover nada, alcanza
+/// con usar el nombre nuevo como string — ahí es donde se ve el nombre viejo
+/// (panel de Estado del sistema, por ejemplo). En Linux (sensible a
+/// mayúsculas) son carpetas distintas de verdad: si ya existe la vieja y
+/// todavía no la nueva, se renombra en el lugar (operación de metadatos en
+/// el mismo volumen, no una copia) para no perder instancias ni ajustes.
+fn production_profile_root(base: &Path) -> PathBuf {
+    let current = base.join(".TFLClient");
+    let legacy = base.join(".tflclient");
+    if legacy.is_dir() && !current.is_dir() {
+        match std::fs::rename(&legacy, &current) {
+            Ok(()) => info!("Perfil migrado de {:?} a {:?}", legacy, current),
+            Err(e) => {
+                tracing::warn!(
+                    "No se pudo migrar el perfil de {:?} a {:?} ({e}); se sigue usando el nombre anterior",
+                    legacy,
+                    current
+                );
+                return legacy;
+            }
+        }
+    }
+    current
 }
 fn resolve_base_dir() -> PathBuf {
     // Explicit portable/test profile; never exposed as an MCP tool parameter.
@@ -108,6 +138,56 @@ mod tests {
         let test = profile_root(&base, Some(launchwerk::auth::microsoft::DEFAULT_CLIENT_ID));
         assert_ne!(production, test);
         assert!(!test.starts_with(&production));
-        assert!(test.ends_with(".tflclient"));
+        assert!(test.ends_with(".TFLClient"));
+    }
+
+    #[test]
+    fn fresh_install_uses_the_new_capitalized_name() {
+        let base = std::env::temp_dir().join(format!("tflclient-fresh-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(&base).unwrap();
+        let root = production_profile_root(&base);
+        assert_eq!(root, base.join(".TFLClient"));
+        assert!(!base.join(".tflclient").exists());
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn existing_lowercase_profile_is_migrated_without_losing_data() {
+        let base = std::env::temp_dir().join(format!("tflclient-migrate-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        let legacy = base.join(".tflclient");
+        std::fs::create_dir_all(legacy.join("instances").join("MyWorld")).unwrap();
+        std::fs::write(
+            legacy.join("instances").join("MyWorld").join("marker.txt"),
+            b"keep me",
+        )
+        .unwrap();
+
+        let root = production_profile_root(&base);
+
+        assert_eq!(root, base.join(".TFLClient"));
+        let moved_marker = root.join("instances").join("MyWorld").join("marker.txt");
+        assert_eq!(std::fs::read(&moved_marker).unwrap(), b"keep me");
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn migrating_twice_is_a_no_op_and_keeps_data_in_place() {
+        let base =
+            std::env::temp_dir().join(format!("tflclient-migrate-twice-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(base.join(".tflclient")).unwrap();
+
+        let first = production_profile_root(&base);
+        std::fs::write(first.join("marker.txt"), b"first run").unwrap();
+        let second = production_profile_root(&base);
+
+        assert_eq!(first, second);
+        assert_eq!(
+            std::fs::read(second.join("marker.txt")).unwrap(),
+            b"first run"
+        );
+        let _ = std::fs::remove_dir_all(&base);
     }
 }

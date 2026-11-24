@@ -77,6 +77,32 @@ fn provider_output(program: &str, args: &[&str]) -> Result<String, String> {
     String::from_utf8(output.stdout).map_err(|_| "Respuesta de hardware inválida".into())
 }
 
+/// `Win32_VideoController` solo informa del adaptador que está renderizando
+/// la sesión actual. En una sesión RDP eso suele ser el driver virtual de
+/// Escritorio Remoto, no la GPU física — y esos nombres genéricos no sirven
+/// para mostrarle al usuario qué placa de video tiene realmente instalada.
+#[cfg(any(target_os = "windows", test))]
+fn is_virtual_rdp_adapter(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    lower.contains("remote") || lower.contains("rdp") || lower.contains("basic render driver")
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn parse_json_names(raw: &str) -> Vec<String> {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(raw.trim_start_matches('\u{feff}'))
+    else {
+        return vec![];
+    };
+    let values = value.as_array().cloned().unwrap_or_else(|| vec![value]);
+    values
+        .iter()
+        .filter_map(|v| v["Name"].as_str())
+        .map(str::trim)
+        .filter(|n| !n.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
 fn gpu_inventory() -> Result<Vec<GpuAdapter>, String> {
     #[cfg(target_os = "windows")]
     {
@@ -90,15 +116,36 @@ fn gpu_inventory() -> Result<Vec<GpuAdapter>, String> {
                 "[Console]::OutputEncoding=[Text.UTF8Encoding]::new(); @(Get-CimInstance Win32_VideoController | Select-Object Name) | ConvertTo-Json -Compress",
             ],
         )?;
-        let value: serde_json::Value = serde_json::from_str(raw.trim_start_matches('\u{feff}'))
-            .map_err(|_| "Inventario GPU inválido")?;
-        let values = value.as_array().cloned().unwrap_or_else(|| vec![value]);
-        Ok(values
+        let names = parse_json_names(&raw);
+        let real: Vec<_> = names
             .iter()
-            .filter_map(|v| v["Name"].as_str())
-            .filter(|n| !n.trim().is_empty())
+            .filter(|n| !is_virtual_rdp_adapter(n))
+            .cloned()
+            .collect();
+        // Si lo único que devolvió la sesión activa es el driver virtual de
+        // RDP (o nada), se pregunta por el hardware realmente instalado en
+        // vez de por lo que está renderizando esta sesión en particular.
+        let names = if real.is_empty() {
+            let fallback = provider_output(
+                "powershell.exe",
+                &[
+                    "-NoLogo",
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    "[Console]::OutputEncoding=[Text.UTF8Encoding]::new(); @(Get-PnpDevice -Class Display -PresentOnly | Select-Object @{Name='Name';Expression={$_.FriendlyName}}) | ConvertTo-Json -Compress",
+                ],
+            )
+            .map(|r| parse_json_names(&r))
+            .unwrap_or_default();
+            if fallback.is_empty() { names } else { fallback }
+        } else {
+            real
+        };
+        Ok(names
+            .into_iter()
             .map(|n| GpuAdapter {
-                name: n.to_string(),
+                name: n,
                 provider: "Windows CIM · Win32_VideoController".into(),
                 vram_bytes: None,
             })
@@ -199,6 +246,34 @@ pub async fn get_system_status() -> Result<SystemStatus, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rdp_virtual_adapters_are_recognized_and_real_gpus_are_not() {
+        assert!(is_virtual_rdp_adapter("Microsoft Basic Render Driver"));
+        assert!(is_virtual_rdp_adapter("Remote Desktop Display Adapter"));
+        assert!(is_virtual_rdp_adapter("RDP Encoder Mirror Driver"));
+        assert!(!is_virtual_rdp_adapter("AMD Radeon R7 Graphics"));
+        assert!(!is_virtual_rdp_adapter("NVIDIA GeForce RTX 4070"));
+    }
+
+    #[test]
+    fn json_name_parsing_handles_single_object_array_and_bom() {
+        assert_eq!(
+            parse_json_names("\u{feff}[{\"Name\":\"AMD Radeon R7 Graphics\"}]"),
+            vec!["AMD Radeon R7 Graphics"]
+        );
+        // PowerShell's ConvertTo-Json emits a bare object (not an array) when
+        // there's exactly one result — must still be read correctly.
+        assert_eq!(
+            parse_json_names("{\"Name\":\"Intel UHD Graphics\"}"),
+            vec!["Intel UHD Graphics"]
+        );
+        assert_eq!(
+            parse_json_names("[{\"Name\":\" \"},{\"Name\":\"Real GPU\"}]"),
+            vec!["Real GPU"]
+        );
+        assert!(parse_json_names("not json").is_empty());
+    }
 
     #[tokio::test]
     async fn status_measures_host_memory_and_keeps_missing_gpu_explicit() {
