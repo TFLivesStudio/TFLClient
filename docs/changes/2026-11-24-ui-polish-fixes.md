@@ -1,8 +1,9 @@
 # UI polish: carpeta de perfil, detección de GPU y visor de capturas
 
-Estado de trabajo: implementación incorporada y validada localmente (tests,
-reproducción visual en vivo). No certifica una release ni verificación nativa
-en Windows/macOS/Linux reales — eso corresponde a build de prueba.
+Estado de trabajo: incorporado en `v0.15.5-beta.1` (publicada el
+2026-11-24). Validado con tests, reproducción visual en vivo y CI en las tres
+plataformas; no sustituye una revisión manual en Windows/macOS/Linux reales
+de los flujos afectados.
 
 ## Reporte original
 
