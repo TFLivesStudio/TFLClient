@@ -6,7 +6,7 @@
 	"version": "1.0.0",
 	"description": "Tema oscuro y paisaje de dunas por capas. Arte original generado por el script del repositorio; sin código ejecutable ni permisos.",
 	"apiVersion": "^1.0.0",
-	"launcherVersion": ">=0.15.4-beta.3",
+	"launcherVersion": ">=0.15.5-beta.1",
 	"permissions": [],
 	"themes": [
 		{

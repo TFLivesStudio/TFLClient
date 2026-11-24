@@ -6,7 +6,7 @@
 	"version": "1.0.0",
 	"description": "Paquete de ejemplo funcional con traducción parcial de controles, navegación y plurales. Las claves no traducidas usan English (United States). No representa una traducción completa del launcher.",
 	"apiVersion": "^1.0.0",
-	"launcherVersion": ">=0.15.4-beta.3",
+	"launcherVersion": ">=0.15.5-beta.1",
 	"permissions": [],
 	"themes": [],
 	"scenes": [],
