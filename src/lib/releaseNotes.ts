@@ -5,6 +5,11 @@
 // no solo un link de salida. Agregar una entrada nueva cada vez que se
 // corta una versión — 2 a 5 líneas cortas, en criollo, sin jerga de código.
 export const RELEASE_NOTES: Record<string, string[]> = {
+	'0.15.5-beta.1': [
+		'El visor de capturas en tamaño completo ahora cubre toda la ventana, también con la barra lateral de instancias desplegada.',
+		'La carpeta de datos del perfil pasa a llamarse TFLClient. Tus instancias y ajustes se migran solos, sin pasos manuales.',
+		'Mejor detección de la GPU en el panel de Estado del sistema cuando jugás desde una sesión de Escritorio Remoto.'
+	],
 	'0.15.4': [
 		'Inicio reúne tu personaje, tus instancias recientes y el estado de tu equipo. El botón del lápiz abre la personalización.',
 		'Cambia entre Simple y Avanzado en la cabecera de Ajustes. Modern incorpora superficies translúcidas y Pixel conserva su estilo.',
