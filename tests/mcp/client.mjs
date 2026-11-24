@@ -49,6 +49,9 @@ const transport = new StdioClientTransport({
 });
 let diagnostics = '';
 transport.stderr?.on('data', (d) => (diagnostics += d));
+process.on('exit', () => {
+	if (diagnostics) console.error('--- tflclient-mcp stderr ---\n' + diagnostics);
+});
 await a.connect(transport);
 const tools = await a.listTools();
 assert(tools.tools.length >= 28);
