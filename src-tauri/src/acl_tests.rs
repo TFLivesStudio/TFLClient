@@ -392,7 +392,7 @@ fn production_csp_has_no_unsafe_inline_scripts_or_localhost() {
     );
     let deny = serde_json::to_string(&scope["deny"]).unwrap();
     assert!(
-        deny.contains(".tflclient/settings"),
+        deny.contains(".TFLClient/settings"),
         "falta denegar settings: {deny}"
     );
 }
@@ -403,7 +403,7 @@ fn asset_protocol_only_serves_icons_screenshots_and_wallpaper() {
     let app = app();
     let scope = app.asset_protocol_scope();
     let home = app.path().home_dir().expect("home directory unavailable");
-    let p = |rel: &str| Path::new(&home).join(".tflclient").join(rel);
+    let p = |rel: &str| Path::new(&home).join(".TFLClient").join(rel);
 
     // Lo que la interfaz muestra de verdad.
     for ok in [
@@ -415,7 +415,7 @@ fn asset_protocol_only_serves_icons_screenshots_and_wallpaper() {
         assert!(scope.is_allowed(p(ok)), "debería poder servirse: {ok}");
     }
 
-    // Todo lo demás de ~/.tflclient, en especial tokens y secrets.
+    // Todo lo demás de ~/.TFLClient, en especial tokens y secrets.
     for no in [
         "settings/settings.tfl",
         "settings/playit.tfl",

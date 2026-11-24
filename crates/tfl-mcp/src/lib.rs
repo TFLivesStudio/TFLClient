@@ -42,11 +42,11 @@ pub fn endpoint_path() -> PathBuf {
         && root.is_absolute()
         && root.is_dir()
     {
-        return root.join(".tflclient/settings/mcp/endpoint.json");
+        return root.join(".TFLClient/settings/mcp/endpoint.json");
     }
     directories::UserDirs::new()
-        .map(|u| u.home_dir().join(".tflclient/settings/mcp/endpoint.json"))
-        .unwrap_or_else(|| PathBuf::from(".tflclient/settings/mcp/endpoint.json"))
+        .map(|u| u.home_dir().join(".TFLClient/settings/mcp/endpoint.json"))
+        .unwrap_or_else(|| PathBuf::from(".TFLClient/settings/mcp/endpoint.json"))
 }
 pub async fn read_frame<R: tokio::io::AsyncBufRead + Unpin>(
     reader: &mut R,

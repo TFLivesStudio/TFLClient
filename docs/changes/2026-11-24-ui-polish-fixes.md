@@ -102,42 +102,57 @@ cubre toda la ventana en ambos casos ahora.
   `main`) para cargar la app sin backend Tauri y verificar los puntos 1, 3 y 4
   con datos e interacción reales en el navegador.
 
-## Bloqueo de CI: "Native MCP stdio acceptance" (job Rust)
+## Bloqueo de CI resuelto: el propio fix 1 rompía el MCP y el asset protocol en Linux
 
-El job "Rust (fmt+clippy+tests+audit)" de este PR falló 4 veces consecutivas
-en el paso "Native MCP stdio acceptance (isolated profile)" con
-`McpError: MCP error -32000: Connection closed`. Investigación:
+El job "Rust (fmt+clippy+tests+audit)" falló 4 veces consecutivas en "Native
+MCP stdio acceptance (isolated profile)" con `McpError: MCP error -32000:
+Connection closed`. Causa real, encontrada tras instrumentar el diagnóstico
+(ver abajo): era una regresión del propio fix 1 de este PR, visible solo en
+Linux (sistema de archivos sensible a mayúsculas).
 
-- `tfl-mcp`/`tflclient-mcp` no depende del crate `tflclient` (donde viven los
-  3 fixes de este PR): confirmado leyendo `crates/tfl-mcp/Cargo.toml` y
-  `crates/tfl-mcp/src/lib.rs`. Los fixes no pueden tocar ese binario.
-- El único diff real de `Cargo.lock` contra `main` son `cookie` 0.18.3,
-  `form_urlencoded` 1.2.3 y `url` 2.5.9 (bump de seguridad, sin relación con
-  transporte stdio de MCP).
-- Reproducción completa de la secuencia de CI (build de `mcp_host` y
-  `tflclient-mcp`, lanzamiento bajo xvfb, `node tests/mcp/client.mjs`) en
-  local con el código exacto de esta rama: pasa limpio (35 tools, todos los
-  grupos de test en verde).
-- El log del job muestra que el cliente node corre ~27s (varios tool calls)
-  antes de que la conexión se cierre — no es un rechazo de conexión inicial,
-  es una desconexión a mitad de la batería de aceptación.
-- El propio paso de CI (`set -euo pipefail`) abortaba antes de imprimir
-  `/tmp/tfl-mcp-host.log`, así que el diagnóstico del lado servidor (el
-  proceso `mcp_host`) nunca se veía — y el artifact `mcp-native-acceptance`
-  salía vacío siempre ("No files were found"). Se corrigió esto en
-  `.github/workflows/ci.yml` (capturar el código de salida del cliente,
-  volcar el log de `mcp_host` siempre, y recién después re-lanzar el error)
-  para poder ver evidencia real en el próximo intento.
-- No se pudo reproducir en un entorno Linux+xvfb real fuera de CI: Docker no
-  tiene daemon corriendo en esta máquina y Docker Desktop no está instalado
-  (confirmado, no solo "no corriendo").
+`tfl-mcp` (el binario `tflclient-mcp`, sin dependencia de Cargo hacia
+`tflclient`) tiene su **propia** constante hardcodeada de la carpeta de
+perfil en `crates/tfl-mcp/src/lib.rs::endpoint_path()`, duplicada de
+`path_manager.rs` en vez de reutilizarla. Al renombrar la carpeta de perfil
+a `.TFLClient` (fix 1) sin actualizar esa copia, `mcp_host` escribía
+`endpoint.json` en `.TFLClient/settings/mcp/`, pero `tflclient-mcp` seguía
+leyendo de `.tflclient/settings/mcp/` (minúscula) — mismo directorio en
+macOS/Windows por la insensibilidad a mayúsculas, directorios realmente
+distintos en Linux. `tflclient-mcp` no encontraba el archivo, imprimía `TFL
+MCP: MCP is disabled or launcher is closed...` por stderr y cerraba stdout,
+que es exactamente lo que el SDK reporta como "Connection closed".
 
-Conclusión de momento: evidencia fuerte de que no es causado por los 3 fixes
-de este PR ni por el bump de `cookie`/`url`; probablemente específico del
-runner Linux de CI (xvfb/webkitgtk) bajo la batería completa de 35
-herramientas. Pendiente: leer el log de `mcp_host` que el fix de CI ahora
-expone, para confirmar la causa exacta antes de decidir si se reintenta o se
-avanza con el merge de todas formas.
+El `scope` del asset protocol en `src-tauri/tauri.conf.json` tenía el mismo
+problema por el mismo motivo: `$HOME/.tflclient/instances/.../icon.*` seguía
+en minúscula. El matching de ese scope es por string, no por filesystem, así
+que esto rompía en **todas** las plataformas (no solo Linux): los iconos y
+capturas de instancia habrían dejado de servirse tras este PR.
+
+No se vio antes porque:
+
+- `tests/mcp/client.mjs` capturaba el stderr real del proceso
+  (`transport.stderr`) en una variable (`diagnostics`) que solo se
+  inspeccionaba con una regex al final de una corrida exitosa — nunca se
+  imprimía en una falla. Se agregó un `process.on('exit', ...)` que la
+  vuelca a stderr siempre.
+- El paso de CI (`set -euo pipefail`) abortaba en el instante en que el
+  cliente node fallaba, antes de llegar a volcar `/tmp/tfl-mcp-host.log`.
+  Se corrigió `.github/workflows/ci.yml` para capturar el código de salida,
+  volcar siempre ese log, y recién después re-lanzar el error.
+- La reproducción local en Mac pasaba limpia porque macOS es insensible a
+  mayúsculas: ambas rutas (`.tflclient` y `.TFLClient`) apuntan a la misma
+  carpeta real ahí, así que el bug nunca se manifestaba.
+- Los tests de ACL del asset protocol (`acl_tests.rs`) construían sus propios
+  fixtures con `.tflclient` en minúscula, consistentes entre sí pero sin
+  reflejar el nombre real post-rename — el test validaba contra su propia
+  copia del dato, no contra la verdad en disco.
+
+Arreglado: `crates/tfl-mcp/src/lib.rs` (endpoint_path), `tests/mcp/client.mjs`
+(fixture de instancias), `src-tauri/tauri.conf.json` (scope del asset
+protocol) y `src-tauri/src/acl_tests.rs` (fixtures de esos tests) ahora usan
+`.TFLClient` de forma consistente con `path_manager.rs`. Verificado en local
+con el flujo real de aceptación MCP (35 tools, todos los grupos en verde,
+contra un perfil nuevo sin migrar) y con el workspace completo de tests.
 
 ## Aparte: segundo lote de avisos de `cargo audit`
 

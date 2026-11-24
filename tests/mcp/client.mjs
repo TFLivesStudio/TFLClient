@@ -137,7 +137,7 @@ const changedMemory = data(
 	await call('tfl_set_instance_memory', { instance_id: uuid, min_mb: 512, max_mb: 1024 })
 );
 assert.equal(changedMemory.max_memory_mb, 1024);
-const dir = path.join(profile, '.tflclient', 'instances', args.name);
+const dir = path.join(profile, '.TFLClient', 'instances', args.name);
 await mkdir(path.join(dir, 'saves', 'TestWorld'), { recursive: true });
 await writeFile(path.join(dir, 'saves', 'TestWorld', 'level.dat'), 'test world fixture');
 assert(data(await call('tfl_list_worlds', { instance_id: uuid })).worlds.includes('TestWorld'));

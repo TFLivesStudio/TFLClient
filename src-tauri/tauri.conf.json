@@ -49,12 +49,12 @@
 				"enable": true,
 				"scope": {
 					"allow": [
-						"$HOME/.tflclient/instances/*/icon.*",
-						"$HOME/.tflclient/instances/*/screenshots/*",
-						"$HOME/.tflclient/shared/appearance/*",
-						"$HOME/.tflclient/shared/appearance/scenes/*"
+						"$HOME/.TFLClient/instances/*/icon.*",
+						"$HOME/.TFLClient/instances/*/screenshots/*",
+						"$HOME/.TFLClient/shared/appearance/*",
+						"$HOME/.TFLClient/shared/appearance/scenes/*"
 					],
-					"deny": ["$HOME/.tflclient/settings/**"]
+					"deny": ["$HOME/.TFLClient/settings/**"]
 				}
 			}
 		}
